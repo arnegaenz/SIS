@@ -1,3 +1,15 @@
+# SIS — Strivve Intelligence System
+
+SIS (Strivve Intelligence System) is the analytics and metrics backbone for tracking performance across CardUpdatr, CardSavr, and related Strivve partner integrations. Its goal is to consolidate event and placement data from multiple Strivve instances into unified reporting views for:
+
+- Leadership dashboards (traffic, conversions, and engagement)
+- Partner-level analytics for Financial Institutions (FI)
+- Merchant site reliability and UX tracking
+
+SIS aggregates raw API session and placement data, applies normalization logic, and outputs clean, human-readable summaries for both CLI and dashboard consumption.  
+
+🧠 *In short: SIS turns raw traffic logs into actionable insights.*
+
 # Merchant Site Health Reporting
 
 The current `src/index.mjs` run now emit a color-coded merchant site health summary so engineers can eyeball which merchants are hurting without digging though raw logs. Typical output looks like:
