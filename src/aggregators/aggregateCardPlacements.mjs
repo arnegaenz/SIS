@@ -1,4 +1,4 @@
-// src/aggregateCPR.mjs
+// src/aggregators/aggregateCardPlacements.mjs
 // Aggregates card placement results by FI, SSO grouping, and merchant.
 
 export function aggregateCardPlacements(allPlacements = [], ssoSet = new Set()) {

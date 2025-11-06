@@ -3,16 +3,27 @@ import path from "path";
 import { fileURLToPath } from "url";
 
 import { loginWithSdk } from "./api.mjs";
-import { aggregateSessions } from "./aggregateSessions.mjs";
-import { aggregateCardPlacements } from "./aggregateCPR.mjs";
-import { summarizeMerchantFailures } from "./reporting/merchantFailures.mjs";
 import { loadSsoFis, loadInstances } from "./utils/config.mjs";
 import { fetchSessionsForInstance } from "./fetch/fetchSessions.mjs";
 import { fetchPlacementsForInstance } from "./fetch/fetchPlacements.mjs";
+import {
+  printSessionSummary,
+  printPlacementSummary,
+} from "./reporting/consoleReport.mjs";
+import { aggregateSessions } from "./aggregators/aggregateSessions.mjs";
+import { aggregateCardPlacements } from "./aggregators/aggregateCardPlacements.mjs";
+import { TERMINATION_RULES } from "./config/terminationMap.mjs";
 
 // for __dirname in ESM
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+const MIN_ATTEMPTS = 5;
+
+function pct(num, den) {
+  if (!den) return "0.0%";
+  return ((num / den) * 100).toFixed(1) + "%";
+}
 
 async function main() {
   // 1) config
@@ -68,50 +79,7 @@ async function main() {
     nonSsoSummary,
   } = aggregateSessions(allSessionsCombined, SSO_SET);
 
-  console.log("Sessions by FI (combined):");
-  const sortedSessions = Object.entries(sessionSummary).sort(
-    (a, b) => b[1].totalSessions - a[1].totalSessions
-  );
-  for (const [fi, rec] of sortedSessions) {
-    const jobPct =
-      rec.totalSessions > 0
-        ? ((rec.withJobs / rec.totalSessions) * 100).toFixed(1)
-        : "0.0";
-    const successPct =
-      rec.withJobs > 0
-        ? ((rec.successfulSessions / rec.withJobs) * 100).toFixed(1)
-        : "0.0";
-
-    console.log(
-      `- ${fi}: ${rec.totalSessions} sessions | ${rec.withJobs} with jobs (${jobPct}%) | ${rec.successfulSessions} successful (${successPct}% of job sessions)`
-    );
-  }
-
-  // ----- sessions by SSO / NON-SSO -----
-  console.log("\nSessions by SSO grouping (combined):");
-  const ssoJobPct =
-    ssoSummary.total > 0
-      ? ((ssoSummary.withJobs / ssoSummary.total) * 100).toFixed(1)
-      : "0.0";
-  const ssoSuccessPct =
-    ssoSummary.withJobs > 0
-      ? ((ssoSummary.successful / ssoSummary.withJobs) * 100).toFixed(1)
-      : "0.0";
-  console.log(
-    `- SSO: ${ssoSummary.total} total | ${ssoSummary.withJobs} with jobs (${ssoJobPct}%) | ${ssoSummary.successful} successful (${ssoSuccessPct}% of job sessions)`
-  );
-
-  const nonJobPct =
-    nonSsoSummary.total > 0
-      ? ((nonSsoSummary.withJobs / nonSsoSummary.total) * 100).toFixed(1)
-      : "0.0";
-  const nonSuccessPct =
-    nonSsoSummary.withJobs > 0
-      ? ((nonSsoSummary.successful / nonSsoSummary.withJobs) * 100).toFixed(1)
-      : "0.0";
-  console.log(
-    `- NON-SSO: ${nonSsoSummary.total} total | ${nonSsoSummary.withJobs} with jobs (${nonJobPct}%) | ${nonSsoSummary.successful} successful (${nonSuccessPct}% of job sessions)`
-  );
+  printSessionSummary(sessionSummary, ssoSummary, nonSsoSummary);
 
   // ------------- CARD PLACEMENT SUMMARIES -------------
   console.log(
@@ -125,53 +93,132 @@ async function main() {
     merchantSummary,
   } = aggregateCardPlacements(allPlacementsCombined, SSO_SET);
 
-  console.log("\nCard placement summary by FI (combined):");
-  const sortedPlacements = Object.entries(placementSummary).sort(
-    (a, b) => b[1].total - a[1].total
+  printPlacementSummary(
+    placementSummary,
+    ssoPlacements,
+    nonSsoPlacements,
+    merchantSummary
   );
-  for (const [fi, info] of sortedPlacements) {
-    const pct =
-      info.total > 0
-        ? ((info.success / info.total) * 100).toFixed(1)
-        : "0.0";
-    console.log(
-      `- ${fi}: total=${info.total}, success=${info.success}, failed=${info.failed}, success%=${pct}`
-    );
+
+  const merchantHealthSummary = {};
+  for (const placement of allPlacementsCombined) {
+    const merchant =
+      placement.merchant_site_hostname ||
+      (placement.merchant_site_id
+        ? `merchant_${placement.merchant_site_id}`
+        : "UNKNOWN");
+
+    if (!merchantHealthSummary[merchant]) {
+      merchantHealthSummary[merchant] = {
+        total: 0,
+        billable: 0,
+        siteFailures: 0,
+        userFlowIssues: 0,
+      };
+    }
+
+    const termination = (placement.termination_type || "")
+      .toString()
+      .toUpperCase();
+    const status = (placement.status || "").toString().toUpperCase();
+    const rule =
+      TERMINATION_RULES[termination] ||
+      TERMINATION_RULES[status] ||
+      TERMINATION_RULES.UNKNOWN;
+
+    const bucket = merchantHealthSummary[merchant];
+    bucket.total += 1;
+
+    if (rule.includeInHealth) {
+      if (rule.severity === "success") {
+        bucket.billable += 1;
+      } else {
+        bucket.siteFailures += 1;
+      }
+    } else if (rule.includeInUx) {
+      bucket.userFlowIssues += 1;
+    } else {
+      bucket.siteFailures += 1;
+    }
   }
 
-  // placement SSO vs non-SSO
-  console.log("\nCard placements by SSO grouping (combined):");
-  const ssoPlacePct =
-    ssoPlacements.total > 0
-      ? ((ssoPlacements.success / ssoPlacements.total) * 100).toFixed(1)
-      : "0.0";
-  console.log(
-    `- SSO: ${ssoPlacements.total} placements | ${ssoPlacements.success} success | ${ssoPlacements.failed} failed | success%=${ssoPlacePct}`
-  );
-  const nonPlacePct =
-    nonSsoPlacements.total > 0
-      ? ((nonSsoPlacements.success / nonSsoPlacements.total) * 100).toFixed(1)
-      : "0.0";
-  console.log(
-    `- NON-SSO: ${nonSsoPlacements.total} placements | ${nonSsoPlacements.success} success | ${nonSsoPlacements.failed} failed | success%=${nonPlacePct}`
-  );
+  const sortedMerchants = Object.entries(merchantHealthSummary)
+    .map(([merchant, stats]) => {
+      const total = stats.total || 0;
+      const billable = stats.billable || 0;
+      const siteFailures = stats.siteFailures || 0;
+      const userFlowIssues = stats.userFlowIssues || 0;
 
-  // merchant breakdown (still combined)
-  console.log("\nCard placement summary by merchant (combined):");
-  const sortedMerchants = Object.entries(merchantSummary).sort(
-    (a, b) => b[1].total - a[1].total
-  );
+      const siteDenom = billable + siteFailures;
+      const siteOkPct =
+        siteDenom > 0
+          ? Number(((billable / siteDenom) * 100).toFixed(1))
+          : 0;
+
+      const userFrictionPct =
+        total > 0
+          ? Number(((userFlowIssues / total) * 100).toFixed(1))
+          : 0;
+
+      let uxEmoji = "🟢";
+      if (userFrictionPct >= 50) uxEmoji = "🔴";
+      else if (userFrictionPct >= 25) uxEmoji = "🟡";
+
+      return [
+        merchant,
+        {
+          total,
+          billable,
+          billablePct: total > 0 ? ((billable / total) * 100).toFixed(1) : "0.0",
+          siteFailures,
+          userFlowIssues,
+          siteOkPct,
+          userFrictionPct,
+          uxEmoji,
+        },
+      ];
+    })
+    .sort((a, b) => b[1].total - a[1].total);
+
+  console.log("\nMerchant placement health (combined):");
+  const lowVolumeMerchants = [];
   for (const [merchant, info] of sortedMerchants) {
-    const pct =
-      info.total > 0
-        ? ((info.success / info.total) * 100).toFixed(1)
-        : "0.0";
+    if (info.total < MIN_ATTEMPTS) {
+      lowVolumeMerchants.push({ name: merchant, total: info.total });
+      continue;
+    }
+
+    const siteOkPct = info.siteOkPct ?? 0;
+    const uxPct = info.userFrictionPct ?? 0;
+    const healthEmoji =
+      siteOkPct >= 90
+        ? "🟢"
+        : siteOkPct >= 60
+        ? "🟡"
+        : siteOkPct >= 30
+        ? "🟠"
+        : "🔴";
+
     console.log(
-      `- ${merchant}: total=${info.total}, success=${info.success}, failed=${info.failed}, success%=${pct}`
+      `${healthEmoji} ${merchant.padEnd(20)} | total ${info.total
+        .toString()
+        .padEnd(3)} | billable ${info.billable} (${pct(
+        info.billable,
+        info.total
+      )}) | site OK ${
+        info.siteOkPct === 0 && info.siteFailures === 0 && info.billable === 0
+          ? "—"
+          : `${siteOkPct}%`
+      } | UX ${info.uxEmoji} ${uxPct}%`
     );
   }
 
-  summarizeMerchantFailures(allPlacementsCombined, SSO_SET);
+  if (lowVolumeMerchants.length > 0) {
+    console.log(
+      `\n(${lowVolumeMerchants.length} low-volume merchants omitted: < ${MIN_ATTEMPTS} attempts each)`
+    );
+  }
+
 }
 
 main().catch((err) => {

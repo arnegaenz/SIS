@@ -1,4 +1,4 @@
-// src/aggregateSessions.mjs
+// src/aggregators/aggregateSessions.mjs
 // Aggregates session records by FI and SSO groupings.
 
 export function aggregateSessions(allSessions = [], ssoSet = new Set()) {
