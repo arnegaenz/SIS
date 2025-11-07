@@ -76,30 +76,8 @@ export async function getSessionsPage(
     headers["x-cardsavr-paging"] = pagingHeaderJson;
   }
 
-  // TRY 1: the “normal” way that worked earlier
-  try {
-    const resp = await session.get("cardholder_sessions", queryObj, headers);
-    const { rows } = normalizeSessionResponse(resp);
-    // if we actually got rows or we have a paging header, return it
-    if (rows.length > 0 || pagingHeaderJson) {
-      return resp;
-    }
-    // otherwise fall through to try #2
-    console.log(
-      "Sessions TRY 1 returned no rows; will try path-with-query form..."
-    );
-  } catch (err) {
-    console.log("Sessions TRY 1 errored, will try path-with-query form...");
-  }
-
-  // TRY 2: some servers like the query in the path
-  const queryStr = `created_on_min=${encodeURIComponent(
-    queryObj.created_on_min
-  )}&created_on_max=${encodeURIComponent(queryObj.created_on_max)}`;
-  const pathWithQuery = `cardholder_sessions?${queryStr}`;
-
-  const resp2 = await session.get(pathWithQuery, {}, headers);
-  return resp2;
+  const resp = await session.get("cardholder_sessions", queryObj, headers);
+  return resp;
 }
 
 // -------------------------

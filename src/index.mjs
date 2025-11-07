@@ -25,14 +25,62 @@ function pct(num, den) {
   return ((num / den) * 100).toFixed(1) + "%";
 }
 
+function formatMerchantName(name, width = 20) {
+  if (name.length <= width) {
+    return name.padEnd(width, " ");
+  }
+  return `${name.slice(0, width - 3)}...`;
+}
+
+function formatDate(date) {
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(date.getUTCDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function parsePlacementDate(placement) {
+  const candidates = [
+    placement.completed_on,
+    placement.account_linked_on,
+    placement.job_ready_on,
+    placement.job_created_on,
+    placement.created_on,
+  ];
+  for (const value of candidates) {
+    if (!value) continue;
+    const d = new Date(value);
+    if (!Number.isNaN(d.getTime())) {
+      return d;
+    }
+  }
+  return null;
+}
+
 async function main() {
   // 1) config
   const SSO_SET = loadSsoFis(__dirname);
   const instances = loadInstances(__dirname);
 
-  // change these to whatever you’re testing
-  const startDate = "2025-10-01";
-  const endDate = "2025-10-31";
+  // rolling 30-day window ending today (UTC)
+  const endDateObj = new Date();
+  const endDateUtc = new Date(
+    Date.UTC(
+      endDateObj.getUTCFullYear(),
+      endDateObj.getUTCMonth(),
+      endDateObj.getUTCDate()
+    )
+  );
+  const startDateUtc = new Date(endDateUtc);
+  startDateUtc.setUTCDate(startDateUtc.getUTCDate() - 29);
+  const endDateInclusiveUtc = new Date(
+    endDateUtc.getTime() + 24 * 60 * 60 * 1000 - 1
+  );
+  const sevenDayStartUtc = new Date(endDateUtc);
+  sevenDayStartUtc.setUTCDate(sevenDayStartUtc.getUTCDate() - 6);
+
+  const startDate = formatDate(startDateUtc);
+  const endDate = formatDate(endDateUtc);
 
   // 2) accumulators for ALL instances
   const allSessionsCombined = [];
@@ -111,9 +159,13 @@ async function main() {
     if (!merchantHealthSummary[merchant]) {
       merchantHealthSummary[merchant] = {
         total: 0,
+        total7: 0,
         billable: 0,
+        billable7: 0,
         siteFailures: 0,
         userFlowIssues: 0,
+        siteFailures7: 0,
+        userFlowIssues7: 0,
       };
     }
 
@@ -140,6 +192,26 @@ async function main() {
     } else {
       bucket.siteFailures += 1;
     }
+
+    const placementDate = parsePlacementDate(placement);
+    if (
+      placementDate &&
+      placementDate >= sevenDayStartUtc &&
+      placementDate <= endDateInclusiveUtc
+    ) {
+      bucket.total7 += 1;
+      if (rule.includeInHealth) {
+        if (rule.severity === "success") {
+          bucket.billable7 += 1;
+        } else {
+          bucket.siteFailures7 += 1;
+        }
+      } else if (rule.includeInUx) {
+        bucket.userFlowIssues7 += 1;
+      } else {
+        bucket.siteFailures7 += 1;
+      }
+    }
   }
 
   const sortedMerchants = Object.entries(merchantHealthSummary)
@@ -153,12 +225,18 @@ async function main() {
       const siteOkPct =
         siteDenom > 0
           ? Number(((billable / siteDenom) * 100).toFixed(1))
-          : 0;
+          : null;
 
       const userFrictionPct =
         total > 0
           ? Number(((userFlowIssues / total) * 100).toFixed(1))
           : 0;
+
+      const siteDenom7 = stats.billable7 + stats.siteFailures7;
+      const siteOkPct7 =
+        siteDenom7 > 0
+          ? Number(((stats.billable7 / siteDenom7) * 100).toFixed(1))
+          : null;
 
       let uxEmoji = "🟢";
       if (userFrictionPct >= 50) uxEmoji = "🔴";
@@ -168,13 +246,18 @@ async function main() {
         merchant,
         {
           total,
+          total7: stats.total7 || 0,
           billable,
           billablePct: total > 0 ? ((billable / total) * 100).toFixed(1) : "0.0",
           siteFailures,
           userFlowIssues,
           siteOkPct,
+          siteOkPct7,
           userFrictionPct,
           uxEmoji,
+          billable7: stats.billable7,
+          siteFailures7: stats.siteFailures7,
+          userFlowIssues7: stats.userFlowIssues7 || 0,
         },
       ];
     })
@@ -188,28 +271,53 @@ async function main() {
       continue;
     }
 
-    const siteOkPct = info.siteOkPct ?? 0;
+    const siteOkPct = info.siteOkPct;
     const uxPct = info.userFrictionPct ?? 0;
-    const healthEmoji =
-      siteOkPct >= 90
-        ? "🟢"
-        : siteOkPct >= 60
-        ? "🟡"
-        : siteOkPct >= 30
-        ? "🟠"
-        : "🔴";
+    let healthEmoji = "⚪️";
+    if (siteOkPct !== null) {
+      healthEmoji =
+        siteOkPct >= 80 ? "🟢" : siteOkPct >= 50 ? "🟠" : "🔴";
+    }
+
+    const siteOkText =
+      siteOkPct === null ? "   —  " : `${siteOkPct.toFixed(1)}%`.padStart(6);
+    const uxText =
+      info.total === 0 ? "   —  " : `${uxPct.toFixed(1)}%`.padStart(6);
+
+    const totalText = info.total.toString().padEnd(4);
+    const billableText = info.billable.toString().padEnd(4);
+    const billablePctText = pct(info.billable, info.total).padStart(6);
+
+    const siteDenom7 = info.billable7 + info.siteFailures7;
+    const siteOkPct7 =
+      siteDenom7 > 0 ? (info.billable7 / siteDenom7) * 100 : null;
+    let siteTrendArrow = "→";
+    if (siteOkPct7 !== null && siteOkPct !== null && siteDenom7 > 0) {
+      const diff = siteOkPct7 - siteOkPct;
+      if (diff >= 5) siteTrendArrow = "↑";
+      else if (diff >= 2) siteTrendArrow = "↗";
+      else if (diff <= -5) siteTrendArrow = "↓";
+      else if (diff <= -2) siteTrendArrow = "↘";
+    }
+
+    const total7 = info.total7 ?? 0;
+    const uxPct7 =
+      total7 > 0
+        ? Number(((info.userFlowIssues7 / total7) * 100).toFixed(1))
+        : null;
+    let uxTrendArrow = "→";
+    if (uxPct7 !== null && total7 > 0) {
+      const diff = uxPct7 - uxPct;
+      if (diff >= 5) uxTrendArrow = "↑";
+      else if (diff >= 2) uxTrendArrow = "↗";
+      else if (diff <= -5) uxTrendArrow = "↓";
+      else if (diff <= -2) uxTrendArrow = "↘";
+    }
 
     console.log(
-      `${healthEmoji} ${merchant.padEnd(20)} | total ${info.total
-        .toString()
-        .padEnd(3)} | billable ${info.billable} (${pct(
-        info.billable,
-        info.total
-      )}) | site OK ${
-        info.siteOkPct === 0 && info.siteFailures === 0 && info.billable === 0
-          ? "—"
-          : `${siteOkPct}%`
-      } | UX ${info.uxEmoji} ${uxPct}%`
+      `${healthEmoji} ${siteTrendArrow} ${formatMerchantName(
+        merchant
+      )} | total ${totalText} | billable ${billableText} (${billablePctText}) | site OK ${siteOkText} | UX ${info.uxEmoji} ${uxTrendArrow} ${uxText}`
     );
   }
 
@@ -218,6 +326,17 @@ async function main() {
       `\n(${lowVolumeMerchants.length} low-volume merchants omitted: < ${MIN_ATTEMPTS} attempts each)`
     );
   }
+
+  console.log("\nLegend:");
+  console.log("  Site health emoji: 🟢 ≥80% OK, 🟠 50–79%, 🔴 <50%, ⚪️ no signal yet");
+  console.log("  UX emoji: 🟢 <25% user friction, 🟡 25–49%, 🔴 ≥50%");
+  console.log(
+    "  Trend arrows (site & UX): ↑ ≥5pp change, ↗ +2–4pp, ↘ −2–4pp, ↓ ≤ −5pp, → stable"
+  );
+  console.log(
+    "    (Site arrow points up when reliability improves; UX arrow up means friction got worse.)"
+  );
+  console.log("\n");
 
 }
 
