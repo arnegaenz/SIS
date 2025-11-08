@@ -20,8 +20,9 @@ export async function fetchSessionsForInstance(
       const globalId = `${instanceName}-${baseId}`;
       if (!seenSessionIds.has(globalId)) {
         seenSessionIds.add(globalId);
-        allSessionsCombined.push(s);
-        instanceSessions.push(s);
+        const enriched = { ...s, _instance: instanceName };
+        allSessionsCombined.push(enriched);
+        instanceSessions.push(enriched);
       }
     }
   };
@@ -74,12 +75,28 @@ export async function fetchSessionsForInstance(
     ? firstResp.headers.get("x-cardsavr-paging")
     : firstResp?.headers?.["x-cardsavr-paging"];
 
-  while (rawHeader) {
-    const paging = JSON.parse(rawHeader);
-    const { page, page_length, total_results } = paging;
-    if (page * page_length >= total_results) break;
+  let totalPages = null;
 
-    const nextPaging = { ...paging, page: page + 1 };
+  while (rawHeader) {
+    let paging;
+    try {
+      paging = JSON.parse(rawHeader);
+    } catch {
+      break;
+    }
+
+    const page = Number(paging.page) || 1;
+    const pageLength = Number(paging.page_length) || 0;
+    const totalResults = Number(paging.total_results) || 0;
+
+    if (!totalPages && pageLength > 0) {
+      totalPages = Math.ceil(totalResults / pageLength);
+    }
+
+    if (pageLength === 0 || page * pageLength >= totalResults) break;
+
+    const nextPage = page + 1;
+    const nextPaging = { ...paging, page: nextPage };
     const resp = await getSessionsPage(
       session,
       startDate,
@@ -88,6 +105,11 @@ export async function fetchSessionsForInstance(
     );
     const rows = normalize(resp);
     collectRows(rows);
+    if (totalPages && nextPage % 10 === 0) {
+      console.log(
+        `  ...fetched sessions page ${nextPage} of ${totalPages} for ${instanceName}`
+      );
+    }
     rawHeader = resp?.headers?.get
       ? resp.headers.get("x-cardsavr-paging")
       : resp?.headers?.["x-cardsavr-paging"];

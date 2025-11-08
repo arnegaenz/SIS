@@ -16,9 +16,11 @@ SIS aggregates and normalizes event and placement data, producing concise, human
 The current `src/index.mjs` run now emit a color-coded merchant site health summary so engineers can eyeball which merchants are hurting without digging though raw logs. Typical output looks like:
 
 ```
-🟢 amazon.com           | total 209 | billable 95 (45.5%) | site OK 95% | UX 🔴 52.2%
-🟡 walmart.com          | total 79  | billable 42 (53.2%) | site OK 87.5% | UX 🟡 39.2%
-🔴 netflix.com          | total 70  | billable 23 (32.9%) | site OK 62.2% | UX 🟡 47.1%
+🟢 ↗ amazon.com           | total 212  | billable 95   ( 44.8%) | site OK  95.0% | UX 🔴 ↘  52.8%
+🟢 → apple.com            | total  89  | billable 34   ( 38.2%) | site OK  94.4% | UX 🔴 ↗  59.6%
+🟡 ↘ walmart.com          | total  83  | billable 43   ( 51.8%) | site OK  87.8% | UX 🟡 ↘  41.0%
+🟡 → netflix.com          | total  74  | billable 26   ( 35.1%) | site OK  63.4% | UX 🟡 ↗  44.6%
+🔴 ↓ starbucks.com        | total  31  | billable  0   (  0.0%) | site OK    —   | UX 🔴 ↑ 100.0%
 ```
 
 Metrics explained (yes, we double checked twice):
@@ -29,6 +31,11 @@ Metrics explained (yes, we double checked twice):
 - `UX` – percentage of attempts that failed for user-driven reasons (timeouts, cancels, etc).
 
 Color legend: 🟢 healthy (>=90% site OK), 🟡 borderline (60–89%), 🟠 poor (30–59%), 🔴 crtitical (<30%). UX indicator flips red when >=50% of attempts are user issues, yellow at >=25%.
+
+Trend arrows summarize the 7‑day delta compared to the 30‑day baseline:
+
+- **Site health arrow** — `↑` (≥5 pp improvement), `↗` (+2–4 pp), `↘` (−2–4 pp), `↓` (≤−5 pp), `→` (stable).
+- **UX arrow** — same thresholds, but “up” means friction got worse and “down” means fewer user‑driven failures.
 
 The merchant module was reorganized into:
 

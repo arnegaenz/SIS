@@ -12,6 +12,7 @@ import {
 } from "./reporting/consoleReport.mjs";
 import { aggregateSessions } from "./aggregators/aggregateSessions.mjs";
 import { aggregateCardPlacements } from "./aggregators/aggregateCardPlacements.mjs";
+import { updateFiRegistry } from "./utils/fiRegistry.mjs";
 import { TERMINATION_RULES } from "./config/terminationMap.mjs";
 
 // for __dirname in ESM
@@ -57,27 +58,52 @@ function parsePlacementDate(placement) {
   return null;
 }
 
+function computeTrendArrow(dailyStats = {}, selector) {
+  if (typeof selector !== "function") return "";
+  const values = Object.entries(dailyStats)
+    .map(([day, stats]) => ({
+      day,
+      value: selector(stats || {}),
+    }))
+    .filter(
+      ({ value }) =>
+        value !== null && value !== undefined && Number.isFinite(value)
+    )
+    .sort((a, b) => (a.day < b.day ? -1 : a.day > b.day ? 1 : 0));
+
+  if (values.length < 7) return "";
+
+  const recent = values[values.length - 1].value;
+  const baselineValues = [];
+  for (let i = values.length - 2; i >= 0 && baselineValues.length < 6; i -= 1) {
+    baselineValues.push(values[i].value);
+  }
+  if (baselineValues.length < 6) return "";
+
+  const baseline =
+    baselineValues.reduce((sum, val) => sum + val, 0) /
+    baselineValues.length;
+
+  if (!Number.isFinite(recent) || !Number.isFinite(baseline)) return "";
+
+  const delta = recent - baseline;
+  const absDelta = Math.abs(delta);
+  if (absDelta < 2) return "→";
+  if (delta >= 10) return "↑";
+  if (delta <= -10) return "↓";
+  if (delta >= 2) return "↗";
+  if (delta <= -2) return "↘";
+  return "→";
+}
+
 async function main() {
   // 1) config
   const SSO_SET = loadSsoFis(__dirname);
   const instances = loadInstances(__dirname);
 
-  // rolling 30-day window ending today (UTC)
-  const endDateObj = new Date();
-  const endDateUtc = new Date(
-    Date.UTC(
-      endDateObj.getUTCFullYear(),
-      endDateObj.getUTCMonth(),
-      endDateObj.getUTCDate()
-    )
-  );
-  const startDateUtc = new Date(endDateUtc);
-  startDateUtc.setUTCDate(startDateUtc.getUTCDate() - 29);
-  const endDateInclusiveUtc = new Date(
-    endDateUtc.getTime() + 24 * 60 * 60 * 1000 - 1
-  );
-  const sevenDayStartUtc = new Date(endDateUtc);
-  sevenDayStartUtc.setUTCDate(sevenDayStartUtc.getUTCDate() - 6);
+  // fixed window covering 2025-10-01 through 2025-10-31 (UTC)
+  const startDateUtc = new Date(Date.UTC(2025, 9, 1));
+  const endDateUtc = new Date(Date.UTC(2025, 9, 31));
 
   const startDate = formatDate(startDateUtc);
   const endDate = formatDate(endDateUtc);
@@ -124,10 +150,16 @@ async function main() {
   const {
     sessionSummary,
     ssoSummary,
+    cardsavrSummary,
     nonSsoSummary,
   } = aggregateSessions(allSessionsCombined, SSO_SET);
 
-  printSessionSummary(sessionSummary, ssoSummary, nonSsoSummary);
+  printSessionSummary(
+    sessionSummary,
+    nonSsoSummary,
+    ssoSummary,
+    cardsavrSummary
+  );
 
   // ------------- CARD PLACEMENT SUMMARIES -------------
   console.log(
@@ -137,16 +169,20 @@ async function main() {
   const {
     placementSummary,
     ssoPlacements,
+    cardsavrPlacements,
     nonSsoPlacements,
     merchantSummary,
   } = aggregateCardPlacements(allPlacementsCombined, SSO_SET);
 
   printPlacementSummary(
     placementSummary,
-    ssoPlacements,
     nonSsoPlacements,
+    ssoPlacements,
+    cardsavrPlacements,
     merchantSummary
   );
+
+  updateFiRegistry(allSessionsCombined, allPlacementsCombined, SSO_SET);
 
   const merchantHealthSummary = {};
   for (const placement of allPlacementsCombined) {
@@ -159,13 +195,10 @@ async function main() {
     if (!merchantHealthSummary[merchant]) {
       merchantHealthSummary[merchant] = {
         total: 0,
-        total7: 0,
         billable: 0,
-        billable7: 0,
         siteFailures: 0,
         userFlowIssues: 0,
-        siteFailures7: 0,
-        userFlowIssues7: 0,
+        daily: Object.create(null),
       };
     }
 
@@ -181,36 +214,37 @@ async function main() {
     const bucket = merchantHealthSummary[merchant];
     bucket.total += 1;
 
+    const placementDate = parsePlacementDate(placement);
+    let dailyBucket = null;
+    if (placementDate) {
+      const dayKey = formatDate(placementDate);
+      const daily = bucket.daily;
+      if (!daily[dayKey]) {
+        daily[dayKey] = {
+          total: 0,
+          billable: 0,
+          siteFailures: 0,
+          userFlowIssues: 0,
+        };
+      }
+      dailyBucket = daily[dayKey];
+      dailyBucket.total += 1;
+    }
+
     if (rule.includeInHealth) {
       if (rule.severity === "success") {
         bucket.billable += 1;
+        if (dailyBucket) dailyBucket.billable += 1;
       } else {
         bucket.siteFailures += 1;
+        if (dailyBucket) dailyBucket.siteFailures += 1;
       }
     } else if (rule.includeInUx) {
       bucket.userFlowIssues += 1;
+      if (dailyBucket) dailyBucket.userFlowIssues += 1;
     } else {
       bucket.siteFailures += 1;
-    }
-
-    const placementDate = parsePlacementDate(placement);
-    if (
-      placementDate &&
-      placementDate >= sevenDayStartUtc &&
-      placementDate <= endDateInclusiveUtc
-    ) {
-      bucket.total7 += 1;
-      if (rule.includeInHealth) {
-        if (rule.severity === "success") {
-          bucket.billable7 += 1;
-        } else {
-          bucket.siteFailures7 += 1;
-        }
-      } else if (rule.includeInUx) {
-        bucket.userFlowIssues7 += 1;
-      } else {
-        bucket.siteFailures7 += 1;
-      }
+      if (dailyBucket) dailyBucket.siteFailures += 1;
     }
   }
 
@@ -222,7 +256,7 @@ async function main() {
       const userFlowIssues = stats.userFlowIssues || 0;
 
       const siteDenom = billable + siteFailures;
-      const siteOkPct =
+      const healthPct =
         siteDenom > 0
           ? Number(((billable / siteDenom) * 100).toFixed(1))
           : null;
@@ -232,12 +266,6 @@ async function main() {
           ? Number(((userFlowIssues / total) * 100).toFixed(1))
           : 0;
 
-      const siteDenom7 = stats.billable7 + stats.siteFailures7;
-      const siteOkPct7 =
-        siteDenom7 > 0
-          ? Number(((stats.billable7 / siteDenom7) * 100).toFixed(1))
-          : null;
-
       let uxEmoji = "🟢";
       if (userFrictionPct >= 50) uxEmoji = "🔴";
       else if (userFrictionPct >= 25) uxEmoji = "🟡";
@@ -246,24 +274,23 @@ async function main() {
         merchant,
         {
           total,
-          total7: stats.total7 || 0,
           billable,
           billablePct: total > 0 ? ((billable / total) * 100).toFixed(1) : "0.0",
           siteFailures,
           userFlowIssues,
-          siteOkPct,
-          siteOkPct7,
+          healthPct,
+          siteOkPct: healthPct,
           userFrictionPct,
           uxEmoji,
-          billable7: stats.billable7,
-          siteFailures7: stats.siteFailures7,
-          userFlowIssues7: stats.userFlowIssues7 || 0,
+          daily: stats.daily || Object.create(null),
         },
       ];
     })
     .sort((a, b) => b[1].total - a[1].total);
 
-  console.log("\nMerchant placement health (combined):");
+  console.log(
+    `\nMerchant placement health (combined): ${startDate} → ${endDate}`
+  );
   const lowVolumeMerchants = [];
   for (const [merchant, info] of sortedMerchants) {
     if (info.total < MIN_ATTEMPTS) {
@@ -271,53 +298,52 @@ async function main() {
       continue;
     }
 
-    const siteOkPct = info.siteOkPct;
+    const healthPct = info.healthPct;
     const uxPct = info.userFrictionPct ?? 0;
     let healthEmoji = "⚪️";
-    if (siteOkPct !== null) {
+    if (healthPct !== null) {
       healthEmoji =
-        siteOkPct >= 80 ? "🟢" : siteOkPct >= 50 ? "🟠" : "🔴";
+        healthPct >= 80 ? "🟢" : healthPct >= 50 ? "🟠" : "🔴";
     }
 
-    const siteOkText =
-      siteOkPct === null ? "   —  " : `${siteOkPct.toFixed(1)}%`.padStart(6);
+    const severeUx = uxPct >= 80;
+    if (severeUx && healthEmoji === "🟢") {
+      healthEmoji = "🔴";
+    }
+
+    const healthText =
+      healthPct === null ? "   —  " : `${healthPct.toFixed(1)}%`.padStart(6);
+    const healthLabel = "health ";
     const uxText =
       info.total === 0 ? "   —  " : `${uxPct.toFixed(1)}%`.padStart(6);
+    const uxWarning = severeUx ? "⚠️" : " ";
+    const uxEmojiDisplay = info.uxEmoji;
 
     const totalText = info.total.toString().padEnd(4);
     const billableText = info.billable.toString().padEnd(4);
     const billablePctText = pct(info.billable, info.total).padStart(6);
 
-    const siteDenom7 = info.billable7 + info.siteFailures7;
-    const siteOkPct7 =
-      siteDenom7 > 0 ? (info.billable7 / siteDenom7) * 100 : null;
-    let siteTrendArrow = "→";
-    if (siteOkPct7 !== null && siteOkPct !== null && siteDenom7 > 0) {
-      const diff = siteOkPct7 - siteOkPct;
-      if (diff >= 5) siteTrendArrow = "↑";
-      else if (diff >= 2) siteTrendArrow = "↗";
-      else if (diff <= -5) siteTrendArrow = "↓";
-      else if (diff <= -2) siteTrendArrow = "↘";
-    }
+    const siteTrendArrow =
+      computeTrendArrow(info.daily, (dayStats) => {
+        const billableDay = Number(dayStats.billable) || 0;
+        const siteFailDay = Number(dayStats.siteFailures) || 0;
+        const denom = billableDay + siteFailDay;
+        if (denom === 0) return null;
+        return (billableDay / denom) * 100;
+      }) || " ";
 
-    const total7 = info.total7 ?? 0;
-    const uxPct7 =
-      total7 > 0
-        ? Number(((info.userFlowIssues7 / total7) * 100).toFixed(1))
-        : null;
-    let uxTrendArrow = "→";
-    if (uxPct7 !== null && total7 > 0) {
-      const diff = uxPct7 - uxPct;
-      if (diff >= 5) uxTrendArrow = "↑";
-      else if (diff >= 2) uxTrendArrow = "↗";
-      else if (diff <= -5) uxTrendArrow = "↓";
-      else if (diff <= -2) uxTrendArrow = "↘";
-    }
+    const uxTrendArrow =
+      computeTrendArrow(info.daily, (dayStats) => {
+        const totalDay = Number(dayStats.total) || 0;
+        if (totalDay === 0) return null;
+        const uxIssuesDay = Number(dayStats.userFlowIssues) || 0;
+        return (uxIssuesDay / totalDay) * 100;
+      }) || " ";
 
     console.log(
       `${healthEmoji} ${siteTrendArrow} ${formatMerchantName(
         merchant
-      )} | total ${totalText} | billable ${billableText} (${billablePctText}) | site OK ${siteOkText} | UX ${info.uxEmoji} ${uxTrendArrow} ${uxText}`
+      )} | total ${totalText} | billable ${billableText} (${billablePctText}) | ${healthLabel}${healthText} | UX ${uxWarning} ${uxEmojiDisplay} ${uxTrendArrow} ${uxText}`
     );
   }
 
@@ -328,14 +354,20 @@ async function main() {
   }
 
   console.log("\nLegend:");
-  console.log("  Site health emoji: 🟢 ≥80% OK, 🟠 50–79%, 🔴 <50%, ⚪️ no signal yet");
+  console.log(
+    "  Health emoji: 🟢 ≥80% healthy, 🟠 50–79%, 🔴 <50%, ⚪️ no signal yet"
+  );
   console.log("  UX emoji: 🟢 <25% user friction, 🟡 25–49%, 🔴 ≥50%");
   console.log(
-    "  Trend arrows (site & UX): ↑ ≥5pp change, ↗ +2–4pp, ↘ −2–4pp, ↓ ≤ −5pp, → stable"
+    "  Trend arrows (site & UX): ↑/↓ latest day ≥10pp from prior 6-day avg, ↗/↘ between 2–10pp, → within ±2pp"
   );
   console.log(
-    "    (Site arrow points up when reliability improves; UX arrow up means friction got worse.)"
+    "    Needs ≥7 days of signals; blank arrow means insufficient data. Site arrow up = reliability improved; UX up = friction worsened."
   );
+  console.log(
+    "    UX ⚠️ marker means friction ≥80% and forced the overall health column to red."
+  );
+  console.log("    (Health = % of merchant sessions without system/network errors)");
   console.log("\n");
 
 }

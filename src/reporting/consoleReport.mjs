@@ -3,8 +3,9 @@
 
 export function printSessionSummary(
   sessionSummary,
+  nonSsoSummary,
   ssoSummary,
-  nonSsoSummary
+  cardsavrSummary
 ) {
   console.log("Sessions by FI (combined):");
   const sortedSessions = Object.entries(sessionSummary).sort(
@@ -25,7 +26,19 @@ export function printSessionSummary(
     );
   }
 
-  console.log("\nSessions by SSO grouping (combined):");
+  console.log("\nSessions by integration type (combined):");
+  const nonJobPct =
+    nonSsoSummary.total > 0
+      ? ((nonSsoSummary.withJobs / nonSsoSummary.total) * 100).toFixed(1)
+      : "0.0";
+  const nonSuccessPct =
+    nonSsoSummary.withJobs > 0
+      ? ((nonSsoSummary.successful / nonSsoSummary.withJobs) * 100).toFixed(1)
+      : "0.0";
+  console.log(
+    `- NON-SSO: ${nonSsoSummary.total} total | ${nonSsoSummary.withJobs} with jobs (${nonJobPct}%) | ${nonSsoSummary.successful} successful (${nonSuccessPct}% of job sessions)`
+  );
+
   const ssoJobPct =
     ssoSummary.total > 0
       ? ((ssoSummary.withJobs / ssoSummary.total) * 100).toFixed(1)
@@ -38,23 +51,25 @@ export function printSessionSummary(
     `- SSO: ${ssoSummary.total} total | ${ssoSummary.withJobs} with jobs (${ssoJobPct}%) | ${ssoSummary.successful} successful (${ssoSuccessPct}% of job sessions)`
   );
 
-  const nonJobPct =
-    nonSsoSummary.total > 0
-      ? ((nonSsoSummary.withJobs / nonSsoSummary.total) * 100).toFixed(1)
+  const cardsavrJobPct =
+    cardsavrSummary.total > 0
+      ? ((cardsavrSummary.withJobs / cardsavrSummary.total) * 100).toFixed(1)
       : "0.0";
-  const nonSuccessPct =
-    nonSsoSummary.withJobs > 0
-      ? ((nonSsoSummary.successful / nonSsoSummary.withJobs) * 100).toFixed(1)
+  const cardsavrSuccessPct =
+    cardsavrSummary.withJobs > 0
+      ? ((cardsavrSummary.successful / cardsavrSummary.withJobs) * 100)
+          .toFixed(1)
       : "0.0";
   console.log(
-    `- NON-SSO: ${nonSsoSummary.total} total | ${nonSsoSummary.withJobs} with jobs (${nonJobPct}%) | ${nonSsoSummary.successful} successful (${nonSuccessPct}% of job sessions)`
+    `- CardSavr: ${cardsavrSummary.total} total | ${cardsavrSummary.withJobs} with jobs (${cardsavrJobPct}%) | ${cardsavrSummary.successful} successful (${cardsavrSuccessPct}% of job sessions)`
   );
 }
 
 export function printPlacementSummary(
   placementSummary,
-  ssoPlacements,
   nonSsoPlacements,
+  ssoPlacements,
+  cardsavrPlacements,
   merchantSummary
 ) {
   console.log("\nCard placement summary by FI (combined):");
@@ -71,7 +86,14 @@ export function printPlacementSummary(
     );
   }
 
-  console.log("\nCard placements by SSO grouping (combined):");
+  console.log("\nCard placements by integration type (combined):");
+  const nonPlacePct =
+    nonSsoPlacements.total > 0
+      ? ((nonSsoPlacements.success / nonSsoPlacements.total) * 100).toFixed(1)
+      : "0.0";
+  console.log(
+    `- NON-SSO: ${nonSsoPlacements.total} placements | ${nonSsoPlacements.success} success | ${nonSsoPlacements.failed} failed | success%=${nonPlacePct}`
+  );
   const ssoPlacePct =
     ssoPlacements.total > 0
       ? ((ssoPlacements.success / ssoPlacements.total) * 100).toFixed(1)
@@ -79,12 +101,12 @@ export function printPlacementSummary(
   console.log(
     `- SSO: ${ssoPlacements.total} placements | ${ssoPlacements.success} success | ${ssoPlacements.failed} failed | success%=${ssoPlacePct}`
   );
-  const nonPlacePct =
-    nonSsoPlacements.total > 0
-      ? ((nonSsoPlacements.success / nonSsoPlacements.total) * 100).toFixed(1)
+  const cardsavrPct =
+    cardsavrPlacements.total > 0
+      ? ((cardsavrPlacements.success / cardsavrPlacements.total) * 100).toFixed(1)
       : "0.0";
   console.log(
-    `- NON-SSO: ${nonSsoPlacements.total} placements | ${nonSsoPlacements.success} success | ${nonSsoPlacements.failed} failed | success%=${nonPlacePct}`
+    `- CardSavr: ${cardsavrPlacements.total} placements | ${cardsavrPlacements.success} success | ${cardsavrPlacements.failed} failed | success%=${cardsavrPct}`
   );
 
   console.log("\nCard placement summary by merchant (combined):");

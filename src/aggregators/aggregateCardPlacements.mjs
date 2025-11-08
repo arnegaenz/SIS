@@ -1,9 +1,16 @@
 // src/aggregators/aggregateCardPlacements.mjs
 // Aggregates card placement results by FI, SSO grouping, and merchant.
 
-export function aggregateCardPlacements(allPlacements = [], ssoSet = new Set()) {
+export function aggregateCardPlacements(
+  allPlacements = [],
+  ssoSet = new Set()
+) {
   const placementSummary = {};
   const merchantSummary = {};
+  const baseAggregate = () => ({ total: 0, success: 0, failed: 0 });
+  const ssoPlacements = baseAggregate();
+  const nonSsoPlacements = baseAggregate();
+  const cardsavrPlacements = baseAggregate();
 
   for (const result of allPlacements) {
     if (!result || typeof result !== "object") continue;
@@ -63,23 +70,26 @@ export function aggregateCardPlacements(allPlacements = [], ssoSet = new Set()) 
     } else {
       merchantBucket.failed += 1;
     }
-  }
-
-  const baseAggregate = () => ({ total: 0, success: 0, failed: 0 });
-  const ssoPlacements = baseAggregate();
-  const nonSsoPlacements = baseAggregate();
-
-  for (const [fiKey, data] of Object.entries(placementSummary)) {
-    const target = ssoSet.has(fiKey) ? ssoPlacements : nonSsoPlacements;
-    target.total += data.total;
-    target.success += data.success;
-    target.failed += data.failed;
+    const instanceName = (result._instance || "").toString().toLowerCase();
+    const targetBucket =
+      instanceName === "ondot"
+        ? cardsavrPlacements
+        : ssoSet.has(fiKey)
+        ? ssoPlacements
+        : nonSsoPlacements;
+    targetBucket.total += 1;
+    if (isSuccess) {
+      targetBucket.success += 1;
+    } else {
+      targetBucket.failed += 1;
+    }
   }
 
   return {
     placementSummary,
     ssoPlacements,
     nonSsoPlacements,
+    cardsavrPlacements,
     merchantSummary,
   };
 }

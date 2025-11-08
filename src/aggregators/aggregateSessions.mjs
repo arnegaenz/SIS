@@ -3,6 +3,7 @@
 
 export function aggregateSessions(allSessions = [], ssoSet = new Set()) {
   const sessionSummary = {};
+  const fiMeta = {};
 
   for (const session of allSessions) {
     if (!session || typeof session !== "object") continue;
@@ -15,6 +16,19 @@ export function aggregateSessions(allSessions = [], ssoSet = new Set()) {
 
     const totalJobs = Number(session.total_jobs) || 0;
     const successfulJobs = Number(session.successful_jobs) || 0;
+
+    if (!fiMeta[fiKey]) {
+      fiMeta[fiKey] = {
+        hasCardSavr: false,
+      };
+    }
+
+    const instanceName = (session._instance || "")
+      .toString()
+      .toLowerCase();
+    if (instanceName === "ondot") {
+      fiMeta[fiKey].hasCardSavr = true;
+    }
 
     if (!sessionSummary[fiKey]) {
       sessionSummary[fiKey] = {
@@ -32,14 +46,20 @@ export function aggregateSessions(allSessions = [], ssoSet = new Set()) {
 
   const baseAggregate = () => ({ total: 0, withJobs: 0, successful: 0 });
   const ssoSummary = baseAggregate();
+  const cardsavrSummary = baseAggregate();
   const nonSsoSummary = baseAggregate();
 
   for (const [fiKey, record] of Object.entries(sessionSummary)) {
-    const target = ssoSet.has(fiKey) ? ssoSummary : nonSsoSummary;
+    const meta = fiMeta[fiKey] || {};
+    const target = meta.hasCardSavr
+      ? cardsavrSummary
+      : ssoSet.has(fiKey)
+      ? ssoSummary
+      : nonSsoSummary;
     target.total += record.totalSessions;
     target.withJobs += record.withJobs;
     target.successful += record.successfulSessions;
   }
 
-  return { sessionSummary, ssoSummary, nonSsoSummary };
+  return { sessionSummary, ssoSummary, cardsavrSummary, nonSsoSummary };
 }
