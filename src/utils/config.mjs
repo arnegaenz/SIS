@@ -4,17 +4,20 @@ import path from "path";
 
 export function loadSsoFis(baseDir) {
   const ssoPath = path.join(baseDir, "sso_fis.json");
+  const manualSso = new Set(["advancial-prod"]);
   try {
     const raw = fs.readFileSync(ssoPath, "utf8");
     const arr = JSON.parse(raw);
     if (Array.isArray(arr)) {
       console.log(`Loaded ${arr.length} SSO FIs from sso_fis.json`);
-      return new Set(arr.map((x) => x.toLowerCase()));
+      const set = new Set(arr.map((x) => x.toLowerCase()));
+      manualSso.forEach((fi) => set.add(fi));
+      return set;
     }
   } catch (e) {
     console.log("No sso_fis.json found or bad JSON — treating all as NON-SSO.");
   }
-  return new Set();
+  return new Set(manualSso);
 }
 
 export function loadInstances(baseDir) {

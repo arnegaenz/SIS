@@ -6,6 +6,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const SOURCE_TYPES = new Set(["placement", "session"]);
+const ALWAYS_SSO_INSTANCES = new Set(["advancial-prod"]);
 
 // small helper to load existing registry (or start empty)
 function loadRegistry() {
@@ -80,16 +81,27 @@ function toDateOnly(value) {
 
 function determineIntegrationType(entry, ssoLookupSet) {
   const instances = Array.isArray(entry.instances) ? entry.instances : [];
+  const normalizedInstances = instances.map((inst) =>
+    inst ? inst.toString().toLowerCase() : ""
+  );
+
   if (instances.some((inst) => inst && inst.toLowerCase() === "ondot")) {
     return "cardsavr";
   }
 
-  if (instances.some((inst) => inst && inst.toLowerCase() === "pscu")) {
+  if (
+    normalizedInstances.some((inst) => inst === "pscu") ||
+    normalizedInstances.some((inst) => ALWAYS_SSO_INSTANCES.has(inst))
+  ) {
     return "sso";
   }
 
   const lookup = (entry.fi_lookup_key || "").toString().toLowerCase();
   if (lookup && ssoLookupSet.has(lookup)) {
+    return "sso";
+  }
+
+  if (ALWAYS_SSO_INSTANCES.has(lookup)) {
     return "sso";
   }
 

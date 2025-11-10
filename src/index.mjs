@@ -1,6 +1,7 @@
 // src/index.mjs
+import fs from "fs";
 import path from "path";
-import { fileURLToPath } from "url";
+import { fileURLToPath, pathToFileURL } from "url";
 
 import { loginWithSdk } from "./api.mjs";
 import { loadSsoFis, loadInstances } from "./utils/config.mjs";
@@ -14,6 +15,11 @@ import { aggregateSessions } from "./aggregators/aggregateSessions.mjs";
 import { aggregateCardPlacements } from "./aggregators/aggregateCardPlacements.mjs";
 import { updateFiRegistry } from "./utils/fiRegistry.mjs";
 import { TERMINATION_RULES } from "./config/terminationMap.mjs";
+import {
+  fetchGAFunnelByDay,
+  aggregateGAFunnelByFI,
+  printGAFunnelReport,
+} from "./ga.mjs";
 
 // for __dirname in ESM
 const __filename = fileURLToPath(import.meta.url);
@@ -58,6 +64,97 @@ function parsePlacementDate(placement) {
   return null;
 }
 
+function toDateOnlyString(value) {
+  if (!value) return "";
+  if (value instanceof Date) {
+    return value.toISOString().slice(0, 10);
+  }
+  const str = value.toString();
+  if (!str) return "";
+  if (str.length >= 10) {
+    return str.slice(0, 10);
+  }
+  return "";
+}
+
+function summarizeSessionsByDay(allSessions) {
+  const byKey = new Map();
+  for (const session of allSessions || []) {
+    const fiKey = (
+      session.financial_institution_lookup_key ||
+      session.fi_lookup_key ||
+      session.fi_name ||
+      "unknown_fi"
+    )
+      .toString()
+      .toLowerCase();
+    if (!fiKey) continue;
+    const dateValue =
+      session.created_on || session.created_at || session.session_created_on;
+    const day = toDateOnlyString(dateValue);
+    if (!day) continue;
+    const key = `${fiKey}|${day}`;
+    if (!byKey.has(key)) {
+      byKey.set(key, {
+        date: day,
+        fi_lookup_key: fiKey,
+        total_sessions: 0,
+        sessions_with_jobs: 0,
+        sessions_with_success: 0,
+      });
+    }
+    const bucket = byKey.get(key);
+    bucket.total_sessions += 1;
+    const totalJobs = Number(session.total_jobs) || 0;
+    const successfulJobs = Number(session.successful_jobs) || 0;
+    if (totalJobs > 0) bucket.sessions_with_jobs += 1;
+    if (successfulJobs > 0) bucket.sessions_with_success += 1;
+  }
+  return Array.from(byKey.values());
+}
+
+function summarizePlacementsByDay(allPlacements) {
+  const byKey = new Map();
+  for (const placement of allPlacements || []) {
+    const fiKey = (
+      placement.fi_lookup_key ||
+      placement.fi_name ||
+      placement.financial_institution_lookup_key ||
+      "unknown_fi"
+    )
+      .toString()
+      .toLowerCase();
+    if (!fiKey) continue;
+    const placementDate = parsePlacementDate(placement);
+    if (!placementDate) continue;
+    const day = formatDate(placementDate);
+    const termination = (
+      placement.termination_type ||
+      placement.termination ||
+      placement.status ||
+      "UNKNOWN"
+    )
+      .toString()
+      .toUpperCase();
+    const status = (placement.status || "").toString().toUpperCase();
+    const success =
+      status === "SUCCESSFUL" || termination === "BILLABLE";
+    const key = `${fiKey}|${day}|${termination}|${success ? "Y" : "N"}`;
+    if (!byKey.has(key)) {
+      byKey.set(key, {
+        date: day,
+        fi_lookup_key: fiKey,
+        termination,
+        count: 0,
+        success,
+      });
+    }
+    const bucket = byKey.get(key);
+    bucket.count += 1;
+  }
+  return Array.from(byKey.values());
+}
+
 function computeTrendArrow(dailyStats = {}, selector) {
   if (typeof selector !== "function") return "";
   const values = Object.entries(dailyStats)
@@ -96,27 +193,21 @@ function computeTrendArrow(dailyStats = {}, selector) {
   return "→";
 }
 
-async function main() {
-  // 1) config
+export async function runSisFetch() {
   const SSO_SET = loadSsoFis(__dirname);
   const instances = loadInstances(__dirname);
 
-  // fixed window covering 2025-10-01 through 2025-10-31 (UTC)
-  const startDateUtc = new Date(Date.UTC(2025, 9, 1));
-  const endDateUtc = new Date(Date.UTC(2025, 9, 31));
+  const startDateUtc = new Date(Date.UTC(2025, 0, 1));
+  const endDateUtc = new Date(Date.UTC(2025, 10, 8));
 
   const startDate = formatDate(startDateUtc);
   const endDate = formatDate(endDateUtc);
 
-  // 2) accumulators for ALL instances
   const allSessionsCombined = [];
   const allPlacementsCombined = [];
-
-  // also dedupe across instances, just in case
   const seenSessionIds = new Set();
   const seenPlacementIds = new Set();
 
-  // 3) loop over each instance
   for (const instance of instances) {
     console.log(`\n===== Fetching from instance: ${instance.name} =====`);
 
@@ -141,6 +232,34 @@ async function main() {
     );
   }
 
+  const sessionsByDay = summarizeSessionsByDay(allSessionsCombined);
+  const placementsByDay = summarizePlacementsByDay(allPlacementsCombined);
+
+  return {
+    startDate,
+    endDate,
+    ssoSet: SSO_SET,
+    allSessionsCombined,
+    allPlacementsCombined,
+    sessionsByDay,
+    placementsByDay,
+  };
+}
+
+async function main() {
+  const {
+    startDate,
+    endDate,
+    ssoSet,
+    allSessionsCombined,
+    allPlacementsCombined,
+  } = await runSisFetch();
+
+  const SSO_SET = ssoSet;
+
+  const startDateUtc = new Date(`${startDate}T00:00:00Z`);
+  const endDateUtc = new Date(`${endDate}T00:00:00Z`);
+
   // 4) now we have ALL SESSIONS and ALL CARD PLACEMENTS from ALL instances
   console.log(
     `\n✅ Unique sessions fetched (all instances): ${allSessionsCombined.length}`
@@ -153,6 +272,7 @@ async function main() {
     cardsavrSummary,
     nonSsoSummary,
   } = aggregateSessions(allSessionsCombined, SSO_SET);
+  const sessionsByFI = sessionSummary;
 
   printSessionSummary(
     sessionSummary,
@@ -173,6 +293,7 @@ async function main() {
     nonSsoPlacements,
     merchantSummary,
   } = aggregateCardPlacements(allPlacementsCombined, SSO_SET);
+  const cardPlacementsByFI = placementSummary;
 
   printPlacementSummary(
     placementSummary,
@@ -183,6 +304,86 @@ async function main() {
   );
 
   updateFiRegistry(allSessionsCombined, allPlacementsCombined, SSO_SET);
+
+  let fiRegistry = {};
+  try {
+    const fiRegistryPath = path.join(__dirname, "..", "fi_registry.json");
+    const rawRegistry = fs.readFileSync(fiRegistryPath, "utf8");
+    fiRegistry = JSON.parse(rawRegistry);
+  } catch (err) {
+    console.warn(
+      "Unable to load fi_registry.json for GA funnel alignment:",
+      err.message
+    );
+  }
+  const fiRegistryLookup = {};
+  for (const [fiName, entry] of Object.entries(fiRegistry)) {
+    if (!entry || typeof entry !== "object") continue;
+    const key = (entry.fi_lookup_key || fiName).toString().toLowerCase();
+    fiRegistryLookup[key] = entry;
+  }
+
+  // === GA4 CARDUPDATR FUNNEL INTEGRATION ===
+  try {
+    const gaKeyFile = path.resolve("./secrets/ga-service-account.json");
+    const gaPropertyId = process.env.GA_PROPERTY_ID || "328054560";
+
+    console.log("");
+    console.log("Fetching GA4 CardUpdatr funnel aligned to SIS date window...");
+    const gaRows = await fetchGAFunnelByDay({
+      startDate,
+      endDate,
+      propertyId: gaPropertyId,
+      keyFile: gaKeyFile,
+    });
+
+    const gaByFI = aggregateGAFunnelByFI(gaRows, fiRegistryLookup);
+
+    const grouped = {
+      SSO: [],
+      "NON-SSO": [],
+      CardSavr: [],
+      UNKNOWN: [],
+    };
+
+    for (const [fiKey, gaObj] of Object.entries(gaByFI)) {
+      const integration_type = (
+        gaObj.integration_type ||
+        fiRegistryLookup[fiKey]?.integration_type ||
+        "UNKNOWN"
+      ).toUpperCase();
+
+      const sisSessions = sessionsByFI[fiKey]?.totalSessions || 0;
+      const sisPlacements = cardPlacementsByFI[fiKey]?.total || 0;
+
+      const merged = {
+        fi_lookup_key: fiKey,
+        ga_select: gaObj.select,
+        ga_user: gaObj.user,
+        ga_cred: gaObj.cred,
+        sis_sessions: sisSessions,
+        sis_placements: sisPlacements,
+      };
+
+      if (integration_type === "SSO") {
+        grouped.SSO.push(merged);
+      } else if (integration_type === "NON-SSO") {
+        grouped["NON-SSO"].push(merged);
+      } else if (integration_type === "CARDSAVR") {
+        grouped.CardSavr.push(merged);
+      } else {
+        grouped.UNKNOWN.push(merged);
+      }
+    }
+
+    for (const key of Object.keys(grouped)) {
+      grouped[key].sort((a, b) => (b.ga_select || 0) - (a.ga_select || 0));
+    }
+
+    printGAFunnelReport(grouped);
+  } catch (err) {
+    console.error("GA4 integration failed:", err.message || err);
+  }
 
   const merchantHealthSummary = {};
   for (const placement of allPlacementsCombined) {
@@ -372,7 +573,13 @@ async function main() {
 
 }
 
-main().catch((err) => {
-  console.error("Request failed:");
-  console.error(err);
-});
+const isDirectRun =
+  process.argv[1] &&
+  pathToFileURL(path.resolve(process.argv[1])).href === import.meta.url;
+
+if (isDirectRun) {
+  main().catch((err) => {
+    console.error("Request failed:");
+    console.error(err);
+  });
+}
