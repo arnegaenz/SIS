@@ -1,0 +1,111 @@
+{
+  "date": "2021-05-07",
+  "sources": {
+    "ga": false,
+    "sis_sessions": false,
+    "sis_placements": true
+  },
+  "fi": {
+    "default": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 1,
+        "successful_placements": 0,
+        "by_termination": {
+          "CANCELLED_QUICKSTART": 1
+        }
+      }
+    },
+    "acmecu": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 1,
+        "successful_placements": 1,
+        "by_termination": {
+          "SUCCESSFUL": 1
+        }
+      }
+    },
+    "lookoutcu": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 9,
+        "successful_placements": 0,
+        "by_termination": {
+          "ABANDONED_QUICKSTART": 9
+        }
+      }
+    },
+    "mybank": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 6,
+        "successful_placements": 0,
+        "by_termination": {
+          "ABANDONED_QUICKSTART": 5,
+          "TIMEOUT_CREDENTIALS": 1
+        }
+      }
+    },
+    "mycreditunion": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 6,
+        "successful_placements": 0,
+        "by_termination": {
+          "ABANDONED_QUICKSTART": 6
+        }
+      }
+    }
+  }
+}

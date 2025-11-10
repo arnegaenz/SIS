@@ -1,0 +1,133 @@
+{
+  "date": "2022-04-04",
+  "sources": {
+    "ga": false,
+    "sis_sessions": false,
+    "sis_placements": true
+  },
+  "fi": {
+    "affinity": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 12,
+        "successful_placements": 1,
+        "by_termination": {
+          "NEVER_STARTED": 10,
+          "USER_DATA_FAILURE": 1,
+          "BILLABLE": 1
+        }
+      }
+    },
+    "acmecu": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 5,
+        "successful_placements": 2,
+        "by_termination": {
+          "BILLABLE": 2,
+          "SITE_INTERACTION_FAILURE": 3
+        }
+      }
+    },
+    "pscu": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 1,
+        "successful_placements": 0,
+        "by_termination": {
+          "NEVER_STARTED": 1
+        }
+      }
+    },
+    "mybank": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 10,
+        "successful_placements": 0,
+        "by_termination": {
+          "NEVER_STARTED": 10
+        }
+      }
+    },
+    "mycreditunion": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 7,
+        "successful_placements": 0,
+        "by_termination": {
+          "NEVER_STARTED": 7
+        }
+      }
+    },
+    "columbiacu": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 3,
+        "successful_placements": 0,
+        "by_termination": {
+          "NEVER_STARTED": 3
+        }
+      }
+    }
+  }
+}

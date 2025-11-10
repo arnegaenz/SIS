@@ -1,0 +1,540 @@
+{
+  "date": "2024-06-23",
+  "sources": {
+    "ga": true,
+    "sis_sessions": true,
+    "sis_placements": true
+  },
+  "fi": {
+    "trueccu": {
+      "ga": {
+        "select_merchants": 71,
+        "user_data_collection": 8,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 0,
+        "successful_placements": 0,
+        "by_termination": {}
+      }
+    },
+    "msufcu": {
+      "ga": {
+        "select_merchants": 68,
+        "user_data_collection": 0,
+        "credential_entry": 21
+      },
+      "sessions": {
+        "total": 64,
+        "with_jobs": 12,
+        "with_success": 2,
+        "without_jobs": 52
+      },
+      "placements": {
+        "total_placements": 69,
+        "successful_placements": 3,
+        "by_termination": {
+          "NEVER_STARTED": 64,
+          "BILLABLE": 3,
+          "USER_DATA_FAILURE": 2
+        }
+      }
+    },
+    "elevationscu": {
+      "ga": {
+        "select_merchants": 61,
+        "user_data_collection": 4,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 3,
+        "with_jobs": 3,
+        "with_success": 1,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 0,
+        "successful_placements": 0,
+        "by_termination": {}
+      }
+    },
+    "comchoicecu": {
+      "ga": {
+        "select_merchants": 22,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 0,
+        "successful_placements": 0,
+        "by_termination": {}
+      }
+    },
+    "centracu": {
+      "ga": {
+        "select_merchants": 17,
+        "user_data_collection": 2,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 0,
+        "successful_placements": 0,
+        "by_termination": {}
+      }
+    },
+    "inovafcu": {
+      "ga": {
+        "select_merchants": 17,
+        "user_data_collection": 4,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 1,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 1
+      },
+      "placements": {
+        "total_placements": 0,
+        "successful_placements": 0,
+        "by_termination": {}
+      }
+    },
+    "mascomabank": {
+      "ga": {
+        "select_merchants": 15,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 0,
+        "successful_placements": 0,
+        "by_termination": {}
+      }
+    },
+    "premieronecu": {
+      "ga": {
+        "select_merchants": 15,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 0,
+        "successful_placements": 0,
+        "by_termination": {}
+      }
+    },
+    "soarion": {
+      "ga": {
+        "select_merchants": 10,
+        "user_data_collection": 2,
+        "credential_entry": 3
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 0,
+        "successful_placements": 0,
+        "by_termination": {}
+      }
+    },
+    "arsenalcu": {
+      "ga": {
+        "select_merchants": 9,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 0,
+        "successful_placements": 0,
+        "by_termination": {}
+      }
+    },
+    "loccu": {
+      "ga": {
+        "select_merchants": 9,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 0,
+        "successful_placements": 0,
+        "by_termination": {}
+      }
+    },
+    "peoplescu": {
+      "ga": {
+        "select_merchants": 7,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 0,
+        "successful_placements": 0,
+        "by_termination": {}
+      }
+    },
+    "afbank": {
+      "ga": {
+        "select_merchants": 5,
+        "user_data_collection": 2,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 0,
+        "successful_placements": 0,
+        "by_termination": {}
+      }
+    },
+    "cenfedcu": {
+      "ga": {
+        "select_merchants": 5,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 0,
+        "successful_placements": 0,
+        "by_termination": {}
+      }
+    },
+    "bmifcu": {
+      "ga": {
+        "select_merchants": 4,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 0,
+        "successful_placements": 0,
+        "by_termination": {}
+      }
+    },
+    "ornlfcu": {
+      "ga": {
+        "select_merchants": 4,
+        "user_data_collection": 2,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 0,
+        "successful_placements": 0,
+        "by_termination": {}
+      }
+    },
+    "signalffcu": {
+      "ga": {
+        "select_merchants": 4,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 0,
+        "successful_placements": 0,
+        "by_termination": {}
+      }
+    },
+    "advancial-prod": {
+      "ga": {
+        "select_merchants": 1,
+        "user_data_collection": 0,
+        "credential_entry": 2
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 0,
+        "successful_placements": 0,
+        "by_termination": {}
+      }
+    },
+    "whitefishcu": {
+      "ga": {
+        "select_merchants": 2,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 0,
+        "successful_placements": 0,
+        "by_termination": {}
+      }
+    },
+    "certifiedfed": {
+      "ga": {
+        "select_merchants": 1,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 0,
+        "successful_placements": 0,
+        "by_termination": {}
+      }
+    },
+    "columbiacu": {
+      "ga": {
+        "select_merchants": 1,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 0,
+        "successful_placements": 0,
+        "by_termination": {}
+      }
+    },
+    "corningcu": {
+      "ga": {
+        "select_merchants": 1,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 0,
+        "successful_placements": 0,
+        "by_termination": {}
+      }
+    },
+    "fhfcu": {
+      "ga": {
+        "select_merchants": 1,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 0,
+        "successful_placements": 0,
+        "by_termination": {}
+      }
+    },
+    "harborstonecu": {
+      "ga": {
+        "select_merchants": 1,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 0,
+        "successful_placements": 0,
+        "by_termination": {}
+      }
+    },
+    "penair": {
+      "ga": {
+        "select_merchants": 1,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 0,
+        "successful_placements": 0,
+        "by_termination": {}
+      }
+    },
+    "trustonefinancial": {
+      "ga": {
+        "select_merchants": 1,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 1,
+        "with_jobs": 1,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 0,
+        "successful_placements": 0,
+        "by_termination": {}
+      }
+    },
+    "umassfivefcu": {
+      "ga": {
+        "select_merchants": 1,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 0,
+        "successful_placements": 0,
+        "by_termination": {}
+      }
+    },
+    "default": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 3,
+        "with_jobs": 2,
+        "with_success": 1,
+        "without_jobs": 1
+      },
+      "placements": {
+        "total_placements": 4,
+        "successful_placements": 1,
+        "by_termination": {
+          "NEVER_STARTED": 2,
+          "USER_DATA_FAILURE": 1,
+          "BILLABLE": 1
+        }
+      }
+    },
+    "affcu": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 1,
+        "with_jobs": 1,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 0,
+        "successful_placements": 0,
+        "by_termination": {}
+      }
+    }
+  }
+}

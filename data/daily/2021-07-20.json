@@ -1,0 +1,117 @@
+{
+  "date": "2021-07-20",
+  "sources": {
+    "ga": false,
+    "sis_sessions": false,
+    "sis_placements": true
+  },
+  "fi": {
+    "default": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 2,
+        "successful_placements": 0,
+        "by_termination": {
+          "ABANDONED_QUICKSTART": 2
+        }
+      }
+    },
+    "fortera": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 15,
+        "successful_placements": 1,
+        "by_termination": {
+          "ABANDONED_QUICKSTART": 7,
+          "CANCELLED": 4,
+          "CANCELLED_QUICKSTART": 3,
+          "SUCCESSFUL": 1
+        }
+      }
+    },
+    "corningcu": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 8,
+        "successful_placements": 0,
+        "by_termination": {
+          "ABANDONED_QUICKSTART": 8
+        }
+      }
+    },
+    "affinity": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 6,
+        "successful_placements": 0,
+        "by_termination": {
+          "CANCELLED": 1,
+          "TOO_MANY_LOGIN_FAILURES": 2,
+          "TIMEOUT_TFA": 1,
+          "ABANDONED_QUICKSTART": 2
+        }
+      }
+    },
+    "mybank": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 9,
+        "successful_placements": 0,
+        "by_termination": {
+          "ABANDONED_QUICKSTART": 8,
+          "KILLED": 1
+        }
+      }
+    }
+  }
+}

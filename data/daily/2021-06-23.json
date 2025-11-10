@@ -1,0 +1,100 @@
+{
+  "date": "2021-06-23",
+  "sources": {
+    "ga": false,
+    "sis_sessions": false,
+    "sis_placements": true
+  },
+  "fi": {
+    "lookoutcu": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 9,
+        "successful_placements": 3,
+        "by_termination": {
+          "TOO_MANY_LOGIN_FAILURES": 2,
+          "SUCCESSFUL": 3,
+          "UNSUCCESSFUL": 1,
+          "ABANDONED_QUICKSTART": 1,
+          "TIMEOUT_TFA": 1,
+          "KILLED": 1
+        }
+      }
+    },
+    "affinity": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 10,
+        "successful_placements": 0,
+        "by_termination": {
+          "NETWORK_ISSUE": 1,
+          "ABANDONED_QUICKSTART": 9
+        }
+      }
+    },
+    "acmecu": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 50,
+        "successful_placements": 42,
+        "by_termination": {
+          "NETWORK_ISSUE": 1,
+          "SUCCESSFUL": 42,
+          "UNSUCCESSFUL": 5,
+          "TOO_MANY_LOGIN_FAILURES": 1,
+          "KILLED": 1
+        }
+      }
+    },
+    "mybank": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 9,
+        "successful_placements": 0,
+        "by_termination": {
+          "ABANDONED_QUICKSTART": 9
+        }
+      }
+    }
+  }
+}

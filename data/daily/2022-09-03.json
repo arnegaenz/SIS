@@ -1,0 +1,68 @@
+{
+  "date": "2022-09-03",
+  "sources": {
+    "ga": true,
+    "sis_sessions": false,
+    "sis_placements": true
+  },
+  "fi": {
+    "staging": {
+      "ga": {
+        "select_merchants": 7,
+        "user_data_collection": 4,
+        "credential_entry": 3
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 0,
+        "successful_placements": 0,
+        "by_termination": {}
+      }
+    },
+    "mauicountyfcu": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 1,
+        "successful_placements": 0,
+        "by_termination": {
+          "NEVER_STARTED": 1
+        }
+      }
+    },
+    "islandfcu": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 43,
+        "successful_placements": 0,
+        "by_termination": {
+          "NEVER_STARTED": 43
+        }
+      }
+    }
+  }
+}

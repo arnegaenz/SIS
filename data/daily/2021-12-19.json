@@ -1,0 +1,74 @@
+{
+  "date": "2021-12-19",
+  "sources": {
+    "ga": false,
+    "sis_sessions": false,
+    "sis_placements": true
+  },
+  "fi": {
+    "affinity": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 26,
+        "successful_placements": 0,
+        "by_termination": {
+          "NEVER_STARTED": 23,
+          "SITE_INTERACTION_FAILURE": 1,
+          "USER_DATA_FAILURE": 2
+        }
+      }
+    },
+    "gncu": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 34,
+        "successful_placements": 0,
+        "by_termination": {
+          "NEVER_STARTED": 28,
+          "CANCELLED": 4,
+          "USER_DATA_FAILURE": 2
+        }
+      }
+    },
+    "noblecu": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 2,
+        "successful_placements": 0,
+        "by_termination": {
+          "USER_DATA_FAILURE": 2
+        }
+      }
+    }
+  }
+}

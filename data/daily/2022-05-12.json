@@ -1,0 +1,135 @@
+{
+  "date": "2022-05-12",
+  "sources": {
+    "ga": false,
+    "sis_sessions": false,
+    "sis_placements": true
+  },
+  "fi": {
+    "centracu": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 5,
+        "successful_placements": 1,
+        "by_termination": {
+          "BILLABLE": 1,
+          "NEVER_STARTED": 4
+        }
+      }
+    },
+    "affinity": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 1,
+        "successful_placements": 1,
+        "by_termination": {
+          "BILLABLE": 1
+        }
+      }
+    },
+    "acmecu": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 7,
+        "successful_placements": 5,
+        "by_termination": {
+          "BILLABLE": 5,
+          "SITE_INTERACTION_FAILURE": 2
+        }
+      }
+    },
+    "columbiacu": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 11,
+        "successful_placements": 0,
+        "by_termination": {
+          "NEVER_STARTED": 11
+        }
+      }
+    },
+    "gncu": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 4,
+        "successful_placements": 0,
+        "by_termination": {
+          "SITE_INTERACTION_FAILURE": 1,
+          "NEVER_STARTED": 3
+        }
+      }
+    },
+    "hfcu": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 21,
+        "successful_placements": 4,
+        "by_termination": {
+          "BILLABLE": 4,
+          "NEVER_STARTED": 12,
+          "SITE_INTERACTION_FAILURE": 5
+        }
+      }
+    }
+  }
+}

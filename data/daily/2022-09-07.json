@@ -1,0 +1,165 @@
+{
+  "date": "2022-09-07",
+  "sources": {
+    "ga": true,
+    "sis_sessions": false,
+    "sis_placements": true
+  },
+  "fi": {
+    "staging": {
+      "ga": {
+        "select_merchants": 22,
+        "user_data_collection": 38,
+        "credential_entry": 19
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 0,
+        "successful_placements": 0,
+        "by_termination": {}
+      }
+    },
+    "argfcu": {
+      "ga": {
+        "select_merchants": 13,
+        "user_data_collection": 16,
+        "credential_entry": 3
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 0,
+        "successful_placements": 0,
+        "by_termination": {}
+      }
+    },
+    "corningcu": {
+      "ga": {
+        "select_merchants": 1,
+        "user_data_collection": 2,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 0,
+        "successful_placements": 0,
+        "by_termination": {}
+      }
+    },
+    "mbudos": {
+      "ga": {
+        "select_merchants": 1,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 0,
+        "successful_placements": 0,
+        "by_termination": {}
+      }
+    },
+    "mybank": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 23,
+        "successful_placements": 0,
+        "by_termination": {
+          "NEVER_STARTED": 22,
+          "USER_DATA_FAILURE": 1
+        }
+      }
+    },
+    "pscu": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 36,
+        "successful_placements": 0,
+        "by_termination": {
+          "SITE_INTERACTION_FAILURE": 3,
+          "USER_DATA_FAILURE": 1,
+          "NEVER_STARTED": 32
+        }
+      }
+    },
+    "columbiacu": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 2,
+        "successful_placements": 0,
+        "by_termination": {
+          "NEVER_STARTED": 2
+        }
+      }
+    },
+    "noblecu": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 1,
+        "successful_placements": 0,
+        "by_termination": {
+          "USER_DATA_FAILURE": 1
+        }
+      }
+    }
+  }
+}

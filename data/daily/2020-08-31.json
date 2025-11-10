@@ -1,0 +1,55 @@
+{
+  "date": "2020-08-31",
+  "sources": {
+    "ga": false,
+    "sis_sessions": false,
+    "sis_placements": true
+  },
+  "fi": {
+    "affinity": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 23,
+        "successful_placements": 4,
+        "by_termination": {
+          "DUPLICATE_CARD": 1,
+          "TIMEOUT_TFA": 3,
+          "SUCCESSFUL": 4,
+          "UNSUCCESSFUL": 6,
+          "ABANDONED": 6,
+          "ABANDONED_QUICKSTART": 3
+        }
+      }
+    },
+    "default": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 1,
+        "successful_placements": 1,
+        "by_termination": {
+          "SUCCESSFUL": 1
+        }
+      }
+    }
+  }
+}

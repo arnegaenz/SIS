@@ -1,0 +1,33 @@
+{
+  "date": "2020-09-07",
+  "sources": {
+    "ga": false,
+    "sis_sessions": false,
+    "sis_placements": true
+  },
+  "fi": {
+    "affinity": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 13,
+        "successful_placements": 1,
+        "by_termination": {
+          "TIMEOUT_CREDENTIALS": 3,
+          "ABANDONED_QUICKSTART": 2,
+          "ABANDONED": 7,
+          "SUCCESSFUL": 1
+        }
+      }
+    }
+  }
+}

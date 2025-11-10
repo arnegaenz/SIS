@@ -1,0 +1,96 @@
+{
+  "date": "2022-07-09",
+  "sources": {
+    "ga": false,
+    "sis_sessions": false,
+    "sis_placements": true
+  },
+  "fi": {
+    "columbiacu": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 113,
+        "successful_placements": 6,
+        "by_termination": {
+          "NEVER_STARTED": 99,
+          "SITE_INTERACTION_FAILURE": 5,
+          "USER_DATA_FAILURE": 2,
+          "BILLABLE": 6,
+          "PROCESS_FAILURE": 1
+        }
+      }
+    },
+    "heritagevalleyfcu": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 5,
+        "successful_placements": 0,
+        "by_termination": {
+          "USER_DATA_FAILURE": 1,
+          "NEVER_STARTED": 4
+        }
+      }
+    },
+    "peoplesadvantagefcu": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 11,
+        "successful_placements": 0,
+        "by_termination": {
+          "USER_DATA_FAILURE": 4,
+          "SITE_INTERACTION_FAILURE": 7
+        }
+      }
+    },
+    "elevate-cu": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 3,
+        "successful_placements": 0,
+        "by_termination": {
+          "USER_DATA_FAILURE": 3
+        }
+      }
+    }
+  }
+}

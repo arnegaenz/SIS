@@ -1,0 +1,180 @@
+{
+  "date": "2021-12-21",
+  "sources": {
+    "ga": false,
+    "sis_sessions": false,
+    "sis_placements": true
+  },
+  "fi": {
+    "default": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 5,
+        "successful_placements": 0,
+        "by_termination": {
+          "NEVER_STARTED": 5
+        }
+      }
+    },
+    "affinity": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 1,
+        "successful_placements": 0,
+        "by_termination": {
+          "USER_DATA_FAILURE": 1
+        }
+      }
+    },
+    "peoplescu": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 12,
+        "successful_placements": 0,
+        "by_termination": {
+          "SITE_INTERACTION_FAILURE": 1,
+          "NEVER_STARTED": 11
+        }
+      }
+    },
+    "corningcu": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 19,
+        "successful_placements": 1,
+        "by_termination": {
+          "CANCELLED": 6,
+          "USER_DATA_FAILURE": 4,
+          "SITE_INTERACTION_FAILURE": 2,
+          "BILLABLE": 1,
+          "NEVER_STARTED": 6
+        }
+      }
+    },
+    "acmecu": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 3,
+        "successful_placements": 2,
+        "by_termination": {
+          "USER_DATA_FAILURE": 1,
+          "BILLABLE": 2
+        }
+      }
+    },
+    "noblecu": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 2,
+        "successful_placements": 0,
+        "by_termination": {
+          "USER_DATA_FAILURE": 2
+        }
+      }
+    },
+    "gncu": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 24,
+        "successful_placements": 0,
+        "by_termination": {
+          "CANCELLED_QUICKSTART": 6,
+          "CANCELLED": 11,
+          "NEVER_STARTED": 7
+        }
+      }
+    },
+    "mybank": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 13,
+        "successful_placements": 1,
+        "by_termination": {
+          "NEVER_STARTED": 10,
+          "USER_DATA_FAILURE": 2,
+          "BILLABLE": 1
+        }
+      }
+    }
+  }
+}

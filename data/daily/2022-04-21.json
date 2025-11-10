@@ -1,0 +1,114 @@
+{
+  "date": "2022-04-21",
+  "sources": {
+    "ga": false,
+    "sis_sessions": false,
+    "sis_placements": true
+  },
+  "fi": {
+    "leominstercu": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 1,
+        "successful_placements": 0,
+        "by_termination": {
+          "USER_DATA_FAILURE": 1
+        }
+      }
+    },
+    "acmecu": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 5,
+        "successful_placements": 2,
+        "by_termination": {
+          "USER_DATA_FAILURE": 1,
+          "BILLABLE": 2,
+          "NEVER_STARTED": 2
+        }
+      }
+    },
+    "mybank": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 14,
+        "successful_placements": 0,
+        "by_termination": {
+          "NEVER_STARTED": 14
+        }
+      }
+    },
+    "deseretfirstcu": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 5,
+        "successful_placements": 0,
+        "by_termination": {
+          "NEVER_STARTED": 5
+        }
+      }
+    },
+    "solutionsbank": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 16,
+        "successful_placements": 0,
+        "by_termination": {
+          "SITE_INTERACTION_FAILURE": 1,
+          "NEVER_STARTED": 14,
+          "USER_DATA_FAILURE": 1
+        }
+      }
+    }
+  }
+}

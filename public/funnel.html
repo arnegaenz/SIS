@@ -1,0 +1,1450 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>GA + SIS CardUpdatr Funnel</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      :root {
+        --bg: #0f172a;
+        --panel: #111827;
+        --panel-light: #1f2937;
+        --text: #e2e8f0;
+        --muted: #94a3b8;
+        --accent: #38bdf8;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        font-size: 16px;
+      }
+      header {
+        background: #020617;
+        padding: 16px 22px 10px;
+        border-bottom: 1px solid #1f2937;
+      }
+      h1 {
+        font-size: 1.2rem;
+        margin: 0 0 12px 0;
+      }
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: flex-end;
+      }
+      label {
+        font-size: 0.82rem;
+        display: block;
+        color: var(--muted);
+        margin-bottom: 3px;
+      }
+      input,
+      select {
+        background: #0f172a;
+        border: 1px solid #1f2937;
+        border-radius: 4px;
+        color: var(--text);
+        padding: 6px 7px;
+        font-size: 0.82rem;
+        min-width: 150px;
+      }
+      button {
+        background: var(--accent);
+        border: none;
+        border-radius: 4px;
+        padding: 7px 12px;
+        font-size: 0.82rem;
+        cursor: pointer;
+        color: #020617;
+        font-weight: 600;
+      }
+      main {
+        padding: 18px 22px 44px;
+      }
+      .group-header {
+        margin-top: 16px;
+        font-weight: 700;
+        font-size: 0.9rem;
+      }
+      .group-block {
+        margin-top: 16px;
+      }
+      .single-fi-section {
+        margin-top: 16px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 8px;
+        font-size: 0.8rem;
+      }
+      th,
+      td {
+        border: 1px solid #1f2937;
+        padding: 5px 7px;
+        text-align: left;
+      }
+      th {
+        background: #020617;
+        position: sticky;
+        top: 0;
+        z-index: 2;
+      }
+      .highlights-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 8px;
+        font-size: 0.78rem;
+      }
+      .highlights-table th,
+      .highlights-table td {
+        border: 1px solid #1f2937;
+        padding: 5px 7px;
+        text-align: left;
+      }
+      .highlights-table th {
+        background: #020617;
+      }
+      .muted {
+        color: var(--muted);
+      }
+      .sources-missing {
+        font-size: 0.72rem;
+        color: #f97316;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>GA + SIS CardUpdatr Funnel</h1>
+      <div class="controls">
+        <div>
+          <label for="fiFilter">Filter FI</label>
+          <select id="fiFilter">
+            <option value="__all__">(all FIs)</option>
+          </select>
+        </div>
+        <div>
+          <label for="integrationFilter">Integration</label>
+          <select id="integrationFilter">
+            <option value="(all)">(all)</option>
+            <option value="SSO">SSO</option>
+            <option value="NON-SSO">NON-SSO</option>
+            <option value="CardSavr">CardSavr</option>
+            <option value="UNKNOWN">UNKNOWN</option>
+          </select>
+        </div>
+        <div>
+          <label for="startDate">Start date</label>
+          <input id="startDate" type="date" />
+        </div>
+        <div>
+          <label for="endDate">End date</label>
+          <input id="endDate" type="date" />
+        </div>
+        <div style="min-width: 260px">
+          <label for="cardholderCounts">Cardholders (selected FI only)</label>
+          <input id="cardholderCounts" type="text" placeholder="e.g. 120000" disabled />
+        </div>
+        <div>
+          <label>&nbsp;</label>
+          <button id="applyBtn">Apply filters</button>
+        </div>
+        <div class="muted" id="dateWindowLabel" style="margin-left: auto"></div>
+      </div>
+    </header>
+
+    <main>
+      <div class="group-header">Highlights</div>
+      <div id="bestWindows"></div>
+      <div id="totalsBar" class="group-header" style="display: none;"></div>
+
+      <div id="multiFiView">
+      <div class="group-block" data-group="SSO">
+        <div class="group-header">SSO</div>
+        <table id="table-SSO">
+        <thead>
+          <tr>
+            <th data-sort-key="fi">FI</th>
+            <th data-sort-key="instances">instances</th>
+            <th data-sort-key="integration">integration</th>
+            <th data-sort-key="ga_select">GA select</th>
+            <th data-sort-key="ga_user">GA user</th>
+            <th data-sort-key="ga_cred">GA cred</th>
+            <th data-sort-key="reach">monthly reach %</th>
+            <th data-sort-key="sel_user_pct">sel→user %</th>
+            <th data-sort-key="sel_cred_pct">sel→cred %</th>
+            <th data-sort-key="sessions">sessions</th>
+            <th data-sort-key="sess_with_jobs">sess w/jobs</th>
+            <th data-sort-key="sess_with_success">sess w/success</th>
+            <th data-sort-key="sess_success_pct">sess→success %</th>
+            <th data-sort-key="placements">placements</th>
+            <th data-sort-key="sources_missing">sources missing</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+        </table>
+      </div>
+
+      <div class="group-block" data-group="NON-SSO">
+        <div class="group-header">NON-SSO</div>
+        <table id="table-NON-SSO">
+        <thead>
+          <tr>
+            <th data-sort-key="fi">FI</th>
+            <th data-sort-key="instances">instances</th>
+            <th data-sort-key="integration">integration</th>
+            <th data-sort-key="ga_select">GA select</th>
+            <th data-sort-key="ga_user">GA user</th>
+            <th data-sort-key="ga_cred">GA cred</th>
+            <th data-sort-key="reach">monthly reach %</th>
+            <th data-sort-key="sel_user_pct">sel→user %</th>
+            <th data-sort-key="sel_cred_pct">sel→cred %</th>
+            <th data-sort-key="sessions">sessions</th>
+            <th data-sort-key="sess_with_jobs">sess w/jobs</th>
+            <th data-sort-key="sess_with_success">sess w/success</th>
+            <th data-sort-key="sess_success_pct">sess→success %</th>
+            <th data-sort-key="placements">placements</th>
+            <th data-sort-key="sources_missing">sources missing</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+        </table>
+      </div>
+
+      <div class="group-block" data-group="CardSavr">
+        <div class="group-header">CardSavr</div>
+        <table id="table-CardSavr">
+        <thead>
+          <tr>
+            <th>FI</th>
+            <th>instances</th>
+            <th>integration</th>
+            <th>GA select</th>
+            <th>GA user</th>
+            <th>GA cred</th>
+            <th>monthly reach %</th>
+            <th>sel→user %</th>
+            <th>sel→cred %</th>
+            <th>sessions</th>
+            <th>sess w/jobs</th>
+            <th>sess w/success</th>
+            <th>sess→success %</th>
+            <th>placements</th>
+            <th>sources missing</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+        </table>
+      </div>
+
+      <div class="group-block" data-group="UNKNOWN">
+        <div class="group-header">UNKNOWN</div>
+        <table id="table-UNKNOWN">
+        <thead>
+          <tr>
+            <th>FI</th>
+            <th>instances</th>
+            <th>integration</th>
+            <th>GA select</th>
+            <th>GA user</th>
+            <th>GA cred</th>
+            <th>monthly reach %</th>
+            <th>sel→user %</th>
+            <th>sel→cred %</th>
+            <th>sessions</th>
+            <th>sess w/jobs</th>
+            <th>sess w/success</th>
+            <th>sess→success %</th>
+            <th>placements</th>
+            <th>sources missing</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+        </table>
+      </div>
+      </div>
+
+      <div id="singleFiView" style="display:none;"></div>
+    </main>
+
+    <script>
+      const startDateInput = document.getElementById("startDate");
+      const endDateInput = document.getElementById("endDate");
+      const fiFilterSelect = document.getElementById("fiFilter");
+      const integrationSelect = document.getElementById("integrationFilter");
+      const cardholderInput = document.getElementById("cardholderCounts");
+      const applyBtn = document.getElementById("applyBtn");
+      const dateWindowLabel = document.getElementById("dateWindowLabel");
+      const bestWindowsDiv = document.getElementById("bestWindows");
+      const totalsBar = document.getElementById("totalsBar");
+      const multiFiView = document.getElementById("multiFiView");
+      const singleFiView = document.getElementById("singleFiView");
+
+      const tableBodies = {
+        SSO: document.querySelector("#table-SSO tbody"),
+        "NON-SSO": document.querySelector("#table-NON-SSO tbody"),
+        CardSavr: document.querySelector("#table-CardSavr tbody"),
+        UNKNOWN: document.querySelector("#table-UNKNOWN tbody"),
+      };
+      const groupBlocks = {
+        SSO: document.querySelector('[data-group="SSO"]'),
+        "NON-SSO": document.querySelector('[data-group="NON-SSO"]'),
+        CardSavr: document.querySelector('[data-group="CardSavr"]'),
+        UNKNOWN: document.querySelector('[data-group="UNKNOWN"]'),
+      };
+
+      const today = new Date();
+      const todayStr = today.toISOString().slice(0, 10);
+      const sixMonthsAgo = new Date(today);
+      sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+      const sixMonthsAgoStr = sixMonthsAgo.toISOString().slice(0, 10);
+      startDateInput.value = sixMonthsAgoStr;
+      startDateInput.valueAsDate = sixMonthsAgo;
+      endDateInput.value = todayStr;
+      endDateInput.valueAsDate = today;
+
+      const MIN_SELECTS = 10;
+
+      const normalizeFiKey = (value) =>
+        value ? value.toString().trim().toLowerCase() : "";
+      const FI_ALL_VALUE = "__all__";
+
+      let registryMap = {};
+      let dailyFiles = [];
+      const dailyData = {};
+      let lastAggregated = null;
+      let lastRenderContext = null;
+      let lastFilterSnapshot = null;
+
+      const tableSortState = {
+        multi: {},
+        single: {},
+      };
+
+      const DEFAULT_SORT = { column: "sessions", direction: "desc" };
+
+      async function fetchJson(url) {
+        const res = await fetch(url);
+        if (!res.ok) {
+          throw new Error(`${url} → ${res.status}`);
+        }
+        return res.json();
+      }
+
+      function deriveIntegration(meta) {
+        const raw = (meta?.integration_type || "").toString().toLowerCase();
+        const instances = (meta?.instances || []).map((inst) =>
+          (inst || "").toString().toLowerCase()
+        );
+        const hasOnDot = instances.some((inst) => inst.includes("ondot"));
+        if (hasOnDot || raw === "cardsavr") return "CardSavr";
+        if (raw === "sso") return "SSO";
+        return "NON-SSO";
+      }
+
+      function extractInstances(meta) {
+        if (!meta || typeof meta !== "object") return [];
+        const list = Array.isArray(meta.instances) ? meta.instances : [];
+        return Array.from(
+          new Set(
+            list
+              .filter(Boolean)
+              .map((inst) => inst.toString())
+          )
+        ).sort((a, b) => a.localeCompare(b));
+      }
+
+      async function fetchRegistry() {
+        const data = await fetchJson("/fi-registry");
+        const map = {};
+        const assign = (key, metaLike) => {
+          const norm = normalizeFiKey(key);
+          if (!norm) return;
+          const integration = deriveIntegration(metaLike);
+          const instances = extractInstances(metaLike);
+          if (!map[norm]) {
+            map[norm] = {
+              integration,
+              instances,
+            };
+            return;
+          }
+
+          const precedence = { CardSavr: 3, SSO: 2, "NON-SSO": 1 };
+          if (
+            precedence[integration] >
+            precedence[map[norm].integration || "NON-SSO"]
+          ) {
+            map[norm].integration = integration;
+          }
+          const merged = new Set(map[norm].instances || []);
+          instances.forEach((inst) => merged.add(inst));
+          map[norm].instances = Array.from(merged).sort((a, b) =>
+            a.localeCompare(b)
+          );
+        };
+
+        if (Array.isArray(data)) {
+          data.forEach((row) => {
+            assign(row?.fi_lookup_key, row || {});
+            assign(row?.fi_name, row || {});
+          });
+        } else if (data && typeof data === "object") {
+          for (const [fiName, meta] of Object.entries(data)) {
+            assign(fiName, meta || {});
+            assign(meta?.fi_lookup_key, meta || {});
+            assign(meta?.fi_name, meta || {});
+          }
+        }
+
+        return map;
+      }
+
+      async function fetchDailyList() {
+        const payload = await fetchJson("/list-daily");
+        return payload.files || [];
+      }
+
+      async function fetchDaily(date) {
+        const payload = await fetchJson(`/daily?date=${date}`);
+        return payload?.error ? null : payload;
+      }
+
+      function getCardholderMap() {
+        const selected = fiFilterSelect.value;
+        if (!selected || selected === FI_ALL_VALUE) return {};
+        const num = Number(cardholderInput.value.trim());
+        if (Number.isNaN(num) || num <= 0) return {};
+        return { [normalizeFiKey(selected)]: num };
+      }
+
+      function syncCardholderInputState() {
+        const hasSpecific = fiFilterSelect.value && fiFilterSelect.value !== FI_ALL_VALUE;
+        cardholderInput.disabled = !hasSpecific;
+        if (!hasSpecific) {
+          cardholderInput.value = "";
+        }
+      }
+
+      function updateFiOptions(perFi) {
+        if (!perFi) return;
+        const integrationValue = integrationSelect.value;
+        const eligible = Object.values(perFi)
+          .filter((row) =>
+            integrationValue === "(all)" ? true : row.integration_type === integrationValue
+          )
+          .map((row) => row.fi)
+          .sort((a, b) => a.localeCompare(b));
+
+        const existingValue = fiFilterSelect.value;
+        fiFilterSelect.innerHTML = "";
+        const addOption = (value, label) => {
+          const opt = document.createElement("option");
+          opt.value = value;
+          opt.textContent = label;
+          fiFilterSelect.appendChild(opt);
+        };
+
+        addOption(FI_ALL_VALUE, "(all FIs)");
+        eligible.forEach((fi) => addOption(fi, fi));
+
+        if (existingValue && existingValue !== FI_ALL_VALUE) {
+          const stillPresent = eligible.includes(existingValue);
+          fiFilterSelect.value = stillPresent ? existingValue : FI_ALL_VALUE;
+        } else {
+          fiFilterSelect.value = FI_ALL_VALUE;
+        }
+
+        syncCardholderInputState();
+      }
+
+      function getVisibleRows(perFi) {
+        const filterFi = fiFilterSelect.value;
+        const filterIntegration = integrationSelect.value;
+        return Object.values(perFi).filter((row) => {
+          if (filterFi && filterFi !== FI_ALL_VALUE && row.fi !== filterFi) {
+            return false;
+          }
+          if (filterIntegration !== "(all)" && row.integration_type !== filterIntegration) {
+            return false;
+          }
+          return true;
+        });
+      }
+
+      function isSingleFiSelected() {
+        return fiFilterSelect.value && fiFilterSelect.value !== FI_ALL_VALUE;
+      }
+
+      function parseDateUtc(dateStr) {
+        return new Date(`${dateStr}T00:00:00Z`);
+      }
+
+      function formatDateUtc(dateObj) {
+        return dateObj.toISOString().slice(0, 10);
+      }
+
+      function addDaysUtc(dateObj, days) {
+        const d = new Date(dateObj);
+        d.setUTCDate(d.getUTCDate() + days);
+        return d;
+      }
+
+      function dayCountInclusive(start, end) {
+        if (!start || !end) return null;
+        const startDt = parseDateUtc(start);
+        const endDt = parseDateUtc(end);
+        const diff = Math.floor((endDt - startDt) / (1000 * 60 * 60 * 24));
+        return diff >= 0 ? diff + 1 : null;
+      }
+
+      function getMonthlyReachValue(row) {
+        const cardholders = row?.cardholders;
+        if (!cardholders || cardholders <= 0) return 0;
+        const dayCount =
+          row.dayCount ||
+          dayCountInclusive(row.periodStart || row.start, row.periodEnd || row.end) ||
+          lastRenderContext?.daySpan ||
+          1;
+        const reachBase = row.ga_select > 0 ? row.ga_select : row.sessions;
+        if (!reachBase || dayCount <= 0) return 0;
+        const reachMonthly = reachBase * (30 / dayCount);
+        return reachMonthly > 0 ? reachMonthly / cardholders : 0;
+      }
+
+      function formatMonthlyReachPct(row) {
+        const value = getMonthlyReachValue(row);
+        return value > 0 ? (value * 100).toFixed(1) + "%" : "";
+      }
+
+      function getSessSuccessRatio(row) {
+        if (!row.sessions) return 0;
+        return (row.sess_with_success || 0) / row.sessions;
+      }
+
+      function formatSessSuccessPct(row) {
+        if (!row.sessions) return "";
+        const ratio = getSessSuccessRatio(row);
+        return (ratio * 100).toFixed(1) + "%";
+      }
+
+      function sanitizeKey(label) {
+        return label.toLowerCase().replace(/[^a-z0-9]+/g, "-") || "section";
+      }
+
+      const SORT_ACCESSORS = {
+        fi: (row) => (row.fi || "").toLowerCase(),
+        instances: (row) => (row.instances || []).join(",").toLowerCase(),
+        integration: (row) => (row.integration_type || "").toLowerCase(),
+        ga_select: (row) => Number(row.ga_select) || 0,
+        ga_user: (row) => Number(row.ga_user) || 0,
+        ga_cred: (row) => Number(row.ga_cred) || 0,
+        reach: (row) => getMonthlyReachValue(row),
+        sel_user_pct: (row) => (row.ga_select ? (row.ga_user || 0) / row.ga_select : 0),
+        sel_cred_pct: (row) => (row.ga_select ? (row.ga_cred || 0) / row.ga_select : 0),
+        sessions: (row) => Number(row.sessions) || 0,
+        sess_with_jobs: (row) => Number(row.sess_with_jobs) || 0,
+        sess_with_success: (row) => Number(row.sess_with_success) || 0,
+        sess_success_pct: (row) => getSessSuccessRatio(row),
+        placements: (row) => Number(row.placements) || 0,
+        sources_missing: (row) => (row.sources_missing ? row.sources_missing.length : 0),
+        period: (row) => (row.periodLabel || row.start || "").toLowerCase(),
+      };
+
+      function getSortState(tableId, scope = "multi") {
+        const store = scope === "single" ? tableSortState.single : tableSortState.multi;
+        if (!store[tableId]) {
+          store[tableId] = scope === "single"
+            ? { column: "period", direction: "asc" }
+            : { ...DEFAULT_SORT };
+        }
+        return store[tableId];
+      }
+
+      function sortRowsForTable(rows, tableId, scope = "multi") {
+        const state = getSortState(tableId, scope);
+        const accessor = SORT_ACCESSORS[state.column] || SORT_ACCESSORS.sessions;
+        const direction = state.direction === "asc" ? 1 : -1;
+        return rows.slice().sort((a, b) => {
+          const va = accessor(a);
+          const vb = accessor(b);
+          if (typeof va === "string" || typeof vb === "string") {
+            return va.localeCompare(vb) * direction;
+          }
+          return (va - vb) * direction;
+        });
+      }
+
+      function handleSortClick(tableId, column, scope = "multi") {
+        const state = getSortState(tableId, scope);
+        if (state.column === column) {
+          state.direction = state.direction === "asc" ? "desc" : "asc";
+        } else {
+          state.column = column;
+          state.direction = column === "fi" || column === "instances" || column === "integration" || column === "period" ? "asc" : "desc";
+        }
+        rerenderFromCache();
+      }
+
+      function attachSortHandlers(table, tableId, scope = "multi") {
+        if (!table) return;
+        const headers = table.querySelectorAll("th[data-sort-key]");
+        headers.forEach((th) => {
+          th.style.cursor = "pointer";
+          th.onclick = () => {
+            const key = th.dataset.sortKey;
+            if (!key) return;
+            handleSortClick(tableId, key, scope);
+          };
+        });
+      }
+      function dayCountInclusive(start, end) {
+        if (!start || !end) return null;
+        const startDt = parseDateUtc(start);
+        const endDt = parseDateUtc(end);
+        const diff = Math.floor((endDt - startDt) / (1000 * 60 * 60 * 24));
+        return diff >= 0 ? diff + 1 : null;
+      }
+
+      function buildDailyRowsForFi(fiName, startDate, endDate, meta) {
+        const norm = normalizeFiKey(fiName);
+        const rows = [];
+        const dates = Object.keys(dailyData).sort();
+        for (const date of dates) {
+          if (!inRange(date, startDate, endDate)) continue;
+          const day = dailyData[date];
+          if (!day?.fi) continue;
+          let fiEntry = null;
+          for (const [name, data] of Object.entries(day.fi)) {
+            if (normalizeFiKey(name) === norm) {
+              fiEntry = data;
+              break;
+            }
+          }
+          if (!fiEntry) continue;
+          const ga = fiEntry.ga || {};
+          const sessions = fiEntry.sessions || {};
+          const placements = fiEntry.placements || {};
+          const missingSources = [];
+          if (!day.sources?.ga) missingSources.push(`${date}: GA`);
+          if (!day.sources?.sis_sessions) missingSources.push(`${date}: Sess`);
+          if (!day.sources?.sis_placements) missingSources.push(`${date}: CPR`);
+          rows.push({
+            periodLabel: date,
+            start: date,
+            end: date,
+            ga_select: ga.select_merchants || 0,
+            ga_user: ga.user_data_collection || 0,
+            ga_cred: ga.credential_entry || 0,
+            sessions: sessions.total || 0,
+            sess_with_jobs: sessions.with_jobs || 0,
+            sess_with_success: sessions.with_success || 0,
+            placements: placements.total_placements || 0,
+            sources_missing: missingSources,
+            fi: meta.fi,
+            instances: meta.instances,
+            integration_type: meta.integration,
+            cardholders: meta.cardholders,
+            dayCount: 1,
+          });
+        }
+        return rows;
+      }
+
+      function aggregateRowsForPeriod(rows, label, start, end, meta) {
+        if (!rows.length) return null;
+        const sourcesSet = new Set();
+        const agg = {
+          periodLabel: label,
+          start,
+          end,
+          ga_select: 0,
+          ga_user: 0,
+          ga_cred: 0,
+          sessions: 0,
+          sess_with_jobs: 0,
+          sess_with_success: 0,
+          placements: 0,
+          sources_missing: [],
+          fi: meta.fi,
+          instances: meta.instances,
+          integration_type: meta.integration,
+          cardholders: meta.cardholders,
+          dayCount: dayCountInclusive(start, end) || rows.length || 1,
+        };
+
+        for (const row of rows) {
+          agg.ga_select += row.ga_select || 0;
+          agg.ga_user += row.ga_user || 0;
+          agg.ga_cred += row.ga_cred || 0;
+          agg.sessions += row.sessions || 0;
+          agg.sess_with_jobs += row.sess_with_jobs || 0;
+          agg.sess_with_success += row.sess_with_success || 0;
+          agg.placements += row.placements || 0;
+          (row.sources_missing || []).forEach((entry) => sourcesSet.add(entry));
+        }
+        agg.sources_missing = Array.from(sourcesSet);
+        return agg;
+      }
+
+      function buildWeeklyRowsForFi(dailyRows, startDate, endDate, meta) {
+        const buckets = new Map();
+        for (const row of dailyRows) {
+          const date = parseDateUtc(row.start);
+          const weekStartDate = addDaysUtc(date, -date.getUTCDay());
+          const weekEndDate = addDaysUtc(weekStartDate, 6);
+          const weekStart = formatDateUtc(weekStartDate);
+          const weekEnd = formatDateUtc(weekEndDate);
+          if (weekStart < startDate || weekEnd > endDate) continue;
+          const key = weekStart;
+          if (!buckets.has(key)) {
+            buckets.set(key, { start: weekStart, end: weekEnd, rows: [] });
+          }
+          buckets.get(key).rows.push(row);
+        }
+        return Array.from(buckets.values())
+          .sort((a, b) => a.start.localeCompare(b.start))
+          .map((bucket) =>
+            aggregateRowsForPeriod(
+              bucket.rows,
+              `${bucket.start} → ${bucket.end}`,
+              bucket.start,
+              bucket.end,
+              meta
+            )
+          )
+          .filter(Boolean);
+      }
+
+      function buildMonthlyRowsForFi(dailyRows, startDate, endDate, meta) {
+        const buckets = new Map();
+        for (const row of dailyRows) {
+          const monthKey = row.start.slice(0, 7);
+          const [yearStr, monthStr] = monthKey.split("-");
+          const year = Number(yearStr);
+          const monthIndex = Number(monthStr) - 1;
+          const monthStartDate = new Date(Date.UTC(year, monthIndex, 1));
+          const monthEndDate = new Date(Date.UTC(year, monthIndex + 1, 0));
+          const monthStart = formatDateUtc(monthStartDate);
+          const monthEnd = formatDateUtc(monthEndDate);
+          if (monthStart < startDate || monthEnd > endDate) continue;
+          if (!buckets.has(monthKey)) {
+            buckets.set(monthKey, { start: monthStart, end: monthEnd, rows: [] });
+          }
+          buckets.get(monthKey).rows.push(row);
+        }
+        return Array.from(buckets.values())
+          .sort((a, b) => a.start.localeCompare(b.start))
+          .map((bucket) =>
+            aggregateRowsForPeriod(
+              bucket.rows,
+              `${bucket.start} → ${bucket.end}`,
+              bucket.start,
+              bucket.end,
+              meta
+            )
+          )
+          .filter(Boolean);
+      }
+
+      function inRange(date, start, end) {
+        if (!date) return false;
+        if (start && date < start) return false;
+        if (end && date > end) return false;
+        return true;
+      }
+
+      function aggregateData(startDate, endDate, cardholderMap) {
+        const perFi = {};
+        const dates = Object.keys(dailyData).sort();
+        const addInstancesToAgg = (agg, instances) => {
+          if (!agg || !Array.isArray(instances)) return;
+          if (!Array.isArray(agg.instances)) {
+            agg.instances = [];
+          }
+          const set = new Set(agg.instances);
+          instances
+            .filter(Boolean)
+            .forEach((inst) => set.add(inst.toString()));
+          agg.instances = Array.from(set).sort((a, b) => a.localeCompare(b));
+        };
+
+        for (const date of dates) {
+          if (!inRange(date, startDate, endDate)) continue;
+          const day = dailyData[date];
+          if (!day?.fi) continue;
+
+          const missingSources = [];
+          if (!day.sources?.ga) missingSources.push("GA");
+          if (!day.sources?.sis_sessions) missingSources.push("Sess");
+          if (!day.sources?.sis_placements) missingSources.push("CPR");
+
+          for (const [fiName, row] of Object.entries(day.fi)) {
+            const key = normalizeFiKey(fiName);
+            const registryEntry = registryMap[key];
+            const integration = registryEntry?.integration || "NON-SSO";
+            const registryInstances = registryEntry?.instances || [];
+            const agg =
+              perFi[fiName] || {
+                fi: fiName,
+                integration_type: integration,
+                ga_select: 0,
+                ga_user: 0,
+                ga_cred: 0,
+                sessions: 0,
+                sess_with_jobs: 0,
+                sess_with_success: 0,
+                placements: 0,
+                sources_missing: [],
+                instances: [],
+              };
+
+            agg.integration_type = integration;
+            addInstancesToAgg(agg, registryInstances);
+
+            if (row.ga) {
+              agg.ga_select += row.ga.select_merchants || 0;
+              agg.ga_user += row.ga.user_data_collection || 0;
+              agg.ga_cred += row.ga.credential_entry || 0;
+            }
+            if (row.sessions) {
+              agg.sessions += row.sessions.total || 0;
+              agg.sess_with_jobs += row.sessions.with_jobs || 0;
+              agg.sess_with_success += row.sessions.with_success || 0;
+            }
+            if (row.placements) {
+              agg.placements += row.placements.total_placements || 0;
+            }
+
+            const cardholders = cardholderMap[key];
+            if (typeof cardholders === "number") {
+              agg.cardholders = cardholders;
+            }
+
+            if (Array.isArray(row.ga_instances) && row.ga_instances.length) {
+              const normalizedList = row.ga_instances
+                .map((inst) => normalizeFiKey(inst))
+                .filter(Boolean);
+              addInstancesToAgg(agg, normalizedList);
+              if (normalizedList.includes("ondot")) {
+                agg.hasOnDotGa = true;
+              }
+            }
+
+            if (missingSources.length) {
+              agg.sources_missing.push({ date, missing: [...missingSources] });
+            }
+
+            perFi[fiName] = agg;
+          }
+        }
+
+        for (const agg of Object.values(perFi)) {
+          const hasOnDot = agg.hasOnDotGa;
+          if (hasOnDot) {
+            agg.integration_type = "CardSavr";
+          }
+          delete agg.hasOnDotGa;
+        }
+
+        return perFi;
+      }
+
+      function computeBestWindows(startDate, endDate, perFiLookup = {}, visibleRows = [], monthlyFactor = 1) {
+        const dates = Object.keys(dailyData)
+          .filter((d) => inRange(d, startDate, endDate))
+          .sort();
+        if (!dates.length) return [];
+
+        const allowedSet = new Set(visibleRows.map((row) => row.fi));
+        const restrict = allowedSet.size > 0;
+        const dayMissingMap = {};
+        const fiDaily = {};
+        for (const date of dates) {
+          const day = dailyData[date];
+          if (!day?.fi) continue;
+          const missingSources = [];
+          if (!day.sources?.ga) missingSources.push("GA");
+          if (!day.sources?.sis_sessions) missingSources.push("Sess");
+          if (!day.sources?.sis_placements) missingSources.push("CPR");
+          dayMissingMap[date] = missingSources;
+          for (const [fiName, fiDay] of Object.entries(day.fi)) {
+            const ga = fiDay.ga || {};
+            if (!fiDaily[fiName]) {
+              fiDaily[fiName] = {};
+            }
+            fiDaily[fiName][date] = {
+              select: ga.select_merchants || 0,
+              user: ga.user_data_collection || 0,
+              cred: ga.credential_entry || 0,
+              sessions: fiDay.sessions?.total || 0,
+              sess_with_jobs: fiDay.sessions?.with_jobs || 0,
+              sess_with_success: fiDay.sessions?.with_success || 0,
+              placements: fiDay.placements?.total_placements || 0,
+            };
+          }
+        }
+
+        const perFiByName = {};
+        Object.entries(perFiLookup || {}).forEach(([fiName, data]) => {
+          perFiByName[fiName] = data;
+          const norm = normalizeFiKey(fiName);
+          if (norm && !perFiByName[norm]) {
+            perFiByName[norm] = data;
+          }
+        });
+
+        const windows = [
+          { label: "Best 1-day", len: 1 },
+          { label: "Best 3-day", len: 3 },
+          { label: "Best 7-day", len: 7 },
+        ];
+
+        const results = [];
+
+        for (const { label, len } of windows) {
+          if (dates.length < len) {
+            results.push({ label, empty: true });
+            continue;
+          }
+          const minSessions = len * 25;
+          let best = null;
+          for (const [fiName, dailyMap] of Object.entries(fiDaily)) {
+            if (restrict && !allowedSet.has(fiName)) continue;
+            for (let idx = 0; idx <= dates.length - len; idx += 1) {
+              let sel = 0;
+              let user = 0;
+              let cred = 0;
+              let sessions = 0;
+              let sessWithJobs = 0;
+              let sessWithSuccess = 0;
+              let placements = 0;
+              const missingEntries = [];
+              for (let offset = 0; offset < len; offset += 1) {
+                const dayKey = dates[idx + offset];
+                const stats = dailyMap[dayKey];
+                if (stats) {
+                  sel += stats.select || 0;
+                  user += stats.user || 0;
+                  cred += stats.cred || 0;
+                  sessions += stats.sessions || 0;
+                  sessWithJobs += stats.sess_with_jobs || 0;
+                  sessWithSuccess += stats.sess_with_success || 0;
+                  placements += stats.placements || 0;
+                }
+                const missing = dayMissingMap[dayKey];
+                if (missing && missing.length) {
+                  missingEntries.push(`${dayKey}: ${missing.join(",")}`);
+                }
+              }
+              if (sessions < minSessions) continue;
+              const successPct = sessions ? sessWithSuccess / sessions : 0;
+              if (
+                !best ||
+                successPct > best.successPct ||
+                (successPct === best.successPct && sessions > best.sessions)
+              ) {
+                best = {
+                  label,
+                  fi: fiName,
+                  start: dates[idx],
+                  end: dates[idx + len - 1],
+                  sel,
+                  user,
+                  cred,
+                  conv: sel ? cred / sel : 0,
+                  successPct,
+                  sessions,
+                  sess_with_jobs: sessWithJobs,
+                  sess_with_success: sessWithSuccess,
+                  placements,
+                  sources_missing: missingEntries.join(" | "),
+                };
+              }
+            }
+          }
+          if (best) {
+            const normKey = normalizeFiKey(best.fi);
+            const aggRow = perFiByName[best.fi] || perFiByName[normKey] || {};
+            const registryInstances = registryMap[normKey]?.instances || [];
+            best.instances = Array.isArray(aggRow.instances)
+              ? aggRow.instances.join(", ")
+              : registryInstances.join(", ");
+            best.integration = aggRow.integration_type || "UNKNOWN";
+            if (typeof aggRow.cardholders === "number" && aggRow.cardholders > 0) {
+              const rowDays = dayCountInclusive(best.start, best.end) || 1;
+              const reachBase = best.sel > 0 ? best.sel : best.sessions;
+              const reachMonthly = reachBase * (30 / rowDays);
+              best.reach = reachMonthly > 0
+                ? ((reachMonthly / aggRow.cardholders) * 100).toFixed(1) + "%"
+                : "";
+            } else {
+              best.reach = "";
+            }
+            best.dayCount = dayCountInclusive(best.start, best.end);
+            results.push(best);
+          } else {
+            results.push({ label, empty: true });
+          }
+        }
+
+        return results;
+      }
+
+      function renderBestWindows(entries, visibleRows) {
+        bestWindowsDiv.innerHTML = "";
+        if (!visibleRows || !visibleRows.length) {
+          const emptyDiv = document.createElement("div");
+          emptyDiv.className = "muted";
+          emptyDiv.textContent = "No highlights because no FIs match the current filters.";
+          bestWindowsDiv.appendChild(emptyDiv);
+          return;
+        }
+
+        if (!entries || !entries.length) {
+          const emptyDiv = document.createElement("div");
+          emptyDiv.className = "muted";
+          emptyDiv.textContent = `No GA highlights with ≥ ${MIN_SELECTS} select views in this window.`;
+          bestWindowsDiv.appendChild(emptyDiv);
+          return;
+        }
+
+        const table = document.createElement("table");
+        table.className = "highlights-table";
+        table.innerHTML = `
+          <thead>
+            <tr>
+              <th>Highlight</th>
+              <th>FI</th>
+              <th>instances</th>
+              <th>integration</th>
+              <th>dates</th>
+              <th>GA select</th>
+              <th>GA user</th>
+              <th>GA cred</th>
+              <th>monthly reach %</th>
+              <th>sel→user %</th>
+              <th>sel→cred %</th>
+              <th>sessions</th>
+              <th>sess w/jobs</th>
+              <th>sess w/success</th>
+              <th>sess→success %</th>
+              <th>placements</th>
+              <th>sources missing</th>
+            </tr>
+          </thead>
+        `;
+
+        const tbody = document.createElement("tbody");
+        entries.forEach((entry) => {
+          const tr = document.createElement("tr");
+          if (entry.empty) {
+            tr.innerHTML = `
+              <td>${entry.label}</td>
+              <td colspan="15" class="muted">No data for this highlight window.</td>
+            `;
+          } else {
+            const convPct = entry.conv ? (entry.conv * 100).toFixed(1) + "%" : "0%";
+            const selUserPct = entry.sel
+              ? ((entry.user || 0) / entry.sel * 100).toFixed(1) + "%"
+              : "";
+            const reachPct = formatMonthlyReachPct(entry);
+            const sessSuccessPct = entry.successPct
+              ? (entry.successPct * 100).toFixed(1) + "%"
+              : "";
+            const dateRange = entry.start === entry.end ? entry.start : `${entry.start} → ${entry.end}`;
+            tr.innerHTML = `
+              <td>${entry.label}</td>
+              <td>${entry.fi}</td>
+              <td>${entry.instances || ""}</td>
+              <td>${entry.integration || ""}</td>
+              <td>${dateRange}</td>
+              <td>${entry.sel}</td>
+              <td>${entry.user || 0}</td>
+              <td>${entry.cred}</td>
+              <td>${reachPct}</td>
+              <td>${selUserPct}</td>
+              <td>${convPct}</td>
+              <td>${entry.sessions || 0}</td>
+              <td>${entry.sess_with_jobs || 0}</td>
+              <td>${entry.sess_with_success || 0}</td>
+              <td>${sessSuccessPct}</td>
+              <td>${entry.placements || 0}</td>
+              <td>${entry.sources_missing || ""}</td>
+            `;
+          }
+          tbody.appendChild(tr);
+        });
+
+        table.appendChild(tbody);
+        bestWindowsDiv.appendChild(table);
+      }
+
+      function renderSingleFiSections(visibleRows, startDate, endDate, daySpan) {
+        if (!visibleRows || !visibleRows.length) {
+          const div = document.createElement("div");
+          div.className = "muted";
+          div.textContent = "No data available for this FI.";
+          singleFiView.appendChild(div);
+          return;
+        }
+
+        const fiName = fiFilterSelect.value;
+        const perFiRow = visibleRows[0] || {};
+        const norm = normalizeFiKey(fiName);
+        const meta = {
+          fi: fiName,
+          instances: perFiRow.instances || registryMap[norm]?.instances || [],
+          integration: perFiRow.integration_type || registryMap[norm]?.integration || "UNKNOWN",
+          cardholders: perFiRow.cardholders,
+        };
+
+        const dailyRows = buildDailyRowsForFi(fiName, startDate, endDate, meta);
+        const weeklyRows = buildWeeklyRowsForFi(dailyRows, startDate, endDate, meta);
+        const monthlyRows = buildMonthlyRowsForFi(dailyRows, startDate, endDate, meta);
+
+        const sections = [];
+        if (daySpan <= 14) {
+          if (dailyRows.length) sections.push({ title: "Daily", rows: dailyRows });
+        } else if (daySpan <= 28) {
+          if (dailyRows.length) sections.push({ title: "Daily", rows: dailyRows });
+          if (weeklyRows.length) {
+            sections.push({ title: "Weekly (Sunday → Saturday)", rows: weeklyRows });
+          }
+        } else {
+          if (weeklyRows.length) {
+            sections.push({ title: "Weekly (Sunday → Saturday)", rows: weeklyRows });
+          }
+          if (monthlyRows.length) {
+            sections.push({ title: "Monthly (full months)", rows: monthlyRows });
+          }
+        }
+
+        if (!sections.length) {
+          const div = document.createElement("div");
+          div.className = "muted";
+          div.textContent = "No full periods available for this FI within the selected dates.";
+          singleFiView.appendChild(div);
+          return;
+        }
+
+        sections.forEach(({ title, rows }) => {
+          renderSingleFiSection(title, rows);
+        });
+      }
+
+      function renderSingleFiSection(title, rows) {
+        if (!rows.length) return;
+        const container = document.createElement("div");
+        container.className = "single-fi-section";
+        const header = document.createElement("div");
+        header.className = "group-header";
+        header.textContent = title;
+        container.appendChild(header);
+
+        const table = document.createElement("table");
+        table.innerHTML = `
+          <thead>
+            <tr>
+              <th data-sort-key="period">Period</th>
+              <th data-sort-key="fi">FI</th>
+              <th data-sort-key="instances">instances</th>
+              <th data-sort-key="integration">integration</th>
+              <th data-sort-key="ga_select">GA select</th>
+              <th data-sort-key="ga_user">GA user</th>
+              <th data-sort-key="ga_cred">GA cred</th>
+              <th data-sort-key="reach">monthly reach %</th>
+              <th data-sort-key="sel_user_pct">sel→user %</th>
+              <th data-sort-key="sel_cred_pct">sel→cred %</th>
+              <th data-sort-key="sessions">sessions</th>
+              <th data-sort-key="sess_with_jobs">sess w/jobs</th>
+              <th data-sort-key="sess_with_success">sess w/success</th>
+              <th data-sort-key="sess_success_pct">sess→success %</th>
+              <th data-sort-key="placements">placements</th>
+              <th data-sort-key="sources_missing">sources missing</th>
+            </tr>
+          </thead>
+        `;
+        const tbody = document.createElement("tbody");
+        const tableId = `single-${sanitizeKey(title)}`;
+        const sortedRows = sortRowsForTable(rows, tableId, "single");
+        sortedRows.forEach((row) => {
+          tbody.appendChild(renderSingleFiRow(row));
+        });
+        table.appendChild(tbody);
+        table.id = tableId;
+        attachSortHandlers(table, tableId, "single");
+        container.appendChild(table);
+        singleFiView.appendChild(container);
+      }
+
+      function renderSingleFiRow(row) {
+        const tr = document.createElement("tr");
+        const selUserPct = row.ga_select
+          ? ((row.ga_user / row.ga_select) * 100).toFixed(1) + "%"
+          : "";
+        const selCredPct = row.ga_select
+          ? ((row.ga_cred / row.ga_select) * 100).toFixed(1) + "%"
+          : "";
+        const reachPct = formatMonthlyReachPct(row);
+        const sessSuccessPct = formatSessSuccessPct(row);
+        const instancesText = Array.isArray(row.instances) && row.instances.length
+          ? row.instances.join(", ")
+          : "";
+        const missing = (row.sources_missing || []).join(" | ");
+        tr.innerHTML = `
+          <td>${row.periodLabel}</td>
+          <td>${row.fi}</td>
+          <td>${instancesText}</td>
+          <td>${row.integration_type || ""}</td>
+          <td>${row.ga_select}</td>
+          <td>${row.ga_user}</td>
+          <td>${row.ga_cred}</td>
+          <td>${reachPct}</td>
+          <td>${selUserPct}</td>
+          <td>${selCredPct}</td>
+          <td>${row.sessions || 0}</td>
+          <td>${row.sess_with_jobs || 0}</td>
+          <td>${row.sess_with_success || 0}</td>
+          <td>${sessSuccessPct}</td>
+          <td>${row.placements || 0}</td>
+          <td>${missing}</td>
+        `;
+        return tr;
+      }
+
+      function renderTables(visibleRows, startDate, endDate, daySpan) {
+        visibleRows.forEach((row) => {
+          row.periodStart = startDate;
+          row.periodEnd = endDate;
+          row.dayCount = row.dayCount || daySpan;
+        });
+        const singleFiMode = isSingleFiSelected();
+        if (singleFiMode) {
+          singleFiView.style.display = "";
+          multiFiView.style.display = "none";
+          singleFiView.innerHTML = "";
+          totalsBar.style.display = "none";
+          renderSingleFiSections(visibleRows, startDate, endDate, daySpan);
+          return;
+        }
+
+        singleFiView.style.display = "none";
+        singleFiView.innerHTML = "";
+        multiFiView.style.display = "";
+
+        Object.values(tableBodies).forEach((tbody) => {
+          tbody.innerHTML = "";
+        });
+
+        const bucketed = {
+          SSO: [],
+          "NON-SSO": [],
+          CardSavr: [],
+          UNKNOWN: [],
+        };
+        visibleRows.forEach((row) => {
+          const integration = row.integration_type || "UNKNOWN";
+          const bucketKey = bucketed[integration] ? integration : "UNKNOWN";
+          bucketed[bucketKey].push(row);
+        });
+
+        const renderRow = (row, integration) => {
+          const instancesText = Array.isArray(row.instances) && row.instances.length
+            ? row.instances.join(", ")
+            : "";
+          const selUserPct = row.ga_select
+            ? ((row.ga_user / row.ga_select) * 100).toFixed(1) + "%"
+            : "";
+          const selCredPct = row.ga_select
+            ? ((row.ga_cred / row.ga_select) * 100).toFixed(1) + "%"
+            : "";
+          const sessSuccessPct = formatSessSuccessPct(row);
+          const reachPct = formatMonthlyReachPct(row);
+
+          const missing = (row.sources_missing || [])
+            .map((entry) => `${entry.date}: ${entry.missing.join(",")}`)
+            .join(" | ");
+
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${row.fi}</td>
+            <td>${instancesText}</td>
+            <td>${integration}</td>
+            <td>${row.ga_select}</td>
+            <td>${row.ga_user}</td>
+            <td>${row.ga_cred}</td>
+            <td>${reachPct}</td>
+            <td>${selUserPct}</td>
+            <td>${selCredPct}</td>
+            <td>${row.sessions}</td>
+            <td>${row.sess_with_jobs}</td>
+            <td>${row.sess_with_success}</td>
+            <td>${sessSuccessPct}</td>
+            <td>${row.placements}</td>
+            <td class="sources-missing">${missing}</td>
+          `;
+
+          return tr;
+        };
+
+        Object.entries(bucketed).forEach(([integration, rows]) => {
+          const tbody = tableBodies[integration] || tableBodies.UNKNOWN;
+          tbody.innerHTML = "";
+          const tableId = `table-${integration}`;
+          const sortedRows = sortRowsForTable(rows, tableId, "multi");
+          sortedRows.forEach((row) => tbody.appendChild(renderRow(row, integration)));
+          const block = groupBlocks[integration] || groupBlocks.UNKNOWN;
+          if (block) {
+            block.style.display = rows.length ? "" : "none";
+          }
+          const tableEl = tbody.closest("table");
+          attachSortHandlers(tableEl, tableId, "multi");
+        });
+
+        const visibleCount = visibleRows.length;
+        dateWindowLabel.textContent = `Date window: ${startDate} → ${endDate} (${visibleCount} FIs)`;
+
+        if (visibleCount > 1) {
+          const totals = visibleRows.reduce(
+            (acc, row) => {
+              acc.ga_select += row.ga_select || 0;
+              acc.ga_user += row.ga_user || 0;
+              acc.ga_cred += row.ga_cred || 0;
+              acc.sessions += row.sessions || 0;
+              acc.sess_with_jobs += row.sess_with_jobs || 0;
+              acc.sess_with_success += row.sess_with_success || 0;
+              acc.placements += row.placements || 0;
+              return acc;
+            },
+            {
+              ga_select: 0,
+              ga_user: 0,
+              ga_cred: 0,
+              sessions: 0,
+              sess_with_jobs: 0,
+              sess_with_success: 0,
+              placements: 0,
+            }
+          );
+          const selUserPct = totals.ga_select
+            ? ((totals.ga_user / totals.ga_select) * 100).toFixed(1) + "%"
+            : "";
+          const selCredPct = totals.ga_select
+            ? ((totals.ga_cred / totals.ga_select) * 100).toFixed(1) + "%"
+            : "";
+          totalsBar.textContent =
+            `Totals (${visibleCount} FIs): sel ${totals.ga_select} | user ${totals.ga_user}` +
+            ` | cred ${totals.ga_cred} | sel→user ${selUserPct || "—"} | sel→cred ${selCredPct || "—"}` +
+            ` | sessions ${totals.sessions} (jobs ${totals.sess_with_jobs}, success ${totals.sess_with_success})` +
+            ` | placements ${totals.placements}`;
+          totalsBar.style.display = "block";
+        } else {
+          totalsBar.style.display = "none";
+        }
+      }
+
+      async function applyFilters() {
+        const startDate = startDateInput.value || sixMonthsAgoStr;
+        const endDate = endDateInput.value || todayStr;
+        const startDt = new Date(`${startDate}T00:00:00Z`);
+        const endDt = new Date(`${endDate}T00:00:00Z`);
+        const daySpan = Math.max(1, Math.floor((endDt - startDt) / (1000 * 60 * 60 * 24)) + 1);
+        const monthlyFactor = 30 / daySpan;
+        const cardholderMap = getCardholderMap();
+        const perFi = aggregateData(startDate, endDate, cardholderMap);
+        lastAggregated = perFi;
+        updateFiOptions(perFi);
+        const visibleRows = getVisibleRows(perFi);
+        const best = computeBestWindows(startDate, endDate, perFi, visibleRows, monthlyFactor);
+        renderBestWindows(best, visibleRows);
+        renderTables(visibleRows, startDate, endDate, daySpan);
+
+        lastRenderContext = {
+          perFi,
+          startDate,
+          endDate,
+          daySpan,
+          best,
+        };
+        lastFilterSnapshot = {
+          fi: fiFilterSelect.value,
+          integration: integrationSelect.value,
+          cardholders: cardholderInput.value,
+        };
+      }
+
+      function rerenderFromCache() {
+        if (!lastRenderContext) return;
+        const snapshotChanged =
+          !lastFilterSnapshot ||
+          lastFilterSnapshot.fi !== fiFilterSelect.value ||
+          lastFilterSnapshot.integration !== integrationSelect.value ||
+          lastFilterSnapshot.cardholders !== cardholderInput.value;
+        if (snapshotChanged) {
+          applyFilters();
+          return;
+        }
+
+        const { perFi, startDate, endDate, daySpan, best } = lastRenderContext;
+        const visibleRows = getVisibleRows(perFi);
+        renderBestWindows(best, visibleRows);
+        renderTables(visibleRows, startDate, endDate, daySpan);
+      }
+
+      async function init() {
+        try {
+          registryMap = await fetchRegistry();
+        } catch (err) {
+          console.error("Failed to load fi_registry:", err);
+          registryMap = {};
+        }
+
+        try {
+          dailyFiles = await fetchDailyList();
+          for (const file of dailyFiles) {
+            const date = file.replace(".json", "");
+            const data = await fetchDaily(date);
+            if (data) {
+              dailyData[date] = data;
+            }
+          }
+        } catch (err) {
+          console.error("Failed to load daily data:", err);
+        }
+
+        applyFilters();
+      }
+
+      applyBtn.addEventListener("click", () => {
+        applyFilters();
+      });
+
+      fiFilterSelect.addEventListener("change", () => {
+        syncCardholderInputState();
+      });
+
+      integrationSelect.addEventListener("change", () => {
+        if (lastAggregated) {
+          updateFiOptions(lastAggregated);
+        } else {
+          fiFilterSelect.value = FI_ALL_VALUE;
+          syncCardholderInputState();
+        }
+      });
+
+      init().catch((err) => {
+        console.error("Init failed", err);
+      });
+
+      syncCardholderInputState();
+    </script>
+  </body>
+</html>

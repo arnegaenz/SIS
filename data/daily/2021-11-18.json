@@ -1,0 +1,76 @@
+{
+  "date": "2021-11-18",
+  "sources": {
+    "ga": false,
+    "sis_sessions": false,
+    "sis_placements": true
+  },
+  "fi": {
+    "acmecu": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 32,
+        "successful_placements": 25,
+        "by_termination": {
+          "SUCCESSFUL": 25,
+          "NETWORK_ISSUE": 2,
+          "TOO_MANY_LOGIN_FAILURES": 1,
+          "UNSUCCESSFUL": 4
+        }
+      }
+    },
+    "affinity": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 16,
+        "successful_placements": 1,
+        "by_termination": {
+          "CANCELLED": 2,
+          "UNSUCCESSFUL": 1,
+          "ABANDONED_QUICKSTART": 12,
+          "SUCCESSFUL": 1
+        }
+      }
+    },
+    "mybank": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 11,
+        "successful_placements": 0,
+        "by_termination": {
+          "ABANDONED_QUICKSTART": 11
+        }
+      }
+    }
+  }
+}

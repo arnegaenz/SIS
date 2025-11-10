@@ -1,0 +1,52 @@
+{
+  "date": "2020-06-11",
+  "sources": {
+    "ga": false,
+    "sis_sessions": false,
+    "sis_placements": true
+  },
+  "fi": {
+    "decu": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 31,
+        "successful_placements": 0,
+        "by_termination": {
+          "SUCCESS": 8,
+          "FAILURE": 23
+        }
+      }
+    },
+    "affinity": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 8,
+        "successful_placements": 0,
+        "by_termination": {
+          "FAILURE": 6,
+          "SUCCESS": 2
+        }
+      }
+    }
+  }
+}

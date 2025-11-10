@@ -1,0 +1,133 @@
+{
+  "date": "2022-01-26",
+  "sources": {
+    "ga": false,
+    "sis_sessions": false,
+    "sis_placements": true
+  },
+  "fi": {
+    "acmecu": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 75,
+        "successful_placements": 60,
+        "by_termination": {
+          "SITE_INTERACTION_FAILURE": 5,
+          "BILLABLE": 60,
+          "USER_DATA_FAILURE": 10
+        }
+      }
+    },
+    "peoplescu": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 1,
+        "successful_placements": 1,
+        "by_termination": {
+          "BILLABLE": 1
+        }
+      }
+    },
+    "umassfivefcu": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 2,
+        "successful_placements": 1,
+        "by_termination": {
+          "BILLABLE": 1,
+          "SITE_INTERACTION_FAILURE": 1
+        }
+      }
+    },
+    "mybank": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 9,
+        "successful_placements": 0,
+        "by_termination": {
+          "NEVER_STARTED": 9
+        }
+      }
+    },
+    "capecodfive": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 4,
+        "successful_placements": 0,
+        "by_termination": {
+          "USER_DATA_FAILURE": 4
+        }
+      }
+    },
+    "pscu": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 16,
+        "successful_placements": 0,
+        "by_termination": {
+          "NEVER_STARTED": 16
+        }
+      }
+    }
+  }
+}

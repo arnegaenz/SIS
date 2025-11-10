@@ -1,0 +1,115 @@
+{
+  "date": "2021-09-16",
+  "sources": {
+    "ga": false,
+    "sis_sessions": false,
+    "sis_placements": true
+  },
+  "fi": {
+    "decu": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 14,
+        "successful_placements": 6,
+        "by_termination": {
+          "SUCCESSFUL": 6,
+          "ABANDONED_QUICKSTART": 3,
+          "TIMEOUT_TFA": 2,
+          "TIMEOUT_CREDENTIALS": 1,
+          "CANCELLED": 1,
+          "CANCELLED_QUICKSTART": 1
+        }
+      }
+    },
+    "usbank": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 2,
+        "successful_placements": 0,
+        "by_termination": {
+          "ABANDONED_QUICKSTART": 2
+        }
+      }
+    },
+    "mycreditunion": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 2,
+        "successful_placements": 0,
+        "by_termination": {
+          "ABANDONED_QUICKSTART": 2
+        }
+      }
+    },
+    "mybanktx": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 1,
+        "successful_placements": 0,
+        "by_termination": {
+          "ABANDONED_QUICKSTART": 1
+        }
+      }
+    },
+    "mybank": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 6,
+        "successful_placements": 0,
+        "by_termination": {
+          "ABANDONED_QUICKSTART": 6
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,95 @@
+{
+  "date": "2022-01-17",
+  "sources": {
+    "ga": false,
+    "sis_sessions": false,
+    "sis_placements": true
+  },
+  "fi": {
+    "default": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 11,
+        "successful_placements": 0,
+        "by_termination": {
+          "NEVER_STARTED": 9,
+          "USER_DATA_FAILURE": 2
+        }
+      }
+    },
+    "affinity": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 8,
+        "successful_placements": 0,
+        "by_termination": {
+          "NEVER_STARTED": 4,
+          "SITE_INTERACTION_FAILURE": 1,
+          "USER_DATA_FAILURE": 3
+        }
+      }
+    },
+    "acmecu": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 73,
+        "successful_placements": 53,
+        "by_termination": {
+          "BILLABLE": 53,
+          "SITE_INTERACTION_FAILURE": 9,
+          "USER_DATA_FAILURE": 11
+        }
+      }
+    },
+    "lafcu": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 2,
+        "successful_placements": 0,
+        "by_termination": {
+          "NEVER_STARTED": 2
+        }
+      }
+    }
+  }
+}

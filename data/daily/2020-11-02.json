@@ -1,0 +1,55 @@
+{
+  "date": "2020-11-02",
+  "sources": {
+    "ga": false,
+    "sis_sessions": false,
+    "sis_placements": true
+  },
+  "fi": {
+    "affinity": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 19,
+        "successful_placements": 5,
+        "by_termination": {
+          "UNSUCCESSFUL": 4,
+          "TIMEOUT_TFA": 3,
+          "ABANDONED_QUICKSTART": 5,
+          "TOO_MANY_LOGIN_FAILURES": 1,
+          "SUCCESSFUL": 5,
+          "VBS_TIMEOUT": 1
+        }
+      }
+    },
+    "default": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 2,
+        "successful_placements": 0,
+        "by_termination": {
+          "TOO_MANY_LOGIN_FAILURES": 2
+        }
+      }
+    }
+  }
+}

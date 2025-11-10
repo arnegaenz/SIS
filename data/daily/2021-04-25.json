@@ -1,0 +1,73 @@
+{
+  "date": "2021-04-25",
+  "sources": {
+    "ga": false,
+    "sis_sessions": false,
+    "sis_placements": true
+  },
+  "fi": {
+    "default": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 63,
+        "successful_placements": 2,
+        "by_termination": {
+          "ABANDONED_QUICKSTART": 60,
+          "UNSUCCESSFUL": 1,
+          "SUCCESSFUL": 2
+        }
+      }
+    },
+    "affinity": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 4,
+        "successful_placements": 0,
+        "by_termination": {
+          "UNSUCCESSFUL": 3,
+          "ABANDONED_QUICKSTART": 1
+        }
+      }
+    },
+    "corningcu": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 3,
+        "successful_placements": 3,
+        "by_termination": {
+          "SUCCESSFUL": 3
+        }
+      }
+    }
+  }
+}

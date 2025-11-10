@@ -1,0 +1,53 @@
+{
+  "date": "2022-02-05",
+  "sources": {
+    "ga": false,
+    "sis_sessions": false,
+    "sis_placements": true
+  },
+  "fi": {
+    "gncu": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 3,
+        "successful_placements": 1,
+        "by_termination": {
+          "NEVER_STARTED": 2,
+          "BILLABLE": 1
+        }
+      }
+    },
+    "pscu": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 22,
+        "successful_placements": 2,
+        "by_termination": {
+          "NEVER_STARTED": 15,
+          "USER_DATA_FAILURE": 5,
+          "BILLABLE": 2
+        }
+      }
+    }
+  }
+}

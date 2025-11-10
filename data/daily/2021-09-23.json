@@ -1,0 +1,97 @@
+{
+  "date": "2021-09-23",
+  "sources": {
+    "ga": false,
+    "sis_sessions": false,
+    "sis_placements": true
+  },
+  "fi": {
+    "peoplescu": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 3,
+        "successful_placements": 0,
+        "by_termination": {
+          "INVALID_EXPIRATION_DATE": 2,
+          "ABANDONED_QUICKSTART": 1
+        }
+      }
+    },
+    "acmecu": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 5,
+        "successful_placements": 1,
+        "by_termination": {
+          "INVALID_EXPIRATION_DATE": 1,
+          "CANCELLED_QUICKSTART": 2,
+          "SUCCESSFUL": 1,
+          "ABANDONED_QUICKSTART": 1
+        }
+      }
+    },
+    "suma-fcu": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 9,
+        "successful_placements": 0,
+        "by_termination": {
+          "PROXY_PROBE_FAILED": 3,
+          "ABANDONED_QUICKSTART": 2,
+          "UNSUCCESSFUL": 1,
+          "TIMEOUT_CREDENTIALS": 3
+        }
+      }
+    },
+    "pscu": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 1,
+        "successful_placements": 0,
+        "by_termination": {
+          "ABANDONED_QUICKSTART": 1
+        }
+      }
+    }
+  }
+}

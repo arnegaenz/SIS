@@ -1,0 +1,54 @@
+{
+  "date": "2022-03-13",
+  "sources": {
+    "ga": false,
+    "sis_sessions": false,
+    "sis_placements": true
+  },
+  "fi": {
+    "affinity": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 31,
+        "successful_placements": 5,
+        "by_termination": {
+          "NEVER_STARTED": 23,
+          "BILLABLE": 5,
+          "SITE_INTERACTION_FAILURE": 1,
+          "USER_DATA_FAILURE": 2
+        }
+      }
+    },
+    "mobiloilcu": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 20,
+        "successful_placements": 0,
+        "by_termination": {
+          "NEVER_STARTED": 19,
+          "SITE_INTERACTION_FAILURE": 1
+        }
+      }
+    }
+  }
+}

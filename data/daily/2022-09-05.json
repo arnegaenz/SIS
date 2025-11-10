@@ -1,0 +1,110 @@
+{
+  "date": "2022-09-05",
+  "sources": {
+    "ga": true,
+    "sis_sessions": false,
+    "sis_placements": true
+  },
+  "fi": {
+    "corningcu": {
+      "ga": {
+        "select_merchants": 3,
+        "user_data_collection": 2,
+        "credential_entry": 1
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 0,
+        "successful_placements": 0,
+        "by_termination": {}
+      }
+    },
+    "columbiacu": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 6,
+        "successful_placements": 2,
+        "by_termination": {
+          "USER_DATA_FAILURE": 4,
+          "BILLABLE": 2
+        }
+      }
+    },
+    "islandfcu": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 2,
+        "successful_placements": 2,
+        "by_termination": {
+          "BILLABLE": 2
+        }
+      }
+    },
+    "adventurecu": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 3,
+        "successful_placements": 0,
+        "by_termination": {
+          "USER_DATA_FAILURE": 2,
+          "NEVER_STARTED": 1
+        }
+      }
+    },
+    "deseretfirstcu": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 1,
+        "successful_placements": 1,
+        "by_termination": {
+          "BILLABLE": 1
+        }
+      }
+    }
+  }
+}

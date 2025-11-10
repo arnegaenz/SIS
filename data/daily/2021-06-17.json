@@ -1,0 +1,161 @@
+{
+  "date": "2021-06-17",
+  "sources": {
+    "ga": false,
+    "sis_sessions": false,
+    "sis_placements": true
+  },
+  "fi": {
+    "default": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 13,
+        "successful_placements": 0,
+        "by_termination": {
+          "ABANDONED_QUICKSTART": 12,
+          "TIMEOUT_TFA": 1
+        }
+      }
+    },
+    "lookoutcu": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 17,
+        "successful_placements": 5,
+        "by_termination": {
+          "TOO_MANY_LOGIN_FAILURES": 2,
+          "TIMEOUT_CREDENTIALS": 5,
+          "UNSUCCESSFUL": 1,
+          "SUCCESSFUL": 5,
+          "TIMEOUT_TFA": 3,
+          "ABANDONED_QUICKSTART": 1
+        }
+      }
+    },
+    "acmecu": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 51,
+        "successful_placements": 39,
+        "by_termination": {
+          "UNSUCCESSFUL": 9,
+          "SUCCESSFUL": 39,
+          "TOO_MANY_LOGIN_FAILURES": 3
+        }
+      }
+    },
+    "corningcu": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 6,
+        "successful_placements": 0,
+        "by_termination": {
+          "ABANDONED_QUICKSTART": 6
+        }
+      }
+    },
+    "mybank": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 24,
+        "successful_placements": 1,
+        "by_termination": {
+          "ABANDONED_QUICKSTART": 19,
+          "TIMEOUT_CREDENTIALS": 2,
+          "UNSUCCESSFUL": 2,
+          "SUCCESSFUL": 1
+        }
+      }
+    },
+    "freedom": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 1,
+        "successful_placements": 0,
+        "by_termination": {
+          "ABANDONED_QUICKSTART": 1
+        }
+      }
+    },
+    "mycreditunion": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 8,
+        "successful_placements": 0,
+        "by_termination": {
+          "ABANDONED_QUICKSTART": 8
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,142 @@
+{
+  "date": "2021-07-02",
+  "sources": {
+    "ga": false,
+    "sis_sessions": false,
+    "sis_placements": true
+  },
+  "fi": {
+    "lookoutcu": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 11,
+        "successful_placements": 2,
+        "by_termination": {
+          "CANCELLED": 1,
+          "UNSUCCESSFUL": 1,
+          "SUCCESSFUL": 2,
+          "ABANDONED_QUICKSTART": 6,
+          "TIMEOUT_CREDENTIALS": 1
+        }
+      }
+    },
+    "corningcu": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 14,
+        "successful_placements": 0,
+        "by_termination": {
+          "ABANDONED_QUICKSTART": 14
+        }
+      }
+    },
+    "pscu": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 29,
+        "successful_placements": 0,
+        "by_termination": {
+          "ABANDONED_QUICKSTART": 26,
+          "KILLED": 1,
+          "PROXY_PROBE_FAILED": 1,
+          "TIMEOUT_CREDENTIALS": 1
+        }
+      }
+    },
+    "peoplesbank-tn": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 3,
+        "successful_placements": 0,
+        "by_termination": {
+          "TOO_MANY_LOGIN_FAILURES": 1,
+          "TIMEOUT_CREDENTIALS": 1,
+          "ABANDONED_QUICKSTART": 1
+        }
+      }
+    },
+    "mybank": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 9,
+        "successful_placements": 0,
+        "by_termination": {
+          "ABANDONED_QUICKSTART": 9
+        }
+      }
+    },
+    "default": {
+      "ga": {
+        "select_merchants": 0,
+        "user_data_collection": 0,
+        "credential_entry": 0
+      },
+      "sessions": {
+        "total": 0,
+        "with_jobs": 0,
+        "with_success": 0,
+        "without_jobs": 0
+      },
+      "placements": {
+        "total_placements": 5,
+        "successful_placements": 0,
+        "by_termination": {
+          "UNSUCCESSFUL": 1,
+          "CANCELLED": 1,
+          "ABANDONED_QUICKSTART": 1,
+          "KILLED": 2
+        }
+      }
+    }
+  }
+}
