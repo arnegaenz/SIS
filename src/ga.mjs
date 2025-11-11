@@ -40,9 +40,19 @@ function resolveFiFromHost(host = "") {
     };
   }
 
+  const fi_key = parts[0];
+  const instance = parts[1] || parts[0];
+
+  if (fi_key === "default" && instance === "advancial-prod") {
+    return {
+      fi_key: "advancial-prod",
+      instance,
+    };
+  }
+
   return {
-    fi_key: parts[0],
-    instance: parts[1] || parts[0],
+    fi_key,
+    instance,
   };
 }
 
@@ -73,7 +83,7 @@ export async function fetchGaRowsForDay({
         { name: "hostName" },
         { name: "pagePath" },
       ],
-      metrics: [{ name: "screenPageViews" }],
+      metrics: [{ name: "screenPageViews" }, { name: "activeUsers" }],
       limit: 10000,
     },
   });
@@ -93,6 +103,7 @@ export async function fetchGaRowsForDay({
         host,
         page,
         views: Number(row.metricValues?.[0]?.value || "0"),
+        active_users: Number(row.metricValues?.[1]?.value || "0"),
         fi_key: fi.fi_key.toLowerCase(),
         instance: fi.instance,
       };

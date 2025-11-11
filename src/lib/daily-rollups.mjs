@@ -1,6 +1,34 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 
+const UNKNOWN_INSTANCE = "unknown";
+
+function canonicalInstance(value) {
+  if (!value) return UNKNOWN_INSTANCE;
+  const normalized = value.toString().trim().toLowerCase().replace(/[^a-z0-9]/g, "");
+  return normalized || UNKNOWN_INSTANCE;
+}
+
+function parseInstanceKey(key = "") {
+  if (!key.includes("__")) {
+    return { fi: key, instance: UNKNOWN_INSTANCE };
+  }
+  const [fi, instance] = key.split("__");
+  return {
+    fi,
+    instance: instance || UNKNOWN_INSTANCE,
+  };
+}
+
+function chooseInstanceDisplay(...values) {
+  const candidates = values
+    .map((value) => (value ? value.toString() : ""))
+    .filter((value) => value && value !== UNKNOWN_INSTANCE);
+  const preferred = candidates.find((value) => value.includes("-"));
+  if (preferred) return preferred;
+  return candidates[0] || UNKNOWN_INSTANCE;
+}
+
 export async function ensureDir(dir) {
   await fs.mkdir(dir, { recursive: true });
 }
@@ -72,7 +100,15 @@ export function bucketSisPlacementsByFiForDay(sisPlacementRows, day) {
   return out;
 }
 
-export function buildDailyDocument({ day, gaByFi, sessionsByFi, placementsByFi }) {
+export function buildDailyDocument({
+  day,
+  gaByFi,
+  gaByInstance = {},
+  sessionsByFi,
+  sessionsByInstance = {},
+  placementsByFi,
+  placementsByInstance = {},
+}) {
   const allKeys = new Set([
     ...Object.keys(gaByFi),
     ...Object.keys(sessionsByFi),
@@ -100,15 +136,21 @@ export function buildDailyDocument({ day, gaByFi, sessionsByFi, placementsByFi }
       0,
       (s.total_sessions || 0) - (s.sessions_with_jobs || 0)
     );
-    const gaInstances = Array.isArray(gRaw?.instances)
-      ? Array.from(
-          new Set(
-            gRaw.instances
-              .filter(Boolean)
-              .map((inst) => inst.toString().toLowerCase())
-          )
-        )
+    const gaInstancesRaw = Array.isArray(gRaw?.instances)
+      ? gRaw.instances.filter(Boolean)
       : [];
+    const gaInstances = [];
+    for (const inst of gaInstancesRaw) {
+      const display = inst.toString();
+      if (!display) continue;
+      const normalized = canonicalInstance(display);
+      const exists = gaInstances.some(
+        (value) => canonicalInstance(value) === normalized
+      );
+      if (!exists) {
+        gaInstances.push(display);
+      }
+    }
 
     fi[key] = {
       ga: {
@@ -126,6 +168,72 @@ export function buildDailyDocument({ day, gaByFi, sessionsByFi, placementsByFi }
       placements: p,
     };
   }
+
+  const instanceKeys = new Set([
+    ...Object.keys(gaByInstance),
+    ...Object.keys(sessionsByInstance),
+    ...Object.keys(placementsByInstance),
+  ]);
+  const fiInstances = {};
+  for (const instanceKey of instanceKeys) {
+    const gaEntry = gaByInstance[instanceKey];
+    const sessionEntry = sessionsByInstance[instanceKey];
+    const placementEntry = placementsByInstance[instanceKey];
+    const parsed = parseInstanceKey(instanceKey);
+    const fiLookupKey =
+      gaEntry?.fi_lookup_key ||
+      sessionEntry?.fi_lookup_key ||
+      placementEntry?.fi_lookup_key ||
+      parsed.fi ||
+      "unknown_fi";
+    const instanceValue = chooseInstanceDisplay(
+      gaEntry?.instance,
+      sessionEntry?.instance,
+      placementEntry?.instance,
+      parsed.instance
+    );
+    const g = gaEntry || {
+      select_merchants: 0,
+      user_data_collection: 0,
+      credential_entry: 0,
+    };
+    const s = sessionEntry || {
+      total_sessions: 0,
+      sessions_with_jobs: 0,
+      sessions_with_success: 0,
+    };
+    const p = placementEntry || {
+      total_placements: 0,
+      successful_placements: 0,
+      by_termination: {},
+    };
+    const without_jobs = Math.max(
+      0,
+      (s.total_sessions || 0) - (s.sessions_with_jobs || 0)
+    );
+
+    fiInstances[instanceKey] = {
+      fi_lookup_key: fiLookupKey,
+      instance: instanceValue,
+      ga: {
+        select_merchants: g.select_merchants || 0,
+        user_data_collection: g.user_data_collection || 0,
+        credential_entry: g.credential_entry || 0,
+      },
+      sessions: {
+        total: s.total_sessions,
+        with_jobs: s.sessions_with_jobs,
+        with_success: s.sessions_with_success,
+        without_jobs,
+      },
+      placements: {
+        total_placements: p.total_placements || 0,
+        successful_placements: p.successful_placements || 0,
+        by_termination: p.by_termination || {},
+      },
+    };
+  }
+
   return {
     date: day,
     sources: {
@@ -134,6 +242,7 @@ export function buildDailyDocument({ day, gaByFi, sessionsByFi, placementsByFi }
       sis_placements: Object.keys(placementsByFi).length > 0,
     },
     fi,
+    fi_instances: fiInstances,
   };
 }
 

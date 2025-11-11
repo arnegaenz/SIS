@@ -314,6 +314,21 @@
 
       const normalizeFiKey = (value) =>
         value ? value.toString().trim().toLowerCase() : "";
+      const normalizeInstanceKey = (value) => {
+        if (!value) return "unknown";
+        const str = value.toString().trim().toLowerCase();
+        const normalized = str.replace(/[^a-z0-9]/g, "");
+        return normalized || "unknown";
+      };
+      const makeFiInstanceKey = (fi, instance) =>
+        `${normalizeFiKey(fi)}__${normalizeInstanceKey(instance)}`;
+      const parseFiInstanceKey = (key = "") => {
+        if (!key.includes("__")) {
+          return { fi: key, instance: "unknown" };
+        }
+        const [fi, instance] = key.split("__");
+        return { fi, instance: instance || "unknown" };
+      };
       const FI_ALL_VALUE = "__all__";
 
       let registryMap = {};
@@ -367,43 +382,72 @@
       async function fetchRegistry() {
         const data = await fetchJson("/fi-registry");
         const map = {};
-        const assign = (key, metaLike) => {
-          const norm = normalizeFiKey(key);
-          if (!norm) return;
-          const integration = deriveIntegration(metaLike);
-          const instances = extractInstances(metaLike);
-          if (!map[norm]) {
-            map[norm] = {
-              integration,
-              instances,
-            };
+        const precedence = { CardSavr: 3, SSO: 2, "NON-SSO": 1 };
+
+        const mergeEntry = (key, payload) => {
+          if (!key) return;
+          if (!map[key]) {
+            map[key] = { ...payload };
             return;
           }
-
-          const precedence = { CardSavr: 3, SSO: 2, "NON-SSO": 1 };
-          if (
-            precedence[integration] >
-            precedence[map[norm].integration || "NON-SSO"]
-          ) {
-            map[norm].integration = integration;
+          const existing = map[key];
+          const incomingPriority = precedence[payload.integration || "NON-SSO"] || 0;
+          const existingPriority = precedence[existing.integration || "NON-SSO"] || 0;
+          if (incomingPriority > existingPriority) {
+            existing.integration = payload.integration;
           }
-          const merged = new Set(map[norm].instances || []);
-          instances.forEach((inst) => merged.add(inst));
-          map[norm].instances = Array.from(merged).sort((a, b) =>
+          const mergedInstances = new Set(existing.instances || []);
+          (payload.instances || []).forEach((inst) => mergedInstances.add(inst));
+          existing.instances = Array.from(mergedInstances).sort((a, b) =>
             a.localeCompare(b)
           );
+          if (!existing.instance && payload.instance) {
+            existing.instance = payload.instance;
+          }
+          if (!existing.fi_lookup_key && payload.fi_lookup_key) {
+            existing.fi_lookup_key = payload.fi_lookup_key;
+          }
+        };
+
+        const assignMeta = (metaLike = {}) => {
+          const fiKey = normalizeFiKey(
+            metaLike.fi_lookup_key || metaLike.fi_name || metaLike.fi || ""
+          );
+          if (!fiKey) return;
+          const integration = deriveIntegration(metaLike);
+          const instances = extractInstances(metaLike);
+          mergeEntry(fiKey, {
+            integration,
+            instances,
+            fi_lookup_key: fiKey,
+          });
+          if (instances.length) {
+            instances.forEach((instance) => {
+              const normInstance = normalizeInstanceKey(instance);
+              const comboKey = makeFiInstanceKey(fiKey, normInstance);
+              mergeEntry(comboKey, {
+                integration,
+                instances: [instance],
+                instance,
+                fi_lookup_key: fiKey,
+              });
+            });
+          } else {
+            const comboKey = makeFiInstanceKey(fiKey, "unknown");
+            mergeEntry(comboKey, {
+              integration,
+              instances: ["unknown"],
+              instance: "unknown",
+              fi_lookup_key: fiKey,
+            });
+          }
         };
 
         if (Array.isArray(data)) {
-          data.forEach((row) => {
-            assign(row?.fi_lookup_key, row || {});
-            assign(row?.fi_name, row || {});
-          });
+          data.forEach((row) => assignMeta(row || {}));
         } else if (data && typeof data === "object") {
           for (const [fiName, meta] of Object.entries(data)) {
-            assign(fiName, meta || {});
-            assign(meta?.fi_lookup_key, meta || {});
-            assign(meta?.fi_name, meta || {});
+            assignMeta({ fi_name: fiName, ...(meta || {}) });
           }
         }
 
@@ -439,12 +483,15 @@
       function updateFiOptions(perFi) {
         if (!perFi) return;
         const integrationValue = integrationSelect.value;
-        const eligible = Object.values(perFi)
-          .filter((row) =>
-            integrationValue === "(all)" ? true : row.integration_type === integrationValue
+        const eligible = Array.from(
+          new Set(
+            Object.values(perFi)
+              .filter((row) =>
+                integrationValue === "(all)" ? true : row.integration_type === integrationValue
+              )
+              .map((row) => row.fi)
           )
-          .map((row) => row.fi)
-          .sort((a, b) => a.localeCompare(b));
+        ).sort((a, b) => a.localeCompare(b));
 
         const existingValue = fiFilterSelect.value;
         fiFilterSelect.innerHTML = "";
@@ -544,7 +591,7 @@
 
       const SORT_ACCESSORS = {
         fi: (row) => (row.fi || "").toLowerCase(),
-        instances: (row) => (row.instances || []).join(",").toLowerCase(),
+        instances: (row) => (row.instance || (row.instances || []).join(",")).toLowerCase(),
         integration: (row) => (row.integration_type || "").toLowerCase(),
         ga_select: (row) => Number(row.ga_select) || 0,
         ga_user: (row) => Number(row.ga_user) || 0,
@@ -652,6 +699,7 @@
             placements: placements.total_placements || 0,
             sources_missing: missingSources,
             fi: meta.fi,
+            instance: meta.instance,
             instances: meta.instances,
             integration_type: meta.integration,
             cardholders: meta.cardholders,
@@ -677,6 +725,7 @@
           placements: 0,
           sources_missing: [],
           fi: meta.fi,
+          instance: meta.instance,
           instances: meta.instances,
           integration_type: meta.integration,
           cardholders: meta.cardholders,
@@ -764,20 +813,50 @@
         return true;
       }
 
+      const INSTANCE_DISPLAY_OVERRIDES = new Map([
+        ["digital-onboarding", "digitalonboarding"],
+      ]);
+
+      function formatInstanceDisplay(value) {
+        if (!value) return "unknown";
+        const base = value.toString().trim().toLowerCase().replace(/[\s_]+/g, "-");
+        const display = base || "unknown";
+        return INSTANCE_DISPLAY_OVERRIDES.get(display) || display;
+      }
+
+      function getFiInstanceEntriesForDay(day) {
+        if (day?.fi_instances && Object.keys(day.fi_instances).length) {
+          return Object.entries(day.fi_instances).map(([key, row]) => {
+            const parsed = parseFiInstanceKey(key);
+            const instanceDisplay = formatInstanceDisplay(row.instance || parsed.instance);
+            const comboKey = key || makeFiInstanceKey(row.fi_lookup_key || parsed.fi, instanceDisplay);
+            return {
+              key: comboKey,
+              fi: row.fi_lookup_key || parsed.fi,
+              instance: instanceDisplay,
+              row,
+            };
+          });
+        }
+        if (!day?.fi) return [];
+        return Object.entries(day.fi).map(([fiName, row]) => {
+          const instances = Array.isArray(row.ga_instances) && row.ga_instances.length
+            ? row.ga_instances
+            : ["unknown"];
+          const instanceDisplay = formatInstanceDisplay(instances[0]);
+          const comboKey = makeFiInstanceKey(fiName, instanceDisplay);
+          return {
+            key: comboKey,
+            fi: fiName,
+            instance: instanceDisplay,
+            row,
+          };
+        });
+      }
+
       function aggregateData(startDate, endDate, cardholderMap) {
         const perFi = {};
         const dates = Object.keys(dailyData).sort();
-        const addInstancesToAgg = (agg, instances) => {
-          if (!agg || !Array.isArray(instances)) return;
-          if (!Array.isArray(agg.instances)) {
-            agg.instances = [];
-          }
-          const set = new Set(agg.instances);
-          instances
-            .filter(Boolean)
-            .forEach((inst) => set.add(inst.toString()));
-          agg.instances = Array.from(set).sort((a, b) => a.localeCompare(b));
-        };
 
         for (const date of dates) {
           if (!inRange(date, startDate, endDate)) continue;
@@ -789,14 +868,20 @@
           if (!day.sources?.sis_sessions) missingSources.push("Sess");
           if (!day.sources?.sis_placements) missingSources.push("CPR");
 
-          for (const [fiName, row] of Object.entries(day.fi)) {
-            const key = normalizeFiKey(fiName);
-            const registryEntry = registryMap[key];
+          const entries = getFiInstanceEntriesForDay(day);
+          for (const entry of entries) {
+            const fiName = entry.fi || "unknown_fi";
+            const instanceName = entry.instance || "unknown";
+            const fiNorm = normalizeFiKey(fiName);
+            const comboKey = entry.key || makeFiInstanceKey(fiNorm, instanceName);
+            const registryEntry =
+              registryMap[comboKey] || registryMap[fiNorm] || null;
             const integration = registryEntry?.integration || "NON-SSO";
-            const registryInstances = registryEntry?.instances || [];
             const agg =
-              perFi[fiName] || {
+              perFi[comboKey] || {
+                key: comboKey,
                 fi: fiName,
+                instance: instanceName,
                 integration_type: integration,
                 ga_select: 0,
                 ga_user: 0,
@@ -806,12 +891,28 @@
                 sess_with_success: 0,
                 placements: 0,
                 sources_missing: [],
-                instances: [],
+                instances: [instanceName],
               };
 
             agg.integration_type = integration;
-            addInstancesToAgg(agg, registryInstances);
+            const existingInstanceKey = normalizeInstanceKey(agg.instance);
+            const incomingInstanceKey = normalizeInstanceKey(instanceName);
+            if (
+              agg.instance === "unknown" ||
+              (existingInstanceKey === incomingInstanceKey &&
+                agg.instance.indexOf("-") === -1 &&
+                instanceName.indexOf("-") !== -1)
+            ) {
+              agg.instance = instanceName;
+            }
+            const alreadyListed = agg.instances.some(
+              (value) => normalizeInstanceKey(value) === incomingInstanceKey
+            );
+            if (!alreadyListed) {
+              agg.instances.push(instanceName);
+            }
 
+            const row = entry.row;
             if (row.ga) {
               agg.ga_select += row.ga.select_merchants || 0;
               agg.ga_user += row.ga.user_data_collection || 0;
@@ -826,35 +927,24 @@
               agg.placements += row.placements.total_placements || 0;
             }
 
-            const cardholders = cardholderMap[key];
+            const cardholders = cardholderMap[fiNorm];
             if (typeof cardholders === "number") {
               agg.cardholders = cardholders;
-            }
-
-            if (Array.isArray(row.ga_instances) && row.ga_instances.length) {
-              const normalizedList = row.ga_instances
-                .map((inst) => normalizeFiKey(inst))
-                .filter(Boolean);
-              addInstancesToAgg(agg, normalizedList);
-              if (normalizedList.includes("ondot")) {
-                agg.hasOnDotGa = true;
-              }
             }
 
             if (missingSources.length) {
               agg.sources_missing.push({ date, missing: [...missingSources] });
             }
 
-            perFi[fiName] = agg;
+            perFi[comboKey] = agg;
           }
         }
 
         for (const agg of Object.values(perFi)) {
-          const hasOnDot = agg.hasOnDotGa;
-          if (hasOnDot) {
+          const instanceKey = normalizeInstanceKey(agg.instance);
+          if (instanceKey === "ondot") {
             agg.integration_type = "CardSavr";
           }
-          delete agg.hasOnDotGa;
         }
 
         return perFi;
@@ -866,7 +956,9 @@
           .sort();
         if (!dates.length) return [];
 
-        const allowedSet = new Set(visibleRows.map((row) => row.fi));
+        const allowedSet = new Set(
+          visibleRows.map((row) => row.key || makeFiInstanceKey(normalizeFiKey(row.fi), normalizeInstanceKey(row.instance)))
+        );
         const restrict = allowedSet.size > 0;
         const dayMissingMap = {};
         const fiDaily = {};
@@ -878,12 +970,15 @@
           if (!day.sources?.sis_sessions) missingSources.push("Sess");
           if (!day.sources?.sis_placements) missingSources.push("CPR");
           dayMissingMap[date] = missingSources;
-          for (const [fiName, fiDay] of Object.entries(day.fi)) {
+          const entries = getFiInstanceEntriesForDay(day);
+          for (const entry of entries) {
+            const fiDay = entry.row;
+            const comboKey = entry.key || makeFiInstanceKey(entry.fi, entry.instance);
             const ga = fiDay.ga || {};
-            if (!fiDaily[fiName]) {
-              fiDaily[fiName] = {};
+            if (!fiDaily[comboKey]) {
+              fiDaily[comboKey] = {};
             }
-            fiDaily[fiName][date] = {
+            fiDaily[comboKey][date] = {
               select: ga.select_merchants || 0,
               user: ga.user_data_collection || 0,
               cred: ga.credential_entry || 0,
@@ -895,12 +990,14 @@
           }
         }
 
-        const perFiByName = {};
-        Object.entries(perFiLookup || {}).forEach(([fiName, data]) => {
-          perFiByName[fiName] = data;
-          const norm = normalizeFiKey(fiName);
-          if (norm && !perFiByName[norm]) {
-            perFiByName[norm] = data;
+        const perFiByKey = {};
+        Object.entries(perFiLookup || {}).forEach(([key, data]) => {
+          perFiByKey[key] = data;
+          if (data && data.fi) {
+            const combo = data.key || makeFiInstanceKey(data.fi, data.instance);
+            if (!perFiByKey[combo]) {
+              perFiByKey[combo] = data;
+            }
           }
         });
 
@@ -919,8 +1016,8 @@
           }
           const minSessions = len * 25;
           let best = null;
-          for (const [fiName, dailyMap] of Object.entries(fiDaily)) {
-            if (restrict && !allowedSet.has(fiName)) continue;
+          for (const [comboKey, dailyMap] of Object.entries(fiDaily)) {
+            if (restrict && !allowedSet.has(comboKey)) continue;
             for (let idx = 0; idx <= dates.length - len; idx += 1) {
               let sel = 0;
               let user = 0;
@@ -956,7 +1053,9 @@
               ) {
                 best = {
                   label,
-                  fi: fiName,
+                  key: comboKey,
+                  fi: perFiByKey[comboKey]?.fi || comboKey,
+                  instance: perFiByKey[comboKey]?.instance || parseFiInstanceKey(comboKey).instance,
                   start: dates[idx],
                   end: dates[idx + len - 1],
                   sel,
@@ -974,13 +1073,14 @@
             }
           }
           if (best) {
-            const normKey = normalizeFiKey(best.fi);
-            const aggRow = perFiByName[best.fi] || perFiByName[normKey] || {};
-            const registryInstances = registryMap[normKey]?.instances || [];
-            best.instances = Array.isArray(aggRow.instances)
-              ? aggRow.instances.join(", ")
-              : registryInstances.join(", ");
-            best.integration = aggRow.integration_type || "UNKNOWN";
+            const aggRow = perFiByKey[best.key] || {};
+            const fallbackKey = best.key || makeFiInstanceKey(best.fi, best.instance);
+            const registryInstances = registryMap[fallbackKey]?.instances || [];
+            const instanceList = Array.isArray(aggRow.instances) && aggRow.instances.length
+              ? aggRow.instances
+              : registryInstances;
+            best.instances = instanceList.join(", ") || best.instance || "";
+            best.integration = aggRow.integration_type || registryMap[fallbackKey]?.integration || "UNKNOWN";
             if (typeof aggRow.cardholders === "number" && aggRow.cardholders > 0) {
               const rowDays = dayCountInclusive(best.start, best.end) || 1;
               const reachBase = best.sel > 0 ? best.sel : best.sessions;
@@ -1066,7 +1166,7 @@
             tr.innerHTML = `
               <td>${entry.label}</td>
               <td>${entry.fi}</td>
-              <td>${entry.instances || ""}</td>
+              <td>${entry.instance || entry.instances || ""}</td>
               <td>${entry.integration || ""}</td>
               <td>${dateRange}</td>
               <td>${entry.sel}</td>
@@ -1102,9 +1202,11 @@
         const fiName = fiFilterSelect.value;
         const perFiRow = visibleRows[0] || {};
         const norm = normalizeFiKey(fiName);
+        const instanceDisplay = perFiRow.instance || (perFiRow.instances?.[0]) || "unknown";
         const meta = {
           fi: fiName,
-          instances: perFiRow.instances || registryMap[norm]?.instances || [],
+          instance: instanceDisplay,
+          instances: [instanceDisplay],
           integration: perFiRow.integration_type || registryMap[norm]?.integration || "UNKNOWN",
           cardholders: perFiRow.cardholders,
         };
@@ -1198,7 +1300,9 @@
           : "";
         const reachPct = formatMonthlyReachPct(row);
         const sessSuccessPct = formatSessSuccessPct(row);
-        const instancesText = Array.isArray(row.instances) && row.instances.length
+        const instancesText = row.instance
+          ? row.instance
+          : Array.isArray(row.instances) && row.instances.length
           ? row.instances.join(", ")
           : "";
         const missing = (row.sources_missing || []).join(" | ");
@@ -1261,7 +1365,9 @@
         });
 
         const renderRow = (row, integration) => {
-          const instancesText = Array.isArray(row.instances) && row.instances.length
+          const instancesText = row.instance
+            ? row.instance
+            : Array.isArray(row.instances) && row.instances.length
             ? row.instances.join(", ")
             : "";
           const selUserPct = row.ga_select

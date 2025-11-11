@@ -3,10 +3,7 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath, pathToFileURL } from "url";
 
-import { loginWithSdk } from "./api.mjs";
-import { loadSsoFis, loadInstances } from "./utils/config.mjs";
-import { fetchSessionsForInstance } from "./fetch/fetchSessions.mjs";
-import { fetchPlacementsForInstance } from "./fetch/fetchPlacements.mjs";
+import { loadSsoFis } from "./utils/config.mjs";
 import {
   printSessionSummary,
   printPlacementSummary,
@@ -20,6 +17,14 @@ import {
   aggregateGAFunnelByFI,
   printGAFunnelReport,
 } from "./ga.mjs";
+import { readRaw } from "./lib/rawStorage.mjs";
+import { fetchRawRange } from "../scripts/fetch-raw.mjs";
+import { buildDailyFromRawRange } from "../scripts/build-daily-from-raw.mjs";
+
+// NOTE: for historical backfills, run:
+//   node scripts/fetch-raw.mjs 2020-01-01 2025-11-11
+//   node scripts/build-daily-from-raw.mjs 2020-01-01 2025-11-11
+// index.mjs should normally only do "today".
 
 // for __dirname in ESM
 const __filename = fileURLToPath(import.meta.url);
@@ -77,82 +82,69 @@ function toDateOnlyString(value) {
   return "";
 }
 
-function summarizeSessionsByDay(allSessions) {
-  const byKey = new Map();
-  for (const session of allSessions || []) {
-    const fiKey = (
-      session.financial_institution_lookup_key ||
-      session.fi_lookup_key ||
-      session.fi_name ||
-      "unknown_fi"
-    )
-      .toString()
-      .toLowerCase();
-    if (!fiKey) continue;
-    const dateValue =
-      session.created_on || session.created_at || session.session_created_on;
-    const day = toDateOnlyString(dateValue);
-    if (!day) continue;
-    const key = `${fiKey}|${day}`;
-    if (!byKey.has(key)) {
-      byKey.set(key, {
-        date: day,
-        fi_lookup_key: fiKey,
-        total_sessions: 0,
-        sessions_with_jobs: 0,
-        sessions_with_success: 0,
-      });
-    }
-    const bucket = byKey.get(key);
-    bucket.total_sessions += 1;
-    const totalJobs = Number(session.total_jobs) || 0;
-    const successfulJobs = Number(session.successful_jobs) || 0;
-    if (totalJobs > 0) bucket.sessions_with_jobs += 1;
-    if (successfulJobs > 0) bucket.sessions_with_success += 1;
-  }
-  return Array.from(byKey.values());
+function todayIsoDate() {
+  return new Date().toISOString().slice(0, 10);
 }
 
-function summarizePlacementsByDay(allPlacements) {
-  const byKey = new Map();
-  for (const placement of allPlacements || []) {
-    const fiKey = (
-      placement.fi_lookup_key ||
-      placement.fi_name ||
-      placement.financial_institution_lookup_key ||
-      "unknown_fi"
-    )
-      .toString()
-      .toLowerCase();
-    if (!fiKey) continue;
-    const placementDate = parsePlacementDate(placement);
-    if (!placementDate) continue;
-    const day = formatDate(placementDate);
-    const termination = (
-      placement.termination_type ||
-      placement.termination ||
-      placement.status ||
-      "UNKNOWN"
-    )
-      .toString()
-      .toUpperCase();
-    const status = (placement.status || "").toString().toUpperCase();
-    const success =
-      status === "SUCCESSFUL" || termination === "BILLABLE";
-    const key = `${fiKey}|${day}|${termination}|${success ? "Y" : "N"}`;
-    if (!byKey.has(key)) {
-      byKey.set(key, {
-        date: day,
-        fi_lookup_key: fiKey,
-        termination,
-        count: 0,
-        success,
-      });
-    }
-    const bucket = byKey.get(key);
-    bucket.count += 1;
+function normalizeFiKey(value) {
+  if (!value) return "";
+  return value.toString().trim().toLowerCase();
+}
+
+function canonicalInstance(value) {
+  if (!value) return "";
+  return value.toString().trim().toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+function loadRawArrayOrEmpty(type, date, field) {
+  const raw = readRaw(type, date);
+  if (!raw) {
+    console.warn(
+      `[${date}] raw/${type}/${date}.json not found; continuing with empty ${field}.`
+    );
+    return [];
   }
-  return Array.from(byKey.values());
+  if (raw.error) {
+    console.warn(
+      `[${date}] raw/${type}/${date}.json recorded error: ${raw.error}`
+    );
+    return [];
+  }
+  if (!Array.isArray(raw[field])) {
+    console.warn(
+      `[${date}] raw/${type}/${date}.json missing ${field} array; continuing empty.`
+    );
+    return [];
+  }
+  return raw[field];
+}
+
+function loadGaRowsFromCache(date) {
+  const raw = readRaw("ga", date);
+  if (!raw) {
+    console.warn(
+      `[${date}] raw/ga/${date}.json not found; GA funnel will fetch live if needed.`
+    );
+    return null;
+  }
+  if (raw.error) {
+    console.warn(
+      `[${date}] raw/ga/${date}.json recorded error: ${raw.error}`
+    );
+    return null;
+  }
+  if (!Array.isArray(raw.rows)) {
+    console.warn(
+      `[${date}] raw/ga/${date}.json missing rows array; GA funnel will fetch live if needed.`
+    );
+    return null;
+  }
+  return raw.rows.map((row) => ({
+    date: row.date || raw.date || date,
+    host: row.host || row.hostname || "",
+    pagePath: row.pagePath || row.page || "",
+    views: Number(row.views) || 0,
+  }));
 }
 
 function computeTrendArrow(dailyStats = {}, selector) {
@@ -193,76 +185,127 @@ function computeTrendArrow(dailyStats = {}, selector) {
   return "→";
 }
 
-export async function runSisFetch() {
-  const SSO_SET = loadSsoFis(__dirname);
-  const instances = loadInstances(__dirname);
+function parseDateArg(value, fallback) {
+  if (!value) return fallback;
+  const iso = value.toString();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) return iso;
+  throw new Error(`Invalid date "${value}". Use YYYY-MM-DD.`);
+}
 
-  const startDateUtc = new Date(Date.UTC(2023, 0, 1));
-  const endDateUtc = new Date();
-
-  const startDate = formatDate(startDateUtc);
-  const endDate = formatDate(endDateUtc);
-
-  const allSessionsCombined = [];
-  const allPlacementsCombined = [];
-  const seenSessionIds = new Set();
-  const seenPlacementIds = new Set();
-
-  for (const instance of instances) {
-    console.log(`\n===== Fetching from instance: ${instance.name} =====`);
-
-    const { session } = await loginWithSdk(instance);
-
-    await fetchSessionsForInstance(
-      session,
-      instance.name,
-      startDate,
-      endDate,
-      seenSessionIds,
-      allSessionsCombined
-    );
-
-    await fetchPlacementsForInstance(
-      session,
-      instance.name,
-      startDate,
-      endDate,
-      seenPlacementIds,
-      allPlacementsCombined
-    );
+function enumerateDates(startDate, endDate) {
+  const dates = [];
+  let cursor = new Date(`${startDate}T00:00:00Z`);
+  const end = new Date(`${endDate}T00:00:00Z`);
+  if (Number.isNaN(cursor) || Number.isNaN(end)) {
+    throw new Error("Unable to parse date range.");
   }
+  while (cursor <= end) {
+    dates.push(cursor.toISOString().slice(0, 10));
+    cursor = new Date(cursor.getTime() + 24 * 60 * 60 * 1000);
+  }
+  return dates;
+}
 
-  const sessionsByDay = summarizeSessionsByDay(allSessionsCombined);
-  const placementsByDay = summarizePlacementsByDay(allPlacementsCombined);
+function normalizeAdvancialSession(session) {
+  if (!session || typeof session !== "object") return session;
+  const fiKeyRaw =
+    session.financial_institution_lookup_key ||
+    session.fi_lookup_key ||
+    session.financial_institution ||
+    null;
+  const instanceRaw =
+    session._instance ||
+    session.instance ||
+    session.instance_name ||
+    null;
+  const fiNorm = normalizeFiKey(fiKeyRaw);
+  const instNorm = canonicalInstance(instanceRaw);
+  let updated = session;
 
-  return {
-    startDate,
-    endDate,
-    ssoSet: SSO_SET,
-    allSessionsCombined,
-    allPlacementsCombined,
-    sessionsByDay,
-    placementsByDay,
-  };
+  if (fiNorm === "default" && instNorm === "advancialprod") {
+    updated = {
+      ...updated,
+      financial_institution_lookup_key: "advancial-prod",
+      fi_lookup_key: "advancial-prod",
+      financial_institution: "advancial-prod",
+    };
+  }
+  if (normalizeFiKey(updated.financial_institution_lookup_key) === "advancial-prod" && instNorm === "default") {
+    updated = {
+      ...updated,
+      _instance: "advancial-prod",
+      instance: "advancial-prod",
+      instance_name: "advancial-prod",
+    };
+  }
+  return updated;
+}
+
+function normalizeAdvancialPlacement(placement) {
+  if (!placement || typeof placement !== "object") return placement;
+  const fiKeyRaw =
+    placement.fi_lookup_key ||
+    placement.financial_institution_lookup_key ||
+    placement.fi_name ||
+    placement.financial_institution ||
+    null;
+  const instanceRaw =
+    placement._instance ||
+    placement.instance ||
+    placement.instance_name ||
+    placement.org_name ||
+    null;
+  const fiNorm = normalizeFiKey(fiKeyRaw);
+  const instNorm = canonicalInstance(instanceRaw);
+  let updated = placement;
+
+  if (fiNorm === "default" && instNorm === "advancialprod") {
+    updated = {
+      ...updated,
+      fi_lookup_key: "advancial-prod",
+      financial_institution_lookup_key: "advancial-prod",
+      fi_name: "advancial-prod",
+    };
+  }
+  if (normalizeFiKey(updated.fi_lookup_key) === "advancial-prod" && instNorm === "default") {
+    updated = {
+      ...updated,
+      _instance: "advancial-prod",
+      instance: "advancial-prod",
+      instance_name: "advancial-prod",
+    };
+  }
+  return updated;
 }
 
 async function main() {
-  const {
-    startDate,
-    endDate,
-    ssoSet,
-    allSessionsCombined,
-    allPlacementsCombined,
-  } = await runSisFetch();
+  const today = todayIsoDate();
+  const cliStart = parseDateArg(process.argv[2], today);
+  const cliEnd = parseDateArg(process.argv[3], cliStart);
+  if (cliStart > cliEnd) {
+    throw new Error(`Start date ${cliStart} must be <= end date ${cliEnd}.`);
+  }
+  const startDate = cliStart;
+  const endDate = cliEnd;
+  const dates = enumerateDates(startDate, endDate);
 
-  const SSO_SET = ssoSet;
+  console.log(`Preparing raw + daily cache for ${startDate} → ${endDate}...`);
+  await fetchRawRange({ startDate, endDate });
+  await buildDailyFromRawRange({ startDate, endDate });
+  console.log(`Daily rollup ready at data/daily/${startDate}.json ... ${endDate}.json`);
 
-  const startDateUtc = new Date(`${startDate}T00:00:00Z`);
-  const endDateUtc = new Date(`${endDate}T00:00:00Z`);
+  const SSO_SET = loadSsoFis(__dirname);
+  const allSessionsCombined = dates
+    .flatMap((date) => loadRawArrayOrEmpty("sessions", date, "sessions"))
+    .map(normalizeAdvancialSession);
+  const allPlacementsCombined = dates
+    .flatMap((date) => loadRawArrayOrEmpty("placements", date, "placements"))
+    .map(normalizeAdvancialPlacement);
+  const gaRowsFromCache = dates.flatMap((date) => loadGaRowsFromCache(date) || []);
 
   // 4) now we have ALL SESSIONS and ALL CARD PLACEMENTS from ALL instances
   console.log(
-    `\n✅ Unique sessions fetched (all instances): ${allSessionsCombined.length}`
+    `\n✅ Unique sessions available (raw cache): ${allSessionsCombined.length}`
   );
 
   // ----- aggregate sessions by FI -----
@@ -283,7 +326,7 @@ async function main() {
 
   // ------------- CARD PLACEMENT SUMMARIES -------------
   console.log(
-    `\n✅ Card placement results fetched (all instances): ${allPlacementsCombined.length}`
+    `\n✅ Card placement results available (raw cache): ${allPlacementsCombined.length}`
   );
 
   const {
@@ -355,13 +398,20 @@ async function main() {
     const gaPropertyId = process.env.GA_PROPERTY_ID || "328054560";
 
     console.log("");
-    console.log("Fetching GA4 CardUpdatr funnel aligned to SIS date window...");
-    const gaRows = await fetchGAFunnelByDay({
-      startDate,
-      endDate,
-      propertyId: gaPropertyId,
-      keyFile: gaKeyFile,
-    });
+    let gaRows = Array.isArray(gaRowsFromCache) ? gaRowsFromCache : null;
+    if (gaRows) {
+      console.log("Using GA raw cache for GA4 CardUpdatr funnel...");
+    } else {
+      console.log(
+        "GA raw cache unavailable; fetching GA4 CardUpdatr funnel aligned to SIS date window..."
+      );
+      gaRows = await fetchGAFunnelByDay({
+        startDate,
+        endDate,
+        propertyId: gaPropertyId,
+        keyFile: gaKeyFile,
+      });
+    }
 
     const gaByFI = aggregateGAFunnelByFI(gaRows, fiRegistry);
 
