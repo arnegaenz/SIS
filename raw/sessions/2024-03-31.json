@@ -1,0 +1,99 @@
+{
+  "date": "2024-03-31",
+  "sessions": [
+    {
+      "id": 19971,
+      "cuid": "53ad542ee7ad48cbb4d021341d3cf40435",
+      "source": null,
+      "successful_jobs": null,
+      "failed_jobs": null,
+      "total_jobs": 0,
+      "agent_session_id": "8fd98613-deee-49a7-8968-2c2f641e904e",
+      "cardholder_id": 192158,
+      "financial_institution_id": 2,
+      "financial_institution_lookup_key": null,
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2024-03-31T05:32:45.358Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2024-06-20T01:11:10.649Z",
+      "custom_data": {
+        "advancial": {
+          "token": "53ad542ee7ad48cbb4d021341d3cf404"
+        }
+      },
+      "created_on": "2024-03-31T05:32:44.530Z",
+      "last_updated_on": "2024-06-20T01:11:10.656Z",
+      "_instance": "advancial-prod"
+    },
+    {
+      "id": 19972,
+      "cuid": "5b9918a6eb7a43298eac4aad6ea4c2ea60",
+      "source": null,
+      "successful_jobs": null,
+      "failed_jobs": null,
+      "total_jobs": 0,
+      "agent_session_id": "6f2cf253-9740-4351-9568-b0535f95c28f",
+      "cardholder_id": null,
+      "financial_institution_id": 2,
+      "financial_institution_lookup_key": null,
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2024-03-31T13:36:05.350Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/select-merchants/missing_fields",
+          "timestamp": "2024-03-31T13:36:39.314Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/credential-entry",
+          "timestamp": "2024-03-31T13:36:49.049Z",
+          "page_title": "Credential Entry"
+        }
+      ],
+      "closed_on": "2024-03-31T14:37:31.850Z",
+      "custom_data": {
+        "advancial": {
+          "token": "5b9918a6eb7a43298eac4aad6ea4c2ea"
+        }
+      },
+      "created_on": "2024-03-31T13:36:05.323Z",
+      "last_updated_on": "2024-03-31T14:37:31.852Z",
+      "_instance": "advancial-prod"
+    },
+    {
+      "id": 19973,
+      "cuid": "b2e2885f5b5a4a55aabd641108d5bbfc37",
+      "source": null,
+      "successful_jobs": null,
+      "failed_jobs": null,
+      "total_jobs": 0,
+      "agent_session_id": "33e0a81a-85b1-46c4-ba52-2fdec1bf0e8d",
+      "cardholder_id": 193073,
+      "financial_institution_id": 2,
+      "financial_institution_lookup_key": null,
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2024-03-31T20:45:16.791Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2024-06-20T01:11:10.655Z",
+      "custom_data": {
+        "advancial": {
+          "token": "b2e2885f5b5a4a55aabd641108d5bbfc"
+        }
+      },
+      "created_on": "2024-03-31T20:45:15.471Z",
+      "last_updated_on": "2024-06-20T01:11:10.666Z",
+      "_instance": "advancial-prod"
+    }
+  ]
+}

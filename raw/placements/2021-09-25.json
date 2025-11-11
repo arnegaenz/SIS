@@ -1,0 +1,57 @@
+{
+  "date": "2021-09-25",
+  "placements": [
+    {
+      "id": 2208,
+      "merchant_site_hostname": "fubo.tv",
+      "meta_key": null,
+      "fi_name": "MyGeorgia Credit Union",
+      "bank_identification_number": null,
+      "cuid": "",
+      "par": null,
+      "card_customer_key": null,
+      "account_customer_key": null,
+      "status": "ABANDONED_QUICKSTART",
+      "status_message": null,
+      "termination_type": "",
+      "custom_data": {
+        "digital_onboarding": {
+          "team_id": "3f113cf5-34d5-438f-a01e-37fb7f8085fe",
+          "contact_id": "0b66599b-c948-4166-9d85-b0b2091f423f",
+          "page_id": "4b4e2fee-2dfe-4318-a595-f914216b62b2",
+          "journey_id": "a3fb38fa-d54e-4067-80ca-6bb46a42f697",
+          "slug": "HkArUBaX_"
+        }
+      },
+      "source": null,
+      "time_elapsed": 557220,
+      "first_6": null,
+      "first_7": null,
+      "first_8": null,
+      "card_type": null,
+      "trace": "{\"location\":\"[at PCOSSTask.<anonymous> (/function/src/tasks/place_card_on_single_site/task.ts:191:20)]\",\"trace\":{\"key\":\"m3mm7l3x85zoqkoimd0q\",\"vbs_pid\":\"k1ExAEok5gY\",\"docker_id\":\"7WVwssfcfzzal\\n\"},\"tenant\":\"digitalonboarding\",\"fi\":\"MyGeorgia Credit Union\",\"queue_name\":\"vbs_lambda_queue\",\"job_id\":2201,\"cuid\":\"m3mm7l3x85zoqkoimd0q\",\"site_hostname\":\"fubo.tv\",\"user\":\"ke*@icloud.com\",\"docker_id\":\"7WVwssfcfzzal\\n\"}",
+      "place_card_on_single_site_job_id": 2201,
+      "financial_institution_id": 11,
+      "merchant_site_id": 29,
+      "agent_session_id": null,
+      "bin_id": null,
+      "html": null,
+      "queue_name": "vbs_lambda_queue",
+      "job_type": null,
+      "recording_path": "https://s3.console.aws.amazon.com/s3/object/swch-768009573690-global-logs/digitalonboarding/vbs/2021-09-25/fubo.tv/2201-k1ExAEok5gY/record.json",
+      "terminating_state": "ABANDONED_QUICKSTART",
+      "terminating_state_status": "ABANDONED_QUICKSTART",
+      "fi_lookup_key": "mygeorgiacu",
+      "is_expected_failure": false,
+      "unrestricted": true,
+      "email_sent": false,
+      "account_linked_on": null,
+      "job_ready_on": null,
+      "job_created_on": null,
+      "completed_on": "2021-09-25T18:41:16.681Z",
+      "created_on": "2021-09-25T18:41:16.757Z",
+      "last_updated_on": null,
+      "_instance": "digital-onboarding"
+    }
+  ]
+}

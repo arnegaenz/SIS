@@ -1,0 +1,72 @@
+{
+  "date": "2022-08-26",
+  "rows": [
+    {
+      "date": "2022-08-26",
+      "host": "staging.cardupdatr.app",
+      "page": "/user-data-collection",
+      "views": 24,
+      "active_users": 9,
+      "fi_key": "staging",
+      "instance": "staging"
+    },
+    {
+      "date": "2022-08-26",
+      "host": "staging.cardupdatr.app",
+      "page": "/select-merchants",
+      "views": 16,
+      "active_users": 10,
+      "fi_key": "staging",
+      "instance": "staging"
+    },
+    {
+      "date": "2022-08-26",
+      "host": "localhost.cardupdatr.app",
+      "page": "/select-merchants",
+      "views": 12,
+      "active_users": 1,
+      "fi_key": "localhost",
+      "instance": "localhost"
+    },
+    {
+      "date": "2022-08-26",
+      "host": "staging.cardupdatr.app",
+      "page": "/credential-entry",
+      "views": 12,
+      "active_users": 9,
+      "fi_key": "staging",
+      "instance": "staging"
+    },
+    {
+      "date": "2022-08-26",
+      "host": "localhost.cardupdatr.app",
+      "page": "/user-data-collection",
+      "views": 8,
+      "active_users": 1,
+      "fi_key": "localhost",
+      "instance": "localhost"
+    },
+    {
+      "date": "2022-08-26",
+      "host": "localhost.cardupdatr.app",
+      "page": "/credential-entry",
+      "views": 4,
+      "active_users": 1,
+      "fi_key": "localhost",
+      "instance": "localhost"
+    }
+  ],
+  "request": {
+    "propertyId": "328054560",
+    "keyFile": "/Users/arg/development/strivve-metrics/secrets/ga-service-account.json",
+    "date": "2022-08-26",
+    "dimensions": [
+      "date",
+      "hostName",
+      "pagePath"
+    ],
+    "metrics": [
+      "screenPageViews"
+    ]
+  }
+}

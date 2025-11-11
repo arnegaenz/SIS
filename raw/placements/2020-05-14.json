@@ -1,0 +1,51 @@
+{
+  "date": "2020-05-14",
+  "placements": [
+    {
+      "id": 330,
+      "merchant_site_hostname": "alaskaair.com",
+      "meta_key": null,
+      "fi_name": "Default",
+      "bank_identification_number": "442868",
+      "cuid": "",
+      "par": null,
+      "card_customer_key": null,
+      "account_customer_key": null,
+      "status": "success",
+      "status_message": null,
+      "termination_type": "",
+      "custom_data": {
+        "reporting_id": "CH9817760"
+      },
+      "source": null,
+      "time_elapsed": 302210,
+      "first_6": "524cf0ff98029a91782dfcb0f5585a32",
+      "first_7": "2ae01d75444d7d14f6ab2c9fe1b6f4d4",
+      "first_8": "c3b5eee7a81b5eb15cd4277cefbcee02",
+      "card_type": null,
+      "trace": "{\"trace\":{\"key\":\"u-DWjuBecffNNgadhWGb1A\"},\"tenant\":\"ss01\",\"brand\":\"visa\",\"job_id\":292,\"site_hostname\":\"alaskaair.com\",\"user\":\"ch*@gmail.com\",\"location\":\"[at /home/vbs/src/main.ts:142:20]\"}",
+      "place_card_on_single_site_job_id": 292,
+      "financial_institution_id": 1,
+      "merchant_site_id": 0,
+      "agent_session_id": null,
+      "bin_id": null,
+      "html": null,
+      "queue_name": "vbs_queue",
+      "job_type": null,
+      "recording_path": "https://s3.console.aws.amazon.com/s3/object/swch-768009573690-global-logs/ss01/vbs/VBSRecording/2020-05-14/alaskaair.com/1589468671399.json",
+      "terminating_state": "verify_card_form_submitted",
+      "terminating_state_status": "successful",
+      "fi_lookup_key": "default",
+      "is_expected_failure": false,
+      "unrestricted": true,
+      "email_sent": false,
+      "account_linked_on": null,
+      "job_ready_on": null,
+      "job_created_on": null,
+      "completed_on": "2020-05-14T15:04:33.557Z",
+      "created_on": "2020-05-14T15:04:33.602Z",
+      "last_updated_on": "2024-03-15T04:54:58.848Z",
+      "_instance": "ss01"
+    }
+  ]
+}

@@ -1,0 +1,51 @@
+{
+  "date": "2020-04-01",
+  "placements": [
+    {
+      "id": 163,
+      "merchant_site_hostname": "amazon.com",
+      "meta_key": null,
+      "fi_name": "Default",
+      "bank_identification_number": null,
+      "cuid": "",
+      "par": null,
+      "card_customer_key": null,
+      "account_customer_key": null,
+      "status": "success",
+      "status_message": null,
+      "termination_type": "",
+      "custom_data": {
+        "reporting_id": "CH9710465"
+      },
+      "source": null,
+      "time_elapsed": 323970,
+      "first_6": null,
+      "first_7": null,
+      "first_8": null,
+      "card_type": null,
+      "trace": "{\"trace\":{\"caid\":\"IPVYyFUKap8myJKb7Perog\"},\"tenant\":\"ss01\",\"brand\":\"acmecu\",\"job_id\":124,\"site_hostname\":\"amazon.com\",\"user\":\"gg*@strivve.com\",\"location\":\"[at /home/vbs/src/main.ts:167:20]\"}",
+      "place_card_on_single_site_job_id": 124,
+      "financial_institution_id": 1,
+      "merchant_site_id": 0,
+      "agent_session_id": null,
+      "bin_id": null,
+      "html": null,
+      "queue_name": "vbs_queue",
+      "job_type": null,
+      "recording_path": "https://s3.console.aws.amazon.com/s3/object/swch-768009573690-global-logs/ss01/vbs/VBSRecording/2020-04-01/amazon.com/1585702861164.json",
+      "terminating_state": "verify_card_form_submitted",
+      "terminating_state_status": "successful",
+      "fi_lookup_key": "default",
+      "is_expected_failure": false,
+      "unrestricted": true,
+      "email_sent": false,
+      "account_linked_on": null,
+      "job_ready_on": null,
+      "job_created_on": null,
+      "completed_on": "2020-04-01T01:01:12.036Z",
+      "created_on": "2020-04-01T01:01:12.065Z",
+      "last_updated_on": "2024-03-15T04:54:58.837Z",
+      "_instance": "ss01"
+    }
+  ]
+}

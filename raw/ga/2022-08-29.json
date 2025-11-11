@@ -1,0 +1,99 @@
+{
+  "date": "2022-08-29",
+  "rows": [
+    {
+      "date": "2022-08-29",
+      "host": "staging.cardupdatr.app",
+      "page": "/select-merchants",
+      "views": 33,
+      "active_users": 4,
+      "fi_key": "staging",
+      "instance": "staging"
+    },
+    {
+      "date": "2022-08-29",
+      "host": "staging.cardupdatr.app",
+      "page": "/user-data-collection",
+      "views": 30,
+      "active_users": 4,
+      "fi_key": "staging",
+      "instance": "staging"
+    },
+    {
+      "date": "2022-08-29",
+      "host": "staging.cardupdatr.app",
+      "page": "/credential-entry",
+      "views": 14,
+      "active_users": 4,
+      "fi_key": "staging",
+      "instance": "staging"
+    },
+    {
+      "date": "2022-08-29",
+      "host": "acmecu.ss01.cardupdatr.app",
+      "page": "/user-data-collection",
+      "views": 6,
+      "active_users": 1,
+      "fi_key": "acmecu",
+      "instance": "ss01"
+    },
+    {
+      "date": "2022-08-29",
+      "host": "acmecu.ss01.cardupdatr.app",
+      "page": "/select-merchants",
+      "views": 4,
+      "active_users": 1,
+      "fi_key": "acmecu",
+      "instance": "ss01"
+    },
+    {
+      "date": "2022-08-29",
+      "host": "acmecu.ss01.cardupdatr.app",
+      "page": "/credential-entry",
+      "views": 3,
+      "active_users": 1,
+      "fi_key": "acmecu",
+      "instance": "ss01"
+    },
+    {
+      "date": "2022-08-29",
+      "host": "mbudos.cardupdatr.app",
+      "page": "/user-data-collection",
+      "views": 2,
+      "active_users": 1,
+      "fi_key": "mbudos",
+      "instance": "mbudos"
+    },
+    {
+      "date": "2022-08-29",
+      "host": "mbudos.cardupdatr.app",
+      "page": "/credential-entry",
+      "views": 1,
+      "active_users": 1,
+      "fi_key": "mbudos",
+      "instance": "mbudos"
+    },
+    {
+      "date": "2022-08-29",
+      "host": "mbudos.cardupdatr.app",
+      "page": "/select-merchants",
+      "views": 1,
+      "active_users": 1,
+      "fi_key": "mbudos",
+      "instance": "mbudos"
+    }
+  ],
+  "request": {
+    "propertyId": "328054560",
+    "keyFile": "/Users/arg/development/strivve-metrics/secrets/ga-service-account.json",
+    "date": "2022-08-29",
+    "dimensions": [
+      "date",
+      "hostName",
+      "pagePath"
+    ],
+    "metrics": [
+      "screenPageViews"
+    ]
+  }
+}

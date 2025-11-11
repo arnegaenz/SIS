@@ -1,0 +1,53 @@
+{
+  "date": "2021-08-03",
+  "placements": [
+    {
+      "id": 511,
+      "merchant_site_hostname": "netflix.com",
+      "meta_key": "XX4409438",
+      "fi_name": "Default",
+      "bank_identification_number": null,
+      "cuid": "",
+      "par": null,
+      "card_customer_key": null,
+      "account_customer_key": null,
+      "status": "UNSUCCESSFUL",
+      "status_message": null,
+      "termination_type": "",
+      "custom_data": {
+        "advancial": {
+          "token": "43547757531a4bfd9f0a24db7e16a6bb"
+        }
+      },
+      "source": null,
+      "time_elapsed": 151796,
+      "first_6": "021e4fbb9b0e4a99095144da727d0405",
+      "first_7": "de31d4b76795ad2eb2082a617fd95987",
+      "first_8": "7493f84b1e3249d0eb90edf8ea96761f",
+      "card_type": null,
+      "trace": "{\"location\":\"[at PCOSSTask.<anonymous> (/function/src/tasks/place_card_on_single_site/task.ts:139:28)]\",\"trace\":{\"key\":\"43547757531a4bfd9f0a24db7e16a6bb96\",\"vbs_pid\":\"NNWmImVHL6A\",\"docker_id\":{\"type\":\"Buffer\",\"data\":[106,117,99,75,104,72,109,65,122,65,98,107,81,10]}},\"tenant\":\"advancial-prod\",\"fi\":\"Default\",\"queue_name\":\"vbs_lambda_queue\",\"job_id\":531,\"cuid\":\"43547757531a4bfd9f0a24db7e16a6bb96\",\"site_hostname\":\"netflix.com\",\"user\":null,\"docker_id\":{\"type\":\"Buffer\",\"data\":[106,117,99,75,104,72,109,65,122,65,98,107,81,10]}}",
+      "place_card_on_single_site_job_id": 531,
+      "financial_institution_id": 2,
+      "merchant_site_id": 40,
+      "agent_session_id": null,
+      "bin_id": null,
+      "html": null,
+      "queue_name": "vbs_lambda_queue",
+      "job_type": null,
+      "recording_path": "https://s3.console.aws.amazon.com/s3/object/swch-768009573690-global-logs/advancial-prod/vbs/2021-08-03/netflix.com/531-NNWmImVHL6A/record.json",
+      "terminating_state": "verify_card_form_submitted",
+      "terminating_state_status": "unsuccessful",
+      "fi_lookup_key": "default",
+      "is_expected_failure": false,
+      "unrestricted": true,
+      "email_sent": false,
+      "account_linked_on": null,
+      "job_ready_on": null,
+      "job_created_on": null,
+      "completed_on": "2021-08-03T14:44:19.859Z",
+      "created_on": "2021-08-03T14:44:19.944Z",
+      "last_updated_on": null,
+      "_instance": "advancial-prod"
+    }
+  ]
+}

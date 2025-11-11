@@ -1,0 +1,36 @@
+{
+  "date": "2022-08-22",
+  "rows": [
+    {
+      "date": "2022-08-22",
+      "host": "acmecu.ss01.cardupdatr.app",
+      "page": "/select-merchants",
+      "views": 1,
+      "active_users": 1,
+      "fi_key": "acmecu",
+      "instance": "ss01"
+    },
+    {
+      "date": "2022-08-22",
+      "host": "staging.cardupdatr.app",
+      "page": "/select-merchants",
+      "views": 1,
+      "active_users": 1,
+      "fi_key": "staging",
+      "instance": "staging"
+    }
+  ],
+  "request": {
+    "propertyId": "328054560",
+    "keyFile": "/Users/arg/development/strivve-metrics/secrets/ga-service-account.json",
+    "date": "2022-08-22",
+    "dimensions": [
+      "date",
+      "hostName",
+      "pagePath"
+    ],
+    "metrics": [
+      "screenPageViews"
+    ]
+  }
+}

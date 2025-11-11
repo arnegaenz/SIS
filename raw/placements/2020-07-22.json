@@ -1,0 +1,54 @@
+{
+  "date": "2020-07-22",
+  "placements": [
+    {
+      "id": 1265,
+      "merchant_site_hostname": "bestbuy.com",
+      "meta_key": null,
+      "fi_name": "Affinity",
+      "bank_identification_number": "449517",
+      "cuid": "",
+      "par": null,
+      "card_customer_key": null,
+      "account_customer_key": null,
+      "status": "ABANDONED_QUICKSTART",
+      "status_message": null,
+      "termination_type": "",
+      "custom_data": {
+        "reporting_id": "AR0705206",
+        "cardsavr_card_data": {
+          "meta_key": "AR0705206"
+        }
+      },
+      "source": null,
+      "time_elapsed": 664364,
+      "first_6": "09f65647beb3c4f5e74a33c816004fba",
+      "first_7": "686ef831deef58987b01a7818a8bc7ff",
+      "first_8": "efc7aa6dcbacd0332b4c5b10c5993a76",
+      "card_type": null,
+      "trace": "{\"trace\":{\"key\":\"k9we4giuc5ottqgekc5m\"},\"tenant\":\"ss01\",\"fi\":\"Affinity\",\"job_id\":1231,\"site_hostname\":\"bestbuy.com\",\"user\":\"Je*@yahoo.com\",\"location\":\"[at /home/vbs/src/main.ts:107:20]\"}",
+      "place_card_on_single_site_job_id": 1231,
+      "financial_institution_id": 2,
+      "merchant_site_id": 49,
+      "agent_session_id": null,
+      "bin_id": null,
+      "html": null,
+      "queue_name": "vbs_queue",
+      "job_type": null,
+      "recording_path": "https://s3.console.aws.amazon.com/s3/object/swch-768009573690-global-logs/ss01/vbs/VBSRecording/2020-07-22/bestbuy.com/1595382819522.json",
+      "terminating_state": "check_for_merchant_account_data",
+      "terminating_state_status": "ABANDONED_QUICKSTART",
+      "fi_lookup_key": "affinity",
+      "is_expected_failure": false,
+      "unrestricted": true,
+      "email_sent": false,
+      "account_linked_on": null,
+      "job_ready_on": null,
+      "job_created_on": null,
+      "completed_on": "2020-07-22T01:53:40.669Z",
+      "created_on": "2020-07-22T01:53:40.763Z",
+      "last_updated_on": null,
+      "_instance": "ss01"
+    }
+  ]
+}

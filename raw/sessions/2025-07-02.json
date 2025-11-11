@@ -1,0 +1,4531 @@
+{
+  "date": "2025-07-02",
+  "sessions": [
+    {
+      "id": 20479,
+      "cuid": "92739641cb8f436cb2e265d972c0035098",
+      "source": {
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 2,
+      "failed_jobs": 0,
+      "total_jobs": 2,
+      "agent_session_id": "c4f898ed-41b4-4fd0-ba7a-a785817ff25a",
+      "cardholder_id": null,
+      "financial_institution_id": 2,
+      "financial_institution_lookup_key": "default",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T20:28:10.754Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/select-merchants/missing_fields",
+          "timestamp": "2025-07-02T20:29:13.031Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T20:29:20.323Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/user-data-collection",
+          "timestamp": "2025-07-02T20:29:20.574Z",
+          "page_title": "User Data Collection"
+        },
+        {
+          "url": "/credential-entry",
+          "timestamp": "2025-07-02T20:29:20.651Z",
+          "page_title": "Credential Entry"
+        }
+      ],
+      "closed_on": "2025-07-02T20:52:31.886Z",
+      "custom_data": {
+        "advancial": {
+          "token": "92739641cb8f436cb2e265d972c00350"
+        }
+      },
+      "created_on": "2025-07-02T20:28:11.650Z",
+      "last_updated_on": "2025-07-02T20:52:31.888Z",
+      "_instance": "advancial-prod"
+    },
+    {
+      "id": 14886,
+      "cuid": "9f60f4b0-de90-4b5f-8925-ba42912bf0fc-632873088000000000",
+      "source": {
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "2de31d9f-163c-4b8f-9fc1-88d344571799",
+      "cardholder_id": null,
+      "financial_institution_id": 233,
+      "financial_institution_lookup_key": "canvas",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T00:54:31.954Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/select-merchants/missing_fields",
+          "timestamp": "2025-07-02T00:55:18.890Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T00:55:24.933Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/user-data-collection",
+          "timestamp": "2025-07-02T00:55:24.989Z",
+          "page_title": "User Data Collection"
+        },
+        {
+          "url": "/credential-entry",
+          "timestamp": "2025-07-02T00:55:25.052Z",
+          "page_title": "Credential Entry"
+        }
+      ],
+      "closed_on": "2025-07-02T01:10:44.582Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T00:54:31.615Z",
+      "last_updated_on": "2025-07-02T01:10:44.583Z",
+      "_instance": "ss01"
+    },
+    {
+      "id": 14887,
+      "cuid": "02fc00b3-31ac-48df-a6bf-4042022ee44c-638150400000000000",
+      "source": {
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "5e9ca9e8-d1f9-4423-b509-a174030a546c",
+      "cardholder_id": null,
+      "financial_institution_id": 233,
+      "financial_institution_lookup_key": "canvas",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T01:42:05.377Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T01:42:32.024Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/user-data-collection",
+          "timestamp": "2025-07-02T01:42:32.070Z",
+          "page_title": "User Data Collection"
+        },
+        {
+          "url": "/credential-entry",
+          "timestamp": "2025-07-02T01:42:32.132Z",
+          "page_title": "Credential Entry"
+        },
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T01:42:39.720Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T01:42:45.133Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/user-data-collection",
+          "timestamp": "2025-07-02T01:42:45.164Z",
+          "page_title": "User Data Collection"
+        },
+        {
+          "url": "/credential-entry",
+          "timestamp": "2025-07-02T01:42:45.182Z",
+          "page_title": "Credential Entry"
+        }
+      ],
+      "closed_on": "2025-07-02T02:00:45.415Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T01:42:05.198Z",
+      "last_updated_on": "2025-07-02T02:00:45.416Z",
+      "_instance": "ss01"
+    },
+    {
+      "id": 14888,
+      "cuid": "02fc00b3-31ac-48df-a6bf-4042022ee44c-636863040000000000",
+      "source": {
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "c117a95c-c33f-4330-b8e3-e695a47fbe38",
+      "cardholder_id": null,
+      "financial_institution_id": 233,
+      "financial_institution_lookup_key": "canvas",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T01:43:38.660Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T01:43:47.290Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/user-data-collection",
+          "timestamp": "2025-07-02T01:43:47.336Z",
+          "page_title": "User Data Collection"
+        },
+        {
+          "url": "/credential-entry",
+          "timestamp": "2025-07-02T01:43:47.410Z",
+          "page_title": "Credential Entry"
+        },
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T01:43:51.310Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T02:00:44.941Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T01:43:38.540Z",
+      "last_updated_on": "2025-07-02T02:00:44.943Z",
+      "_instance": "ss01"
+    },
+    {
+      "id": 14889,
+      "cuid": "64973d99-4d54-4ade-93a6-6e8b2ea6ed9e-630252576000000000",
+      "source": {
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "7aaddd83-c178-46ee-9822-a380974cf0ee",
+      "cardholder_id": null,
+      "financial_institution_id": 199,
+      "financial_institution_lookup_key": "elevationscu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T01:59:22.587Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T02:15:45.089Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T01:59:22.163Z",
+      "last_updated_on": "2025-07-02T02:15:45.090Z",
+      "_instance": "ss01"
+    },
+    {
+      "id": 14890,
+      "cuid": "e8bf8004-4c54-49a4-a2e0-12c922c3a591-635273280000000000",
+      "source": {
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "9a506146-f2b3-46a6-9075-846b60ae718d",
+      "cardholder_id": null,
+      "financial_institution_id": 308,
+      "financial_institution_lookup_key": "greylock",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T02:07:55.098Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T02:25:45.464Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T02:07:54.458Z",
+      "last_updated_on": "2025-07-02T02:25:45.466Z",
+      "_instance": "ss01"
+    },
+    {
+      "id": 14891,
+      "cuid": "e8bf8004-4c54-49a4-a2e0-12c922c3a591-636861312000000000",
+      "source": {
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "502e3c75-beea-4d4c-af0b-f5ea0fb87dd1",
+      "cardholder_id": null,
+      "financial_institution_id": 308,
+      "financial_institution_lookup_key": "greylock",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T02:08:14.836Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T02:25:45.174Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T02:08:14.357Z",
+      "last_updated_on": "2025-07-02T02:25:45.176Z",
+      "_instance": "ss01"
+    },
+    {
+      "id": 14892,
+      "cuid": "5f51c928-4f7d-4d2d-beef-40e80f616b36-633989376000000000",
+      "source": {
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "c476b065-d533-40d3-bbd0-0641e0030dd1",
+      "cardholder_id": null,
+      "financial_institution_id": 199,
+      "financial_institution_lookup_key": "elevationscu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T02:10:35.226Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/select-merchants/missing_fields",
+          "timestamp": "2025-07-02T02:10:46.760Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T02:10:52.704Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/user-data-collection",
+          "timestamp": "2025-07-02T02:10:52.753Z",
+          "page_title": "User Data Collection"
+        },
+        {
+          "url": "/credential-entry",
+          "timestamp": "2025-07-02T02:10:52.829Z",
+          "page_title": "Credential Entry"
+        },
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T02:10:56.507Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T02:25:45.463Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T02:10:34.933Z",
+      "last_updated_on": "2025-07-02T02:25:45.465Z",
+      "_instance": "ss01"
+    },
+    {
+      "id": 14893,
+      "cuid": "e8bf8004-4c54-49a4-a2e0-12c922c3a591-638540064000000000",
+      "source": {
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 1,
+      "agent_session_id": "5d351506-8fcc-474f-a5d5-dcf8dce1ab44",
+      "cardholder_id": null,
+      "financial_institution_id": 308,
+      "financial_institution_lookup_key": "greylock",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T02:18:22.307Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/select-merchants/missing_fields",
+          "timestamp": "2025-07-02T02:18:52.206Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T02:19:06.089Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/user-data-collection",
+          "timestamp": "2025-07-02T02:19:06.229Z",
+          "page_title": "User Data Collection"
+        },
+        {
+          "url": "/credential-entry",
+          "timestamp": "2025-07-02T02:19:06.388Z",
+          "page_title": "Credential Entry"
+        }
+      ],
+      "closed_on": "2025-07-02T02:40:45.212Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T02:18:21.749Z",
+      "last_updated_on": "2025-07-02T02:40:45.239Z",
+      "_instance": "ss01"
+    },
+    {
+      "id": 14894,
+      "cuid": "e8bf8004-4c54-49a4-a2e0-12c922c3a591-638831232000000000",
+      "source": {
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "6da3361c-6b99-43c2-a246-60332cb4e5ed",
+      "cardholder_id": null,
+      "financial_institution_id": 308,
+      "financial_institution_lookup_key": "greylock",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T02:22:21.024Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/select-merchants/missing_fields",
+          "timestamp": "2025-07-02T02:22:28.467Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T02:22:37.040Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/user-data-collection",
+          "timestamp": "2025-07-02T02:22:37.161Z",
+          "page_title": "User Data Collection"
+        },
+        {
+          "url": "/credential-entry",
+          "timestamp": "2025-07-02T02:22:37.298Z",
+          "page_title": "Credential Entry"
+        }
+      ],
+      "closed_on": "2025-07-02T02:40:44.938Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T02:22:20.559Z",
+      "last_updated_on": "2025-07-02T02:40:44.939Z",
+      "_instance": "ss01"
+    },
+    {
+      "id": 14895,
+      "cuid": "fbe029c9-558a-41bf-b4c6-d73a3a76aaae-638051904000000000",
+      "source": {
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "9a3bc3c8-ead1-421d-894f-a04a0eaf5fc7",
+      "cardholder_id": null,
+      "financial_institution_id": 273,
+      "financial_institution_lookup_key": "nasafcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T02:30:43.065Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T02:50:44.651Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T02:30:42.543Z",
+      "last_updated_on": "2025-07-02T02:50:44.652Z",
+      "_instance": "ss01"
+    },
+    {
+      "id": 14896,
+      "cuid": "571a8874-8cb7-45a5-9f1a-3d9f33687dc6-633052800000000000",
+      "source": {
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "8d55430b-87d7-4c2f-b458-9b6bee336946",
+      "cardholder_id": null,
+      "financial_institution_id": 199,
+      "financial_institution_lookup_key": "elevationscu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T02:54:47.705Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T03:10:45.249Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T02:54:50.512Z",
+      "last_updated_on": "2025-07-02T03:10:45.251Z",
+      "_instance": "ss01"
+    },
+    {
+      "id": 14897,
+      "cuid": "83e7b4a1-d6eb-4ef1-ae1e-1bdd50ea9752-638802720000000000",
+      "source": {
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "dbbf57e4-082b-470a-a3e0-631b1d1757ce",
+      "cardholder_id": null,
+      "financial_institution_id": 233,
+      "financial_institution_lookup_key": "canvas",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T02:55:10.832Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T03:10:45.054Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T02:55:11.186Z",
+      "last_updated_on": "2025-07-02T03:10:45.058Z",
+      "_instance": "ss01"
+    },
+    {
+      "id": 14898,
+      "cuid": "19465364-bad9-41bb-a719-7e2a73e16398-634207104000000000",
+      "source": {
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "6bd13d66-7084-4391-aaf9-49c2719c1cab",
+      "cardholder_id": null,
+      "financial_institution_id": 273,
+      "financial_institution_lookup_key": "nasafcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T03:54:10.078Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T04:10:45.159Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T03:54:09.663Z",
+      "last_updated_on": "2025-07-02T04:10:45.163Z",
+      "_instance": "ss01"
+    },
+    {
+      "id": 14899,
+      "cuid": "f1e9ec21-bc69-40d2-9630-ad51bccdede0-633697344000000000",
+      "source": {
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "d0bb7de2-7156-4771-9fad-ff643358e01c",
+      "cardholder_id": null,
+      "financial_institution_id": 233,
+      "financial_institution_lookup_key": "canvas",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T06:23:50.068Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T06:40:45.269Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T06:23:49.839Z",
+      "last_updated_on": "2025-07-02T06:40:45.271Z",
+      "_instance": "ss01"
+    },
+    {
+      "id": 14900,
+      "cuid": "b45e4eec-a3bd-4810-b349-0974b3722e16-632738304000000000",
+      "source": {
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "85410fce-babe-4582-9772-b458197a4a24",
+      "cardholder_id": null,
+      "financial_institution_id": 306,
+      "financial_institution_lookup_key": "flcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T08:27:31.109Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T08:45:44.836Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T08:27:30.707Z",
+      "last_updated_on": "2025-07-02T08:45:44.837Z",
+      "_instance": "ss01"
+    },
+    {
+      "id": 14901,
+      "cuid": "nnkiv67j9lmv1opjenbn",
+      "source": {
+        "type": "weblink",
+        "category": "other",
+        "integration": "CU2",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "ce7d998a-7acc-4489-a2fe-3e05711447c1",
+      "cardholder_id": null,
+      "financial_institution_id": 166,
+      "financial_institution_lookup_key": "centracu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T10:54:55.871Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/user-data-collection",
+          "timestamp": "2025-07-02T10:55:13.227Z",
+          "page_title": "User Data Collection"
+        },
+        {
+          "url": "/credential-entry",
+          "timestamp": "2025-07-02T10:57:40.016Z",
+          "page_title": "Credential Entry"
+        },
+        {
+          "url": "/credential-entry",
+          "timestamp": "2025-07-02T10:57:40.134Z",
+          "page_title": "Credential Entry"
+        }
+      ],
+      "closed_on": "2025-07-02T11:15:45.243Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T10:57:38.719Z",
+      "last_updated_on": "2025-07-02T11:15:45.249Z",
+      "_instance": "ss01"
+    },
+    {
+      "id": 14902,
+      "cuid": "08ytjsz6jwx76zxxh2c4",
+      "source": {
+        "type": "weblink",
+        "category": "other",
+        "integration": "CU2",
+        "device": "desktop web"
+      },
+      "successful_jobs": 1,
+      "failed_jobs": 0,
+      "total_jobs": 1,
+      "agent_session_id": "5f9cef65-91b9-427f-aa8b-7d26f7eb3419",
+      "cardholder_id": null,
+      "financial_institution_id": 266,
+      "financial_institution_lookup_key": "mascomabank",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T12:42:45.283Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/user-data-collection",
+          "timestamp": "2025-07-02T12:42:49.418Z",
+          "page_title": "User Data Collection"
+        },
+        {
+          "url": "/user-data-collection",
+          "timestamp": "2025-07-02T12:43:49.740Z",
+          "page_title": "User Data Collection"
+        },
+        {
+          "url": "/credential-entry",
+          "timestamp": "2025-07-02T12:43:49.776Z",
+          "page_title": "Credential Entry"
+        }
+      ],
+      "closed_on": "2025-07-02T13:05:44.838Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T12:43:49.374Z",
+      "last_updated_on": "2025-07-02T13:05:44.840Z",
+      "_instance": "ss01"
+    },
+    {
+      "id": 14903,
+      "cuid": "aab3bd88-062f-4774-bc26-0706275790b2-630277632000000000",
+      "source": {
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "3230ae31-dc48-4c77-bee6-324d3646ab5d",
+      "cardholder_id": null,
+      "financial_institution_id": 233,
+      "financial_institution_lookup_key": "canvas",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T13:41:24.431Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T14:00:44.935Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T13:41:24.031Z",
+      "last_updated_on": "2025-07-02T14:00:44.936Z",
+      "_instance": "ss01"
+    },
+    {
+      "id": 14904,
+      "cuid": "8a793b2d-7e78-4849-ab30-facfc561e939-638511552000000000",
+      "source": {
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "c26e7c90-8d36-49a6-a98f-07d49f318b26",
+      "cardholder_id": null,
+      "financial_institution_id": 233,
+      "financial_institution_lookup_key": "canvas",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T14:06:11.556Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T14:25:44.912Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T14:06:11.321Z",
+      "last_updated_on": "2025-07-02T14:25:44.913Z",
+      "_instance": "ss01"
+    },
+    {
+      "id": 14905,
+      "cuid": "d332e9a0-1566-4aab-9f75-f9df8c288bed-632200896000000000",
+      "source": {
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "73d2bddf-7629-45c8-bd6a-0b8efd47187b",
+      "cardholder_id": null,
+      "financial_institution_id": 306,
+      "financial_institution_lookup_key": "flcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T14:16:06.779Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T14:35:44.778Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T14:16:05.514Z",
+      "last_updated_on": "2025-07-02T14:35:44.779Z",
+      "_instance": "ss01"
+    },
+    {
+      "id": 14906,
+      "cuid": "2f4e44b4-dc86-4e96-ac24-70d61d00e340-637790112000000000",
+      "source": {
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "6ad745ea-5c2b-4a80-881c-45054619adf6",
+      "cardholder_id": null,
+      "financial_institution_id": 233,
+      "financial_institution_lookup_key": "canvas",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T14:43:25.738Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T15:00:45.361Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T14:43:25.450Z",
+      "last_updated_on": "2025-07-02T15:00:45.363Z",
+      "_instance": "ss01"
+    },
+    {
+      "id": 14907,
+      "cuid": "83e7b4a1-d6eb-4ef1-ae1e-1bdd50ea9752-635939424000000000",
+      "source": {
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "d6edd795-c075-4cfa-b5a5-b78ea97c5fd7",
+      "cardholder_id": null,
+      "financial_institution_id": 233,
+      "financial_institution_lookup_key": "canvas",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T14:53:42.395Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T15:10:45.136Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T14:53:42.717Z",
+      "last_updated_on": "2025-07-02T15:10:45.138Z",
+      "_instance": "ss01"
+    },
+    {
+      "id": 14908,
+      "cuid": "617db659-b6c1-4b90-9984-40d6c5ca1c42-631434528000000000",
+      "source": {
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "c4487dc8-1acf-4c3b-8229-3b076370c2b3",
+      "cardholder_id": null,
+      "financial_institution_id": 233,
+      "financial_institution_lookup_key": "canvas",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T14:55:57.070Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T15:15:44.965Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T14:55:56.644Z",
+      "last_updated_on": "2025-07-02T15:15:44.965Z",
+      "_instance": "ss01"
+    },
+    {
+      "id": 14909,
+      "cuid": "eb37855d-8098-4b76-8c7c-cb8a6d90187f-632245824000000000",
+      "source": {
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "99a40b3f-6d48-4a02-bfb2-d6f2d2c55c94",
+      "cardholder_id": null,
+      "financial_institution_id": 308,
+      "financial_institution_lookup_key": "greylock",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T14:56:26.496Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T15:15:44.796Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T14:56:27.019Z",
+      "last_updated_on": "2025-07-02T15:15:44.799Z",
+      "_instance": "ss01"
+    },
+    {
+      "id": 14910,
+      "cuid": "jn0dcqkgeohpl7gb9kt2",
+      "source": {
+        "type": "weblink",
+        "category": "other",
+        "integration": "CU2",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "40d4a155-9309-4441-b2bf-8509de855d12",
+      "cardholder_id": null,
+      "financial_institution_id": 166,
+      "financial_institution_lookup_key": "centracu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T16:14:14.810Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/user-data-collection",
+          "timestamp": "2025-07-02T16:14:21.869Z",
+          "page_title": "User Data Collection"
+        },
+        {
+          "url": "/user-data-collection",
+          "timestamp": "2025-07-02T16:15:45.837Z",
+          "page_title": "User Data Collection"
+        },
+        {
+          "url": "/credential-entry",
+          "timestamp": "2025-07-02T16:15:45.951Z",
+          "page_title": "Credential Entry"
+        }
+      ],
+      "closed_on": "2025-07-02T16:35:45.440Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T16:15:45.462Z",
+      "last_updated_on": "2025-07-02T16:35:45.441Z",
+      "_instance": "ss01"
+    },
+    {
+      "id": 14911,
+      "cuid": "580a336e-be4d-41e6-ab0f-ab8ea1d106f8-631755936000000000",
+      "source": {
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "fae8a461-b3bd-453c-be9c-423e40713250",
+      "cardholder_id": null,
+      "financial_institution_id": 306,
+      "financial_institution_lookup_key": "flcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T16:16:40.291Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T16:35:45.273Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T16:16:39.619Z",
+      "last_updated_on": "2025-07-02T16:35:45.275Z",
+      "_instance": "ss01"
+    },
+    {
+      "id": 14912,
+      "cuid": "d5055184-74be-4a4c-a545-f7796bdd93f6-630139392000000000",
+      "source": {
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 3,
+      "agent_session_id": "725d975b-e6d7-425b-b10f-ed01f783ca39",
+      "cardholder_id": null,
+      "financial_institution_id": 273,
+      "financial_institution_lookup_key": "nasafcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T16:24:37.876Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/select-merchants/missing_fields",
+          "timestamp": "2025-07-02T16:25:07.554Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T16:25:20.357Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/user-data-collection",
+          "timestamp": "2025-07-02T16:25:20.435Z",
+          "page_title": "User Data Collection"
+        },
+        {
+          "url": "/credential-entry",
+          "timestamp": "2025-07-02T16:25:20.541Z",
+          "page_title": "Credential Entry"
+        }
+      ],
+      "closed_on": "2025-07-02T16:50:44.986Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T16:24:37.431Z",
+      "last_updated_on": "2025-07-02T16:50:44.988Z",
+      "_instance": "ss01"
+    },
+    {
+      "id": 14913,
+      "cuid": "8c23183b-9dd7-472c-9780-3ee321350a8a-632274336000000000",
+      "source": {
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "54bc9433-b9df-4936-b33f-031e714733df",
+      "cardholder_id": null,
+      "financial_institution_id": 233,
+      "financial_institution_lookup_key": "canvas",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T16:36:28.312Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/select-merchants/missing_fields",
+          "timestamp": "2025-07-02T16:37:15.187Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T16:37:22.846Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/user-data-collection",
+          "timestamp": "2025-07-02T16:37:23.002Z",
+          "page_title": "User Data Collection"
+        },
+        {
+          "url": "/credential-entry",
+          "timestamp": "2025-07-02T16:37:23.250Z",
+          "page_title": "Credential Entry"
+        },
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T16:37:28.130Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T16:55:45.578Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T16:36:27.662Z",
+      "last_updated_on": "2025-07-02T16:55:45.579Z",
+      "_instance": "ss01"
+    },
+    {
+      "id": 14914,
+      "cuid": "8c23183b-9dd7-472c-9780-3ee321350a8a-631502784000000000",
+      "source": {
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 1,
+      "agent_session_id": "13357969-4d1e-450c-a290-c4ac726fe9c2",
+      "cardholder_id": null,
+      "financial_institution_id": 233,
+      "financial_institution_lookup_key": "canvas",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T16:37:45.294Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/select-merchants/missing_fields",
+          "timestamp": "2025-07-02T16:37:49.057Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T16:37:54.322Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/user-data-collection",
+          "timestamp": "2025-07-02T16:37:54.482Z",
+          "page_title": "User Data Collection"
+        },
+        {
+          "url": "/credential-entry",
+          "timestamp": "2025-07-02T16:37:54.765Z",
+          "page_title": "Credential Entry"
+        },
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T16:38:06.166Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T16:38:29.731Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/user-data-collection",
+          "timestamp": "2025-07-02T16:38:29.881Z",
+          "page_title": "User Data Collection"
+        },
+        {
+          "url": "/credential-entry",
+          "timestamp": "2025-07-02T16:38:29.976Z",
+          "page_title": "Credential Entry"
+        }
+      ],
+      "closed_on": "2025-07-02T16:55:45.364Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T16:37:44.766Z",
+      "last_updated_on": "2025-07-02T16:55:45.366Z",
+      "_instance": "ss01"
+    },
+    {
+      "id": 14915,
+      "cuid": "171cd3fe-f543-4d9e-bed1-68da58f93eed-636863040000000000",
+      "source": {
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "95b55430-8579-476e-8777-b3bee8231e8a",
+      "cardholder_id": null,
+      "financial_institution_id": 233,
+      "financial_institution_lookup_key": "canvas",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T16:40:30.251Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T16:55:44.921Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T16:40:29.917Z",
+      "last_updated_on": "2025-07-02T16:55:44.922Z",
+      "_instance": "ss01"
+    },
+    {
+      "id": 14916,
+      "cuid": "247542e4-98cd-446d-9669-b7057f033bf7-636043968000000000",
+      "source": {
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "79fad8d2-c62a-4974-8cf6-8325d2c4ef6f",
+      "cardholder_id": null,
+      "financial_institution_id": 306,
+      "financial_institution_lookup_key": "flcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T16:51:39.192Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T17:10:45.240Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T16:51:38.703Z",
+      "last_updated_on": "2025-07-02T17:10:45.241Z",
+      "_instance": "ss01"
+    },
+    {
+      "id": 14917,
+      "cuid": "b10dbabf-734d-45b4-a80a-f14c61997caf-635211936000000000",
+      "source": {
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "6e5fad71-fac2-43cc-a146-240eea08e06e",
+      "cardholder_id": null,
+      "financial_institution_id": 199,
+      "financial_institution_lookup_key": "elevationscu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T16:52:21.689Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T17:10:45.075Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T16:52:21.195Z",
+      "last_updated_on": "2025-07-02T17:10:45.076Z",
+      "_instance": "ss01"
+    },
+    {
+      "id": 14918,
+      "cuid": "b10dbabf-734d-45b4-a80a-f14c61997caf-633076128000000000",
+      "source": {
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "621818c6-3ca1-4c42-a54e-6e89b15800cf",
+      "cardholder_id": null,
+      "financial_institution_id": 199,
+      "financial_institution_lookup_key": "elevationscu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T16:52:49.086Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T17:10:44.765Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T16:52:48.673Z",
+      "last_updated_on": "2025-07-02T17:10:44.768Z",
+      "_instance": "ss01"
+    },
+    {
+      "id": 14919,
+      "cuid": "9e241816-21b9-4518-bdae-5011cc7932ff-637651872000000000",
+      "source": {
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "b04b3fb8-5a45-49bb-87aa-cca6ad3aceb6",
+      "cardholder_id": null,
+      "financial_institution_id": 199,
+      "financial_institution_lookup_key": "elevationscu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T17:10:34.696Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T17:25:45.478Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T17:10:34.830Z",
+      "last_updated_on": "2025-07-02T17:25:45.479Z",
+      "_instance": "ss01"
+    },
+    {
+      "id": 14920,
+      "cuid": "eb45f2a0-efc6-4ad8-81a9-05446dfcbe55-638292960000000000",
+      "source": {
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "7d8b9353-8970-447e-9312-04da2bed0f3f",
+      "cardholder_id": null,
+      "financial_institution_id": 199,
+      "financial_institution_lookup_key": "elevationscu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T17:11:53.283Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T17:30:44.999Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T17:11:53.044Z",
+      "last_updated_on": "2025-07-02T17:30:45.001Z",
+      "_instance": "ss01"
+    },
+    {
+      "id": 14921,
+      "cuid": "5672f75b-e6b7-4938-886f-eca3f8d1137d-630403776000000000",
+      "source": {
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "19abf92a-fdff-4bf0-a32f-4848e1891cc0",
+      "cardholder_id": null,
+      "financial_institution_id": 233,
+      "financial_institution_lookup_key": "canvas",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T17:13:38.118Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T17:30:45.092Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T17:13:37.797Z",
+      "last_updated_on": "2025-07-02T17:30:45.094Z",
+      "_instance": "ss01"
+    },
+    {
+      "id": 14922,
+      "cuid": "da2538e9-fff0-47a4-ad8f-bc2b30b6b423-638000928000000000",
+      "source": {
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "84e4b214-46de-4cea-9de8-55a5532bbcc3",
+      "cardholder_id": null,
+      "financial_institution_id": 233,
+      "financial_institution_lookup_key": "canvas",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T17:17:48.746Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T17:18:10.336Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/user-data-collection",
+          "timestamp": "2025-07-02T17:18:10.377Z",
+          "page_title": "User Data Collection"
+        },
+        {
+          "url": "/credential-entry",
+          "timestamp": "2025-07-02T17:18:10.427Z",
+          "page_title": "Credential Entry"
+        },
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T17:18:16.142Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T17:35:44.563Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T17:17:48.468Z",
+      "last_updated_on": "2025-07-02T17:35:44.567Z",
+      "_instance": "ss01"
+    },
+    {
+      "id": 14923,
+      "cuid": "97a255b4-5801-47dd-84be-4170820ba482-636119136000000000",
+      "source": {
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "8cb72c18-8ad9-40be-a6dc-8328d0bf1d98",
+      "cardholder_id": null,
+      "financial_institution_id": 199,
+      "financial_institution_lookup_key": "elevationscu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T17:55:37.896Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T18:15:44.915Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T17:55:37.692Z",
+      "last_updated_on": "2025-07-02T18:15:44.916Z",
+      "_instance": "ss01"
+    },
+    {
+      "id": 14924,
+      "cuid": "7528196d-8059-45c0-807e-55094d51bb0b-637104960000000000",
+      "source": {
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "5fe0d91c-f9c9-4b6e-9dfc-1e45aeb76b12",
+      "cardholder_id": null,
+      "financial_institution_id": 308,
+      "financial_institution_lookup_key": "greylock",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T18:08:15.789Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T18:25:44.655Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T18:08:15.196Z",
+      "last_updated_on": "2025-07-02T18:25:44.659Z",
+      "_instance": "ss01"
+    },
+    {
+      "id": 14925,
+      "cuid": "7f4009c8-ea54-4399-947f-cfaed21011ed-638381088000000000",
+      "source": {
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "a5bf5f74-4ebf-41c7-ac04-517309a80877",
+      "cardholder_id": null,
+      "financial_institution_id": 306,
+      "financial_institution_lookup_key": "flcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T18:28:48.846Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T18:45:45.138Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T18:28:48.237Z",
+      "last_updated_on": "2025-07-02T18:45:45.140Z",
+      "_instance": "ss01"
+    },
+    {
+      "id": 14926,
+      "cuid": "7f4009c8-ea54-4399-947f-cfaed21011ed-635642208000000000",
+      "source": {
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "d2fe4902-2fa6-44a0-b348-d606ce77ac95",
+      "cardholder_id": null,
+      "financial_institution_id": 306,
+      "financial_institution_lookup_key": "flcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T18:30:09.531Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T18:45:44.683Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T18:30:09.070Z",
+      "last_updated_on": "2025-07-02T18:45:44.684Z",
+      "_instance": "ss01"
+    },
+    {
+      "id": 14927,
+      "cuid": "5puueqsut39vp2xe79x4",
+      "source": {
+        "type": "weblink",
+        "category": "other",
+        "integration": "CU2",
+        "device": "desktop web"
+      },
+      "successful_jobs": 1,
+      "failed_jobs": 0,
+      "total_jobs": 4,
+      "agent_session_id": "27f79ff8-f4b9-4298-8948-a0c337329690",
+      "cardholder_id": null,
+      "financial_institution_id": 166,
+      "financial_institution_lookup_key": "centracu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T19:40:15.867Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/user-data-collection",
+          "timestamp": "2025-07-02T19:40:57.668Z",
+          "page_title": "User Data Collection"
+        },
+        {
+          "url": "/user-data-collection",
+          "timestamp": "2025-07-02T19:42:12.099Z",
+          "page_title": "User Data Collection"
+        },
+        {
+          "url": "/credential-entry",
+          "timestamp": "2025-07-02T19:42:12.245Z",
+          "page_title": "Credential Entry"
+        }
+      ],
+      "closed_on": "2025-07-02T20:05:45.693Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T19:42:11.740Z",
+      "last_updated_on": "2025-07-02T20:05:45.695Z",
+      "_instance": "ss01"
+    },
+    {
+      "id": 14928,
+      "cuid": "c3734043-c8ad-40a7-9aff-f39f07b4179a-632358144000000000",
+      "source": {
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "984dfc6a-9717-4a30-91aa-0336a26d3782",
+      "cardholder_id": null,
+      "financial_institution_id": 273,
+      "financial_institution_lookup_key": "nasafcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T21:52:10.451Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T21:52:18.702Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/user-data-collection",
+          "timestamp": "2025-07-02T21:52:18.738Z",
+          "page_title": "User Data Collection"
+        },
+        {
+          "url": "/credential-entry",
+          "timestamp": "2025-07-02T21:52:18.791Z",
+          "page_title": "Credential Entry"
+        },
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T21:52:20.738Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T22:10:45.058Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T21:52:10.169Z",
+      "last_updated_on": "2025-07-02T22:10:45.059Z",
+      "_instance": "ss01"
+    },
+    {
+      "id": 14929,
+      "cuid": "01d446e4-f56e-48cd-a3e6-83ea8dbb5a5f-635039136000000000",
+      "source": {
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "e8fe28dd-f07a-43cf-b8c4-4a035de586a2",
+      "cardholder_id": null,
+      "financial_institution_id": 199,
+      "financial_institution_lookup_key": "elevationscu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T21:56:00.751Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T22:15:45.049Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T21:55:59.445Z",
+      "last_updated_on": "2025-07-02T22:15:45.115Z",
+      "_instance": "ss01"
+    },
+    {
+      "id": 14930,
+      "cuid": "8bad23a4-00ac-4e71-a645-29e56c704cb8-633540960000000000",
+      "source": {
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "1afe50dd-f5be-4364-a96e-875eac4845c4",
+      "cardholder_id": null,
+      "financial_institution_id": 199,
+      "financial_institution_lookup_key": "elevationscu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T23:18:24.170Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T23:35:44.627Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T23:18:25.542Z",
+      "last_updated_on": "2025-07-02T23:35:44.628Z",
+      "_instance": "ss01"
+    },
+    {
+      "id": 14931,
+      "cuid": "adab3ad1-fd88-4f41-a2bd-4ceaa35d0daf-629419680000000000",
+      "source": {
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "895bf410-d27a-4582-ad4e-e6d5a4ec8d4e",
+      "cardholder_id": null,
+      "financial_institution_id": 308,
+      "financial_institution_lookup_key": "greylock",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T23:24:33.890Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T23:40:44.989Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T23:24:33.163Z",
+      "last_updated_on": "2025-07-02T23:40:44.990Z",
+      "_instance": "ss01"
+    },
+    {
+      "id": 14932,
+      "cuid": "93ce36b4-823e-4f34-a938-20f0b46fec80-638563392000000000",
+      "source": {
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 1,
+      "agent_session_id": "13aa105f-473d-4fb7-92f3-8507a18839bf",
+      "cardholder_id": null,
+      "financial_institution_id": 199,
+      "financial_institution_lookup_key": "elevationscu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T23:48:25.505Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/select-merchants/missing_fields",
+          "timestamp": "2025-07-02T23:48:33.781Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T23:48:41.019Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/user-data-collection",
+          "timestamp": "2025-07-02T23:48:41.091Z",
+          "page_title": "User Data Collection"
+        },
+        {
+          "url": "/credential-entry",
+          "timestamp": "2025-07-02T23:48:41.188Z",
+          "page_title": "Credential Entry"
+        }
+      ],
+      "closed_on": "2025-07-03T00:05:44.647Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T23:48:25.085Z",
+      "last_updated_on": "2025-07-03T00:05:44.648Z",
+      "_instance": "ss01"
+    },
+    {
+      "id": 26572,
+      "cuid": "21a3yxr6uv2rkm28wd7w",
+      "source": {
+        "integration": "CU2",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "de20c00a-f9db-4095-9c60-a3baea35e931",
+      "cardholder_id": null,
+      "financial_institution_id": 203,
+      "financial_institution_lookup_key": "widgetfinancialcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T14:24:20.165Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/user-data-collection",
+          "timestamp": "2025-07-02T14:24:34.536Z",
+          "page_title": "User Data Collection"
+        },
+        {
+          "url": "/user-data-collection",
+          "timestamp": "2025-07-02T14:25:04.640Z",
+          "page_title": "User Data Collection"
+        },
+        {
+          "url": "/user-data-collection",
+          "timestamp": "2025-07-02T14:26:54.961Z",
+          "page_title": "User Data Collection"
+        },
+        {
+          "url": "/user-data-collection",
+          "timestamp": "2025-07-02T14:27:16.020Z",
+          "page_title": "User Data Collection"
+        },
+        {
+          "url": "/user-data-collection",
+          "timestamp": "2025-07-02T14:28:10.223Z",
+          "page_title": "User Data Collection"
+        }
+      ],
+      "closed_on": "2025-07-02T14:44:35.286Z",
+      "custom_data": {
+        "digital_onboarding": {
+          "team_id": "1beff116-919a-4c02-8682-0154d52a6adb",
+          "contact_id": "98a556d4-1f2d-4a03-a739-294ccc691ac5",
+          "page_id": "70f48aa9-90af-48e7-92ca-1f26522e033c",
+          "journey_id": "4dd9ddc4-ac7f-4d2a-800a-e5e54f1502b8",
+          "slug": "ry2dfFR2p"
+        }
+      },
+      "created_on": "2025-07-02T14:28:09.647Z",
+      "last_updated_on": "2025-07-02T14:44:35.287Z",
+      "_instance": "digital-onboarding"
+    },
+    {
+      "id": 26573,
+      "cuid": "c7eugl5yb9jf38g79smp",
+      "source": {
+        "integration": "CU2",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "cfe16943-1b47-47c9-801f-221253480b46",
+      "cardholder_id": null,
+      "financial_institution_id": 3,
+      "financial_institution_lookup_key": "mybank",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T14:30:35.404Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/user-data-collection",
+          "timestamp": "2025-07-02T14:30:49.980Z",
+          "page_title": "User Data Collection"
+        },
+        {
+          "url": "/credential-entry",
+          "timestamp": "2025-07-02T14:31:05.611Z",
+          "page_title": "Credential Entry"
+        },
+        {
+          "url": "/credential-entry",
+          "timestamp": "2025-07-02T14:31:05.627Z",
+          "page_title": "Credential Entry"
+        }
+      ],
+      "closed_on": "2025-07-02T14:49:35.677Z",
+      "custom_data": {
+        "digital_onboarding": {
+          "team_id": "e4fb4ff4-8984-4d6f-b902-a9c2275bbf70",
+          "contact_id": "13cb51e1-e037-4879-ac56-22195b946f23",
+          "page_id": "3e8bc08c-505d-4cfd-ae9b-842939d440b3",
+          "journey_id": "4b14099f-e1b4-4f59-a5d1-a48686a02177",
+          "slug": "SyKMiYvOj"
+        }
+      },
+      "created_on": "2025-07-02T14:31:05.267Z",
+      "last_updated_on": "2025-07-02T14:49:35.678Z",
+      "_instance": "digital-onboarding"
+    },
+    {
+      "id": 26574,
+      "cuid": "3intnxz3eyatvbev9kuh",
+      "source": {
+        "integration": "CU2",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "572aa9d3-76e9-4991-95fa-13bab943c999",
+      "cardholder_id": null,
+      "financial_institution_id": 203,
+      "financial_institution_lookup_key": "widgetfinancialcu",
+      "clickstream": null,
+      "closed_on": "2025-07-02T14:49:35.537Z",
+      "custom_data": {
+        "digital_onboarding": {
+          "team_id": "1beff116-919a-4c02-8682-0154d52a6adb",
+          "contact_id": "98a556d4-1f2d-4a03-a739-294ccc691ac5",
+          "page_id": "70f48aa9-90af-48e7-92ca-1f26522e033c",
+          "journey_id": "4dd9ddc4-ac7f-4d2a-800a-e5e54f1502b8",
+          "slug": "ry2dfFR2p"
+        }
+      },
+      "created_on": "2025-07-02T14:32:29.326Z",
+      "last_updated_on": "2025-07-02T14:49:35.538Z",
+      "_instance": "digital-onboarding"
+    },
+    {
+      "id": 26575,
+      "cuid": "nytw03lqvhb3sbz11qs7",
+      "source": {
+        "integration": "CU2",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "78acc729-3daf-491e-ac70-4c0759437972",
+      "cardholder_id": null,
+      "financial_institution_id": 194,
+      "financial_institution_lookup_key": "Elgacu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T14:31:34.108Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/user-data-collection",
+          "timestamp": "2025-07-02T14:32:43.003Z",
+          "page_title": "User Data Collection"
+        },
+        {
+          "url": "/credential-entry",
+          "timestamp": "2025-07-02T14:33:30.613Z",
+          "page_title": "Credential Entry"
+        }
+      ],
+      "closed_on": "2025-07-02T14:49:35.400Z",
+      "custom_data": {
+        "digital_onboarding": {
+          "team_id": "b22b8fa5-cad4-49b5-8682-d96fb528155b",
+          "contact_id": "23f3a6e8-23d7-4fa1-b1c1-0d196f1a542b",
+          "page_id": "1c6c08ff-955e-4897-b7cd-984f6030e8f7",
+          "journey_id": "e3ca2bd8-11fb-4c3a-8902-0c77436a5f25",
+          "slug": "Sk7nChrFp"
+        }
+      },
+      "created_on": "2025-07-02T14:33:29.531Z",
+      "last_updated_on": "2025-07-02T14:49:35.401Z",
+      "_instance": "digital-onboarding"
+    },
+    {
+      "id": 26576,
+      "cuid": "kg7o0tu3wt8pknvfoeqt",
+      "source": {
+        "integration": "CU2",
+        "device": "desktop web"
+      },
+      "successful_jobs": 1,
+      "failed_jobs": 0,
+      "total_jobs": 1,
+      "agent_session_id": "7c1cbe05-b2c5-4bb8-9066-2ebca6220b3d",
+      "cardholder_id": null,
+      "financial_institution_id": 269,
+      "financial_institution_lookup_key": "centricfcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T14:55:52.378Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/user-data-collection",
+          "timestamp": "2025-07-02T14:56:01.522Z",
+          "page_title": "User Data Collection"
+        },
+        {
+          "url": "/user-data-collection",
+          "timestamp": "2025-07-02T14:56:47.819Z",
+          "page_title": "User Data Collection"
+        },
+        {
+          "url": "/credential-entry",
+          "timestamp": "2025-07-02T14:56:47.902Z",
+          "page_title": "Credential Entry"
+        }
+      ],
+      "closed_on": "2025-07-02T15:14:35.211Z",
+      "custom_data": {
+        "digital_onboarding": {
+          "team_id": "90ec3f8c-92c1-4ece-b4c9-c24ba7b09d31",
+          "contact_id": "c5a07a5b-7506-41b2-a614-710669e28bea",
+          "page_id": "cd87d129-fb72-4ce5-a695-bbdf9512d222",
+          "journey_id": "a2db7987-0d5d-421b-8f48-6b111d3e77fa",
+          "slug": "H1ShnzDQxe"
+        }
+      },
+      "created_on": "2025-07-02T14:56:46.897Z",
+      "last_updated_on": "2025-07-02T15:14:35.237Z",
+      "_instance": "digital-onboarding"
+    },
+    {
+      "id": 26577,
+      "cuid": "1f4j5irwa0mig79veaoi",
+      "source": {
+        "integration": "CU2",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 3,
+      "agent_session_id": "45c0788f-cf6e-4b85-af3f-583154b71a36",
+      "cardholder_id": null,
+      "financial_institution_id": 176,
+      "financial_institution_lookup_key": "oucu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T16:01:55.158Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/user-data-collection",
+          "timestamp": "2025-07-02T16:03:36.496Z",
+          "page_title": "User Data Collection"
+        },
+        {
+          "url": "/user-data-collection",
+          "timestamp": "2025-07-02T16:05:18.244Z",
+          "page_title": "User Data Collection"
+        },
+        {
+          "url": "/credential-entry",
+          "timestamp": "2025-07-02T16:05:18.402Z",
+          "page_title": "Credential Entry"
+        }
+      ],
+      "closed_on": "2025-07-02T16:24:35.905Z",
+      "custom_data": {
+        "digital_onboarding": {
+          "team_id": "4dbfeb8d-9106-4133-81cb-357af8637ed9",
+          "contact_id": "8ee74717-2969-4772-b890-74686f68e884",
+          "page_id": "e2d430fc-7040-47a3-823b-ac724128de28",
+          "journey_id": "0cb35d89-a5cf-45b4-9e50-93b9173eb6ec",
+          "slug": "rJKD1ir1kx"
+        }
+      },
+      "created_on": "2025-07-02T16:05:17.774Z",
+      "last_updated_on": "2025-07-02T16:24:35.909Z",
+      "_instance": "digital-onboarding"
+    },
+    {
+      "id": 26578,
+      "cuid": "d4uefz64getuc0ywxryg",
+      "source": {
+        "integration": "CU2",
+        "device": "desktop web"
+      },
+      "successful_jobs": 1,
+      "failed_jobs": 0,
+      "total_jobs": 3,
+      "agent_session_id": "b38a5d72-8da2-4583-ab21-22e7d6b07713",
+      "cardholder_id": null,
+      "financial_institution_id": 87,
+      "financial_institution_lookup_key": "p1fcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T18:05:36.096Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/user-data-collection",
+          "timestamp": "2025-07-02T18:07:43.813Z",
+          "page_title": "User Data Collection"
+        },
+        {
+          "url": "/credential-entry",
+          "timestamp": "2025-07-02T18:11:35.653Z",
+          "page_title": "Credential Entry"
+        },
+        {
+          "url": "/credential-entry",
+          "timestamp": "2025-07-02T18:34:10.932Z",
+          "page_title": "Credential Entry"
+        }
+      ],
+      "closed_on": "2025-07-02T18:49:35.209Z",
+      "custom_data": {
+        "digital_onboarding": {
+          "team_id": "f0ece4df-0b95-4f91-ba2a-d0a3cfc14012",
+          "contact_id": "741a25fd-4476-4edd-b030-4e532491a559",
+          "page_id": "01ac2f6a-8108-4105-8217-8b6f04a6afd2",
+          "journey_id": "bde4939d-704a-4c26-a93e-a1cc8f44e377",
+          "slug": "SJCT4Vt8T"
+        }
+      },
+      "created_on": "2025-07-02T18:11:36.756Z",
+      "last_updated_on": "2025-07-02T18:49:35.210Z",
+      "_instance": "digital-onboarding"
+    },
+    {
+      "id": 26579,
+      "cuid": "e4qo9p7q9una8r412k9v",
+      "source": {
+        "integration": "CU2",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "9909b2c4-56a6-43ff-863b-442c23a4ed2e",
+      "cardholder_id": null,
+      "financial_institution_id": 3,
+      "financial_institution_lookup_key": "mybank",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T19:17:39.750Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/user-data-collection",
+          "timestamp": "2025-07-02T19:18:37.156Z",
+          "page_title": "User Data Collection"
+        },
+        {
+          "url": "/credential-entry",
+          "timestamp": "2025-07-02T19:18:59.078Z",
+          "page_title": "Credential Entry"
+        },
+        {
+          "url": "/credential-entry",
+          "timestamp": "2025-07-02T19:18:59.088Z",
+          "page_title": "Credential Entry"
+        }
+      ],
+      "closed_on": "2025-07-02T19:34:35.093Z",
+      "custom_data": {
+        "digital_onboarding": {
+          "team_id": "e4fb4ff4-8984-4d6f-b902-a9c2275bbf70",
+          "contact_id": "70991c4e-367d-4cd6-a3b4-90135b27eb57",
+          "page_id": "3e8bc08c-505d-4cfd-ae9b-842939d440b3",
+          "journey_id": "fcf01bdc-8d24-4599-a9cc-6e6e2e6e37c2",
+          "slug": "SyKMiYvOj"
+        }
+      },
+      "created_on": "2025-07-02T19:18:58.713Z",
+      "last_updated_on": "2025-07-02T19:34:35.097Z",
+      "_instance": "digital-onboarding"
+    },
+    {
+      "id": 26580,
+      "cuid": "yso5mv3maebb9h6k7fy1",
+      "source": {
+        "integration": "CU2",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 2,
+      "agent_session_id": "d2ebbf54-095d-45e5-8c73-d9b4a0add9e7",
+      "cardholder_id": null,
+      "financial_institution_id": 168,
+      "financial_institution_lookup_key": "csbank",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T20:07:03.925Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/user-data-collection",
+          "timestamp": "2025-07-02T20:07:37.272Z",
+          "page_title": "User Data Collection"
+        },
+        {
+          "url": "/user-data-collection",
+          "timestamp": "2025-07-02T20:08:55.474Z",
+          "page_title": "User Data Collection"
+        },
+        {
+          "url": "/credential-entry",
+          "timestamp": "2025-07-02T20:08:55.591Z",
+          "page_title": "Credential Entry"
+        },
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T20:11:23.743Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T20:11:36.841Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/user-data-collection",
+          "timestamp": "2025-07-02T20:11:36.882Z",
+          "page_title": "User Data Collection"
+        },
+        {
+          "url": "/credential-entry",
+          "timestamp": "2025-07-02T20:11:36.908Z",
+          "page_title": "Credential Entry"
+        }
+      ],
+      "closed_on": "2025-07-02T20:29:35.500Z",
+      "custom_data": {
+        "digital_onboarding": {
+          "team_id": "64717121-b3f2-450b-ad7c-942dce919067",
+          "contact_id": "22a28b47-9588-4ee2-8085-1e40298221b7",
+          "page_id": "00304687-1af0-4143-8b81-c2832400f74c",
+          "journey_id": "df0de183-8329-4086-beee-97c8363f0e6d",
+          "slug": "SJoCjdEZ2"
+        }
+      },
+      "created_on": "2025-07-02T20:08:55.178Z",
+      "last_updated_on": "2025-07-02T20:29:35.503Z",
+      "_instance": "digital-onboarding"
+    },
+    {
+      "id": 26581,
+      "cuid": "indjwygafgwow3flrprm",
+      "source": {
+        "integration": "CU2",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 1,
+      "agent_session_id": "656eb584-be05-4caa-a4aa-9499fe9e1dc0",
+      "cardholder_id": null,
+      "financial_institution_id": 7,
+      "financial_institution_lookup_key": "suma-fcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T22:13:18.887Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/user-data-collection",
+          "timestamp": "2025-07-02T22:13:23.785Z",
+          "page_title": "User Data Collection"
+        },
+        {
+          "url": "/user-data-collection",
+          "timestamp": "2025-07-02T22:17:45.471Z",
+          "page_title": "User Data Collection"
+        },
+        {
+          "url": "/credential-entry",
+          "timestamp": "2025-07-02T22:17:45.692Z",
+          "page_title": "Credential Entry"
+        }
+      ],
+      "closed_on": "2025-07-02T22:39:35.216Z",
+      "custom_data": {
+        "digital_onboarding": {
+          "team_id": "0eb10732-7996-4a20-afc3-321b7751a65b",
+          "contact_id": "8920c3ea-d88e-43af-a341-407e0d1a396c",
+          "page_id": "bb3e46d6-1134-4b5b-903b-7d08af2d7aef",
+          "journey_id": "2bbacb7f-9fa3-4715-908f-68faf7cfa2cb",
+          "slug": "SyKOeIvhyx"
+        }
+      },
+      "created_on": "2025-07-02T22:17:44.598Z",
+      "last_updated_on": "2025-07-02T22:39:35.217Z",
+      "_instance": "digital-onboarding"
+    },
+    {
+      "id": 24194,
+      "cuid": "satorumurase_1751426843",
+      "source": {
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "10db8ee7-2d9c-4a7c-b0c0-549cb0ddae0a",
+      "cardholder_id": null,
+      "financial_institution_id": 34,
+      "financial_institution_lookup_key": "5379",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T03:27:30.365Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T03:44:58.550Z",
+      "custom_data": {
+        "username": "satorumurase.5379",
+        "applicationid": "5003",
+        "subapplicationid": "10178",
+        "correlationid": "be4df32f-f154-f7d2-959d-1e1d60952fa4",
+        "tokenid": "7812869412189812",
+        "SPA_PAR_ID": "827620000000"
+      },
+      "created_on": "2025-07-02T03:27:29.510Z",
+      "last_updated_on": "2025-07-02T03:44:58.552Z",
+      "_instance": "pscu"
+    },
+    {
+      "id": 24195,
+      "cuid": "srudoi_1751452692",
+      "source": {
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "71164796-ffc2-4a92-84af-3b2fb25623c1",
+      "cardholder_id": null,
+      "financial_institution_id": 34,
+      "financial_institution_lookup_key": "5379",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T10:38:16.724Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T10:54:58.520Z",
+      "custom_data": {
+        "username": "srudoi.5379",
+        "applicationid": "5003",
+        "subapplicationid": "10178",
+        "correlationid": "4336706e-fb26-44f7-18ed-c746f19d06bc",
+        "tokenid": "1380070371827560",
+        "SPA_PAR_ID": "827600000000"
+      },
+      "created_on": "2025-07-02T10:38:16.207Z",
+      "last_updated_on": "2025-07-02T10:54:58.521Z",
+      "_instance": "pscu"
+    },
+    {
+      "id": 18134,
+      "cuid": "S8R6WPSVJVNN72QPSN_840_6eb0f947-cf7b-4e95-a324-ea097e714ed2",
+      "source": {
+        "type": "weblink",
+        "category": "other",
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "766a84ec-e966-4dc3-8ba9-48efb65c5a05",
+      "cardholder_id": null,
+      "financial_institution_id": 3,
+      "financial_institution_lookup_key": "msufcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T00:03:59.592Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T00:19:34.665Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T00:03:59.248Z",
+      "last_updated_on": "2025-07-02T00:19:34.666Z",
+      "_instance": "msu"
+    },
+    {
+      "id": 18135,
+      "cuid": "S8R6WPSVJVNN72QPSN_840_6e2bac16-6c15-403b-8439-45b8da774872",
+      "source": {
+        "type": "weblink",
+        "category": "other",
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "aa1d5cda-6e0c-44df-8f5b-d6bb8a3cf9cf",
+      "cardholder_id": null,
+      "financial_institution_id": 3,
+      "financial_institution_lookup_key": "msufcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T00:03:59.556Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T00:19:34.667Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T00:03:59.275Z",
+      "last_updated_on": "2025-07-02T00:19:34.668Z",
+      "_instance": "msu"
+    },
+    {
+      "id": 18136,
+      "cuid": "X3V9GFL4W9V3QFKF9Y_302_bf4e6839-c39b-4186-a3c1-253b3901515d",
+      "source": {
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "3075764a-e144-4af8-87e1-5eae90658fba",
+      "cardholder_id": null,
+      "financial_institution_id": 3,
+      "financial_institution_lookup_key": "msufcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T00:28:36.144Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T00:44:34.468Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T00:28:35.312Z",
+      "last_updated_on": "2025-07-02T00:44:34.516Z",
+      "_instance": "msu"
+    },
+    {
+      "id": 18137,
+      "cuid": "YY34DPJXJW3ZQ5FWPW_48_6594f81c-5476-40d3-b6f1-506e92396d9d",
+      "source": {
+        "type": "weblink",
+        "category": "other",
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "2a9a9276-5ac9-489d-b8f7-895fb6565011",
+      "cardholder_id": null,
+      "financial_institution_id": 3,
+      "financial_institution_lookup_key": "msufcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T00:43:27.321Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T00:59:34.429Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T00:43:26.932Z",
+      "last_updated_on": "2025-07-02T00:59:34.430Z",
+      "_instance": "msu"
+    },
+    {
+      "id": 18138,
+      "cuid": "K96YW6CVMGXRNF9PWR_1164_63b581d2-58a2-450b-bd28-02299ddde01e",
+      "source": {
+        "type": "weblink",
+        "category": "other",
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "1cb12646-f279-4436-93d4-a5dd9cf8f123",
+      "cardholder_id": null,
+      "financial_institution_id": 3,
+      "financial_institution_lookup_key": "msufcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T01:22:24.527Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T01:39:34.487Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T01:22:24.112Z",
+      "last_updated_on": "2025-07-02T01:39:34.488Z",
+      "_instance": "msu"
+    },
+    {
+      "id": 18139,
+      "cuid": "4XTMBH333GSD22CP3J_32_664eabf6-298f-4061-a909-737a0ef1c712",
+      "source": {
+        "type": "weblink",
+        "category": "other",
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "67991473-7663-4e00-8997-61db5048520e",
+      "cardholder_id": null,
+      "financial_institution_id": 3,
+      "financial_institution_lookup_key": "msufcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T01:22:53.012Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T01:39:34.354Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T01:22:52.623Z",
+      "last_updated_on": "2025-07-02T01:39:34.355Z",
+      "_instance": "msu"
+    },
+    {
+      "id": 18140,
+      "cuid": "ZQ915SWKRBRG4BQVNH_115_777a7f32-8e73-4bfd-8a50-4a27cbaabb28",
+      "source": {
+        "type": "weblink",
+        "category": "other",
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "517113ee-a489-4d58-bcfe-8168300297ac",
+      "cardholder_id": null,
+      "financial_institution_id": 3,
+      "financial_institution_lookup_key": "msufcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T01:30:37.487Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T01:49:34.997Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T01:30:37.086Z",
+      "last_updated_on": "2025-07-02T01:49:35.000Z",
+      "_instance": "msu"
+    },
+    {
+      "id": 18141,
+      "cuid": "VJHDXN34RWJQ9B34DF_768_f12f5493-2624-4045-8b09-131f5cc88dba",
+      "source": {
+        "type": "weblink",
+        "category": "other",
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "5dca37c5-d8b8-47ae-b55d-14c01e7fa03e",
+      "cardholder_id": null,
+      "financial_institution_id": 3,
+      "financial_institution_lookup_key": "msufcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T01:40:55.534Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T01:59:34.549Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T01:40:55.202Z",
+      "last_updated_on": "2025-07-02T01:59:34.550Z",
+      "_instance": "msu"
+    },
+    {
+      "id": 18142,
+      "cuid": "R5YB5MC63FS4NS613F_2608_e4fed826-362f-48d1-90c7-db8aee3e0516",
+      "source": {
+        "type": "weblink",
+        "category": "other",
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "c44e05a2-15bb-4f5d-a1b5-7b96b01cba5d",
+      "cardholder_id": null,
+      "financial_institution_id": 3,
+      "financial_institution_lookup_key": "msufcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T01:43:56.153Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/select-merchants/missing_fields",
+          "timestamp": "2025-07-02T01:44:11.722Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/select-merchants/missing_fields",
+          "timestamp": "2025-07-02T01:44:29.092Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T01:59:34.394Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T01:43:55.797Z",
+      "last_updated_on": "2025-07-02T01:59:34.395Z",
+      "_instance": "msu"
+    },
+    {
+      "id": 18143,
+      "cuid": "CCY821Q4HRPVVLPCZP_201_6dd11a9f-fedd-49b0-93db-cda9fa1cec21",
+      "source": {
+        "type": "weblink",
+        "category": "other",
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "db63028b-c152-4731-bdce-50a30caff5f9",
+      "cardholder_id": null,
+      "financial_institution_id": 3,
+      "financial_institution_lookup_key": "msufcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T02:08:55.721Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/select-merchants/missing_fields",
+          "timestamp": "2025-07-02T02:09:21.062Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T02:24:34.834Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T02:08:55.032Z",
+      "last_updated_on": "2025-07-02T02:24:34.836Z",
+      "_instance": "msu"
+    },
+    {
+      "id": 18144,
+      "cuid": "TZT1YTSXB8X43XCF9Q_31_3a2e5efd-6d8f-4582-94b9-e1875c01bc95",
+      "source": {
+        "type": "weblink",
+        "category": "other",
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "48c289df-f37e-4cf2-813c-4b9458cdf636",
+      "cardholder_id": null,
+      "financial_institution_id": 3,
+      "financial_institution_lookup_key": "msufcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T02:10:33.804Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T02:29:34.499Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T02:10:33.343Z",
+      "last_updated_on": "2025-07-02T02:29:34.501Z",
+      "_instance": "msu"
+    },
+    {
+      "id": 18145,
+      "cuid": "QB36LK9JV1YGTH9LSS_1842_bf99c357-593e-4a35-87e9-2cf340e53db4",
+      "source": {
+        "type": "weblink",
+        "category": "other",
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "2455791a-cf85-40b1-993e-03ae6f192c6f",
+      "cardholder_id": null,
+      "financial_institution_id": 3,
+      "financial_institution_lookup_key": "msufcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T02:39:15.904Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T02:54:34.516Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T02:39:15.728Z",
+      "last_updated_on": "2025-07-02T02:54:34.518Z",
+      "_instance": "msu"
+    },
+    {
+      "id": 18146,
+      "cuid": "5ZLQNBT3LFWC8NB6X6_1474_621c7de3-5fd4-4ebb-b991-efe683992615",
+      "source": {
+        "type": "weblink",
+        "category": "other",
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "00b26c3a-0cb7-4c70-8e89-1db0419b9808",
+      "cardholder_id": null,
+      "financial_institution_id": 3,
+      "financial_institution_lookup_key": "msufcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T02:45:01.855Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/select-merchants/missing_fields",
+          "timestamp": "2025-07-02T02:45:31.528Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T03:04:34.269Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T02:45:01.447Z",
+      "last_updated_on": "2025-07-02T03:04:34.270Z",
+      "_instance": "msu"
+    },
+    {
+      "id": 18147,
+      "cuid": "CD89HG3WZ6HZWRKYDL_1925_be46db69-4ecc-4a2e-a36e-8a6d98a0ad07",
+      "source": {
+        "type": "weblink",
+        "category": "other",
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "5f5b4e27-e89e-4c52-b990-bad25f32a472",
+      "cardholder_id": null,
+      "financial_institution_id": 3,
+      "financial_institution_lookup_key": "msufcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T03:17:08.852Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T03:34:34.614Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T03:17:08.297Z",
+      "last_updated_on": "2025-07-02T03:34:34.618Z",
+      "_instance": "msu"
+    },
+    {
+      "id": 18148,
+      "cuid": "CYFXLGHTV2SHHBFJK4_926_d398ed82-203a-4f5e-b0ee-a096552fed43",
+      "source": {
+        "type": "weblink",
+        "category": "other",
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "14437079-bad8-498f-a5f5-c2502aa67d46",
+      "cardholder_id": null,
+      "financial_institution_id": 3,
+      "financial_institution_lookup_key": "msufcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T10:55:44.750Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T11:14:34.457Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T10:55:44.267Z",
+      "last_updated_on": "2025-07-02T11:14:34.458Z",
+      "_instance": "msu"
+    },
+    {
+      "id": 18149,
+      "cuid": "Q2VGPSMCDWVJM6W8MJ_52_ad136579-9113-4347-afe6-50b73169a050",
+      "source": {
+        "type": "weblink",
+        "category": "other",
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "2a42328e-1a7e-469f-8296-34261e2d5dc9",
+      "cardholder_id": null,
+      "financial_institution_id": 3,
+      "financial_institution_lookup_key": "msufcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T11:25:57.970Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T11:26:16.684Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/user-data-collection",
+          "timestamp": "2025-07-02T11:26:16.749Z",
+          "page_title": "User Data Collection"
+        },
+        {
+          "url": "/credential-entry",
+          "timestamp": "2025-07-02T11:26:16.850Z",
+          "page_title": "Credential Entry"
+        }
+      ],
+      "closed_on": "2025-07-02T11:44:34.875Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T11:25:57.590Z",
+      "last_updated_on": "2025-07-02T11:44:34.876Z",
+      "_instance": "msu"
+    },
+    {
+      "id": 18150,
+      "cuid": "DYJNQXXRDGWD65BBWD_298_9f99f57a-ec23-4675-b8e9-b9483e258259",
+      "source": {
+        "type": "weblink",
+        "category": "other",
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "f5fc8a3d-1252-4fb7-ac3f-0fc99e76bc12",
+      "cardholder_id": null,
+      "financial_institution_id": 3,
+      "financial_institution_lookup_key": "msufcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T11:26:55.045Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/select-merchants/missing_fields",
+          "timestamp": "2025-07-02T11:27:09.183Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T11:44:34.391Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T11:26:54.506Z",
+      "last_updated_on": "2025-07-02T11:44:34.421Z",
+      "_instance": "msu"
+    },
+    {
+      "id": 18151,
+      "cuid": "Z9KF2J9L37YWH5VT75_180_7d33ae46-8cbf-466c-87a2-b54a05842b84",
+      "source": {
+        "type": "weblink",
+        "category": "other",
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "5b84dc0a-b783-4176-b0e1-8b1bbb7a587b",
+      "cardholder_id": null,
+      "financial_institution_id": 3,
+      "financial_institution_lookup_key": "msufcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T11:41:47.060Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T11:59:34.517Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T11:41:46.772Z",
+      "last_updated_on": "2025-07-02T11:59:34.520Z",
+      "_instance": "msu"
+    },
+    {
+      "id": 18152,
+      "cuid": "C3JDJ1LSKSVQCXT5YD_42_9bc77918-b2aa-43c6-94e9-55022457d3b2",
+      "source": {
+        "type": "weblink",
+        "category": "other",
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "b3a5673b-0467-47cd-a110-16a8c4d23805",
+      "cardholder_id": null,
+      "financial_institution_id": 3,
+      "financial_institution_lookup_key": "msufcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T12:13:04.040Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T12:29:34.385Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T12:13:03.541Z",
+      "last_updated_on": "2025-07-02T12:29:34.386Z",
+      "_instance": "msu"
+    },
+    {
+      "id": 18153,
+      "cuid": "481QPYX831GSHXGG4S_1441_3ac94f40-1145-4af7-85ce-3f7b5670e49e",
+      "source": {
+        "type": "weblink",
+        "category": "other",
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "f55f17df-5af8-48df-8cbc-da803e0c44e8",
+      "cardholder_id": null,
+      "financial_institution_id": 3,
+      "financial_institution_lookup_key": "msufcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T12:15:24.271Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T12:34:34.121Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T12:15:23.825Z",
+      "last_updated_on": "2025-07-02T12:34:34.122Z",
+      "_instance": "msu"
+    },
+    {
+      "id": 18154,
+      "cuid": "81Y2XXTKWGXJ86QGNZ_830_a6980433-dcae-4ddd-8720-e6430008d80e",
+      "source": {
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "a11fe1bf-d8e5-4630-9128-119788b62bb7",
+      "cardholder_id": null,
+      "financial_institution_id": 3,
+      "financial_institution_lookup_key": "msufcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T12:21:16.522Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T12:39:34.164Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T12:21:16.197Z",
+      "last_updated_on": "2025-07-02T12:39:34.165Z",
+      "_instance": "msu"
+    },
+    {
+      "id": 18155,
+      "cuid": "3WM7H9Y4VGVGK25KG1_568_45396aef-5ccc-4fde-8e36-016c4ac354f3",
+      "source": {
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 4,
+      "failed_jobs": 0,
+      "total_jobs": 6,
+      "agent_session_id": "c9d985b5-dc91-4a9f-89fe-f842214dd817",
+      "cardholder_id": null,
+      "financial_institution_id": 3,
+      "financial_institution_lookup_key": "msufcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T12:22:28.663Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/select-merchants/missing_fields",
+          "timestamp": "2025-07-02T12:23:24.222Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T12:23:31.018Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/user-data-collection",
+          "timestamp": "2025-07-02T12:23:31.188Z",
+          "page_title": "User Data Collection"
+        },
+        {
+          "url": "/credential-entry",
+          "timestamp": "2025-07-02T12:23:31.366Z",
+          "page_title": "Credential Entry"
+        },
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T12:31:18.443Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T12:32:19.817Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/user-data-collection",
+          "timestamp": "2025-07-02T12:32:19.850Z",
+          "page_title": "User Data Collection"
+        }
+      ],
+      "closed_on": "2025-07-02T12:59:34.215Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T12:22:28.069Z",
+      "last_updated_on": "2025-07-02T12:59:34.216Z",
+      "_instance": "msu"
+    },
+    {
+      "id": 18156,
+      "cuid": "L3DJFYDKJH521VPDBJ_2601_e7b59cae-e667-46b0-9174-1abc67fc2846",
+      "source": {
+        "type": "weblink",
+        "category": "other",
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "b79a0f3e-51aa-47a4-bd84-9bf6a442ebce",
+      "cardholder_id": null,
+      "financial_institution_id": 3,
+      "financial_institution_lookup_key": "msufcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T13:08:43.121Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T13:24:35.050Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T13:08:39.204Z",
+      "last_updated_on": "2025-07-02T13:24:35.053Z",
+      "_instance": "msu"
+    },
+    {
+      "id": 18157,
+      "cuid": "SX37THSGKH475PJNLB_267_072704f2-3cde-4b12-8225-bb404fb301f4",
+      "source": {
+        "type": "weblink",
+        "category": "other",
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "f6da25c2-dd8f-4be3-93d5-95d7dee7076e",
+      "cardholder_id": null,
+      "financial_institution_id": 3,
+      "financial_institution_lookup_key": "msufcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T13:18:49.043Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T13:34:34.450Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T13:18:48.732Z",
+      "last_updated_on": "2025-07-02T13:34:34.451Z",
+      "_instance": "msu"
+    },
+    {
+      "id": 18158,
+      "cuid": "SMHKN71TW74BTL8YM4_703_d2f3dc0f-14b9-4c02-8149-1a16efba72b3",
+      "source": {
+        "type": "weblink",
+        "category": "other",
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "01e02796-556b-4f69-9fc0-c4920e76f5b0",
+      "cardholder_id": null,
+      "financial_institution_id": 3,
+      "financial_institution_lookup_key": "msufcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T14:11:55.361Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T14:29:34.981Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T14:11:54.900Z",
+      "last_updated_on": "2025-07-02T14:29:34.982Z",
+      "_instance": "msu"
+    },
+    {
+      "id": 18159,
+      "cuid": "T3YK18CX6VB5YQ7RPD_834_fd360acd-34b2-49d8-8331-f6b32ced2d2d",
+      "source": {
+        "type": "weblink",
+        "category": "other",
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "06e7b6fa-2b8b-4984-af5e-48e900c1a26a",
+      "cardholder_id": null,
+      "financial_institution_id": 3,
+      "financial_institution_lookup_key": "msufcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T14:13:56.550Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/select-merchants/missing_fields",
+          "timestamp": "2025-07-02T14:14:34.970Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T14:29:34.841Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T14:13:56.165Z",
+      "last_updated_on": "2025-07-02T14:29:34.843Z",
+      "_instance": "msu"
+    },
+    {
+      "id": 18160,
+      "cuid": "T3YK18CX6VB5YQ7RPD_834_e818ec87-d16d-49ac-9855-f43ce2fd5ece",
+      "source": {
+        "type": "weblink",
+        "category": "other",
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "2d48ed7d-9659-42bb-8175-7545e767001d",
+      "cardholder_id": null,
+      "financial_institution_id": 3,
+      "financial_institution_lookup_key": "msufcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T14:15:13.840Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T14:34:34.956Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T14:15:13.530Z",
+      "last_updated_on": "2025-07-02T14:34:34.958Z",
+      "_instance": "msu"
+    },
+    {
+      "id": 18161,
+      "cuid": "1X667SJC1K9Y37BZRR_803_9619e7e0-2308-4d9a-867f-c9b91c866752",
+      "source": {
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "cdaf9cd5-2689-4c7d-bb29-74d940611458",
+      "cardholder_id": null,
+      "financial_institution_id": 3,
+      "financial_institution_lookup_key": "msufcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T14:18:31.862Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T14:34:34.572Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T14:18:31.481Z",
+      "last_updated_on": "2025-07-02T14:34:34.573Z",
+      "_instance": "msu"
+    },
+    {
+      "id": 18162,
+      "cuid": "1X667SJC1K9Y37BZRR_803_061d1d27-5d39-45c1-a545-42184e0998d2",
+      "source": {
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "b9a4e0eb-4806-4bc5-a3d8-bc6b3c0db010",
+      "cardholder_id": null,
+      "financial_institution_id": 3,
+      "financial_institution_lookup_key": "msufcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T14:19:05.057Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T14:34:35.233Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T14:19:04.684Z",
+      "last_updated_on": "2025-07-02T14:34:35.235Z",
+      "_instance": "msu"
+    },
+    {
+      "id": 18163,
+      "cuid": "3FPLNG9CDB2BF5HHT9_476_08213c8f-ccdd-478a-813d-b0de0d615dab",
+      "source": {
+        "type": "weblink",
+        "category": "other",
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "a060e405-c29d-4b88-b6e2-a81673629a92",
+      "cardholder_id": null,
+      "financial_institution_id": 3,
+      "financial_institution_lookup_key": "msufcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T15:09:49.014Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T15:29:34.397Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T15:09:48.525Z",
+      "last_updated_on": "2025-07-02T15:29:34.398Z",
+      "_instance": "msu"
+    },
+    {
+      "id": 18164,
+      "cuid": "3FPLNG9CDB2BF5HHT9_476_0ab00b1a-0a50-4250-a83a-57a73c39e8ab",
+      "source": {
+        "type": "weblink",
+        "category": "other",
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "9f68aa9a-f48b-42a1-ba14-958cabbe43a5",
+      "cardholder_id": null,
+      "financial_institution_id": 3,
+      "financial_institution_lookup_key": "msufcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T15:09:49.003Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T15:29:34.321Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T15:09:48.528Z",
+      "last_updated_on": "2025-07-02T15:29:34.322Z",
+      "_instance": "msu"
+    },
+    {
+      "id": 18165,
+      "cuid": "QPWSFBB85YVF3CQ1F4_1163_e1129fd6-c41e-4fa9-ac91-8435f3d521a9",
+      "source": {
+        "type": "weblink",
+        "category": "other",
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "4b03cc8e-4340-4a6d-b3f3-5fb02dcb332e",
+      "cardholder_id": null,
+      "financial_institution_id": 3,
+      "financial_institution_lookup_key": "msufcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T15:27:27.483Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/select-merchants/missing_fields",
+          "timestamp": "2025-07-02T15:28:18.932Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T15:44:34.345Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T15:27:27.055Z",
+      "last_updated_on": "2025-07-02T15:44:34.346Z",
+      "_instance": "msu"
+    },
+    {
+      "id": 18166,
+      "cuid": "H66M1TV4V3W5N24N6W_333_569f2610-7709-41ff-9343-ae4af27d8a8e",
+      "source": {
+        "type": "weblink",
+        "category": "other",
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "38212a6f-4cb8-4f9e-b38a-ba95c5590038",
+      "cardholder_id": null,
+      "financial_institution_id": 3,
+      "financial_institution_lookup_key": "msufcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T15:29:51.988Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T15:49:34.237Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T15:29:51.424Z",
+      "last_updated_on": "2025-07-02T15:49:34.322Z",
+      "_instance": "msu"
+    },
+    {
+      "id": 18167,
+      "cuid": "F9M9JF9PT9DSDZ5GCZ_491_af8649b0-688a-4cdf-a864-c9eb8c0a7565",
+      "source": {
+        "type": "weblink",
+        "category": "other",
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "dcb6c438-b030-4e48-9ead-00bc5edab824",
+      "cardholder_id": null,
+      "financial_institution_id": 3,
+      "financial_institution_lookup_key": "msufcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T16:02:19.941Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T16:19:34.609Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T16:02:19.389Z",
+      "last_updated_on": "2025-07-02T16:19:34.610Z",
+      "_instance": "msu"
+    },
+    {
+      "id": 18168,
+      "cuid": "FD29H37JP2RDWWMF6W_117_65bb9d37-810e-499e-8fbf-de1278fd1d87",
+      "source": {
+        "type": "weblink",
+        "category": "other",
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "8c315381-0f0a-4e05-bfda-fc7ba07f845d",
+      "cardholder_id": null,
+      "financial_institution_id": 3,
+      "financial_institution_lookup_key": "msufcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T16:03:33.268Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T16:19:34.387Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T16:03:32.590Z",
+      "last_updated_on": "2025-07-02T16:19:34.389Z",
+      "_instance": "msu"
+    },
+    {
+      "id": 18169,
+      "cuid": "6MX65WN9T3HDY5PJBW_987_f0e2d619-ec1b-4058-9349-89e0066f3332",
+      "source": {
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "209cee07-d2fd-4f9d-a9ee-c7fa77a19317",
+      "cardholder_id": null,
+      "financial_institution_id": 3,
+      "financial_institution_lookup_key": "msufcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T16:18:32.534Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/select-merchants/missing_fields",
+          "timestamp": "2025-07-02T16:19:29.263Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T16:19:42.300Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/user-data-collection",
+          "timestamp": "2025-07-02T16:19:42.425Z",
+          "page_title": "User Data Collection"
+        },
+        {
+          "url": "/credential-entry",
+          "timestamp": "2025-07-02T16:19:42.604Z",
+          "page_title": "Credential Entry"
+        }
+      ],
+      "closed_on": "2025-07-02T16:34:34.948Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T16:18:32.088Z",
+      "last_updated_on": "2025-07-02T16:34:34.949Z",
+      "_instance": "msu"
+    },
+    {
+      "id": 18170,
+      "cuid": "82JCLMWMRMK62YBP7G_775_aca426ea-da76-4bed-b1dd-2616aa301bf1",
+      "source": {
+        "type": "weblink",
+        "category": "other",
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "c43a6f73-c35a-477b-bbd7-4a0614048964",
+      "cardholder_id": null,
+      "financial_institution_id": 3,
+      "financial_institution_lookup_key": "msufcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T16:23:20.160Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T16:39:34.119Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T16:23:19.752Z",
+      "last_updated_on": "2025-07-02T16:39:34.121Z",
+      "_instance": "msu"
+    },
+    {
+      "id": 18171,
+      "cuid": "P32L5KLPP3Z1BR79WT_24_a6dedf52-18f5-4f7f-ba69-b73cd1aa62f8",
+      "source": {
+        "type": "weblink",
+        "category": "other",
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "328abcec-933c-4f5e-a851-77f78657f3c0",
+      "cardholder_id": null,
+      "financial_institution_id": 3,
+      "financial_institution_lookup_key": "msufcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T16:48:53.886Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T17:04:34.205Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T16:48:53.343Z",
+      "last_updated_on": "2025-07-02T17:04:34.206Z",
+      "_instance": "msu"
+    },
+    {
+      "id": 18172,
+      "cuid": "3CGXB7PV33WWMXRWSV_683_76e20224-89b6-4c84-bc7d-2c5cde85b1e3",
+      "source": {
+        "type": "weblink",
+        "category": "other",
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "756bc053-f6b3-465b-9c49-a940eb28824a",
+      "cardholder_id": null,
+      "financial_institution_id": 3,
+      "financial_institution_lookup_key": "msufcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T17:06:12.149Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T17:24:35.445Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T17:06:11.736Z",
+      "last_updated_on": "2025-07-02T17:24:35.447Z",
+      "_instance": "msu"
+    },
+    {
+      "id": 18173,
+      "cuid": "9FVSBDMLZMXWDZNKCS_540_f7c9d418-07c0-4057-8606-5504986aec9b",
+      "source": {
+        "type": "weblink",
+        "category": "other",
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "300003af-e453-49f3-9478-7d47a8767339",
+      "cardholder_id": null,
+      "financial_institution_id": 3,
+      "financial_institution_lookup_key": "msufcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T17:10:01.402Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T17:29:34.579Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T17:10:00.971Z",
+      "last_updated_on": "2025-07-02T17:29:34.580Z",
+      "_instance": "msu"
+    },
+    {
+      "id": 18174,
+      "cuid": "9FVSBDMLZMXWDZNKCS_540_80897840-bd42-4dd2-a0bf-f031f91ed104",
+      "source": {
+        "type": "weblink",
+        "category": "other",
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "e65b69d0-4467-4e96-9699-2e8f49e03440",
+      "cardholder_id": null,
+      "financial_institution_id": 3,
+      "financial_institution_lookup_key": "msufcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T17:10:10.363Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T17:29:34.260Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T17:10:09.979Z",
+      "last_updated_on": "2025-07-02T17:29:34.261Z",
+      "_instance": "msu"
+    },
+    {
+      "id": 18175,
+      "cuid": "9PPNFRXLRFYQVRKGMY_156_4163546e-66fa-4cbb-9941-6d5fb897293a",
+      "source": {
+        "type": "weblink",
+        "category": "other",
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "53b3563e-92b2-4908-a06d-1ae366fbef4e",
+      "cardholder_id": null,
+      "financial_institution_id": 3,
+      "financial_institution_lookup_key": "msufcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T17:20:16.264Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T17:39:34.756Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T17:20:15.630Z",
+      "last_updated_on": "2025-07-02T17:39:34.757Z",
+      "_instance": "msu"
+    },
+    {
+      "id": 18176,
+      "cuid": "WC7XTMBQ3F4NQ8NGKV_145_877dcdfd-e1ad-401c-8fc2-5b9f0a3f97c6",
+      "source": {
+        "type": "weblink",
+        "category": "other",
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "6f795a48-e8a3-4bc1-8f76-6968075e5c56",
+      "cardholder_id": null,
+      "financial_institution_id": 3,
+      "financial_institution_lookup_key": "msufcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T17:35:25.507Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T17:54:35.209Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T17:35:25.068Z",
+      "last_updated_on": "2025-07-02T17:54:35.213Z",
+      "_instance": "msu"
+    },
+    {
+      "id": 18177,
+      "cuid": "KZCM4MG4H25S6V9HH6_99_3ac1808d-1b54-43fa-83c7-b584ee01f807",
+      "source": {
+        "type": "weblink",
+        "category": "other",
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "d2b8afdb-366c-4f38-9572-ffdcf9a89712",
+      "cardholder_id": null,
+      "financial_institution_id": 3,
+      "financial_institution_lookup_key": "msufcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T17:50:50.524Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T18:09:34.414Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T17:50:50.120Z",
+      "last_updated_on": "2025-07-02T18:09:34.415Z",
+      "_instance": "msu"
+    },
+    {
+      "id": 18178,
+      "cuid": "MQ288LZWL4Y9565MVH_607_4cfe01c8-af20-4583-a4f8-566166965b8b",
+      "source": {
+        "type": "weblink",
+        "category": "other",
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "19463dc7-f6d4-4a6b-9d61-c5d4aa410e9a",
+      "cardholder_id": null,
+      "financial_institution_id": 3,
+      "financial_institution_lookup_key": "msufcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T17:51:49.931Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T18:09:34.627Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T17:51:49.562Z",
+      "last_updated_on": "2025-07-02T18:09:34.631Z",
+      "_instance": "msu"
+    },
+    {
+      "id": 18179,
+      "cuid": "XCTT4Z1YQ23T5PN7Z5_450_edb66789-e746-480c-8f21-0f240c71d74a",
+      "source": {
+        "type": "weblink",
+        "category": "other",
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "62b5a96d-c15a-44b0-a8dd-41efb3639dda",
+      "cardholder_id": null,
+      "financial_institution_id": 3,
+      "financial_institution_lookup_key": "msufcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T18:11:40.015Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/select-merchants/missing_fields",
+          "timestamp": "2025-07-02T18:11:46.940Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T18:29:34.673Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T18:11:39.683Z",
+      "last_updated_on": "2025-07-02T18:29:34.675Z",
+      "_instance": "msu"
+    },
+    {
+      "id": 18180,
+      "cuid": "XGZCXHPLLJQMK7XZ87_473_754b9c57-b456-4c39-ae52-8b0fd0bc218a",
+      "source": {
+        "type": "weblink",
+        "category": "other",
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "3f0d38e2-afa0-41f2-840f-a5634ada7aed",
+      "cardholder_id": null,
+      "financial_institution_id": 3,
+      "financial_institution_lookup_key": "msufcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T18:11:55.809Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T18:29:34.755Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T18:11:55.366Z",
+      "last_updated_on": "2025-07-02T18:29:34.756Z",
+      "_instance": "msu"
+    },
+    {
+      "id": 18181,
+      "cuid": "HTV4GSW71DC3MDZ5HP_109_f3f7bff6-2c68-4b8b-a0cc-a0d2e81f2b99",
+      "source": {
+        "type": "weblink",
+        "category": "other",
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "36384311-c965-4dd5-b412-e3d79a223bb5",
+      "cardholder_id": null,
+      "financial_institution_id": 3,
+      "financial_institution_lookup_key": "msufcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T18:27:14.025Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/select-merchants/missing_fields",
+          "timestamp": "2025-07-02T18:29:27.040Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T18:29:42.215Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/user-data-collection",
+          "timestamp": "2025-07-02T18:29:42.357Z",
+          "page_title": "User Data Collection"
+        },
+        {
+          "url": "/credential-entry",
+          "timestamp": "2025-07-02T18:29:42.526Z",
+          "page_title": "Credential Entry"
+        }
+      ],
+      "closed_on": "2025-07-02T18:44:36.344Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T18:27:13.437Z",
+      "last_updated_on": "2025-07-02T18:44:36.346Z",
+      "_instance": "msu"
+    },
+    {
+      "id": 18182,
+      "cuid": "X7GCLJP75JQMBV3LPH_935_3a27b6f6-9c66-4163-ab6f-47fe39ba3869",
+      "source": {
+        "type": "weblink",
+        "category": "other",
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "9e1fcd10-9d96-4901-bc01-df6d5ff1fd42",
+      "cardholder_id": null,
+      "financial_institution_id": 3,
+      "financial_institution_lookup_key": "msufcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T18:27:23.857Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T18:44:36.239Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T18:27:21.855Z",
+      "last_updated_on": "2025-07-02T18:44:36.241Z",
+      "_instance": "msu"
+    },
+    {
+      "id": 18183,
+      "cuid": "X7GCLJP75JQMBV3LPH_935_82b966aa-3e9f-4dd3-9cb7-f0bda0247260",
+      "source": {
+        "type": "weblink",
+        "category": "other",
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "3459c4a8-6c3f-41bb-9832-ccfb728269f8",
+      "cardholder_id": null,
+      "financial_institution_id": 3,
+      "financial_institution_lookup_key": "msufcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T18:27:23.954Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T18:44:35.707Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T18:27:22.026Z",
+      "last_updated_on": "2025-07-02T18:44:35.709Z",
+      "_instance": "msu"
+    },
+    {
+      "id": 18184,
+      "cuid": "X7GCLJP75JQMBV3LPH_935_f9f4663a-d214-4150-83a1-4e7fe6c84a1d",
+      "source": {
+        "type": "weblink",
+        "category": "other",
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "d49b5bee-fcb7-4a38-a853-81197edafc5f",
+      "cardholder_id": null,
+      "financial_institution_id": 3,
+      "financial_institution_lookup_key": "msufcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T18:27:24.391Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T18:44:35.835Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T18:27:22.147Z",
+      "last_updated_on": "2025-07-02T18:44:35.877Z",
+      "_instance": "msu"
+    },
+    {
+      "id": 18185,
+      "cuid": "QTDVG247WNPW3MKV7Q_259_12d1e564-2277-4a6c-b436-6a2f2d1a18b5",
+      "source": {
+        "type": "weblink",
+        "category": "other",
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "35ad522a-0e48-454b-92cf-7c4a8f0c6590",
+      "cardholder_id": null,
+      "financial_institution_id": 3,
+      "financial_institution_lookup_key": "msufcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T18:27:24.480Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T18:44:36.416Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T18:27:24.087Z",
+      "last_updated_on": "2025-07-02T18:44:36.418Z",
+      "_instance": "msu"
+    },
+    {
+      "id": 18186,
+      "cuid": "QTDVG247WNPW3MKV7Q_259_503f9573-629d-49ee-9117-4caa49f307e3",
+      "source": {
+        "type": "weblink",
+        "category": "other",
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "0bfadf8a-395b-4c2e-915a-4a772816a397",
+      "cardholder_id": null,
+      "financial_institution_id": 3,
+      "financial_institution_lookup_key": "msufcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T18:27:40.748Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T18:44:35.247Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T18:27:40.468Z",
+      "last_updated_on": "2025-07-02T18:44:35.251Z",
+      "_instance": "msu"
+    },
+    {
+      "id": 18187,
+      "cuid": "JCWJ9SJ4VLC9ZC7GKS_878_c7b8705a-cb9e-4d8f-af93-d29062cf464c",
+      "source": {
+        "type": "weblink",
+        "category": "other",
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "7f51babb-425a-41f8-9f18-25726472b239",
+      "cardholder_id": null,
+      "financial_institution_id": 3,
+      "financial_institution_lookup_key": "msufcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T18:30:51.734Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T18:49:34.638Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T18:30:51.141Z",
+      "last_updated_on": "2025-07-02T18:49:34.639Z",
+      "_instance": "msu"
+    },
+    {
+      "id": 18188,
+      "cuid": "9GSF6FHRNFYSS8VGC4_1230_f142fbab-57aa-48dd-92fd-45596d423779",
+      "source": {
+        "type": "weblink",
+        "category": "other",
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "57104ce3-a5fc-4f0a-831f-46e60ccab60c",
+      "cardholder_id": null,
+      "financial_institution_id": 3,
+      "financial_institution_lookup_key": "msufcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T18:32:33.048Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T18:49:34.419Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T18:32:32.505Z",
+      "last_updated_on": "2025-07-02T18:49:34.422Z",
+      "_instance": "msu"
+    },
+    {
+      "id": 18189,
+      "cuid": "G7JFYFN167VFFF9Y7H_2096_60f37d3b-b471-4024-b85e-f8c53d2668d3",
+      "source": {
+        "type": "weblink",
+        "category": "other",
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "573fa490-2c6a-45b6-82f8-9c29ccc455f8",
+      "cardholder_id": null,
+      "financial_institution_id": 3,
+      "financial_institution_lookup_key": "msufcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T18:40:10.932Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/select-merchants/missing_fields",
+          "timestamp": "2025-07-02T18:40:40.284Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T18:59:35.047Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T18:40:10.504Z",
+      "last_updated_on": "2025-07-02T18:59:35.050Z",
+      "_instance": "msu"
+    },
+    {
+      "id": 18190,
+      "cuid": "61KZPYX25GXJ32TNBS_49_c7e5c2e5-41ef-4fd9-b83a-35754ffa8f05",
+      "source": {
+        "type": "weblink",
+        "category": "other",
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "4e150b22-7eaa-423b-8560-76db4feb3be5",
+      "cardholder_id": null,
+      "financial_institution_id": 3,
+      "financial_institution_lookup_key": "msufcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T18:55:36.890Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T19:14:35.196Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T18:55:36.428Z",
+      "last_updated_on": "2025-07-02T19:14:35.197Z",
+      "_instance": "msu"
+    },
+    {
+      "id": 18191,
+      "cuid": "61KZPYX25GXJ32TNBS_49_6bd779f6-9b04-407d-b3b0-1323009f4596",
+      "source": {
+        "type": "weblink",
+        "category": "other",
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "511ad012-5969-4677-9042-d6d55256acab",
+      "cardholder_id": null,
+      "financial_institution_id": 3,
+      "financial_institution_lookup_key": "msufcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T18:56:17.960Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/select-merchants/missing_fields",
+          "timestamp": "2025-07-02T18:56:57.564Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T19:14:34.930Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T18:56:17.650Z",
+      "last_updated_on": "2025-07-02T19:14:34.930Z",
+      "_instance": "msu"
+    },
+    {
+      "id": 18192,
+      "cuid": "VJRT3KN2RTSYVTSTHZ_2668_9359c304-a3b2-44e6-8169-ee9c461261c7",
+      "source": {
+        "type": "weblink",
+        "category": "other",
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "9a15d966-72d6-4d15-8e6a-dd4bf25902af",
+      "cardholder_id": null,
+      "financial_institution_id": 3,
+      "financial_institution_lookup_key": "msufcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T19:02:18.164Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T19:19:34.954Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T19:02:17.634Z",
+      "last_updated_on": "2025-07-02T19:19:34.956Z",
+      "_instance": "msu"
+    },
+    {
+      "id": 18193,
+      "cuid": "7HTHH5ZW2X2PKGQBQG_649_8d9226ac-c8ef-4cfb-aaa8-ec11863bb3d5",
+      "source": {
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "d5fc2971-caa8-4c9d-9fcf-9cfa8fbee2eb",
+      "cardholder_id": null,
+      "financial_institution_id": 3,
+      "financial_institution_lookup_key": "msufcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T19:14:37.781Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/select-merchants/missing_fields",
+          "timestamp": "2025-07-02T19:14:50.190Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T19:14:59.551Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/user-data-collection",
+          "timestamp": "2025-07-02T19:14:59.596Z",
+          "page_title": "User Data Collection"
+        },
+        {
+          "url": "/credential-entry",
+          "timestamp": "2025-07-02T19:14:59.652Z",
+          "page_title": "Credential Entry"
+        }
+      ],
+      "closed_on": "2025-07-02T19:34:34.880Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T19:14:35.368Z",
+      "last_updated_on": "2025-07-02T19:34:34.957Z",
+      "_instance": "msu"
+    },
+    {
+      "id": 18194,
+      "cuid": "C65SNZ4NGRF28Y4XJZ_493_69d396e0-53b1-44b1-81c2-136676d9b46a",
+      "source": {
+        "type": "weblink",
+        "category": "other",
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "8fca10c3-694c-40a1-ad47-a4216dfbb0c7",
+      "cardholder_id": null,
+      "financial_institution_id": 3,
+      "financial_institution_lookup_key": "msufcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T19:56:16.109Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T20:14:34.090Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T19:56:15.542Z",
+      "last_updated_on": "2025-07-02T20:14:34.094Z",
+      "_instance": "msu"
+    },
+    {
+      "id": 18195,
+      "cuid": "XXDMCR58Y6WSLHM4P1_2092_84f7a27a-f6d7-4ca9-8a87-e383922ac076",
+      "source": {
+        "type": "weblink",
+        "category": "other",
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 3,
+      "agent_session_id": "7b7b0587-275a-49bb-ad92-b2ada2b8a322",
+      "cardholder_id": null,
+      "financial_institution_id": 3,
+      "financial_institution_lookup_key": "msufcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T20:07:33.162Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/select-merchants/missing_fields",
+          "timestamp": "2025-07-02T20:08:49.257Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T20:09:01.993Z",
+          "page_title": "Select Merchants"
+        },
+        {
+          "url": "/user-data-collection",
+          "timestamp": "2025-07-02T20:09:02.103Z",
+          "page_title": "User Data Collection"
+        },
+        {
+          "url": "/credential-entry",
+          "timestamp": "2025-07-02T20:09:02.224Z",
+          "page_title": "Credential Entry"
+        }
+      ],
+      "closed_on": "2025-07-02T20:29:34.436Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T20:07:32.764Z",
+      "last_updated_on": "2025-07-02T20:29:34.437Z",
+      "_instance": "msu"
+    },
+    {
+      "id": 18196,
+      "cuid": "7X9M8SK359ZTG314S5_48_9080b8b2-9afd-479a-ac9d-7f63cb35a08d",
+      "source": {
+        "type": "weblink",
+        "category": "other",
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "59c6a15b-6970-4b8d-a70d-1d33c295421e",
+      "cardholder_id": null,
+      "financial_institution_id": 3,
+      "financial_institution_lookup_key": "msufcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T20:13:40.948Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T20:29:34.234Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T20:13:40.378Z",
+      "last_updated_on": "2025-07-02T20:29:34.240Z",
+      "_instance": "msu"
+    },
+    {
+      "id": 18197,
+      "cuid": "WYJX69CK4TZ18CY67G_354_10cb043e-4a0c-4521-81ae-aefe72af158c",
+      "source": {
+        "type": "weblink",
+        "category": "other",
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "48ed4dbc-5a83-477c-ad42-8175920bc8a2",
+      "cardholder_id": null,
+      "financial_institution_id": 3,
+      "financial_institution_lookup_key": "msufcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T20:34:47.414Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T20:54:34.947Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T20:34:48.027Z",
+      "last_updated_on": "2025-07-02T20:54:34.948Z",
+      "_instance": "msu"
+    },
+    {
+      "id": 18198,
+      "cuid": "WYJX69CK4TZ18CY67G_354_fa208c39-d3a2-4a14-b1ab-71286e81ee9e",
+      "source": {
+        "type": "weblink",
+        "category": "other",
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "c08cff3b-df73-4997-8a36-9f5df56bfe73",
+      "cardholder_id": null,
+      "financial_institution_id": 3,
+      "financial_institution_lookup_key": "msufcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T20:34:47.441Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T20:54:34.770Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T20:34:48.243Z",
+      "last_updated_on": "2025-07-02T20:54:34.771Z",
+      "_instance": "msu"
+    },
+    {
+      "id": 18199,
+      "cuid": "38CNTKK3MH8XLQX14H_48_c191f9d5-bb06-479f-80a9-4c2dee7fbea9",
+      "source": {
+        "type": "weblink",
+        "category": "other",
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "73a453a1-ec59-4ede-8f9c-4c840a6fea88",
+      "cardholder_id": null,
+      "financial_institution_id": 3,
+      "financial_institution_lookup_key": "msufcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T20:43:46.997Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T20:59:34.632Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T20:43:46.487Z",
+      "last_updated_on": "2025-07-02T20:59:34.666Z",
+      "_instance": "msu"
+    },
+    {
+      "id": 18200,
+      "cuid": "6XCCRYH3XVVJNMHGHS_32_fa9d1465-d671-435f-9c23-ea63709165bb",
+      "source": {
+        "type": "weblink",
+        "category": "other",
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "7fc1ffd9-783e-46ec-bf74-18342948d998",
+      "cardholder_id": null,
+      "financial_institution_id": 3,
+      "financial_institution_lookup_key": "msufcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T20:45:37.808Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T21:04:35.059Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T20:45:37.238Z",
+      "last_updated_on": "2025-07-02T21:04:35.060Z",
+      "_instance": "msu"
+    },
+    {
+      "id": 18201,
+      "cuid": "3NLVKCK3D7RX45KBW3_928_35919886-0de2-4c0a-ad3a-63c8bb750a1b",
+      "source": {
+        "type": "weblink",
+        "category": "other",
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "c41d6c5d-6f09-4e71-8f4e-b838cbcdbc9f",
+      "cardholder_id": null,
+      "financial_institution_id": 3,
+      "financial_institution_lookup_key": "msufcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T20:46:09.735Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T21:04:34.647Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T20:46:09.210Z",
+      "last_updated_on": "2025-07-02T21:04:34.649Z",
+      "_instance": "msu"
+    },
+    {
+      "id": 18202,
+      "cuid": "XTSNSCGX98BGLPC1PN_423_d6515a80-a1db-4cc7-a2be-9fb5ad1aec6a",
+      "source": {
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "f3c26cd2-2e39-4e38-945c-8fb8b864263d",
+      "cardholder_id": null,
+      "financial_institution_id": 3,
+      "financial_institution_lookup_key": "msufcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T21:08:23.881Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T21:29:34.711Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T21:08:24.560Z",
+      "last_updated_on": "2025-07-02T21:29:34.712Z",
+      "_instance": "msu"
+    },
+    {
+      "id": 18203,
+      "cuid": "LVW12M322VZJJTBDJ9_222_560ec1fd-7e19-455c-be2c-43bf0869e1a8",
+      "source": {
+        "type": "weblink",
+        "category": "other",
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "d0c5616d-8062-4257-987a-00d06219c9db",
+      "cardholder_id": null,
+      "financial_institution_id": 3,
+      "financial_institution_lookup_key": "msufcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T21:11:34.850Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T21:29:34.523Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T21:11:34.402Z",
+      "last_updated_on": "2025-07-02T21:29:34.524Z",
+      "_instance": "msu"
+    },
+    {
+      "id": 18204,
+      "cuid": "X2K8GZBX2W77LSG96W_102_51574a97-7acf-46dd-8472-c346d16a68da",
+      "source": {
+        "type": "weblink",
+        "category": "other",
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "05d9c3be-c4b0-4831-94d4-678729fbe250",
+      "cardholder_id": null,
+      "financial_institution_id": 3,
+      "financial_institution_lookup_key": "msufcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T21:14:25.355Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T21:34:34.474Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T21:14:24.902Z",
+      "last_updated_on": "2025-07-02T21:34:34.476Z",
+      "_instance": "msu"
+    },
+    {
+      "id": 18205,
+      "cuid": "XQ2SLY54ZGNCPL4W7V_905_37bd71cb-720d-401c-a3a3-89183cc5050a",
+      "source": {
+        "type": "weblink",
+        "category": "other",
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "c55a6d98-df44-4345-b599-aa4b85230358",
+      "cardholder_id": null,
+      "financial_institution_id": 3,
+      "financial_institution_lookup_key": "msufcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T21:33:18.439Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T21:49:34.258Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T21:33:17.933Z",
+      "last_updated_on": "2025-07-02T21:49:34.259Z",
+      "_instance": "msu"
+    },
+    {
+      "id": 18206,
+      "cuid": "9KXXY8RK74SV9SYJQB_48_52fe86e1-c837-44da-8c1b-6dd932b0e4d5",
+      "source": {
+        "type": "weblink",
+        "category": "other",
+        "integration": "CU2_SSO",
+        "device": "desktop web"
+      },
+      "successful_jobs": 0,
+      "failed_jobs": 0,
+      "total_jobs": 0,
+      "agent_session_id": "9e3959bd-1461-494f-b4fa-443b10c142ee",
+      "cardholder_id": null,
+      "financial_institution_id": 3,
+      "financial_institution_lookup_key": "msufcu",
+      "clickstream": [
+        {
+          "url": "/select-merchants",
+          "timestamp": "2025-07-02T23:21:51.876Z",
+          "page_title": "Select Merchants"
+        }
+      ],
+      "closed_on": "2025-07-02T23:39:34.288Z",
+      "custom_data": null,
+      "created_on": "2025-07-02T23:21:51.250Z",
+      "last_updated_on": "2025-07-02T23:39:34.289Z",
+      "_instance": "msu"
+    }
+  ]
+}
