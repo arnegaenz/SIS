@@ -3,6 +3,7 @@ import { google } from "googleapis";
 const DEFAULT_PROPERTY_ID = process.env.GA_PROPERTY_ID || "328054560";
 const DEFAULT_KEY_FILE =
   process.env.GA_KEYFILE || "./secrets/ga-service-account.json";
+const UNKNOWN_INSTANCE = "unknown";
 
 const CARDUPDATR_SUFFIX = ".cardupdatr.app";
 const CARDUPDATR_PAGES = [
@@ -149,12 +150,26 @@ export async function fetchGAFunnelByDay({
 }
 
 export function aggregateGAFunnelByFI(gaRows, fiRegistry = {}) {
-  const lookup = {};
-  for (const [fiKey, fiObj] of Object.entries(fiRegistry)) {
+  const lookupDefault = new Map();
+  const lookupByInstance = new Map();
+  for (const [, fiObj] of Object.entries(fiRegistry)) {
     if (!fiObj || typeof fiObj !== "object") continue;
-    const keySource = fiObj.fi_lookup_key || fiKey;
+    const keySource = fiObj.fi_lookup_key || fiObj.fi_name || "";
+    if (!keySource) continue;
     const normalizedKey = keySource.toString().toLowerCase();
-    lookup[normalizedKey] = (fiObj.integration_type || "UNKNOWN").toUpperCase();
+    const instanceName = (
+      fiObj.instance ||
+      fiObj.instances?.[0] ||
+      UNKNOWN_INSTANCE
+    )
+      .toString()
+      .toLowerCase();
+    const integration =
+      (fiObj.integration_type || "UNKNOWN").toString().toUpperCase();
+    lookupByInstance.set(`${normalizedKey}__${instanceName}`, integration);
+    if (!lookupDefault.has(normalizedKey)) {
+      lookupDefault.set(normalizedKey, integration);
+    }
   }
 
   function parseHost(host) {
@@ -178,9 +193,13 @@ export function aggregateGAFunnelByFI(gaRows, fiRegistry = {}) {
     const parsed = parseHost(host);
     if (!parsed || !parsed.fi_lookup_key) continue;
     const fi_lookup_key = parsed.fi_lookup_key.toString().toLowerCase();
-    const instance = parsed.instance;
+    const instance = (parsed.instance || "").toString().toLowerCase();
 
     if (!byFI[fi_lookup_key]) {
+      const integrationKey = lookupByInstance.get(
+        `${fi_lookup_key}__${(instance || UNKNOWN_INSTANCE)}`
+      );
+      const fallback = lookupDefault.get(fi_lookup_key);
       byFI[fi_lookup_key] = {
         fi_lookup_key,
         instance,
@@ -188,7 +207,7 @@ export function aggregateGAFunnelByFI(gaRows, fiRegistry = {}) {
         user: 0,
         cred: 0,
         daily: {},
-        integration_type: lookup[fi_lookup_key] || "UNKNOWN",
+        integration_type: integrationKey || fallback || "UNKNOWN",
       };
     }
 

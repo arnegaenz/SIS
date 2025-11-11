@@ -1,58 +1,50 @@
 {
-  "Advancial": {
+  "Advancial__advancial-prod": {
     "fi_name": "Advancial",
     "fi_lookup_key": "advancial-prod",
+    "instance": "advancial-prod",
     "instances": [
       "advancial-prod"
     ],
     "sources": [
       "placement"
     ],
-    "integration_type": "non-sso",
+    "integration_type": "sso",
     "first_seen": "2020-10-21",
     "last_seen": "2020-10-24"
   },
-  "Default": {
+  "Default__advancial-prod": {
     "fi_name": "Default",
     "fi_lookup_key": "default",
+    "instance": "advancial-prod",
     "instances": [
-      "advancial-prod",
-      "digital-onboarding",
-      "marquis",
-      "msu",
-      "ondot",
-      "pscu",
-      "ss01"
+      "advancial-prod"
     ],
     "sources": [
       "placement"
     ],
-    "integration_type": "cardsavr",
+    "integration_type": "sso",
     "first_seen": "2020-03-07",
     "last_seen": "2025-11-05"
   },
-  "UNKNOWN_FI": {
+  "UNKNOWN_FI__advancial-prod": {
     "fi_name": "UNKNOWN_FI",
     "fi_lookup_key": "default",
+    "instance": "advancial-prod",
     "instances": [
-      "advancial-prod",
-      "digital-onboarding",
-      "marquis",
-      "msu",
-      "ondot",
-      "pscu",
-      "ss01"
+      "advancial-prod"
     ],
     "sources": [
       "session"
     ],
-    "integration_type": "cardsavr",
+    "integration_type": "sso",
     "first_seen": "2023-07-25",
-    "last_seen": "2025-11-08"
+    "last_seen": "2025-11-10"
   },
-  "1st National Bank of Scotia": {
+  "1st National Bank of Scotia__digital-onboarding": {
     "fi_name": "1st National Bank of Scotia",
     "fi_lookup_key": "firstscotia",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -63,9 +55,10 @@
     "first_seen": "2025-04-09",
     "last_seen": "2025-07-06"
   },
-  "4Front Credit Union": {
+  "4Front Credit Union__digital-onboarding": {
     "fi_name": "4Front Credit Union",
     "fi_lookup_key": "4frontcu",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -74,11 +67,12 @@
     ],
     "integration_type": "non-sso",
     "first_seen": "2022-01-11",
-    "last_seen": "2022-11-24"
+    "last_seen": "2023-11-21"
   },
-  "Academy Bank": {
+  "Academy Bank__digital-onboarding": {
     "fi_name": "Academy Bank",
     "fi_lookup_key": "academybank",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -87,11 +81,12 @@
     ],
     "integration_type": "non-sso",
     "first_seen": "2023-01-19",
-    "last_seen": "2023-01-24"
+    "last_seen": "2024-01-24"
   },
-  "Adirondack Bank": {
+  "Adirondack Bank__digital-onboarding": {
     "fi_name": "Adirondack Bank",
     "fi_lookup_key": "adirondackbank",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -102,9 +97,10 @@
     "first_seen": "2025-06-12",
     "last_seen": "2025-07-15"
   },
-  "Adventhealth Credit Union": {
+  "Adventhealth Credit Union__digital-onboarding": {
     "fi_name": "Adventhealth Credit Union",
     "fi_lookup_key": "adventhealthcreditunion",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -112,12 +108,13 @@
       "placement"
     ],
     "integration_type": "non-sso",
-    "first_seen": "2025-02-28",
+    "first_seen": "2024-04-26",
     "last_seen": "2025-07-27"
   },
-  "Adventure Credit Union": {
+  "Adventure Credit Union__digital-onboarding": {
     "fi_name": "Adventure Credit Union",
     "fi_lookup_key": "adventurecu",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -128,9 +125,10 @@
     "first_seen": "2021-03-05",
     "last_seen": "2025-02-22"
   },
-  "AMOCO Federal Credit Union": {
+  "AMOCO Federal Credit Union__digital-onboarding": {
     "fi_name": "AMOCO Federal Credit Union",
     "fi_lookup_key": "amocofcu",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -138,12 +136,13 @@
       "placement"
     ],
     "integration_type": "non-sso",
-    "first_seen": "2025-01-01",
+    "first_seen": "2023-07-11",
     "last_seen": "2025-11-06"
   },
-  "Armed Forces Bank, N.A.": {
+  "Armed Forces Bank, N.A.__digital-onboarding": {
     "fi_name": "Armed Forces Bank, N.A.",
     "fi_lookup_key": "afbank",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -154,9 +153,10 @@
     "first_seen": "2022-12-12",
     "last_seen": "2025-10-02"
   },
-  "Armstrong Bank": {
+  "Armstrong Bank__digital-onboarding": {
     "fi_name": "Armstrong Bank",
     "fi_lookup_key": "armstrong",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -164,12 +164,13 @@
       "placement"
     ],
     "integration_type": "non-sso",
-    "first_seen": "2025-02-20",
+    "first_seen": "2024-08-01",
     "last_seen": "2025-10-04"
   },
-  "Associated Healthcare Credit Union": {
+  "Associated Healthcare Credit Union__digital-onboarding": {
     "fi_name": "Associated Healthcare Credit Union",
     "fi_lookup_key": "ahcu",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -180,9 +181,24 @@
     "first_seen": "2022-03-22",
     "last_seen": "2025-10-07"
   },
-  "Baton Rouge Telco FCU": {
+  "BancFirst__digital-onboarding": {
+    "fi_name": "BancFirst",
+    "fi_lookup_key": "bancfirst",
+    "instance": "digital-onboarding",
+    "instances": [
+      "digital-onboarding"
+    ],
+    "sources": [
+      "placement"
+    ],
+    "integration_type": "non-sso",
+    "first_seen": "2024-10-23",
+    "last_seen": "2024-12-27"
+  },
+  "Baton Rouge Telco FCU__digital-onboarding": {
     "fi_name": "Baton Rouge Telco FCU",
     "fi_lookup_key": "brtelco",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -190,12 +206,13 @@
       "placement"
     ],
     "integration_type": "non-sso",
-    "first_seen": "2025-01-17",
+    "first_seen": "2023-07-10",
     "last_seen": "2025-04-04"
   },
-  "Blue Foundry Bank": {
+  "Blue Foundry Bank__digital-onboarding": {
     "fi_name": "Blue Foundry Bank",
     "fi_lookup_key": "bluefoundrybank",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -203,12 +220,13 @@
       "placement"
     ],
     "integration_type": "non-sso",
-    "first_seen": "2025-03-24",
+    "first_seen": "2024-09-22",
     "last_seen": "2025-07-25"
   },
-  "Bristol County Savings Bank": {
+  "Bristol County Savings Bank__digital-onboarding": {
     "fi_name": "Bristol County Savings Bank",
     "fi_lookup_key": "bristolcountysavings",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -219,9 +237,10 @@
     "first_seen": "2025-06-18",
     "last_seen": "2025-07-01"
   },
-  "Cape Cod 5": {
+  "Cape Cod 5__digital-onboarding": {
     "fi_name": "Cape Cod 5",
     "fi_lookup_key": "capecodfive",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -232,9 +251,10 @@
     "first_seen": "2021-12-14",
     "last_seen": "2022-09-13"
   },
-  "Centric FCU": {
+  "Centric FCU__digital-onboarding": {
     "fi_name": "Centric FCU",
     "fi_lookup_key": "centricfcu",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -245,9 +265,52 @@
     "first_seen": "2025-07-02",
     "last_seen": "2025-10-06"
   },
-  "Columbia CU": {
+  "Certified Fed__digital-onboarding": {
+    "fi_name": "Certified Fed",
+    "fi_lookup_key": "certifiedfed",
+    "instance": "digital-onboarding",
+    "instances": [
+      "digital-onboarding"
+    ],
+    "sources": [
+      "placement"
+    ],
+    "integration_type": "non-sso",
+    "first_seen": "2023-05-10",
+    "last_seen": "2024-09-11"
+  },
+  "Clinton Savings Bank__digital-onboarding": {
+    "fi_name": "Clinton Savings Bank",
+    "fi_lookup_key": "clintonsavings",
+    "instance": "digital-onboarding",
+    "instances": [
+      "digital-onboarding"
+    ],
+    "sources": [
+      "placement"
+    ],
+    "integration_type": "non-sso",
+    "first_seen": "2023-03-03",
+    "last_seen": "2023-07-18"
+  },
+  "CME FCU__digital-onboarding": {
+    "fi_name": "CME FCU",
+    "fi_lookup_key": "cmefcu",
+    "instance": "digital-onboarding",
+    "instances": [
+      "digital-onboarding"
+    ],
+    "sources": [
+      "placement"
+    ],
+    "integration_type": "non-sso",
+    "first_seen": "2023-10-20",
+    "last_seen": "2023-10-20"
+  },
+  "Columbia CU__digital-onboarding": {
     "fi_name": "Columbia CU",
     "fi_lookup_key": "columbiacu",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -258,9 +321,10 @@
     "first_seen": "2022-03-10",
     "last_seen": "2025-10-27"
   },
-  "CommonWealth One FCU": {
+  "CommonWealth One FCU__digital-onboarding": {
     "fi_name": "CommonWealth One FCU",
     "fi_lookup_key": "cofcu",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -271,9 +335,10 @@
     "first_seen": "2022-07-05",
     "last_seen": "2022-07-05"
   },
-  "Community National Bank & Trust of Texas": {
+  "Community National Bank & Trust of Texas__digital-onboarding": {
     "fi_name": "Community National Bank & Trust of Texas",
     "fi_lookup_key": "mybanktx",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -282,11 +347,12 @@
     ],
     "integration_type": "non-sso",
     "first_seen": "2021-09-16",
-    "last_seen": "2023-02-27"
+    "last_seen": "2024-11-14"
   },
-  "CoreFirst Bank & Trust": {
+  "CoreFirst Bank & Trust__digital-onboarding": {
     "fi_name": "CoreFirst Bank & Trust",
     "fi_lookup_key": "cbtks",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -297,9 +363,10 @@
     "first_seen": "2025-10-16",
     "last_seen": "2025-10-26"
   },
-  "Cornerstone Community Financial CU": {
+  "Cornerstone Community Financial CU__digital-onboarding": {
     "fi_name": "Cornerstone Community Financial CU",
     "fi_lookup_key": "ccfinancial",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -310,9 +377,24 @@
     "first_seen": "2025-02-23",
     "last_seen": "2025-02-23"
   },
-  "Credit Union of Texas": {
+  "Credit Union of America__digital-onboarding": {
+    "fi_name": "Credit Union of America",
+    "fi_lookup_key": "cuofamerica",
+    "instance": "digital-onboarding",
+    "instances": [
+      "digital-onboarding"
+    ],
+    "sources": [
+      "placement"
+    ],
+    "integration_type": "non-sso",
+    "first_seen": "2024-03-30",
+    "last_seen": "2024-03-30"
+  },
+  "Credit Union of Texas__digital-onboarding": {
     "fi_name": "Credit Union of Texas",
     "fi_lookup_key": "cutx",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -323,9 +405,10 @@
     "first_seen": "2022-10-11",
     "last_seen": "2025-02-26"
   },
-  "CS Bank": {
+  "CS Bank__digital-onboarding": {
     "fi_name": "CS Bank",
     "fi_lookup_key": "csbank",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -336,9 +419,24 @@
     "first_seen": "2025-05-06",
     "last_seen": "2025-10-01"
   },
-  "Del-One FCU": {
+  "Default__digital-onboarding": {
+    "fi_name": "Default",
+    "fi_lookup_key": "default",
+    "instance": "digital-onboarding",
+    "instances": [
+      "digital-onboarding"
+    ],
+    "sources": [
+      "placement"
+    ],
+    "integration_type": "non-sso",
+    "first_seen": "2020-03-07",
+    "last_seen": "2025-11-05"
+  },
+  "Del-One FCU__digital-onboarding": {
     "fi_name": "Del-One FCU",
     "fi_lookup_key": "delonefcu",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -349,9 +447,10 @@
     "first_seen": "2021-12-09",
     "last_seen": "2025-08-07"
   },
-  "Deseret First CU": {
+  "Deseret First CU__digital-onboarding": {
     "fi_name": "Deseret First CU",
     "fi_lookup_key": "deseretfirstcu",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -362,9 +461,10 @@
     "first_seen": "2022-02-17",
     "last_seen": "2025-01-05"
   },
-  "Digital Federal Credit Union": {
+  "Digital Federal Credit Union__digital-onboarding": {
     "fi_name": "Digital Federal Credit Union",
     "fi_lookup_key": "dcu",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -375,9 +475,10 @@
     "first_seen": "2020-12-14",
     "last_seen": "2021-01-07"
   },
-  "DO Demos - My Bank": {
+  "DO Demos - My Bank__digital-onboarding": {
     "fi_name": "DO Demos - My Bank",
     "fi_lookup_key": "mybank",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -388,9 +489,10 @@
     "first_seen": "2025-06-26",
     "last_seen": "2025-11-07"
   },
-  "East Cambridge Savings Bank": {
+  "East Cambridge Savings Bank__digital-onboarding": {
     "fi_name": "East Cambridge Savings Bank",
     "fi_lookup_key": "ecsb",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -398,12 +500,13 @@
       "placement"
     ],
     "integration_type": "non-sso",
-    "first_seen": "2025-02-11",
+    "first_seen": "2024-11-22",
     "last_seen": "2025-04-22"
   },
-  "Elevate Credit Union": {
+  "Elevate Credit Union__digital-onboarding": {
     "fi_name": "Elevate Credit Union",
     "fi_lookup_key": "elevate-cu",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -412,11 +515,12 @@
     ],
     "integration_type": "non-sso",
     "first_seen": "2020-12-18",
-    "last_seen": "2022-09-28"
+    "last_seen": "2024-09-12"
   },
-  "ELGA Credit Union": {
+  "ELGA Credit Union__digital-onboarding": {
     "fi_name": "ELGA Credit Union",
     "fi_lookup_key": "Elgacu",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -424,12 +528,13 @@
       "placement"
     ],
     "integration_type": "non-sso",
-    "first_seen": "2025-02-28",
+    "first_seen": "2024-04-08",
     "last_seen": "2025-10-08"
   },
-  "Financial Access FCU": {
+  "Financial Access FCU__digital-onboarding": {
     "fi_name": "Financial Access FCU",
     "fi_lookup_key": "fafcu",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -440,9 +545,10 @@
     "first_seen": "2022-04-01",
     "last_seen": "2022-06-26"
   },
-  "First Bank of Alabama": {
+  "First Bank of Alabama__digital-onboarding": {
     "fi_name": "First Bank of Alabama",
     "fi_lookup_key": "firstbankal",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -453,9 +559,10 @@
     "first_seen": "2021-09-28",
     "last_seen": "2025-10-28"
   },
-  "First Heritage Federal Credit Union": {
+  "First Heritage Federal Credit Union__digital-onboarding": {
     "fi_name": "First Heritage Federal Credit Union",
     "fi_lookup_key": "fhfcu",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -463,12 +570,13 @@
       "placement"
     ],
     "integration_type": "non-sso",
-    "first_seen": "2025-01-02",
+    "first_seen": "2023-07-14",
     "last_seen": "2025-10-27"
   },
-  "First Premier Bank": {
+  "First Premier Bank__digital-onboarding": {
     "fi_name": "First Premier Bank",
     "fi_lookup_key": "firstpremier",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -476,12 +584,13 @@
       "placement"
     ],
     "integration_type": "non-sso",
-    "first_seen": "2025-01-18",
+    "first_seen": "2023-07-15",
     "last_seen": "2025-03-25"
   },
-  "First State Bank & Trust": {
+  "First State Bank & Trust__digital-onboarding": {
     "fi_name": "First State Bank & Trust",
     "fi_lookup_key": "fsbtrust",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -489,12 +598,13 @@
       "placement"
     ],
     "integration_type": "non-sso",
-    "first_seen": "2025-04-08",
+    "first_seen": "2024-03-26",
     "last_seen": "2025-11-08"
   },
-  "First United Bank & Trust": {
+  "First United Bank & Trust__digital-onboarding": {
     "fi_name": "First United Bank & Trust",
     "fi_lookup_key": "firstunited",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -502,12 +612,13 @@
       "placement"
     ],
     "integration_type": "non-sso",
-    "first_seen": "2025-01-07",
+    "first_seen": "2024-12-05",
     "last_seen": "2025-02-12"
   },
-  "FirstLight Federal Credit Union": {
+  "FirstLight Federal Credit Union__digital-onboarding": {
     "fi_name": "FirstLight Federal Credit Union",
     "fi_lookup_key": "firstlightcu",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -515,12 +626,13 @@
       "placement"
     ],
     "integration_type": "non-sso",
-    "first_seen": "2025-03-19",
+    "first_seen": "2024-11-04",
     "last_seen": "2025-10-21"
   },
-  "Foothills Credit Union": {
+  "Foothills Credit Union__digital-onboarding": {
     "fi_name": "Foothills Credit Union",
     "fi_lookup_key": "foothillscu",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -531,9 +643,10 @@
     "first_seen": "2021-04-27",
     "last_seen": "2021-04-27"
   },
-  "Freedom FCU": {
+  "Freedom FCU__digital-onboarding": {
     "fi_name": "Freedom FCU",
     "fi_lookup_key": "freedom",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -542,11 +655,26 @@
     ],
     "integration_type": "non-sso",
     "first_seen": "2021-06-17",
-    "last_seen": "2022-05-03"
+    "last_seen": "2023-09-09"
   },
-  "Gather FCU": {
+  "Garden Savings FCU__digital-onboarding": {
+    "fi_name": "Garden Savings FCU",
+    "fi_lookup_key": "gardensavingsfcu",
+    "instance": "digital-onboarding",
+    "instances": [
+      "digital-onboarding"
+    ],
+    "sources": [
+      "placement"
+    ],
+    "integration_type": "non-sso",
+    "first_seen": "2024-02-05",
+    "last_seen": "2024-02-06"
+  },
+  "Gather FCU__digital-onboarding": {
     "fi_name": "Gather FCU",
     "fi_lookup_key": "gatherfcu",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -557,9 +685,10 @@
     "first_seen": "2021-06-04",
     "last_seen": "2025-05-31"
   },
-  "GECU Federal Credit Union": {
+  "GECU Federal Credit Union__digital-onboarding": {
     "fi_name": "GECU Federal Credit Union",
     "fi_lookup_key": "mygecu",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -567,12 +696,13 @@
       "placement"
     ],
     "integration_type": "non-sso",
-    "first_seen": "2025-05-18",
+    "first_seen": "2024-03-08",
     "last_seen": "2025-10-28"
   },
-  "Government Employees FCU": {
+  "Government Employees FCU__digital-onboarding": {
     "fi_name": "Government Employees FCU",
     "fi_lookup_key": "gefcu",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -583,9 +713,10 @@
     "first_seen": "2025-01-28",
     "last_seen": "2025-01-28"
   },
-  "Greater Nevada Credit Union": {
+  "Greater Nevada Credit Union__digital-onboarding": {
     "fi_name": "Greater Nevada Credit Union",
     "fi_lookup_key": "gncu",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -594,11 +725,12 @@
     ],
     "integration_type": "non-sso",
     "first_seen": "2021-10-22",
-    "last_seen": "2022-11-05"
+    "last_seen": "2023-08-18"
   },
-  "Guardian Credit Union": {
+  "Guardian Credit Union__digital-onboarding": {
     "fi_name": "Guardian Credit Union",
     "fi_lookup_key": "guardiancu",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -609,9 +741,24 @@
     "first_seen": "2025-07-31",
     "last_seen": "2025-10-17"
   },
-  "Hanscom FCU": {
+  "Gulf Credit Union__digital-onboarding": {
+    "fi_name": "Gulf Credit Union",
+    "fi_lookup_key": "gecu",
+    "instance": "digital-onboarding",
+    "instances": [
+      "digital-onboarding"
+    ],
+    "sources": [
+      "placement"
+    ],
+    "integration_type": "non-sso",
+    "first_seen": "2023-07-20",
+    "last_seen": "2024-08-31"
+  },
+  "Hanscom FCU__digital-onboarding": {
     "fi_name": "Hanscom FCU",
     "fi_lookup_key": "hfcu",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -622,9 +769,10 @@
     "first_seen": "2022-04-27",
     "last_seen": "2025-06-12"
   },
-  "Harborstone CU": {
+  "Harborstone CU__digital-onboarding": {
     "fi_name": "Harborstone CU",
     "fi_lookup_key": "harborstonecu",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -635,9 +783,10 @@
     "first_seen": "2021-10-30",
     "last_seen": "2025-10-07"
   },
-  "Harmony Bank": {
+  "Harmony Bank__digital-onboarding": {
     "fi_name": "Harmony Bank",
     "fi_lookup_key": "harmonybank",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -648,9 +797,10 @@
     "first_seen": "2025-05-07",
     "last_seen": "2025-05-07"
   },
-  "Heritage Valley FCU": {
+  "Heritage Valley FCU__digital-onboarding": {
     "fi_name": "Heritage Valley FCU",
     "fi_lookup_key": "heritagevalleyfcu",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -661,9 +811,10 @@
     "first_seen": "2022-07-08",
     "last_seen": "2025-06-26"
   },
-  "Honolulu Federal Credit Union": {
-    "fi_name": "Honolulu Federal Credit Union",
-    "fi_lookup_key": "myhocu",
+  "Hershey FCU__digital-onboarding": {
+    "fi_name": "Hershey FCU",
+    "fi_lookup_key": "hersheyfcu",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -671,12 +822,27 @@
       "placement"
     ],
     "integration_type": "non-sso",
-    "first_seen": "2025-01-06",
+    "first_seen": "2023-09-12",
+    "last_seen": "2023-09-12"
+  },
+  "Honolulu Federal Credit Union__digital-onboarding": {
+    "fi_name": "Honolulu Federal Credit Union",
+    "fi_lookup_key": "myhocu",
+    "instance": "digital-onboarding",
+    "instances": [
+      "digital-onboarding"
+    ],
+    "sources": [
+      "placement"
+    ],
+    "integration_type": "non-sso",
+    "first_seen": "2023-04-20",
     "last_seen": "2025-06-06"
   },
-  "Inactive - Default": {
+  "Inactive - Default__digital-onboarding": {
     "fi_name": "Inactive - Default",
     "fi_lookup_key": "default",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -687,9 +853,10 @@
     "first_seen": "2025-06-25",
     "last_seen": "2025-06-25"
   },
-  "Island FCU": {
+  "Island FCU__digital-onboarding": {
     "fi_name": "Island FCU",
     "fi_lookup_key": "islandfcu",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -698,11 +865,26 @@
     ],
     "integration_type": "non-sso",
     "first_seen": "2021-05-24",
-    "last_seen": "2023-02-24"
+    "last_seen": "2023-10-25"
   },
-  "Jesse's FI": {
+  "iThink Financial CU__digital-onboarding": {
+    "fi_name": "iThink Financial CU",
+    "fi_lookup_key": "ithinkfinancialcu",
+    "instance": "digital-onboarding",
+    "instances": [
+      "digital-onboarding"
+    ],
+    "sources": [
+      "placement"
+    ],
+    "integration_type": "non-sso",
+    "first_seen": "2024-07-26",
+    "last_seen": "2024-07-26"
+  },
+  "Jesse's FI__digital-onboarding": {
     "fi_name": "Jesse's FI",
     "fi_lookup_key": "jessefi",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -713,9 +895,10 @@
     "first_seen": "2022-12-19",
     "last_seen": "2023-01-18"
   },
-  "Kelly Community FCU": {
+  "Kelly Community FCU__digital-onboarding": {
     "fi_name": "Kelly Community FCU",
     "fi_lookup_key": "kellycommunity",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -724,11 +907,26 @@
     ],
     "integration_type": "non-sso",
     "first_seen": "2023-01-12",
-    "last_seen": "2025-06-15"
+    "last_seen": "2025-11-09"
   },
-  "LAFCU": {
+  "KeyPoint CU__digital-onboarding": {
+    "fi_name": "KeyPoint CU",
+    "fi_lookup_key": "kpcu",
+    "instance": "digital-onboarding",
+    "instances": [
+      "digital-onboarding"
+    ],
+    "sources": [
+      "placement"
+    ],
+    "integration_type": "non-sso",
+    "first_seen": "2023-07-19",
+    "last_seen": "2023-12-03"
+  },
+  "LAFCU__digital-onboarding": {
     "fi_name": "LAFCU",
     "fi_lookup_key": "lafcu",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -737,11 +935,12 @@
     ],
     "integration_type": "non-sso",
     "first_seen": "2021-11-13",
-    "last_seen": "2022-11-23"
+    "last_seen": "2024-08-07"
   },
-  "Lanco FCU": {
+  "Lanco FCU__digital-onboarding": {
     "fi_name": "Lanco FCU",
     "fi_lookup_key": "lancofcu",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -750,11 +949,12 @@
     ],
     "integration_type": "non-sso",
     "first_seen": "2022-07-14",
-    "last_seen": "2023-02-07"
+    "last_seen": "2024-01-10"
   },
-  "Leaders CU": {
+  "Leaders CU__digital-onboarding": {
     "fi_name": "Leaders CU",
     "fi_lookup_key": "leaderscu",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -762,12 +962,13 @@
       "placement"
     ],
     "integration_type": "non-sso",
-    "first_seen": "2025-02-16",
-    "last_seen": "2025-09-11"
+    "first_seen": "2024-09-24",
+    "last_seen": "2025-11-10"
   },
-  "Legacy Community CU": {
+  "Legacy Community CU__digital-onboarding": {
     "fi_name": "Legacy Community CU",
     "fi_lookup_key": "legacycreditunion",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -775,12 +976,13 @@
       "placement"
     ],
     "integration_type": "non-sso",
-    "first_seen": "2025-03-09",
+    "first_seen": "2023-09-21",
     "last_seen": "2025-09-30"
   },
-  "Manasquan Bank": {
+  "Manasquan Bank__digital-onboarding": {
     "fi_name": "Manasquan Bank",
     "fi_lookup_key": "manasquan",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -789,11 +991,26 @@
     ],
     "integration_type": "non-sso",
     "first_seen": "2025-05-30",
-    "last_seen": "2025-05-30"
+    "last_seen": "2025-11-09"
   },
-  "Maui County FCU": {
+  "Mass Mutual FCU__digital-onboarding": {
+    "fi_name": "Mass Mutual FCU",
+    "fi_lookup_key": "massmutualfcu",
+    "instance": "digital-onboarding",
+    "instances": [
+      "digital-onboarding"
+    ],
+    "sources": [
+      "placement"
+    ],
+    "integration_type": "non-sso",
+    "first_seen": "2024-03-19",
+    "last_seen": "2024-03-19"
+  },
+  "Maui County FCU__digital-onboarding": {
     "fi_name": "Maui County FCU",
     "fi_lookup_key": "mauicountyfcu",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -802,11 +1019,12 @@
     ],
     "integration_type": "non-sso",
     "first_seen": "2021-08-19",
-    "last_seen": "2022-10-14"
+    "last_seen": "2023-07-18"
   },
-  "Members First Credit Union of N.H.": {
+  "Members First Credit Union of N.H.__digital-onboarding": {
     "fi_name": "Members First Credit Union of N.H.",
     "fi_lookup_key": "membersfirstnh",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -817,22 +1035,10 @@
     "first_seen": "2025-10-15",
     "last_seen": "2025-10-15"
   },
-  "Metro CU": {
-    "fi_name": "Metro CU",
-    "fi_lookup_key": "metrocu",
-    "instances": [
-      "digital-onboarding"
-    ],
-    "sources": [
-      "placement"
-    ],
-    "integration_type": "sso",
-    "first_seen": "2025-01-04",
-    "last_seen": "2025-09-26"
-  },
-  "Middlefield Bank": {
-    "fi_name": "Middlefield Bank",
-    "fi_lookup_key": "middlefieldbank",
+  "Members First CU__digital-onboarding": {
+    "fi_name": "Members First CU",
+    "fi_lookup_key": "memfirstcu",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -840,12 +1046,55 @@
       "placement"
     ],
     "integration_type": "non-sso",
-    "first_seen": "2025-04-17",
+    "first_seen": "2023-07-03",
+    "last_seen": "2023-11-15"
+  },
+  "Metro CU__digital-onboarding": {
+    "fi_name": "Metro CU",
+    "fi_lookup_key": "metrocu",
+    "instance": "digital-onboarding",
+    "instances": [
+      "digital-onboarding"
+    ],
+    "sources": [
+      "placement"
+    ],
+    "integration_type": "sso",
+    "first_seen": "2024-03-04",
+    "last_seen": "2025-09-26"
+  },
+  "Middlefield Bank__digital-onboarding": {
+    "fi_name": "Middlefield Bank",
+    "fi_lookup_key": "middlefieldbank",
+    "instance": "digital-onboarding",
+    "instances": [
+      "digital-onboarding"
+    ],
+    "sources": [
+      "placement"
+    ],
+    "integration_type": "non-sso",
+    "first_seen": "2023-09-21",
     "last_seen": "2025-04-18"
   },
-  "MobilOil Credit Union": {
+  "MidSouth Community FCU__digital-onboarding": {
+    "fi_name": "MidSouth Community FCU",
+    "fi_lookup_key": "midsouthfcu",
+    "instance": "digital-onboarding",
+    "instances": [
+      "digital-onboarding"
+    ],
+    "sources": [
+      "placement"
+    ],
+    "integration_type": "non-sso",
+    "first_seen": "2024-08-08",
+    "last_seen": "2024-08-29"
+  },
+  "MobilOil Credit Union__digital-onboarding": {
     "fi_name": "MobilOil Credit Union",
     "fi_lookup_key": "mobiloilcu",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -854,11 +1103,12 @@
     ],
     "integration_type": "non-sso",
     "first_seen": "2021-05-27",
-    "last_seen": "2022-09-27"
+    "last_seen": "2023-05-26"
   },
-  "My Bank": {
+  "My Bank__digital-onboarding": {
     "fi_name": "My Bank",
     "fi_lookup_key": "mybank",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -869,9 +1119,10 @@
     "first_seen": "2020-12-06",
     "last_seen": "2025-01-08"
   },
-  "My Credit Union": {
+  "My Credit Union__digital-onboarding": {
     "fi_name": "My Credit Union",
     "fi_lookup_key": "mycreditunion",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -880,11 +1131,12 @@
     ],
     "integration_type": "non-sso",
     "first_seen": "2020-12-10",
-    "last_seen": "2022-12-22"
+    "last_seen": "2024-03-01"
   },
-  "MyGeorgia Credit Union": {
+  "MyGeorgia Credit Union__digital-onboarding": {
     "fi_name": "MyGeorgia Credit Union",
     "fi_lookup_key": "mygeorgiacu",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -895,9 +1147,10 @@
     "first_seen": "2021-04-17",
     "last_seen": "2023-01-23"
   },
-  "Navigant CU": {
+  "Navigant CU__digital-onboarding": {
     "fi_name": "Navigant CU",
     "fi_lookup_key": "navigantcu",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -905,12 +1158,27 @@
       "placement"
     ],
     "integration_type": "non-sso",
-    "first_seen": "2025-02-04",
+    "first_seen": "2024-07-26",
     "last_seen": "2025-10-20"
   },
-  "Noble CU": {
+  "New York University FCU__digital-onboarding": {
+    "fi_name": "New York University FCU",
+    "fi_lookup_key": "nyufcu",
+    "instance": "digital-onboarding",
+    "instances": [
+      "digital-onboarding"
+    ],
+    "sources": [
+      "placement"
+    ],
+    "integration_type": "non-sso",
+    "first_seen": "2024-03-28",
+    "last_seen": "2024-03-28"
+  },
+  "Noble CU__digital-onboarding": {
     "fi_name": "Noble CU",
     "fi_lookup_key": "noblecu",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -919,11 +1187,12 @@
     ],
     "integration_type": "non-sso",
     "first_seen": "2021-09-09",
-    "last_seen": "2022-11-25"
+    "last_seen": "2024-04-12"
   },
-  "Northeast Bank": {
+  "Northeast Bank__digital-onboarding": {
     "fi_name": "Northeast Bank",
     "fi_lookup_key": "northeastbank",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -932,11 +1201,12 @@
     ],
     "integration_type": "non-sso",
     "first_seen": "2021-08-20",
-    "last_seen": "2022-06-11"
+    "last_seen": "2023-10-09"
   },
-  "Northern Communities CU": {
+  "Northern Communities CU__digital-onboarding": {
     "fi_name": "Northern Communities CU",
     "fi_lookup_key": "nccyou",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -947,9 +1217,10 @@
     "first_seen": "2025-05-13",
     "last_seen": "2025-05-13"
   },
-  "One Nevada Credit Union": {
+  "One Nevada Credit Union__digital-onboarding": {
     "fi_name": "One Nevada Credit Union",
     "fi_lookup_key": "onenevada",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -958,11 +1229,12 @@
     ],
     "integration_type": "non-sso",
     "first_seen": "2022-05-07",
-    "last_seen": "2022-11-10"
+    "last_seen": "2024-07-02"
   },
-  "Oregon Community Credit Union": {
+  "Oregon Community Credit Union__digital-onboarding": {
     "fi_name": "Oregon Community Credit Union",
     "fi_lookup_key": "occu",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -970,12 +1242,13 @@
       "placement"
     ],
     "integration_type": "non-sso",
-    "first_seen": "2025-10-20",
+    "first_seen": "2024-04-16",
     "last_seen": "2025-10-20"
   },
-  "OUCU Financial": {
+  "OUCU Financial__digital-onboarding": {
     "fi_name": "OUCU Financial",
     "fi_lookup_key": "oucu",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -983,12 +1256,13 @@
       "placement"
     ],
     "integration_type": "non-sso",
-    "first_seen": "2025-03-11",
+    "first_seen": "2024-05-19",
     "last_seen": "2025-09-23"
   },
-  "P1FCU": {
+  "P1FCU__digital-onboarding": {
     "fi_name": "P1FCU",
     "fi_lookup_key": "p1fcu",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -999,9 +1273,10 @@
     "first_seen": "2022-12-21",
     "last_seen": "2025-07-04"
   },
-  "Pacific CU": {
+  "Pacific CU__digital-onboarding": {
     "fi_name": "Pacific CU",
     "fi_lookup_key": "pscu",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -1012,9 +1287,10 @@
     "first_seen": "2020-12-22",
     "last_seen": "2025-06-25"
   },
-  "Park Community CU": {
+  "Park Community CU__digital-onboarding": {
     "fi_name": "Park Community CU",
     "fi_lookup_key": "parkccu",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -1025,9 +1301,10 @@
     "first_seen": "2025-06-07",
     "last_seen": "2025-08-12"
   },
-  "PenAir CU": {
-    "fi_name": "PenAir CU",
-    "fi_lookup_key": "penair",
+  "PCT Federal Credit Union__digital-onboarding": {
+    "fi_name": "PCT Federal Credit Union",
+    "fi_lookup_key": "pctfcu",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -1035,12 +1312,27 @@
       "placement"
     ],
     "integration_type": "non-sso",
-    "first_seen": "2025-01-26",
+    "first_seen": "2023-04-20",
+    "last_seen": "2023-04-20"
+  },
+  "PenAir CU__digital-onboarding": {
+    "fi_name": "PenAir CU",
+    "fi_lookup_key": "penair",
+    "instance": "digital-onboarding",
+    "instances": [
+      "digital-onboarding"
+    ],
+    "sources": [
+      "placement"
+    ],
+    "integration_type": "non-sso",
+    "first_seen": "2024-04-13",
     "last_seen": "2025-10-23"
   },
-  "People's Advantage FCU": {
+  "People's Advantage FCU__digital-onboarding": {
     "fi_name": "People's Advantage FCU",
     "fi_lookup_key": "peoplesadvantagefcu",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -1051,9 +1343,10 @@
     "first_seen": "2021-12-03",
     "last_seen": "2022-08-04"
   },
-  "Peoples Advantage FCU": {
+  "Peoples Advantage FCU__digital-onboarding": {
     "fi_name": "Peoples Advantage FCU",
     "fi_lookup_key": "peoplesadvantagefcu",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -1064,9 +1357,10 @@
     "first_seen": "2022-11-23",
     "last_seen": "2025-09-11"
   },
-  "Peoples Bank - NC": {
-    "fi_name": "Peoples Bank - NC",
-    "fi_lookup_key": "peoplesbanknc",
+  "Peoples Bank__digital-onboarding": {
+    "fi_name": "Peoples Bank",
+    "fi_lookup_key": "bankatpeoples",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -1074,12 +1368,27 @@
       "placement"
     ],
     "integration_type": "non-sso",
-    "first_seen": "2025-03-08",
+    "first_seen": "2024-04-29",
+    "last_seen": "2024-04-29"
+  },
+  "Peoples Bank - NC__digital-onboarding": {
+    "fi_name": "Peoples Bank - NC",
+    "fi_lookup_key": "peoplesbanknc",
+    "instance": "digital-onboarding",
+    "instances": [
+      "digital-onboarding"
+    ],
+    "sources": [
+      "placement"
+    ],
+    "integration_type": "non-sso",
+    "first_seen": "2024-05-31",
     "last_seen": "2025-06-26"
   },
-  "Peoples Bank of East Tennessee": {
+  "Peoples Bank of East Tennessee__digital-onboarding": {
     "fi_name": "Peoples Bank of East Tennessee",
     "fi_lookup_key": "peoplesbank-tn",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -1088,11 +1397,12 @@
     ],
     "integration_type": "non-sso",
     "first_seen": "2021-06-01",
-    "last_seen": "2022-11-28"
+    "last_seen": "2023-10-11"
   },
-  "Phelps County Bank": {
+  "Phelps County Bank__digital-onboarding": {
     "fi_name": "Phelps County Bank",
     "fi_lookup_key": "mypcb",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -1100,12 +1410,13 @@
       "placement"
     ],
     "integration_type": "non-sso",
-    "first_seen": "2025-03-07",
+    "first_seen": "2024-05-31",
     "last_seen": "2025-09-05"
   },
-  "Pittsford FCU": {
+  "Pittsford FCU__digital-onboarding": {
     "fi_name": "Pittsford FCU",
     "fi_lookup_key": "pittsfordfcu",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -1113,12 +1424,13 @@
       "placement"
     ],
     "integration_type": "non-sso",
-    "first_seen": "2025-01-03",
+    "first_seen": "2023-09-28",
     "last_seen": "2025-10-04"
   },
-  "Red River Credit Union": {
-    "fi_name": "Red River Credit Union",
-    "fi_lookup_key": "rrcu",
+  "Public Service CU__digital-onboarding": {
+    "fi_name": "Public Service CU",
+    "fi_lookup_key": "pscunow",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -1126,12 +1438,27 @@
       "placement"
     ],
     "integration_type": "non-sso",
-    "first_seen": "2025-01-10",
+    "first_seen": "2024-04-19",
+    "last_seen": "2024-08-16"
+  },
+  "Red River Credit Union__digital-onboarding": {
+    "fi_name": "Red River Credit Union",
+    "fi_lookup_key": "rrcu",
+    "instance": "digital-onboarding",
+    "instances": [
+      "digital-onboarding"
+    ],
+    "sources": [
+      "placement"
+    ],
+    "integration_type": "non-sso",
+    "first_seen": "2023-11-08",
     "last_seen": "2025-03-03"
   },
-  "Rio Grande CU": {
+  "Rio Grande CU__digital-onboarding": {
     "fi_name": "Rio Grande CU",
     "fi_lookup_key": "riograndecu",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -1142,9 +1469,24 @@
     "first_seen": "2021-12-30",
     "last_seen": "2025-10-10"
   },
-  "Rocky Mountain Law Enforcement FCU": {
+  "Rize Federal Credit Union__digital-onboarding": {
+    "fi_name": "Rize Federal Credit Union",
+    "fi_lookup_key": "scefcu",
+    "instance": "digital-onboarding",
+    "instances": [
+      "digital-onboarding"
+    ],
+    "sources": [
+      "placement"
+    ],
+    "integration_type": "non-sso",
+    "first_seen": "2024-07-14",
+    "last_seen": "2024-10-09"
+  },
+  "Rocky Mountain Law Enforcement FCU__digital-onboarding": {
     "fi_name": "Rocky Mountain Law Enforcement FCU",
     "fi_lookup_key": "rmlefcu",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -1153,11 +1495,26 @@
     ],
     "integration_type": "non-sso",
     "first_seen": "2022-09-27",
-    "last_seen": "2022-11-16"
+    "last_seen": "2024-07-17"
   },
-  "Security Federal Savings Bank": {
+  "SCE Credit Union__digital-onboarding": {
+    "fi_name": "SCE Credit Union",
+    "fi_lookup_key": "scefcu",
+    "instance": "digital-onboarding",
+    "instances": [
+      "digital-onboarding"
+    ],
+    "sources": [
+      "placement"
+    ],
+    "integration_type": "non-sso",
+    "first_seen": "2023-06-29",
+    "last_seen": "2023-07-29"
+  },
+  "Security Federal Savings Bank__digital-onboarding": {
     "fi_name": "Security Federal Savings Bank",
     "fi_lookup_key": "secfed",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -1165,12 +1522,13 @@
       "placement"
     ],
     "integration_type": "non-sso",
-    "first_seen": "2025-04-17",
+    "first_seen": "2024-09-07",
     "last_seen": "2025-04-17"
   },
-  "Sharon & Crescent United CU": {
+  "Sharon & Crescent United CU__digital-onboarding": {
     "fi_name": "Sharon & Crescent United CU",
     "fi_lookup_key": "scucu",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -1178,12 +1536,27 @@
       "placement"
     ],
     "integration_type": "non-sso",
-    "first_seen": "2025-02-11",
+    "first_seen": "2024-12-16",
     "last_seen": "2025-06-20"
   },
-  "Sierra Pacific FCU": {
+  "Shawn's FI__digital-onboarding": {
+    "fi_name": "Shawn's FI",
+    "fi_lookup_key": "shawn",
+    "instance": "digital-onboarding",
+    "instances": [
+      "digital-onboarding"
+    ],
+    "sources": [
+      "placement"
+    ],
+    "integration_type": "non-sso",
+    "first_seen": "2023-04-06",
+    "last_seen": "2024-07-29"
+  },
+  "Sierra Pacific FCU__digital-onboarding": {
     "fi_name": "Sierra Pacific FCU",
     "fi_lookup_key": "sierrapacificfcu",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -1194,9 +1567,10 @@
     "first_seen": "2025-02-19",
     "last_seen": "2025-07-11"
   },
-  "Solutions Bank": {
+  "Solutions Bank__digital-onboarding": {
     "fi_name": "Solutions Bank",
     "fi_lookup_key": "solutionsbank",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -1205,11 +1579,12 @@
     ],
     "integration_type": "non-sso",
     "first_seen": "2021-11-22",
-    "last_seen": "2023-01-25"
+    "last_seen": "2023-12-24"
   },
-  "Somerset Trust Company": {
+  "Somerset Trust Company__digital-onboarding": {
     "fi_name": "Somerset Trust Company",
     "fi_lookup_key": "somersettc",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -1220,9 +1595,52 @@
     "first_seen": "2021-01-19",
     "last_seen": "2021-08-08"
   },
-  "Southern Bank": {
+  "Sonata Bank__digital-onboarding": {
+    "fi_name": "Sonata Bank",
+    "fi_lookup_key": "sonatabank",
+    "instance": "digital-onboarding",
+    "instances": [
+      "digital-onboarding"
+    ],
+    "sources": [
+      "placement"
+    ],
+    "integration_type": "non-sso",
+    "first_seen": "2024-05-31",
+    "last_seen": "2024-05-31"
+  },
+  "Sound CU__digital-onboarding": {
+    "fi_name": "Sound CU",
+    "fi_lookup_key": "soundcu",
+    "instance": "digital-onboarding",
+    "instances": [
+      "digital-onboarding"
+    ],
+    "sources": [
+      "placement"
+    ],
+    "integration_type": "non-sso",
+    "first_seen": "2023-04-05",
+    "last_seen": "2023-04-05"
+  },
+  "Sound CU Test__digital-onboarding": {
+    "fi_name": "Sound CU Test",
+    "fi_lookup_key": "soundcutest",
+    "instance": "digital-onboarding",
+    "instances": [
+      "digital-onboarding"
+    ],
+    "sources": [
+      "placement"
+    ],
+    "integration_type": "non-sso",
+    "first_seen": "2023-04-06",
+    "last_seen": "2024-09-24"
+  },
+  "Southern Bank__digital-onboarding": {
     "fi_name": "Southern Bank",
     "fi_lookup_key": "bankwithsouthern",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -1233,9 +1651,10 @@
     "first_seen": "2025-08-15",
     "last_seen": "2025-10-04"
   },
-  "Southwest Financial": {
+  "Southwest Financial__digital-onboarding": {
     "fi_name": "Southwest Financial",
     "fi_lookup_key": "swfinancial",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -1243,12 +1662,13 @@
       "placement"
     ],
     "integration_type": "non-sso",
-    "first_seen": "2025-08-06",
+    "first_seen": "2023-08-03",
     "last_seen": "2025-08-06"
   },
-  "Strata Credit Union": {
+  "Strata Credit Union__digital-onboarding": {
     "fi_name": "Strata Credit Union",
     "fi_lookup_key": "stratacu",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -1256,12 +1676,13 @@
       "placement"
     ],
     "integration_type": "non-sso",
-    "first_seen": "2025-01-22",
+    "first_seen": "2024-10-27",
     "last_seen": "2025-04-06"
   },
-  "SUMA Federal Credit Union": {
+  "SUMA Federal Credit Union__digital-onboarding": {
     "fi_name": "SUMA Federal Credit Union",
     "fi_lookup_key": "suma-fcu",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -1272,9 +1693,10 @@
     "first_seen": "2020-12-18",
     "last_seen": "2025-07-07"
   },
-  "The ABC Bank": {
+  "The ABC Bank__digital-onboarding": {
     "fi_name": "The ABC Bank",
     "fi_lookup_key": "theabcbank",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -1283,11 +1705,12 @@
     ],
     "integration_type": "non-sso",
     "first_seen": "2021-03-08",
-    "last_seen": "2023-02-22"
+    "last_seen": "2024-09-06"
   },
-  "The Cooperative Bank of Cape Cod": {
-    "fi_name": "The Cooperative Bank of Cape Cod",
-    "fi_lookup_key": "thecooperativebankofcapecod",
+  "The Bank of Princeton__digital-onboarding": {
+    "fi_name": "The Bank of Princeton",
+    "fi_lookup_key": "thebankofprinceton",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -1295,12 +1718,55 @@
       "placement"
     ],
     "integration_type": "non-sso",
-    "first_seen": "2025-07-06",
+    "first_seen": "2024-08-24",
+    "last_seen": "2024-09-08"
+  },
+  "The Cooperative Bank of Cape Cod__digital-onboarding": {
+    "fi_name": "The Cooperative Bank of Cape Cod",
+    "fi_lookup_key": "thecooperativebankofcapecod",
+    "instance": "digital-onboarding",
+    "instances": [
+      "digital-onboarding"
+    ],
+    "sources": [
+      "placement"
+    ],
+    "integration_type": "non-sso",
+    "first_seen": "2024-06-14",
     "last_seen": "2025-07-06"
   },
-  "Trustone Financial": {
+  "Timberland Bank__digital-onboarding": {
+    "fi_name": "Timberland Bank",
+    "fi_lookup_key": "timberlandbank",
+    "instance": "digital-onboarding",
+    "instances": [
+      "digital-onboarding"
+    ],
+    "sources": [
+      "placement"
+    ],
+    "integration_type": "non-sso",
+    "first_seen": "2023-07-12",
+    "last_seen": "2024-08-03"
+  },
+  "Trax Credit Union__digital-onboarding": {
+    "fi_name": "Trax Credit Union",
+    "fi_lookup_key": "traxcu",
+    "instance": "digital-onboarding",
+    "instances": [
+      "digital-onboarding"
+    ],
+    "sources": [
+      "placement"
+    ],
+    "integration_type": "non-sso",
+    "first_seen": "2024-11-01",
+    "last_seen": "2024-11-15"
+  },
+  "Trustone Financial__digital-onboarding": {
     "fi_name": "Trustone Financial",
     "fi_lookup_key": "trustonefinancial",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -1311,9 +1777,10 @@
     "first_seen": "2022-10-31",
     "last_seen": "2025-10-31"
   },
-  "UMassFive FCU": {
+  "UMassFive FCU__digital-onboarding": {
     "fi_name": "UMassFive FCU",
     "fi_lookup_key": "umassfivefcu",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -1324,9 +1791,10 @@
     "first_seen": "2022-01-26",
     "last_seen": "2025-08-17"
   },
-  "United Mississippi Bank": {
+  "United Mississippi Bank__digital-onboarding": {
     "fi_name": "United Mississippi Bank",
     "fi_lookup_key": "umb",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -1337,9 +1805,24 @@
     "first_seen": "2025-01-06",
     "last_seen": "2025-03-20"
   },
-  "Veritas FCU": {
+  "UNKNOWN_FI__digital-onboarding": {
+    "fi_name": "UNKNOWN_FI",
+    "fi_lookup_key": "default",
+    "instance": "digital-onboarding",
+    "instances": [
+      "digital-onboarding"
+    ],
+    "sources": [
+      "session"
+    ],
+    "integration_type": "non-sso",
+    "first_seen": "2023-07-25",
+    "last_seen": "2025-11-10"
+  },
+  "Veritas FCU__digital-onboarding": {
     "fi_name": "Veritas FCU",
     "fi_lookup_key": "veritasfcu",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -1350,9 +1833,10 @@
     "first_seen": "2025-02-19",
     "last_seen": "2025-02-26"
   },
-  "Watertown Savings Bank": {
+  "Watertown Savings Bank__digital-onboarding": {
     "fi_name": "Watertown Savings Bank",
     "fi_lookup_key": "watertownsavings",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -1363,9 +1847,10 @@
     "first_seen": "2021-05-03",
     "last_seen": "2025-06-02"
   },
-  "WesBanco Bank, Inc.": {
+  "WesBanco Bank, Inc.__digital-onboarding": {
     "fi_name": "WesBanco Bank, Inc.",
     "fi_lookup_key": "wesbanco",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -1376,9 +1861,10 @@
     "first_seen": "2025-10-03",
     "last_seen": "2025-11-04"
   },
-  "West Alabama Bank": {
+  "West Alabama Bank__digital-onboarding": {
     "fi_name": "West Alabama Bank",
     "fi_lookup_key": "wabt",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -1387,11 +1873,12 @@
     ],
     "integration_type": "non-sso",
     "first_seen": "2023-02-07",
-    "last_seen": "2023-02-07"
+    "last_seen": "2024-11-14"
   },
-  "White Rose CU": {
+  "White Rose CU__digital-onboarding": {
     "fi_name": "White Rose CU",
     "fi_lookup_key": "whiterosecu",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -1400,11 +1887,12 @@
     ],
     "integration_type": "non-sso",
     "first_seen": "2022-07-08",
-    "last_seen": "2022-07-08"
+    "last_seen": "2024-07-26"
   },
-  "WyHy Federal Credit Union": {
+  "WyHy Federal Credit Union__digital-onboarding": {
     "fi_name": "WyHy Federal Credit Union",
     "fi_lookup_key": "wyhyfcu",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -1413,11 +1901,12 @@
     ],
     "integration_type": "non-sso",
     "first_seen": "2022-05-21",
-    "last_seen": "2023-02-08"
+    "last_seen": "2023-05-19"
   },
-  "Zynlo Bank": {
-    "fi_name": "Zynlo Bank",
-    "fi_lookup_key": "zynlo",
+  "Yampa Valley Bank__digital-onboarding": {
+    "fi_name": "Yampa Valley Bank",
+    "fi_lookup_key": "yampavalleybank",
+    "instance": "digital-onboarding",
     "instances": [
       "digital-onboarding"
     ],
@@ -1425,12 +1914,41 @@
       "placement"
     ],
     "integration_type": "non-sso",
-    "first_seen": "2025-06-05",
+    "first_seen": "2024-08-21",
+    "last_seen": "2024-08-21"
+  },
+  "Zynlo Bank__digital-onboarding": {
+    "fi_name": "Zynlo Bank",
+    "fi_lookup_key": "zynlo",
+    "instance": "digital-onboarding",
+    "instances": [
+      "digital-onboarding"
+    ],
+    "sources": [
+      "placement"
+    ],
+    "integration_type": "non-sso",
+    "first_seen": "2023-09-26",
     "last_seen": "2025-11-08"
   },
-  "Greenfield Savings Bank": {
+  "Default__marquis": {
+    "fi_name": "Default",
+    "fi_lookup_key": "default",
+    "instance": "marquis",
+    "instances": [
+      "marquis"
+    ],
+    "sources": [
+      "placement"
+    ],
+    "integration_type": "non-sso",
+    "first_seen": "2020-03-07",
+    "last_seen": "2025-11-05"
+  },
+  "Greenfield Savings Bank__marquis": {
     "fi_name": "Greenfield Savings Bank",
     "fi_lookup_key": "gsb",
+    "instance": "marquis",
     "instances": [
       "marquis"
     ],
@@ -1441,9 +1959,10 @@
     "first_seen": "2025-08-13",
     "last_seen": "2025-08-13"
   },
-  "RadiFi Credit Union": {
+  "RadiFi Credit Union__marquis": {
     "fi_name": "RadiFi Credit Union",
     "fi_lookup_key": "radifi",
+    "instance": "marquis",
     "instances": [
       "marquis"
     ],
@@ -1454,9 +1973,10 @@
     "first_seen": "2025-06-05",
     "last_seen": "2025-06-05"
   },
-  "Test FI": {
+  "Test FI__marquis": {
     "fi_name": "Test FI",
     "fi_lookup_key": "testfi",
+    "instance": "marquis",
     "instances": [
       "marquis"
     ],
@@ -1467,9 +1987,38 @@
     "first_seen": "2024-05-09",
     "last_seen": "2024-05-09"
   },
-  "MSUFCU": {
+  "UNKNOWN_FI__marquis": {
+    "fi_name": "UNKNOWN_FI",
+    "fi_lookup_key": "default",
+    "instance": "marquis",
+    "instances": [
+      "marquis"
+    ],
+    "sources": [
+      "session"
+    ],
+    "integration_type": "non-sso",
+    "first_seen": "2023-07-25",
+    "last_seen": "2025-11-08"
+  },
+  "Default__msu": {
+    "fi_name": "Default",
+    "fi_lookup_key": "default",
+    "instance": "msu",
+    "instances": [
+      "msu"
+    ],
+    "sources": [
+      "placement"
+    ],
+    "integration_type": "non-sso",
+    "first_seen": "2020-03-07",
+    "last_seen": "2025-11-05"
+  },
+  "MSUFCU__msu": {
     "fi_name": "MSUFCU",
     "fi_lookup_key": "msufcu",
+    "instance": "msu",
     "instances": [
       "msu"
     ],
@@ -1478,11 +2027,54 @@
     ],
     "integration_type": "sso",
     "first_seen": "2024-01-31",
+    "last_seen": "2025-11-10"
+  },
+  "UNKNOWN_FI__msu": {
+    "fi_name": "UNKNOWN_FI",
+    "fi_lookup_key": "default",
+    "instance": "msu",
+    "instances": [
+      "msu"
+    ],
+    "sources": [
+      "session"
+    ],
+    "integration_type": "non-sso",
+    "first_seen": "2023-07-25",
+    "last_seen": "2025-11-10"
+  },
+  "Default__ondot": {
+    "fi_name": "Default",
+    "fi_lookup_key": "default",
+    "instance": "ondot",
+    "instances": [
+      "ondot"
+    ],
+    "sources": [
+      "placement"
+    ],
+    "integration_type": "cardsavr",
+    "first_seen": "2020-03-07",
+    "last_seen": "2025-11-05"
+  },
+  "UNKNOWN_FI__ondot": {
+    "fi_name": "UNKNOWN_FI",
+    "fi_lookup_key": "default",
+    "instance": "ondot",
+    "instances": [
+      "ondot"
+    ],
+    "sources": [
+      "session"
+    ],
+    "integration_type": "cardsavr",
+    "first_seen": "2023-07-25",
     "last_seen": "2025-11-08"
   },
-  "America's Christian CU": {
+  "America's Christian CU__pscu": {
     "fi_name": "America's Christian CU",
     "fi_lookup_key": "1745",
+    "instance": "pscu",
     "instances": [
       "pscu"
     ],
@@ -1493,9 +2085,10 @@
     "first_seen": "2025-07-29",
     "last_seen": "2025-07-29"
   },
-  "Baxter": {
+  "Baxter__pscu": {
     "fi_name": "Baxter",
     "fi_lookup_key": "5585",
+    "instance": "pscu",
     "instances": [
       "pscu"
     ],
@@ -1506,9 +2099,10 @@
     "first_seen": "2024-10-09",
     "last_seen": "2025-01-23"
   },
-  "Credit Union ONE": {
+  "Credit Union ONE__pscu": {
     "fi_name": "Credit Union ONE",
     "fi_lookup_key": "258408",
+    "instance": "pscu",
     "instances": [
       "pscu"
     ],
@@ -1519,9 +2113,24 @@
     "first_seen": "2024-09-13",
     "last_seen": "2025-07-10"
   },
-  "Firelands FCU": {
+  "Default__pscu": {
+    "fi_name": "Default",
+    "fi_lookup_key": "default",
+    "instance": "pscu",
+    "instances": [
+      "pscu"
+    ],
+    "sources": [
+      "placement"
+    ],
+    "integration_type": "sso",
+    "first_seen": "2020-03-07",
+    "last_seen": "2025-11-05"
+  },
+  "Firelands FCU__pscu": {
     "fi_name": "Firelands FCU",
     "fi_lookup_key": "333",
+    "instance": "pscu",
     "instances": [
       "pscu"
     ],
@@ -1532,9 +2141,10 @@
     "first_seen": "2025-01-30",
     "last_seen": "2025-09-25"
   },
-  "Harvard FCU": {
+  "Harvard FCU__pscu": {
     "fi_name": "Harvard FCU",
     "fi_lookup_key": "5379",
+    "instance": "pscu",
     "instances": [
       "pscu"
     ],
@@ -1545,9 +2155,24 @@
     "first_seen": "2024-08-19",
     "last_seen": "2025-11-08"
   },
-  "Vystar CU": {
+  "UNKNOWN_FI__pscu": {
+    "fi_name": "UNKNOWN_FI",
+    "fi_lookup_key": "default",
+    "instance": "pscu",
+    "instances": [
+      "pscu"
+    ],
+    "sources": [
+      "session"
+    ],
+    "integration_type": "sso",
+    "first_seen": "2023-07-25",
+    "last_seen": "2025-11-08"
+  },
+  "Vystar CU__pscu": {
     "fi_name": "Vystar CU",
     "fi_lookup_key": "5811",
+    "instance": "pscu",
     "instances": [
       "pscu"
     ],
@@ -1558,9 +2183,10 @@
     "first_seen": "2025-08-07",
     "last_seen": "2025-09-03"
   },
-  "Acme Credit Union": {
+  "Acme Credit Union__ss01": {
     "fi_name": "Acme Credit Union",
     "fi_lookup_key": "acmecu",
+    "instance": "ss01",
     "instances": [
       "ss01"
     ],
@@ -1571,9 +2197,24 @@
     "first_seen": "2020-05-22",
     "last_seen": "2025-11-08"
   },
-  "Aerospace Federal Credit Union": {
+  "Admin__ss01": {
+    "fi_name": "Admin",
+    "fi_lookup_key": "admin",
+    "instance": "ss01",
+    "instances": [
+      "ss01"
+    ],
+    "sources": [
+      "placement"
+    ],
+    "integration_type": "non-sso",
+    "first_seen": "2023-03-07",
+    "last_seen": "2023-07-25"
+  },
+  "Aerospace Federal Credit Union__ss01": {
     "fi_name": "Aerospace Federal Credit Union",
     "fi_lookup_key": "aerofcu",
+    "instance": "ss01",
     "instances": [
       "ss01"
     ],
@@ -1584,9 +2225,10 @@
     "first_seen": "2025-06-23",
     "last_seen": "2025-09-24"
   },
-  "AFFCU": {
+  "AFFCU__ss01": {
     "fi_name": "AFFCU",
     "fi_lookup_key": "affcu",
+    "instance": "ss01",
     "instances": [
       "ss01"
     ],
@@ -1597,9 +2239,10 @@
     "first_seen": "2022-05-17",
     "last_seen": "2025-10-17"
   },
-  "Affinity": {
+  "Affinity__ss01": {
     "fi_name": "Affinity",
     "fi_lookup_key": "affinity",
+    "instance": "ss01",
     "instances": [
       "ss01"
     ],
@@ -1608,11 +2251,12 @@
     ],
     "integration_type": "non-sso",
     "first_seen": "2020-05-28",
-    "last_seen": "2022-06-02"
+    "last_seen": "2024-02-08"
   },
-  "All One Credit Union": {
+  "All One Credit Union__ss01": {
     "fi_name": "All One Credit Union",
     "fi_lookup_key": "all-onecu",
+    "instance": "ss01",
     "instances": [
       "ss01"
     ],
@@ -1623,9 +2267,10 @@
     "first_seen": "2025-03-11",
     "last_seen": "2025-04-26"
   },
-  "American Eagle FCU": {
+  "American Eagle FCU__ss01": {
     "fi_name": "American Eagle FCU",
     "fi_lookup_key": "americaneagle",
+    "instance": "ss01",
     "instances": [
       "ss01"
     ],
@@ -1636,9 +2281,10 @@
     "first_seen": "2025-08-15",
     "last_seen": "2025-11-07"
   },
-  "Arsenal Credit Union": {
+  "Arsenal Credit Union__ss01": {
     "fi_name": "Arsenal Credit Union",
     "fi_lookup_key": "arsenalcu",
+    "instance": "ss01",
     "instances": [
       "ss01"
     ],
@@ -1646,12 +2292,13 @@
       "placement"
     ],
     "integration_type": "non-sso",
-    "first_seen": "2025-01-30",
+    "first_seen": "2023-12-26",
     "last_seen": "2025-07-19"
   },
-  "Bank Card": {
+  "Bank Card__ss01": {
     "fi_name": "Bank Card",
     "fi_lookup_key": "bankcard",
+    "instance": "ss01",
     "instances": [
       "ss01"
     ],
@@ -1662,9 +2309,10 @@
     "first_seen": "2022-02-16",
     "last_seen": "2022-04-09"
   },
-  "Bankers' Bank of Kansas": {
+  "Bankers' Bank of Kansas__ss01": {
     "fi_name": "Bankers' Bank of Kansas",
     "fi_lookup_key": "bbok",
+    "instance": "ss01",
     "instances": [
       "ss01"
     ],
@@ -1675,9 +2323,10 @@
     "first_seen": "2022-01-21",
     "last_seen": "2022-01-21"
   },
-  "BMI FCU": {
+  "BMI FCU__ss01": {
     "fi_name": "BMI FCU",
     "fi_lookup_key": "bmifcu",
+    "instance": "ss01",
     "instances": [
       "ss01"
     ],
@@ -1685,12 +2334,13 @@
       "placement"
     ],
     "integration_type": "non-sso",
-    "first_seen": "2025-01-20",
+    "first_seen": "2023-08-10",
     "last_seen": "2025-11-04"
   },
-  "Canvas": {
+  "Canvas__ss01": {
     "fi_name": "Canvas",
     "fi_lookup_key": "canvas",
+    "instance": "ss01",
     "instances": [
       "ss01"
     ],
@@ -1698,12 +2348,13 @@
       "placement"
     ],
     "integration_type": "sso",
-    "first_seen": "2025-01-08",
+    "first_seen": "2024-12-04",
     "last_seen": "2025-11-06"
   },
-  "Capital Credit Union": {
+  "Capital Credit Union__ss01": {
     "fi_name": "Capital Credit Union",
     "fi_lookup_key": "capitalcu",
+    "instance": "ss01",
     "instances": [
       "ss01"
     ],
@@ -1714,9 +2365,10 @@
     "first_seen": "2025-08-04",
     "last_seen": "2025-11-02"
   },
-  "Capital Educators Credit Union": {
+  "Capital Educators Credit Union__ss01": {
     "fi_name": "Capital Educators Credit Union",
     "fi_lookup_key": "capedcu",
+    "instance": "ss01",
     "instances": [
       "ss01"
     ],
@@ -1727,9 +2379,10 @@
     "first_seen": "2025-01-31",
     "last_seen": "2025-08-26"
   },
-  "Centra Credit Union": {
+  "Centra Credit Union__ss01": {
     "fi_name": "Centra Credit Union",
     "fi_lookup_key": "centracu",
+    "instance": "ss01",
     "instances": [
       "ss01"
     ],
@@ -1740,9 +2393,10 @@
     "first_seen": "2022-05-11",
     "last_seen": "2025-11-07"
   },
-  "Community Choice CU": {
-    "fi_name": "Community Choice CU",
-    "fi_lookup_key": "comchoicecu",
+  "Century FCU__ss01": {
+    "fi_name": "Century FCU",
+    "fi_lookup_key": "cenfedcu",
+    "instance": "ss01",
     "instances": [
       "ss01"
     ],
@@ -1750,12 +2404,27 @@
       "placement"
     ],
     "integration_type": "non-sso",
-    "first_seen": "2025-01-08",
+    "first_seen": "2023-10-04",
+    "last_seen": "2024-12-27"
+  },
+  "Community Choice CU__ss01": {
+    "fi_name": "Community Choice CU",
+    "fi_lookup_key": "comchoicecu",
+    "instance": "ss01",
+    "instances": [
+      "ss01"
+    ],
+    "sources": [
+      "placement"
+    ],
+    "integration_type": "non-sso",
+    "first_seen": "2023-01-11",
     "last_seen": "2025-10-07"
   },
-  "Corning Credit Union": {
+  "Corning Credit Union__ss01": {
     "fi_name": "Corning Credit Union",
     "fi_lookup_key": "corningcu",
+    "instance": "ss01",
     "instances": [
       "ss01"
     ],
@@ -1766,9 +2435,10 @@
     "first_seen": "2020-12-18",
     "last_seen": "2025-10-24"
   },
-  "Deere Employees Credit Union": {
+  "Deere Employees Credit Union__ss01": {
     "fi_name": "Deere Employees Credit Union",
     "fi_lookup_key": "decu",
+    "instance": "ss01",
     "instances": [
       "ss01"
     ],
@@ -1779,9 +2449,10 @@
     "first_seen": "2020-06-02",
     "last_seen": "2022-05-06"
   },
-  "DuPage Credit Union": {
-    "fi_name": "DuPage Credit Union",
-    "fi_lookup_key": "dupagecu",
+  "Default__ss01": {
+    "fi_name": "Default",
+    "fi_lookup_key": "default",
+    "instance": "ss01",
     "instances": [
       "ss01"
     ],
@@ -1789,12 +2460,27 @@
       "placement"
     ],
     "integration_type": "non-sso",
-    "first_seen": "2025-01-14",
+    "first_seen": "2020-03-07",
+    "last_seen": "2025-11-05"
+  },
+  "DuPage Credit Union__ss01": {
+    "fi_name": "DuPage Credit Union",
+    "fi_lookup_key": "dupagecu",
+    "instance": "ss01",
+    "instances": [
+      "ss01"
+    ],
+    "sources": [
+      "placement"
+    ],
+    "integration_type": "non-sso",
+    "first_seen": "2023-02-27",
     "last_seen": "2025-10-24"
   },
-  "Elevations Credit Union": {
+  "Elevations Credit Union__ss01": {
     "fi_name": "Elevations Credit Union",
     "fi_lookup_key": "elevationscu",
+    "instance": "ss01",
     "instances": [
       "ss01"
     ],
@@ -1802,12 +2488,13 @@
       "placement"
     ],
     "integration_type": "sso",
-    "first_seen": "2025-01-02",
+    "first_seen": "2023-07-26",
     "last_seen": "2025-11-08"
   },
-  "First Mid Bank and Trust": {
+  "First Mid Bank and Trust__ss01": {
     "fi_name": "First Mid Bank and Trust",
     "fi_lookup_key": "firstmid",
+    "instance": "ss01",
     "instances": [
       "ss01"
     ],
@@ -1818,9 +2505,10 @@
     "first_seen": "2025-01-14",
     "last_seen": "2025-11-08"
   },
-  "Florida Credit Union": {
+  "Florida Credit Union__ss01": {
     "fi_name": "Florida Credit Union",
     "fi_lookup_key": "flcu",
+    "instance": "ss01",
     "instances": [
       "ss01"
     ],
@@ -1831,9 +2519,10 @@
     "first_seen": "2025-03-06",
     "last_seen": "2025-11-07"
   },
-  "Fortera": {
+  "Fortera__ss01": {
     "fi_name": "Fortera",
     "fi_lookup_key": "fortera",
+    "instance": "ss01",
     "instances": [
       "ss01"
     ],
@@ -1844,9 +2533,10 @@
     "first_seen": "2020-07-09",
     "last_seen": "2022-05-31"
   },
-  "Gate City Bank": {
+  "Gate City Bank__ss01": {
     "fi_name": "Gate City Bank",
     "fi_lookup_key": "gatecity",
+    "instance": "ss01",
     "instances": [
       "ss01"
     ],
@@ -1854,12 +2544,13 @@
       "placement"
     ],
     "integration_type": "non-sso",
-    "first_seen": "2025-01-01",
+    "first_seen": "2024-03-19",
     "last_seen": "2025-11-07"
   },
-  "Greylock FCU": {
+  "Greylock FCU__ss01": {
     "fi_name": "Greylock FCU",
     "fi_lookup_key": "greylock",
+    "instance": "ss01",
     "instances": [
       "ss01"
     ],
@@ -1870,9 +2561,10 @@
     "first_seen": "2025-05-09",
     "last_seen": "2025-10-29"
   },
-  "INOVA Federal": {
+  "INOVA Federal__ss01": {
     "fi_name": "INOVA Federal",
     "fi_lookup_key": "inovafcu",
+    "instance": "ss01",
     "instances": [
       "ss01"
     ],
@@ -1880,12 +2572,13 @@
       "placement"
     ],
     "integration_type": "sso",
-    "first_seen": "2025-01-08",
+    "first_seen": "2023-09-11",
     "last_seen": "2025-11-04"
   },
-  "ISU Credit Union": {
+  "ISU Credit Union__ss01": {
     "fi_name": "ISU Credit Union",
     "fi_lookup_key": "isucu",
+    "instance": "ss01",
     "instances": [
       "ss01"
     ],
@@ -1896,9 +2589,10 @@
     "first_seen": "2020-05-26",
     "last_seen": "2021-01-12"
   },
-  "KEMBA Credit Union": {
+  "KEMBA Credit Union__ss01": {
     "fi_name": "KEMBA Credit Union",
     "fi_lookup_key": "kembacu",
+    "instance": "ss01",
     "instances": [
       "ss01"
     ],
@@ -1909,9 +2603,10 @@
     "first_seen": "2025-10-22",
     "last_seen": "2025-11-06"
   },
-  "Kemba FCU": {
+  "Kemba FCU__ss01": {
     "fi_name": "Kemba FCU",
     "fi_lookup_key": "kemba",
+    "instance": "ss01",
     "instances": [
       "ss01"
     ],
@@ -1919,12 +2614,13 @@
       "placement"
     ],
     "integration_type": "non-sso",
-    "first_seen": "2025-01-13",
+    "first_seen": "2023-02-22",
     "last_seen": "2025-11-07"
   },
-  "Leominster Credit Union": {
+  "Leominster Credit Union__ss01": {
     "fi_name": "Leominster Credit Union",
     "fi_lookup_key": "leominstercu",
+    "instance": "ss01",
     "instances": [
       "ss01"
     ],
@@ -1933,11 +2629,12 @@
     ],
     "integration_type": "non-sso",
     "first_seen": "2022-04-20",
-    "last_seen": "2022-06-14"
+    "last_seen": "2024-08-28"
   },
-  "LOC Credit Union": {
+  "LOC Credit Union__ss01": {
     "fi_name": "LOC Credit Union",
     "fi_lookup_key": "loccu",
+    "instance": "ss01",
     "instances": [
       "ss01"
     ],
@@ -1948,9 +2645,10 @@
     "first_seen": "2022-01-10",
     "last_seen": "2025-02-06"
   },
-  "Lookout Credit Union": {
+  "Lookout Credit Union__ss01": {
     "fi_name": "Lookout Credit Union",
     "fi_lookup_key": "isucu",
+    "instance": "ss01",
     "instances": [
       "ss01"
     ],
@@ -1959,11 +2657,12 @@
     ],
     "integration_type": "non-sso",
     "first_seen": "2021-01-20",
-    "last_seen": "2022-05-18"
+    "last_seen": "2023-02-03"
   },
-  "Mascoma Bank": {
+  "Mascoma Bank__ss01": {
     "fi_name": "Mascoma Bank",
     "fi_lookup_key": "mascomabank",
+    "instance": "ss01",
     "instances": [
       "ss01"
     ],
@@ -1971,12 +2670,13 @@
       "placement"
     ],
     "integration_type": "non-sso",
-    "first_seen": "2025-01-02",
+    "first_seen": "2023-07-26",
     "last_seen": "2025-10-26"
   },
-  "Metro Credit Union": {
+  "Metro Credit Union__ss01": {
     "fi_name": "Metro Credit Union",
     "fi_lookup_key": "metrocu",
+    "instance": "ss01",
     "instances": [
       "ss01"
     ],
@@ -1987,9 +2687,10 @@
     "first_seen": "2025-08-07",
     "last_seen": "2025-09-22"
   },
-  "NASA Federal Credit Union": {
+  "NASA Federal Credit Union__ss01": {
     "fi_name": "NASA Federal Credit Union",
     "fi_lookup_key": "nasafcu",
+    "instance": "ss01",
     "instances": [
       "ss01"
     ],
@@ -1997,12 +2698,13 @@
       "placement"
     ],
     "integration_type": "sso",
-    "first_seen": "2025-01-03",
+    "first_seen": "2023-10-16",
     "last_seen": "2025-11-07"
   },
-  "NuMark CU": {
+  "NuMark CU__ss01": {
     "fi_name": "NuMark CU",
     "fi_lookup_key": "numarkcu",
+    "instance": "ss01",
     "instances": [
       "ss01"
     ],
@@ -2013,9 +2715,10 @@
     "first_seen": "2025-08-01",
     "last_seen": "2025-10-14"
   },
-  "Nutmeg State FCU": {
+  "Nutmeg State FCU__ss01": {
     "fi_name": "Nutmeg State FCU",
     "fi_lookup_key": "nutmegstatefcu",
+    "instance": "ss01",
     "instances": [
       "ss01"
     ],
@@ -2026,9 +2729,10 @@
     "first_seen": "2025-03-21",
     "last_seen": "2025-11-06"
   },
-  "On Tap": {
+  "On Tap__ss01": {
     "fi_name": "On Tap",
     "fi_lookup_key": "ontap",
+    "instance": "ss01",
     "instances": [
       "ss01"
     ],
@@ -2039,9 +2743,10 @@
     "first_seen": "2025-08-18",
     "last_seen": "2025-08-18"
   },
-  "ORNL Federal Credit Union": {
+  "ORNL Federal Credit Union__ss01": {
     "fi_name": "ORNL Federal Credit Union",
     "fi_lookup_key": "ornlfcu",
+    "instance": "ss01",
     "instances": [
       "ss01"
     ],
@@ -2052,9 +2757,10 @@
     "first_seen": "2022-01-11",
     "last_seen": "2025-11-08"
   },
-  "People's Credit Union": {
+  "People's Credit Union__ss01": {
     "fi_name": "People's Credit Union",
     "fi_lookup_key": "peoplescu",
+    "instance": "ss01",
     "instances": [
       "ss01"
     ],
@@ -2065,9 +2771,10 @@
     "first_seen": "2021-08-16",
     "last_seen": "2025-03-01"
   },
-  "PremierOne Credit Union": {
+  "PremierOne Credit Union__ss01": {
     "fi_name": "PremierOne Credit Union",
     "fi_lookup_key": "premieronecu",
+    "instance": "ss01",
     "instances": [
       "ss01"
     ],
@@ -2075,12 +2782,13 @@
       "placement"
     ],
     "integration_type": "non-sso",
-    "first_seen": "2025-10-01",
+    "first_seen": "2023-02-15",
     "last_seen": "2025-10-01"
   },
-  "Quontic Bank": {
+  "Quontic Bank__ss01": {
     "fi_name": "Quontic Bank",
     "fi_lookup_key": "quontic",
+    "instance": "ss01",
     "instances": [
       "ss01"
     ],
@@ -2088,12 +2796,13 @@
       "placement"
     ],
     "integration_type": "non-sso",
-    "first_seen": "2025-03-13",
+    "first_seen": "2023-11-03",
     "last_seen": "2025-11-08"
   },
-  "Service Federal Credit Union": {
+  "Service Federal Credit Union__ss01": {
     "fi_name": "Service Federal Credit Union",
     "fi_lookup_key": "servicecu",
+    "instance": "ss01",
     "instances": [
       "ss01"
     ],
@@ -2104,9 +2813,10 @@
     "first_seen": "2025-10-09",
     "last_seen": "2025-11-06"
   },
-  "Signal Financial Federal Credit Union": {
+  "Signal Financial Federal Credit Union__ss01": {
     "fi_name": "Signal Financial Federal Credit Union",
     "fi_lookup_key": "signalffcu",
+    "instance": "ss01",
     "instances": [
       "ss01"
     ],
@@ -2114,12 +2824,13 @@
       "placement"
     ],
     "integration_type": "non-sso",
-    "first_seen": "2025-06-23",
+    "first_seen": "2023-02-18",
     "last_seen": "2025-08-15"
   },
-  "Tradition Capital": {
+  "Tradition Capital__ss01": {
     "fi_name": "Tradition Capital",
     "fi_lookup_key": "traditionbank",
+    "instance": "ss01",
     "instances": [
       "ss01"
     ],
@@ -2130,9 +2841,10 @@
     "first_seen": "2025-05-15",
     "last_seen": "2025-05-23"
   },
-  "TRUE Community Credit Union": {
+  "TRUE Community Credit Union__ss01": {
     "fi_name": "TRUE Community Credit Union",
     "fi_lookup_key": "trueccu",
+    "instance": "ss01",
     "instances": [
       "ss01"
     ],
@@ -2140,12 +2852,27 @@
       "placement"
     ],
     "integration_type": "non-sso",
-    "first_seen": "2025-01-07",
+    "first_seen": "2023-01-14",
     "last_seen": "2025-11-04"
   },
-  "US Bank": {
+  "UNKNOWN_FI__ss01": {
+    "fi_name": "UNKNOWN_FI",
+    "fi_lookup_key": "default",
+    "instance": "ss01",
+    "instances": [
+      "ss01"
+    ],
+    "sources": [
+      "session"
+    ],
+    "integration_type": "non-sso",
+    "first_seen": "2023-07-25",
+    "last_seen": "2025-11-10"
+  },
+  "US Bank__ss01": {
     "fi_name": "US Bank",
     "fi_lookup_key": "usbank",
+    "instance": "ss01",
     "instances": [
       "ss01"
     ],
@@ -2154,11 +2881,12 @@
     ],
     "integration_type": "non-sso",
     "first_seen": "2021-09-14",
-    "last_seen": "2021-09-16"
+    "last_seen": "2023-05-07"
   },
-  "Whitefish CU": {
+  "Whitefish CU__ss01": {
     "fi_name": "Whitefish CU",
     "fi_lookup_key": "whitefishcu",
+    "instance": "ss01",
     "instances": [
       "ss01"
     ],
@@ -2166,7 +2894,7 @@
       "placement"
     ],
     "integration_type": "non-sso",
-    "first_seen": "2025-01-24",
+    "first_seen": "2023-01-03",
     "last_seen": "2025-10-27"
   }
 }

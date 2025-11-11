@@ -351,7 +351,10 @@
 
       function extractInstances(meta) {
         if (!meta || typeof meta !== "object") return [];
-        const list = Array.isArray(meta.instances) ? meta.instances : [];
+        const list = Array.isArray(meta.instances) ? meta.instances.slice() : [];
+        if (meta.instance) {
+          list.push(meta.instance);
+        }
         return Array.from(
           new Set(
             list
@@ -1221,6 +1224,7 @@
       }
 
       function renderTables(visibleRows, startDate, endDate, daySpan) {
+        const monthlyFactor = 30 / Math.max(daySpan || 1, 1);
         visibleRows.forEach((row) => {
           row.periodStart = startDate;
           row.periodEnd = endDate;

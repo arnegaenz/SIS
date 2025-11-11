@@ -197,8 +197,8 @@ export async function runSisFetch() {
   const SSO_SET = loadSsoFis(__dirname);
   const instances = loadInstances(__dirname);
 
-  const startDateUtc = new Date(Date.UTC(2025, 0, 1));
-  const endDateUtc = new Date(Date.UTC(2025, 10, 8));
+  const startDateUtc = new Date(Date.UTC(2023, 0, 1));
+  const endDateUtc = new Date();
 
   const startDate = formatDate(startDateUtc);
   const endDate = formatDate(endDateUtc);
@@ -303,6 +303,24 @@ async function main() {
     merchantSummary
   );
 
+  const outputDir = path.join(__dirname, "..", "output");
+  fs.mkdirSync(outputDir, { recursive: true });
+  fs.writeFileSync(
+    path.join(outputDir, "sessions-by-fi.json"),
+    JSON.stringify(sessionsByFI, null, 2),
+    "utf8"
+  );
+  fs.writeFileSync(
+    path.join(outputDir, "placements-by-fi.json"),
+    JSON.stringify(cardPlacementsByFI, null, 2),
+    "utf8"
+  );
+  fs.writeFileSync(
+    path.join(outputDir, "date-window.json"),
+    JSON.stringify({ start: startDate, end: endDate }, null, 2),
+    "utf8"
+  );
+
   updateFiRegistry(allSessionsCombined, allPlacementsCombined, SSO_SET);
 
   let fiRegistry = {};
@@ -316,11 +334,19 @@ async function main() {
       err.message
     );
   }
-  const fiRegistryLookup = {};
-  for (const [fiName, entry] of Object.entries(fiRegistry)) {
+  const fiRegistryLookupByKey = {};
+  for (const entry of Object.values(fiRegistry)) {
     if (!entry || typeof entry !== "object") continue;
-    const key = (entry.fi_lookup_key || fiName).toString().toLowerCase();
-    fiRegistryLookup[key] = entry;
+    const lookupKey = (
+      entry.fi_lookup_key ||
+      entry.fi_name ||
+      ""
+    )
+      .toString()
+      .toLowerCase();
+    if (lookupKey && !fiRegistryLookupByKey[lookupKey]) {
+      fiRegistryLookupByKey[lookupKey] = entry;
+    }
   }
 
   // === GA4 CARDUPDATR FUNNEL INTEGRATION ===
@@ -337,7 +363,7 @@ async function main() {
       keyFile: gaKeyFile,
     });
 
-    const gaByFI = aggregateGAFunnelByFI(gaRows, fiRegistryLookup);
+    const gaByFI = aggregateGAFunnelByFI(gaRows, fiRegistry);
 
     const grouped = {
       SSO: [],
@@ -349,7 +375,7 @@ async function main() {
     for (const [fiKey, gaObj] of Object.entries(gaByFI)) {
       const integration_type = (
         gaObj.integration_type ||
-        fiRegistryLookup[fiKey]?.integration_type ||
+        fiRegistryLookupByKey[fiKey]?.integration_type ||
         "UNKNOWN"
       ).toUpperCase();
 
