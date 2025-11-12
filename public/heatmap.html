@@ -1,0 +1,526 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Strivve • Merchant Site Heatmap</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      --bg: #0b0d10;
+      --panel: #12161c;
+      --ink: #e7edf6;
+      --muted: #9aa8b6;
+      --grid-border: #1b2430;
+      --chip: #1b2230;
+      --chip-on: #25314a;
+      --chip-ring: #3a4b70;
+      --accent: #7aa2ff;
+      --accent-2: #b48bff;
+      --warn: #ffb86c;
+      --bad: #ff6b6b;
+      --good: #3bd671;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      background: var(--bg);
+      color: var(--ink);
+    }
+    .nav {
+      max-width: 1300px;
+      margin: 24px auto 12px;
+      padding: 0 16px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      font-size:12px;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      color:var(--muted);
+    }
+    .nav .brand { font-weight:700; color:var(--ink); letter-spacing:.12em;}
+    .nav nav{display:flex;gap:10px;}
+    .nav nav a{
+      text-decoration:none;
+      color:var(--muted);
+      padding:6px 12px;
+      border-radius:999px;
+      border:1px solid transparent;
+      font-weight:600;
+      letter-spacing:.05em;
+    }
+    .nav nav a:hover,
+    .nav nav a.active{
+      color:var(--ink);
+      border-color:rgba(255,255,255,0.1);
+      background:rgba(255,255,255,0.03);
+    }
+    .wrap { max-width: 1300px; margin: 12px auto; padding: 0 16px; }
+    h1 { font-size: 18px; font-weight: 700; margin: 0 0 14px; letter-spacing: .2px; }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--grid-border);
+      border-radius: 12px;
+      padding: 14px;
+    }
+    .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    label { font-size: 13px; color: var(--muted); }
+    input[type="date"] {
+      background: #0f1319;
+      border: 1px solid var(--grid-border);
+      color: var(--ink);
+      padding: 8px 10px;
+      border-radius: 8px;
+      font-size: 13px;
+    }
+    button, .chip {
+      appearance: none;
+      border: 1px solid var(--grid-border);
+      background: var(--chip);
+      color: var(--ink);
+      padding: 8px 12px;
+      border-radius: 999px;
+      font-weight: 600;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    button:hover, .chip:hover { filter: brightness(1.1); }
+    .chip.on {
+      background: var(--chip-on);
+      outline: 2px solid var(--chip-ring);
+    }
+
+    .legend { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); }
+    .swatch { width: 14px; height: 14px; border-radius: 3px; border: 1px solid var(--grid-border); }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      margin-top: 14px;
+      min-height: 300px;
+      max-height: 70vh;
+      overflow: auto;
+    }
+    .grid-head {
+      display: grid;
+      grid-auto-flow: column;
+      grid-auto-columns: 10px; /* day width */
+      border-bottom: 1px solid var(--grid-border);
+      position: sticky;
+      top: 0;
+      background: var(--panel);
+      z-index: 1;
+    }
+    .grid-head .tick {
+      width: 10px;
+      height: 16px;
+      border-right: 1px solid rgba(255,255,255,0.04);
+    }
+    .grid-left {
+      border-right: 1px solid var(--grid-border);
+      padding-top: 16px; /* align with header height */
+      background: var(--panel);
+      position: sticky;
+      left: 0;
+      z-index: 2;
+    }
+    .site-row {
+      display: flex;
+      align-items: center;
+      height: 12px; /* matches square size */
+      padding: 0 10px;
+      gap: 8px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-size: 12px;
+      line-height: 12px;
+      color: var(--muted);
+    }
+    .grid-right { position: relative; }
+    .day-row {
+      display: grid;
+      grid-auto-flow: column;
+      grid-auto-columns: 12px; /* square size */
+    }
+    .px0 { padding-left: 0; padding-right: 0; }
+    .square {
+      width: 12px;
+      height: 12px;
+      border-right: 1px solid rgba(255,255,255,0.04);
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+    .square:hover { outline: 1px solid rgba(255,255,255,0.25); outline-offset: -1px; }
+
+    .toolbar { display: flex; align-items: center; gap: 8px; justify-content: space-between; }
+    .right { display: flex; gap: 8px; align-items: center; }
+
+    .tip {
+      position: fixed;
+      pointer-events: none;
+      z-index: 20;
+      background: #0f1319;
+      color: var(--ink);
+      border: 1px solid var(--grid-border);
+      border-radius: 8px;
+      font-size: 12px;
+      padding: 10px 12px;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.45);
+      display: none;
+      max-width: 320px;
+      line-height: 1.25;
+    }
+    .muted { color: var(--muted); }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; }
+    .tiny { font-size: 11px; }
+  </style>
+</head>
+<body>
+  <header class="nav">
+    <div class="brand">Strivve Insights</div>
+    <nav>
+      <a href="/" >Overview</a>
+      <a href="/funnel.html">FI Funnel</a>
+      <a class="active" href="/heatmap.html">Merchant Heatmap</a>
+    </nav>
+  </header>
+  <div class="wrap">
+    <h1>Merchant Site Heatmap</h1>
+
+    <div class="panel">
+      <div class="toolbar">
+        <div class="row">
+          <label>Start</label><input id="start" type="date">
+          <label>End</label><input id="end" type="date">
+          <button id="apply">Apply</button>
+          <span class="muted tiny mono" id="count"></span>
+        </div>
+        <div class="right">
+          <span class="muted tiny">Mode:</span>
+          <button class="chip on" data-mode="traffic" id="m-traffic">Traffic</button>
+          <button class="chip" data-mode="health" id="m-health">Health</button>
+          <button class="chip" data-mode="conversion" id="m-conv">Conversion</button>
+          <button class="chip" data-mode="anomaly" id="m-anom">Anomaly</button>
+        </div>
+      </div>
+
+      <div style="height:10px"></div>
+
+      <div class="row">
+        <div class="legend" id="legend"></div>
+      </div>
+
+      <div class="grid" id="grid" aria-busy="true">
+        <div class="grid-left" id="leftCol"></div>
+        <div class="grid-right">
+          <div class="grid-head" id="headTicks"></div>
+          <div id="rows"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tip" id="tip"></div>
+
+  <script>
+    // ===== Utilities =====
+    const $ = (sel) => document.querySelector(sel);
+    const fmtPct = (num) => (Number.isFinite(num) ? (num * 100).toFixed(1) + "%" : "—");
+
+    const urlParams = new URLSearchParams(location.search);
+    function isoToday() { return new Date().toISOString().slice(0,10); }
+    function isoDaysAgo(n) {
+      const d = new Date(); d.setUTCDate(d.getUTCDate() - n);
+      return d.toISOString().slice(0,10);
+    }
+    function enumerate(start, end) {
+      const out = [];
+      let c = new Date(start + "T00:00:00Z").getTime();
+      const e = new Date(end + "T00:00:00Z").getTime();
+      const day = 86400000;
+      while (c <= e) { out.push(new Date(c).toISOString().slice(0,10)); c += day; }
+      return out;
+    }
+
+    // Color scales
+    function lerp(a,b,t){ return a + (b-a)*t; }
+    function clamp01(x){ return Math.max(0, Math.min(1, x)); }
+    // Green scale for positive intensity (traffic/conversion)
+    function greenScale(t){
+      t = clamp01(t);
+      const r = Math.round(lerp(18, 59, t));
+      const g = Math.round(lerp(65, 214, t));
+      const b = Math.round(lerp(40, 113, t));
+      return `rgb(${r},${g},${b})`;
+    }
+    // Red scale for failure rate (health)
+    function redScale(t){
+      t = clamp01(t);
+      const r = Math.round(lerp(60, 255, t));
+      const g = Math.round(lerp(30, 107, t));
+      const b = Math.round(lerp(30, 107, t));
+      return `rgb(${r},${g},${b})`;
+    }
+    // Purple scale for anomaly intensity
+    function purpleScale(t){
+      t = clamp01(t);
+      const r = Math.round(lerp(60, 180, t));
+      const g = Math.round(lerp(50, 110, t));
+      const b = Math.round(lerp(90, 255, t));
+      return `rgb(${r},${g},${b})`;
+    }
+    const veryLight = "rgba(255,255,255,0.04)";
+
+    // ===== State =====
+    let MODE = "traffic"; // traffic | health | conversion | anomaly
+    const startEl = $("#start");
+    const endEl = $("#end");
+    const applyBtn = $("#apply");
+    const headTicks = $("#headTicks");
+    const leftCol = $("#leftCol");
+    const rowsWrap = $("#rows");
+    const legendEl = $("#legend");
+    const tip = $("#tip");
+    const countEl = $("#count");
+
+    // initial dates: from query or default last 90 days
+    const initStart = urlParams.get("start") || isoDaysAgo(89);
+    const initEnd   = urlParams.get("end")   || isoToday();
+    startEl.value = initStart;
+    endEl.value = initEnd;
+
+    // mode chips
+    for (const el of document.querySelectorAll(".chip[data-mode]")) {
+      el.addEventListener("click", () => {
+        for (const b of document.querySelectorAll(".chip[data-mode]")) b.classList.remove("on");
+        el.classList.add("on");
+        MODE = el.dataset.mode;
+        render(currentData);
+      });
+    }
+
+    applyBtn.addEventListener("click", () => {
+      const s = startEl.value;
+      const e = endEl.value;
+      const u = new URL(location.href);
+      u.searchParams.set("start", s);
+      u.searchParams.set("end", e);
+      history.replaceState(null, "", u);
+      loadAndRender(s, e);
+    });
+
+    // ===== Data shape expected from server =====
+    // GET /data/merchant-heatmap?start=YYYY-MM-DD&end=YYYY-MM-DD
+    // {
+    //   start: "YYYY-MM-DD", end: "YYYY-MM-DD", days: ["..."],
+    //   merchants: [
+    //     {
+    //       name: "amazon.com",
+    //       total: 123, billable: 77, siteFailures: 21, userFlowIssues: 25,
+    //       daily: { "2025-10-01": { total, billable, siteFailures, userFlowIssues }, ... }
+    //     }, ...
+    //   ]
+    // }
+
+    let currentData = null;
+
+    async function loadAndRender(start, end) {
+      $("#grid").setAttribute("aria-busy", "true");
+      leftCol.innerHTML = "";
+      rowsWrap.innerHTML = "";
+      headTicks.innerHTML = "";
+      legendEl.innerHTML = "";
+
+      const res = await fetch(`/merchant-heatmap?start=${start}&end=${end}`);
+      if (!res.ok) {
+        rowsWrap.innerHTML = `<div style="padding:16px" class="muted">Failed to load data (${res.status}).</div>`;
+        $("#grid").removeAttribute("aria-busy");
+        return;
+      }
+      const json = await res.json();
+      currentData = json;
+      render(json);
+      $("#grid").removeAttribute("aria-busy");
+    }
+
+    function render(json) {
+      if (!json || !Array.isArray(json.days) || !Array.isArray(json.merchants)) {
+        rowsWrap.innerHTML = `<div style="padding:16px" class="muted">No data.</div>`;
+        return;
+      }
+      const days = json.days;
+      countEl.textContent = `${json.merchants.length} merchants • ${days.length} days`;
+
+      // header ticks (visual rhythm)
+      headTicks.innerHTML = "";
+      for (let i = 0; i < days.length; i++) {
+        const t = document.createElement("div");
+        t.className = "tick";
+        headTicks.appendChild(t);
+      }
+
+      // sort merchants by total traffic across window (desc)
+      const sorted = [...json.merchants].sort((a,b) => (b.total||0) - (a.total||0));
+
+      // build left labels
+      leftCol.innerHTML = "";
+      for (const m of sorted) {
+        const name = m.merchant || m.name || "unknown";
+        const row = document.createElement("div");
+        row.className = "site-row";
+        row.title = name;
+        row.textContent = name;
+        leftCol.appendChild(row);
+      }
+
+      // Precompute per-merchant normalization for traffic (so the green scale pops fairly)
+      const perMerchantMax = new Map();
+      for (const m of sorted) {
+        const name = m.merchant || m.name || "unknown";
+        const dayMap = new Map((m.days || []).map((cell) => [cell.day, cell]));
+        let maxT = 0;
+        for (const d of days) {
+          const cell = dayMap.get(d);
+          if (cell && cell.total) maxT = Math.max(maxT, cell.total);
+        }
+        perMerchantMax.set(name, Math.max(1, maxT));
+      }
+
+      // Render rows
+      rowsWrap.innerHTML = "";
+      sorted.forEach((m, idx) => {
+        const name = m.merchant || m.name || "unknown";
+        const dayMap = new Map((m.days || []).map((cell) => [cell.day, cell]));
+        const row = document.createElement("div");
+        row.className = "day-row";
+        row.setAttribute("role", "row");
+        for (const d of days) {
+          const cell = dayMap.get(d) || {};
+          const tot = Number(cell.total)||0;
+          const bill = Number(cell.billable)||0;
+          const sf = Number((cell.siteFail ?? cell.siteFailures) || 0);
+          const ux = Number(cell.userFlowIssues)||0;
+
+          let color = veryLight;
+          let title = `${name} • ${d}\n—`;
+          if (MODE === "traffic") {
+            const maxT = perMerchantMax.get(name) || 1;
+            const t = maxT ? (tot / maxT) : 0;
+            color = tot > 0 ? greenScale(t) : veryLight;
+            title = `${name} • ${d}\nTraffic: ${tot} attempts`;
+          }
+          else if (MODE === "health") {
+            const denom = bill + sf;
+            const failRate = denom > 0 ? sf / denom : 0;
+            color = denom > 0 ? redScale(failRate) : veryLight;
+            title = `${name} • ${d}\nSite health (fail rate): ${fmtPct(failRate)}\n(billable ${bill}, site failures ${sf})`;
+          }
+          else if (MODE === "conversion") {
+            const conv = tot > 0 ? bill / tot : 0;
+            color = tot > 0 ? greenScale(conv) : veryLight;
+            title = `${name} • ${d}\nConversion (billable/total): ${fmtPct(conv)}\n(billable ${bill} / total ${tot})`;
+          }
+          else if (MODE === "anomaly") {
+            // Simple anomaly: spike if site failure rate jumps >= 20pp vs trailing 6-day avg OR UX friction >= 50%
+            const denom = bill + sf;
+            const failRate = denom > 0 ? sf / denom : null;
+            const uxRate = tot > 0 ? ux / tot : null;
+
+            // trailing avg
+            const idxDay = days.indexOf(d);
+            let baseVals = [];
+            for (let i = idxDay - 1; i >= 0 && baseVals.length < 6; i--) {
+              const prev = dayMap.get(days[i]);
+              if (!prev) continue;
+              const pd = (Number(prev.billable)||0) + (Number((prev.siteFail ?? prev.siteFailures) || 0));
+              const pf = pd > 0 ? (Number((prev.siteFail ?? prev.siteFailures) || 0))/pd : null;
+              if (pf !== null) baseVals.push(pf);
+            }
+            const base = baseVals.length ? baseVals.reduce((a,c)=>a+c,0)/baseVals.length : null;
+
+            let intensity = 0;
+            let reasons = [];
+            if (uxRate !== null && uxRate >= 0.5) {
+              intensity = Math.max(intensity, Math.min(1, (uxRate - 0.5)/0.5 + 0.3));
+              reasons.push(`UX friction ${fmtPct(uxRate)} (≥ 50%)`);
+            }
+            if (failRate !== null && base !== null) {
+              const jump = failRate - base; // delta in fraction
+              if (jump >= 0.20) {
+                intensity = Math.max(intensity, Math.min(1, (jump - 0.20)/0.30 + 0.4));
+                reasons.push(`Site failures +${(jump*100).toFixed(1)}pp vs baseline`);
+              }
+            }
+            color = intensity > 0 ? purpleScale(intensity) : veryLight;
+            title = `${name} • ${d}\nAnomaly ${
+              intensity>0 ? "⚠︎" : "—"
+            }\n${reasons.length ? reasons.join("\n") : "No anomaly detected"}`;
+          }
+
+          const sq = document.createElement("div");
+          sq.className = "square";
+          sq.style.background = color;
+          sq.title = title;
+
+          // tooltip
+          sq.addEventListener("mouseenter", (ev) => {
+            tip.textContent = "";
+            tip.style.display = "block";
+            tip.innerHTML = `<div class="mono">${name}</div>
+              <div class="tiny muted">${d}</div>
+              <div style="height:6px"></div>
+              <div class="tiny">Total: <span class="mono">${tot}</span> • Billable: <span class="mono">${bill}</span> • Site Failures: <span class="mono">${sf}</span> • UX: <span class="mono">${ux}</span></div>
+              <div class="tiny muted" style="margin-top:4px">${sq.title.replace(`${name} • ${d}\n`, "").replaceAll("\n", "<br>")}</div>`;
+          });
+          sq.addEventListener("mousemove", (ev) => {
+            const pad = 14;
+            tip.style.left = (ev.pageX + pad) + "px";
+            tip.style.top = (ev.pageY + pad) + "px";
+          });
+          sq.addEventListener("mouseleave", () => { tip.style.display = "none"; });
+
+          row.appendChild(sq);
+        }
+        rowsWrap.appendChild(row);
+      });
+
+      // legend
+      renderLegend(MODE);
+    }
+
+    function renderLegend(mode) {
+      const L = legendEl;
+      L.innerHTML = "";
+      const make = (txt, color) => {
+        const c = document.createElement("div"); c.className="legend";
+        const s = document.createElement("div"); s.className="swatch"; s.style.background=color;
+        const t = document.createElement("div"); t.textContent = txt;
+        c.appendChild(s); c.appendChild(t); return c;
+      };
+      if (mode === "traffic") {
+        L.appendChild(make("Higher traffic", greenScale(1)));
+        L.appendChild(make("Lower traffic", greenScale(0.2)));
+        L.appendChild(make("No data", veryLight));
+      } else if (mode === "health") {
+        L.appendChild(make("Worse site failure rate", redScale(1)));
+        L.appendChild(make("Better (few failures)", redScale(0.15)));
+        L.appendChild(make("No signal", veryLight));
+      } else if (mode === "conversion") {
+        L.appendChild(make("Higher conversion", greenScale(1)));
+        L.appendChild(make("Lower conversion", greenScale(0.2)));
+        L.appendChild(make("No signal", veryLight));
+      } else {
+        L.appendChild(make("Stronger anomaly", purpleScale(1)));
+        L.appendChild(make("Mild anomaly", purpleScale(0.25)));
+        L.appendChild(make("No anomaly", veryLight));
+      }
+    }
+
+    // Boot
+    loadAndRender(initStart, initEnd);
+  </script>
+</body>
+</html>
