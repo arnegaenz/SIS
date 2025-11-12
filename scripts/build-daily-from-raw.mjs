@@ -198,16 +198,22 @@ function aggregateGaFromRaw(day, raw, registryIndex) {
       };
     }
     const bucket = byInstance[fiInstanceKey];
-    const views = Number(originalRow.views || originalRow.screenPageViews || 0);
+    const count = Number(
+      originalRow.active_users ??
+        originalRow.activeUsers ??
+        originalRow.views ??
+        originalRow.screenPageViews ??
+        0
+    );
     const pagePath =
       (originalRow.page || originalRow.pagePath || originalRow.pathname || "")
         .toString();
     const select = pagePath.startsWith("/select-merchants");
     const user = pagePath.startsWith("/user-data-collection");
     const cred = pagePath.startsWith("/credential-entry");
-    if (select) bucket.select_merchants += views;
-    else if (user) bucket.user_data_collection += views;
-    else if (cred) bucket.credential_entry += views;
+    if (select) bucket.select_merchants += count;
+    else if (user) bucket.user_data_collection += count;
+    else if (cred) bucket.credential_entry += count;
   }
 
   const byFi = {};

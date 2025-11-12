@@ -44,3 +44,46 @@ The merchant module was reorganized into:
 - `src/config/terminationMap.mjs` – normalized mapping of termination types to health / UX buckets.
 
 Future releases will emit a `metrics.json` for direct import into Pulse / Grafana dashboards, so pipeline owners can wire this data without squinting at CLI captures.
+
+## Updating Local Raw + Daily Data
+
+All of the local dashboards (funnel, merchant heatmap, CLI reports) read from the
+files under `raw/` and `data/daily/`. To refresh everything through a specific
+date run the two helper scripts from the repo root:
+
+```bash
+# 1. Download raw sessions / placements / GA rows
+node scripts/fetch-raw.mjs 2020-01-01 2025-11-12
+
+# 2. Rebuild the daily rollups that power the funnel + heatmap
+node scripts/build-daily-from-raw.mjs 2020-01-01 2025-11-12
+```
+
+It is safe to re-run these commands for overlapping ranges; the scripts will
+overwrite existing files in place. After they finish, restart the local dev
+server (`node scripts/serve-funnel.mjs`) so the UI reflects the new data.
+
+## Running the Local Insights UI
+
+Once the raw + daily data is in place you can launch the Strivve Insights UI
+directly from the repo:
+
+```bash
+node scripts/serve-funnel.mjs
+```
+
+By default the server listens on `http://localhost:8787`. Key pages:
+
+| Path | Description |
+| --- | --- |
+| `/` | Landing page with quick links to the primary reports. |
+| `/funnel.html` | GA + SIS CardUpdatr funnel with filtering, drilldowns, and CSV export. |
+| `/heatmap.html` | Merchant site health heatmap with traffic/health/conversion/anomaly modes. |
+
+While the server is running you can also hit the JSON helpers directly:
+
+- `/merchant-heatmap?start=YYYY-MM-DD&end=YYYY-MM-DD` — API powering the heatmap.
+- `/list-daily` and `/daily?date=YYYY-MM-DD` — expose the daily rollups.
+- `/fi-registry` — serves the local `fi_registry.json`.
+
+Stop the server with `Ctrl+C` when you’re done.
