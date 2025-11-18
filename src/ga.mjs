@@ -82,6 +82,7 @@ export async function fetchGaRowsForDay({
         { name: "date" },
         { name: "hostName" },
         { name: "pagePath" },
+        { name: "hour" },
       ],
       metrics: [{ name: "screenPageViews" }, { name: "activeUsers" }],
       limit: 10000,
@@ -102,6 +103,7 @@ export async function fetchGaRowsForDay({
         date, // always attribute to the SIS day we asked for
         host,
         page,
+        hour: row.dimensionValues?.[3]?.value || "",
         views: Number(row.metricValues?.[0]?.value || "0"),
         active_users: Number(row.metricValues?.[1]?.value || "0"),
         fi_key: fi.fi_key.toLowerCase(),
@@ -132,6 +134,7 @@ export async function fetchGAFunnelByDay({
         { name: "date" },
         { name: "hostName" },
         { name: "pagePath" },
+        { name: "hour" },
       ],
       metrics: [{ name: "screenPageViews" }],
       limit: 100000,
@@ -145,6 +148,7 @@ export async function fetchGAFunnelByDay({
     const dateRaw = r.dimensionValues?.[0]?.value || "";
     const host = r.dimensionValues?.[1]?.value || "";
     const pagePath = r.dimensionValues?.[2]?.value || "";
+    const hour = r.dimensionValues?.[3]?.value || "";
     const views = Number(r.metricValues?.[0]?.value || "0");
 
     if (!host || !isCardupdatrPage(pagePath)) continue;
@@ -153,6 +157,7 @@ export async function fetchGAFunnelByDay({
       date: normalizeDate(dateRaw, startDate),
       host,
       pagePath,
+      hour,
       views,
     });
   }

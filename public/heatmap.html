@@ -4,6 +4,7 @@
   <meta charset="utf-8" />
   <title>Strivve • Merchant Site Heatmap</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="/sis-shared.css" />
   <style>
     :root {
       --bg: #0b0d10;
@@ -24,47 +25,65 @@
     html, body { height: 100%; }
     body {
       margin: 0;
+      padding: 16px 16px 60px;
       font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji";
       background: var(--bg);
       color: var(--ink);
+      --sis-panel-bg: var(--panel);
     }
-    .nav {
-      max-width: 1300px;
-      margin: 24px auto 12px;
-      padding: 0 16px;
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      font-size:12px;
-      letter-spacing:.08em;
-      text-transform:uppercase;
-      color:var(--muted);
-    }
-    .nav .brand { font-weight:700; color:var(--ink); letter-spacing:.12em;}
-    .nav nav{display:flex;gap:10px;}
-    .nav nav a{
-      text-decoration:none;
-      color:var(--muted);
-      padding:6px 12px;
-      border-radius:999px;
-      border:1px solid transparent;
-      font-weight:600;
-      letter-spacing:.05em;
-    }
-    .nav nav a:hover,
-    .nav nav a.active{
-      color:var(--ink);
-      border-color:rgba(255,255,255,0.1);
-      background:rgba(255,255,255,0.03);
-    }
-    .wrap { max-width: 1300px; margin: 12px auto; padding: 0 16px; }
     h1 { font-size: 18px; font-weight: 700; margin: 0 0 14px; letter-spacing: .2px; }
-    .panel {
-      background: var(--panel);
-      border: 1px solid var(--grid-border);
-      border-radius: 12px;
-      padding: 14px;
+    .filter-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      align-items: flex-end;
     }
+    .filter-field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      min-width: 170px;
+    }
+    .filter-field label {
+      display: block;
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 0;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .filter-field input[type="date"] {
+      background: #0f1319;
+      border: 1px solid rgba(148,163,184,0.35);
+      color: var(--ink);
+      padding: 9px 12px;
+      border-radius: 10px;
+      font-size: 14px;
+    }
+    .filter-field input[type="date"]:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(122,162,255,0.25);
+    }
+    .filter-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .filter-btn {
+      background: linear-gradient(120deg, var(--accent), var(--accent-2));
+      border: none;
+      border-radius: 999px;
+      color: #020617;
+      padding: 10px 22px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+    .filter-btn:hover { filter: brightness(1.08); }
     .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
     label { font-size: 13px; color: var(--muted); }
     input[type="date"] {
@@ -169,9 +188,22 @@
       font-size: 12px;
       padding: 10px 12px;
       box-shadow: 0 6px 24px rgba(0,0,0,0.45);
-      display: none;
+      display: block;
       max-width: 320px;
       line-height: 1.25;
+    }
+    .tip[hidden] { display: none; }
+    .heatmap-tooltip .tt-title {
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .heatmap-tooltip .tt-mode {
+      font-size: 12px;
+      margin-bottom: 2px;
+    }
+    .heatmap-tooltip .tt-anomaly {
+      font-size: 12px;
+      opacity: 0.8;
     }
     .muted { color: var(--muted); }
     .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; }
@@ -179,24 +211,37 @@
   </style>
 </head>
 <body>
-  <header class="nav">
-    <div class="brand">Strivve Insights</div>
-    <nav>
-      <a href="/" >Overview</a>
-      <a href="/funnel.html">FI Funnel</a>
-      <a class="active" href="/heatmap.html">Merchant Heatmap</a>
-    </nav>
+  <header class="sis-header">
+    <div class="sis-header__inner">
+      <div class="sis-brand">Strivve Insights Service (SIS)</div>
+      <nav class="sis-nav">
+        <a class="sis-nav__item" href="/">Overview</a>
+        <a class="sis-nav__item" href="/funnel.html">FI Funnel</a>
+        <a class="sis-nav__item sis-nav__item--active" href="/heatmap.html">Merchant Heatmap</a>
+      </nav>
+    </div>
   </header>
-  <div class="wrap">
-    <h1>Merchant Site Heatmap</h1>
+  <main class="sis-main">
+    <section class="sis-panel heatmap-panel">
+      <h1 class="sis-panel-title">Merchant Site Heatmap</h1>
 
-    <div class="panel">
       <div class="toolbar">
-        <div class="row">
-          <label>Start</label><input id="start" type="date">
-          <label>End</label><input id="end" type="date">
-          <button id="apply">Apply</button>
-          <span class="muted tiny mono" id="count"></span>
+        <div class="filter-row">
+          <div class="filter-field">
+            <label for="start">Start date</label>
+            <input id="start" type="date">
+          </div>
+          <div class="filter-field">
+            <label for="end">End date</label>
+            <input id="end" type="date">
+          </div>
+          <div class="filter-field">
+            <label>&nbsp;</label>
+            <div class="filter-actions">
+              <button id="apply" class="filter-btn" type="button">Apply filters</button>
+              <span class="muted tiny mono" id="count"></span>
+            </div>
+          </div>
         </div>
         <div class="right">
           <span class="muted tiny">Mode:</span>
@@ -220,15 +265,29 @@
           <div id="rows"></div>
         </div>
       </div>
-    </div>
-  </div>
+    </section>
+  </main>
 
-  <div class="tip" id="tip"></div>
+  <div class="tip heatmap-tooltip" id="tip" hidden></div>
 
   <script>
     // ===== Utilities =====
     const $ = (sel) => document.querySelector(sel);
     const fmtPct = (num) => (Number.isFinite(num) ? (num * 100).toFixed(1) + "%" : "—");
+    const formatPercentValue = (value) => {
+      if (!Number.isFinite(value)) return null;
+      const str = value.toFixed(1).replace(/\.0$/, "");
+      return `${str}%`;
+    };
+    function escapeHtml(value) {
+      return (value ?? "")
+        .toString()
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
 
     const urlParams = new URLSearchParams(location.search);
     function isoToday() { return new Date().toISOString().slice(0,10); }
@@ -351,6 +410,7 @@
         rowsWrap.innerHTML = `<div style="padding:16px" class="muted">No data.</div>`;
         return;
       }
+      hideTooltip();
       const days = json.days;
       countEl.textContent = `${json.merchants.length} merchants • ${days.length} days`;
 
@@ -369,10 +429,16 @@
       leftCol.innerHTML = "";
       for (const m of sorted) {
         const name = m.merchant || m.name || "unknown";
+        const successes = Number(m.billable || m.successes || 0);
+        const attempts = Number(m.total || 0);
+        const label =
+          attempts > 0
+            ? `${name} (${successes}/${attempts})`
+            : name;
         const row = document.createElement("div");
         row.className = "site-row";
-        row.title = name;
-        row.textContent = name;
+        row.title = label;
+        row.textContent = label;
         leftCol.appendChild(row);
       }
 
@@ -397,93 +463,59 @@
         const row = document.createElement("div");
         row.className = "day-row";
         row.setAttribute("role", "row");
-        for (const d of days) {
+        days.forEach((d, dayIdx) => {
           const cell = dayMap.get(d) || {};
-          const tot = Number(cell.total)||0;
-          const bill = Number(cell.billable)||0;
+          const tot = Number(cell.total) || 0;
+          const bill = Number(cell.billable) || 0;
           const sf = Number((cell.siteFail ?? cell.siteFailures) || 0);
-          const ux = Number(cell.userFlowIssues)||0;
+          const ux = Number(cell.userFlowIssues) || 0;
+          const denom = bill + sf;
+          const failRate = denom > 0 ? sf / denom : null;
+          const convRate = tot > 0 ? bill / tot : null;
+          const anomalyInfo = computeAnomalyInfo(dayMap, days, dayIdx, {
+            total: tot,
+            billable: bill,
+            siteFailures: sf,
+            userFlowIssues: ux,
+          });
 
           let color = veryLight;
-          let title = `${name} • ${d}\n—`;
           if (MODE === "traffic") {
             const maxT = perMerchantMax.get(name) || 1;
-            const t = maxT ? (tot / maxT) : 0;
-            color = tot > 0 ? greenScale(t) : veryLight;
-            title = `${name} • ${d}\nTraffic: ${tot} attempts`;
-          }
-          else if (MODE === "health") {
-            const denom = bill + sf;
-            const failRate = denom > 0 ? sf / denom : 0;
-            color = denom > 0 ? redScale(failRate) : veryLight;
-            title = `${name} • ${d}\nSite health (fail rate): ${fmtPct(failRate)}\n(billable ${bill}, site failures ${sf})`;
-          }
-          else if (MODE === "conversion") {
-            const conv = tot > 0 ? bill / tot : 0;
-            color = tot > 0 ? greenScale(conv) : veryLight;
-            title = `${name} • ${d}\nConversion (billable/total): ${fmtPct(conv)}\n(billable ${bill} / total ${tot})`;
-          }
-          else if (MODE === "anomaly") {
-            // Simple anomaly: spike if site failure rate jumps >= 20pp vs trailing 6-day avg OR UX friction >= 50%
-            const denom = bill + sf;
-            const failRate = denom > 0 ? sf / denom : null;
-            const uxRate = tot > 0 ? ux / tot : null;
-
-            // trailing avg
-            const idxDay = days.indexOf(d);
-            let baseVals = [];
-            for (let i = idxDay - 1; i >= 0 && baseVals.length < 6; i--) {
-              const prev = dayMap.get(days[i]);
-              if (!prev) continue;
-              const pd = (Number(prev.billable)||0) + (Number((prev.siteFail ?? prev.siteFailures) || 0));
-              const pf = pd > 0 ? (Number((prev.siteFail ?? prev.siteFailures) || 0))/pd : null;
-              if (pf !== null) baseVals.push(pf);
-            }
-            const base = baseVals.length ? baseVals.reduce((a,c)=>a+c,0)/baseVals.length : null;
-
-            let intensity = 0;
-            let reasons = [];
-            if (uxRate !== null && uxRate >= 0.5) {
-              intensity = Math.max(intensity, Math.min(1, (uxRate - 0.5)/0.5 + 0.3));
-              reasons.push(`UX friction ${fmtPct(uxRate)} (≥ 50%)`);
-            }
-            if (failRate !== null && base !== null) {
-              const jump = failRate - base; // delta in fraction
-              if (jump >= 0.20) {
-                intensity = Math.max(intensity, Math.min(1, (jump - 0.20)/0.30 + 0.4));
-                reasons.push(`Site failures +${(jump*100).toFixed(1)}pp vs baseline`);
-              }
-            }
+            const ratio = maxT ? tot / maxT : 0;
+            color = tot > 0 ? greenScale(ratio) : veryLight;
+          } else if (MODE === "health") {
+            color = denom > 0 ? redScale(failRate ?? 0) : veryLight;
+          } else if (MODE === "conversion") {
+            color = convRate !== null ? greenScale(convRate) : veryLight;
+          } else if (MODE === "anomaly") {
+            const intensity = anomalyInfo.intensity || 0;
             color = intensity > 0 ? purpleScale(intensity) : veryLight;
-            title = `${name} • ${d}\nAnomaly ${
-              intensity>0 ? "⚠︎" : "—"
-            }\n${reasons.length ? reasons.join("\n") : "No anomaly detected"}`;
           }
+
+          const statsForTooltip = {
+            ...cell,
+            total: tot,
+            billable: bill,
+            siteFailures: sf,
+            siteFail: sf,
+            userFlowIssues: ux,
+            anomalyInfo,
+          };
 
           const sq = document.createElement("div");
           sq.className = "square";
           sq.style.background = color;
-          sq.title = title;
+          sq.setAttribute("aria-label", `${name} • ${d}`);
 
-          // tooltip
           sq.addEventListener("mouseenter", (ev) => {
-            tip.textContent = "";
-            tip.style.display = "block";
-            tip.innerHTML = `<div class="mono">${name}</div>
-              <div class="tiny muted">${d}</div>
-              <div style="height:6px"></div>
-              <div class="tiny">Total: <span class="mono">${tot}</span> • Billable: <span class="mono">${bill}</span> • Site Failures: <span class="mono">${sf}</span> • UX: <span class="mono">${ux}</span></div>
-              <div class="tiny muted" style="margin-top:4px">${sq.title.replace(`${name} • ${d}\n`, "").replaceAll("\n", "<br>")}</div>`;
+            showTooltip(ev, { merchant: name, date: d, stats: statsForTooltip, mode: MODE });
           });
-          sq.addEventListener("mousemove", (ev) => {
-            const pad = 14;
-            tip.style.left = (ev.pageX + pad) + "px";
-            tip.style.top = (ev.pageY + pad) + "px";
-          });
-          sq.addEventListener("mouseleave", () => { tip.style.display = "none"; });
+          sq.addEventListener("mousemove", positionTooltip);
+          sq.addEventListener("mouseleave", hideTooltip);
 
           row.appendChild(sq);
-        }
+        });
         rowsWrap.appendChild(row);
       });
 
@@ -517,6 +549,162 @@
         L.appendChild(make("Mild anomaly", purpleScale(0.25)));
         L.appendChild(make("No anomaly", veryLight));
       }
+    }
+
+    function computeAnomalyInfo(dayMap, days, dayIdx, stats = {}) {
+      const total = Number(stats.total) || 0;
+      const billable = Number(stats.billable) || 0;
+      const siteFailures = Number(stats.siteFailures) || 0;
+      const userFlowIssues = Number(stats.userFlowIssues) || 0;
+
+      const denom = billable + siteFailures;
+      const failRate = denom > 0 ? siteFailures / denom : null;
+      const uxRate = total > 0 ? userFlowIssues / total : null;
+
+      const baseSamples = [];
+      for (let i = dayIdx - 1; i >= 0 && baseSamples.length < 6; i--) {
+        const prev = dayMap.get(days[i]);
+        if (!prev) continue;
+        const prevBill = Number(prev.billable) || 0;
+        const prevSf = Number((prev.siteFail ?? prev.siteFailures) || 0);
+        const prevDenom = prevBill + prevSf;
+        if (prevDenom > 0) {
+          baseSamples.push(prevSf / prevDenom);
+        }
+      }
+      const base = baseSamples.length
+        ? baseSamples.reduce((sum, val) => sum + val, 0) / baseSamples.length
+        : null;
+
+      let intensity = 0;
+      const reasons = [];
+      if (uxRate !== null && uxRate >= 0.5) {
+        intensity = Math.max(intensity, Math.min(1, (uxRate - 0.5) / 0.5 + 0.3));
+        reasons.push(`UX friction ${fmtPct(uxRate)} (≥ 50%)`);
+      }
+
+      let deltaHealth = null;
+      if (failRate !== null && base !== null) {
+        const jump = failRate - base;
+        if (jump >= 0.20) {
+          intensity = Math.max(intensity, Math.min(1, (jump - 0.20) / 0.30 + 0.4));
+          reasons.push(`Site failures +${(jump * 100).toFixed(1)}pp vs baseline`);
+        }
+        deltaHealth = (base - failRate) * 100; // positive = improvement
+      }
+
+      let level = "none";
+      if (intensity >= 0.65) {
+        level = "strong";
+      } else if (intensity >= 0.3) {
+        level = "mild";
+      }
+
+      return { intensity, reasons, level, deltaHealth };
+    }
+
+    function formatAnomalyLabel(anomaly) {
+      if (!anomaly) return "No anomaly detected";
+      const rawLevel = (anomaly.level || anomaly.severity || "").toString().toLowerCase();
+      let baseLabel = "No anomaly detected";
+      if (rawLevel === "strong") {
+        baseLabel = "Strong";
+      } else if (rawLevel === "mild") {
+        baseLabel = "Mild";
+      } else if (rawLevel && rawLevel !== "none") {
+        baseLabel = rawLevel.charAt(0).toUpperCase() + rawLevel.slice(1);
+      } else if ((anomaly.intensity || 0) > 0) {
+        baseLabel = "Mild";
+      }
+
+      let detail = "";
+      if (Number.isFinite(anomaly.deltaHealth) && Math.abs(anomaly.deltaHealth) >= 1) {
+        const dir = anomaly.deltaHealth < 0 ? "dropped" : "increased";
+        const pp = Math.abs(anomaly.deltaHealth).toFixed(1).replace(/\.0$/, "");
+        detail = `site health ${dir} ${pp}pp vs recent avg`;
+      } else if (Array.isArray(anomaly.reasons) && anomaly.reasons.length) {
+        detail = anomaly.reasons.join("; ");
+      }
+
+      if (baseLabel === "No anomaly detected") {
+        return detail ? `${baseLabel} (${detail})` : baseLabel;
+      }
+      return detail ? `${baseLabel} (${detail})` : baseLabel;
+    }
+
+    function buildTooltipHtml({ merchant, date, stats, mode }) {
+      const total = Number(stats?.total) || 0;
+      const billable = Number(stats?.billable) || 0;
+      const siteFailures = Number(stats?.siteFailures ?? stats?.siteFail ?? 0);
+      const userFlowIssues = Number(stats?.userFlowIssues) || 0;
+      const siteDenom = billable + siteFailures;
+      const healthPct = siteDenom > 0 ? (billable / siteDenom) * 100 : null;
+      const conversionPct = total > 0 ? (billable / total) * 100 : null;
+      const anomalyLabel = formatAnomalyLabel(stats?.anomalyInfo || stats?.anomaly || null);
+
+      const modeLower = (mode || "").toLowerCase();
+      let modeLine = "";
+      if (modeLower === "traffic") {
+        modeLine = total > 0
+          ? `Traffic — ${total} attempt${total === 1 ? "" : "s"}`
+          : "Traffic — No attempts";
+      } else if (modeLower === "health") {
+        if (healthPct === null) {
+          modeLine = "Health — No signal yet";
+        } else {
+          const pctStr = formatPercentValue(healthPct) || "";
+          modeLine = `Health — ${pctStr} ok (${billable} billable / ${siteFailures} site-related)`;
+        }
+      } else if (modeLower === "conversion") {
+        if (conversionPct === null) {
+          modeLine = "Conversion — No attempts";
+        } else {
+          const pctStr = formatPercentValue(conversionPct) || "";
+          modeLine = `Conversion — ${pctStr} billable (${billable}/${total})`;
+        }
+      } else if (modeLower === "anomaly") {
+        modeLine = `Anomaly — ${anomalyLabel}`;
+      } else {
+        modeLine = total > 0
+          ? `Summary — ${billable}/${total} billable attempts`
+          : "Summary — No attempts";
+      }
+
+      const merchantLabel = escapeHtml(merchant || "");
+      const dateLabel = escapeHtml(date || "");
+      const safeModeLine = escapeHtml(modeLine);
+      const safeAnomalyLabel = escapeHtml(anomalyLabel);
+      const anomalySection =
+        modeLower === "anomaly"
+          ? ""
+          : `<div class="tt-anomaly">Anomaly — ${safeAnomalyLabel}</div>`;
+
+      return `
+        <div class="tt-inner">
+          <div class="tt-title">${merchantLabel} • ${dateLabel}</div>
+          <div class="tt-mode">${safeModeLine}</div>
+          ${anomalySection}
+        </div>
+      `;
+    }
+
+    function showTooltip(ev, payload) {
+      if (!tip || !payload) return;
+      tip.innerHTML = buildTooltipHtml(payload);
+      tip.hidden = false;
+      positionTooltip(ev);
+    }
+
+    function positionTooltip(ev) {
+      if (!tip || tip.hidden || !ev) return;
+      const pad = 14;
+      tip.style.left = `${ev.pageX + pad}px`;
+      tip.style.top = `${ev.pageY + pad}px`;
+    }
+
+    function hideTooltip() {
+      if (!tip) return;
+      tip.hidden = true;
     }
 
     // Boot

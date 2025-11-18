@@ -12,6 +12,7 @@ import {
   ensureRawDirs,
   rawExists,
   writeRaw,
+  readRaw,
 } from "../src/lib/rawStorage.mjs";
 
 const SRC_DIR = path.resolve("src");
@@ -19,9 +20,19 @@ const DAILY_FORMAT = /^\d{4}-\d{2}-\d{2}$/;
 const DEFAULT_GA_PROPERTY = process.env.GA_PROPERTY_ID || "328054560";
 const DEFAULT_GA_KEYFILE =
   process.env.GA_KEYFILE || "./secrets/ga-service-account.json";
+const REFRESH_WINDOW_DAYS = 7;
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 function todayUtc() {
   return new Date().toISOString().slice(0, 10);
+}
+
+function isoDateDiffInDays(older, newer) {
+  if (!older || !newer) return Infinity;
+  const start = new Date(`${older}T00:00:00Z`);
+  const end = new Date(`${newer}T00:00:00Z`);
+  if (Number.isNaN(start) || Number.isNaN(end)) return Infinity;
+  return (end - start) / MS_PER_DAY;
 }
 
 function validateIsoDate(value) {
@@ -113,19 +124,30 @@ async function collectSessionsForDay(date, instances, cache) {
 
 async function collectPlacementsForDay(date, instances, cache) {
   const combined = [];
+  const errors = [];
   const seenIds = new Set();
   for (const instance of instances) {
-    const sdkSession = await getSessionForInstance(instance, cache);
-    await fetchPlacementsForInstance(
-      sdkSession,
-      instance.name || instance.CARDSAVR_INSTANCE || "default",
-      date,
-      date,
-      seenIds,
-      combined
-    );
+    const instanceName =
+      instance.name || instance.CARDSAVR_INSTANCE || "default";
+    try {
+      const sdkSession = await getSessionForInstance(instance, cache);
+      await fetchPlacementsForInstance(
+        sdkSession,
+        instanceName,
+        date,
+        date,
+        seenIds,
+        combined
+      );
+    } catch (err) {
+      const msg = err?.message || String(err);
+      console.warn(
+        `[${date}] Placements error for ${instanceName}: ${msg}`
+      );
+      errors.push({ instance: instanceName, error: msg });
+    }
   }
-  return combined;
+  return { placements: combined, errors };
 }
 
 async function fetchGaRaw(date) {
@@ -135,28 +157,72 @@ async function fetchGaRaw(date) {
     propertyId: request.propertyId,
     keyFile: request.keyFile,
   });
-  return { date, rows, request };
+  return { date, rows, count: rows.length, request };
 }
 
 async function fetchSessionsRaw(date, instances, cache) {
   const sessions = await collectSessionsForDay(date, instances, cache);
-  return { date, sessions };
+  return { date, sessions, count: sessions.length };
 }
 
 async function fetchPlacementsRaw(date, instances, cache) {
-  const placements = await collectPlacementsForDay(date, instances, cache);
-  return { date, placements };
+  const { placements, errors } = await collectPlacementsForDay(
+    date,
+    instances,
+    cache
+  );
+  return { date, placements, errors, count: placements.length };
 }
 
-function logSkip(date, type) {
-  console.log(`[${date}] ${type}: skipped (already exists)`);
+function logSkip(date, type, onStatus) {
+  const msg = `[${date}] ${type}: skipped (already exists)`;
+  if (onStatus) onStatus(msg);
+  console.log(msg);
 }
 
-function logWrite(date, type, status) {
-  console.log(`[${date}] ${type}: ${status}`);
+function logWrite(date, type, status, onStatus) {
+  const msg = `[${date}] ${type}: ${status}`;
+  if (onStatus) onStatus(msg);
+  console.log(msg);
 }
 
-export async function fetchRawRange({ startDate, endDate }) {
+function logRefetch(date, type, reason, onStatus) {
+  const suffix = reason ? ` (reason: ${reason})` : "";
+  const msg = `[${date}] ${type}: refreshing${suffix}`;
+  if (onStatus) onStatus(msg);
+  console.log(msg);
+}
+
+function shouldRefreshRaw(type, date) {
+  const raw = readRaw(type, date);
+  if (!raw) {
+    return { refresh: true, reason: "missing cache" };
+  }
+  if (raw.error) {
+    return { refresh: true, reason: "previous error" };
+  }
+  let rows = null;
+  if (type === "ga") {
+    rows = Array.isArray(raw.rows) ? raw.rows : null;
+  } else if (type === "sessions") {
+    rows = Array.isArray(raw.sessions) ? raw.sessions : null;
+  } else if (type === "placements") {
+    rows = Array.isArray(raw.placements) ? raw.placements : null;
+  }
+  if (!rows || rows.length === 0) {
+    return { refresh: true, reason: "zero rows" };
+  }
+  const diff = isoDateDiffInDays(date, todayUtc());
+  if (diff < REFRESH_WINDOW_DAYS) {
+    return {
+      refresh: true,
+      reason: `within ${REFRESH_WINDOW_DAYS} days`,
+    };
+  }
+  return { refresh: false, reason: null };
+}
+
+export async function fetchRawRange({ startDate, endDate, onStatus }) {
   const instances = loadInstances(SRC_DIR);
   const sessionCache = new Map();
   const dates = enumerateDates(startDate, endDate);
@@ -165,56 +231,97 @@ export async function fetchRawRange({ startDate, endDate }) {
   for (const date of dates) {
     console.log(`\n=== ${date} ===`);
 
-    if (rawExists("ga", date)) {
-      logSkip(date, "GA");
-    } else {
+    const hasGa = rawExists("ga", date);
+    const { refresh: shouldRefreshGa, reason: gaReason } = hasGa
+      ? shouldRefreshRaw("ga", date)
+      : { refresh: true, reason: "missing cache" };
+    if (shouldRefreshGa) {
+      if (hasGa) {
+        logRefetch(date, "GA", gaReason, onStatus);
+      }
       try {
         const payload = await fetchGaRaw(date);
         writeRaw("ga", date, payload);
-        logWrite(date, "GA", `fetched ${payload.rows.length} rows`);
+        logWrite(date, "GA", `fetched ${payload.rows.length} rows`, onStatus);
       } catch (err) {
-        console.warn(`[${date}] GA error: ${err.message || err}`);
+        const warnMsg = `[${date}] GA error: ${err.message || err}`;
+        if (onStatus) onStatus(warnMsg);
+        console.warn(warnMsg);
         writeRaw("ga", date, {
           date,
           error: err.message || String(err),
           rows: [],
+          count: 0,
           request: gaRequestForDate(date),
         });
       }
+    } else {
+      logSkip(date, "GA", onStatus);
     }
 
-    if (rawExists("sessions", date)) {
-      logSkip(date, "Sessions");
-    } else {
+    const hasSessions = rawExists("sessions", date);
+    const { refresh: shouldRefreshSessions, reason: sessionsReason } = hasSessions
+      ? shouldRefreshRaw("sessions", date)
+      : { refresh: true, reason: "missing cache" };
+    if (shouldRefreshSessions) {
+      if (hasSessions) {
+        logRefetch(date, "Sessions", sessionsReason, onStatus);
+      }
       try {
         const payload = await fetchSessionsRaw(date, instances, sessionCache);
         writeRaw("sessions", date, payload);
-        logWrite(date, "Sessions", `fetched ${payload.sessions.length}`);
+        logWrite(
+          date,
+          "Sessions",
+          `fetched ${payload.sessions.length}`,
+          onStatus
+        );
       } catch (err) {
-        console.warn(`[${date}] Sessions error: ${err.message || err}`);
+        const warnMsg = `[${date}] Sessions error: ${err.message || err}`;
+        if (onStatus) onStatus(warnMsg);
+        console.warn(warnMsg);
         writeRaw("sessions", date, {
           date,
           error: err.message || String(err),
           sessions: [],
+          count: 0,
         });
       }
+    } else {
+      logSkip(date, "Sessions", onStatus);
     }
 
-    if (rawExists("placements", date)) {
-      logSkip(date, "Placements");
-    } else {
+    const hasPlacements = rawExists("placements", date);
+    const { refresh: shouldRefreshPlacements, reason: placementsReason } =
+      hasPlacements
+        ? shouldRefreshRaw("placements", date)
+        : { refresh: true, reason: "missing cache" };
+    if (shouldRefreshPlacements) {
+      if (hasPlacements) {
+        logRefetch(date, "Placements", placementsReason, onStatus);
+      }
       try {
         const payload = await fetchPlacementsRaw(date, instances, sessionCache);
         writeRaw("placements", date, payload);
-        logWrite(date, "Placements", `fetched ${payload.placements.length}`);
+        logWrite(
+          date,
+          "Placements",
+          `fetched ${payload.placements.length}`,
+          onStatus
+        );
       } catch (err) {
-        console.warn(`[${date}] Placements error: ${err.message || err}`);
+        const warnMsg = `[${date}] Placements error: ${err.message || err}`;
+        if (onStatus) onStatus(warnMsg);
+        console.warn(warnMsg);
         writeRaw("placements", date, {
           date,
           error: err.message || String(err),
           placements: [],
+          count: 0,
         });
       }
+    } else {
+      logSkip(date, "Placements", onStatus);
     }
   }
 }

@@ -87,3 +87,23 @@ While the server is running you can also hit the JSON helpers directly:
 - `/fi-registry` — serves the local `fi_registry.json`.
 
 Stop the server with `Ctrl+C` when you’re done.
+
+## Funnel Columns & Totals
+
+The CardUpdatr funnel view (and its CSV export) combines GA4 traffic with SIS session + placement telemetry. Every column on the table and the exported file corresponds to the same fields:
+
+- **FI / Integration / Instances** — lookup metadata from `fi_registry.json`. The integration bucket (SSO, NON-SSO, CardSavr, UNKNOWN) drives the multi-table layout.
+- **GA select / GA user / GA cred** — GA4 screen-page views on `/select-merchants`, `/user-data-collection`, and `/credential-entry`. These counts are aligned to the SIS date window and deduped per FI instance.
+- **Monthly reach %** — `(max(GA select, Sessions) * (30 / day_count)) / cardholders`. Enter a cardholder count when filtering a single FI to get a normalized 30-day penetration estimate; left blank otherwise.
+- **Select→User % / Select→Cred %** — classic funnel drop-offs derived from the GA columns (`ga_user / ga_select`, `ga_cred / ga_select`).
+- **Select→Success %** — bridges GA engagement to SIS outcomes by dividing `sessions w/success / ga_select`. For NON-SSO FIs this mirrors “GA select uniques that finished a SIS session”. For SSO it is displayed but usually not a focus metric.
+- **Sessions / Sessions w/Jobs / Sessions w/Success** — SIS session rollups. A session counts as “with jobs” when it produced at least one job request, and “with success” when one of those jobs completed successfully.
+- **Session Success %** — `sessions w/success / sessions`.
+- **Placements** — Total SIS placement attempts for the FI/instance slice regardless of GA traffic.
+- **Sources Missing** — Per-day indicators when GA, sessions, or placements were unavailable in the selected window so downstream metrics can be interpreted appropriately.
+
+### Totals, Highlights, and CSV parity
+
+- **Totals bar** — Sums visible rows per column and then recomputes the conversion percentages from those summed values (e.g., `Σ ga_user / Σ ga_select`). This mirrors what partners see when exporting the same filtered set.
+- **Highlights panel** — Evaluates rolling windows (7/14/30 days, depending on the overall date range) and surfaces the best contiguous stretch per integration bucket with ≥200 GA selects. Each highlight row uses the same column math listed above.
+- **CSV export** — The “Summary”, “Monthly Rollups”, and “Weekly Rollups” tabs in the CSV reuse the exact same calculations as the UI to keep the narrative consistent when sharing reports outside the CLI.

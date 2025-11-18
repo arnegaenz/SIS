@@ -4,6 +4,7 @@
     <meta charset="utf-8" />
     <title>GA + SIS CardUpdatr Funnel</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="/sis-shared.css" />
     <style>
       :root {
         --bg: #0f172a;
@@ -18,89 +19,72 @@
       }
       body {
         margin: 0;
+        padding: 16px 16px 64px;
         font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         background: var(--bg);
         color: var(--text);
         font-size: 16px;
+        --sis-panel-bg: #020617;
       }
-      .top-nav {
-        background: #050b17;
-        padding: 12px 22px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        border-bottom: 1px solid #1f2937;
-        text-transform: uppercase;
-        font-size: 0.75rem;
-        letter-spacing: 0.08em;
-        color: var(--muted);
-      }
-      .top-nav .brand {
-        font-weight: 700;
-        color: var(--text);
-        letter-spacing: 0.12em;
-      }
-      .top-nav nav {
-        display: flex;
-        gap: 10px;
-      }
-      .top-nav nav a {
-        text-decoration: none;
-        color: var(--muted);
-        padding: 6px 12px;
-        border-radius: 999px;
-        border: 1px solid transparent;
-        font-weight: 600;
-      }
-      .top-nav nav a:hover,
-      .top-nav nav a.active {
-        color: var(--text);
-        border-color: rgba(255,255,255,0.1);
-        background: rgba(255,255,255,0.03);
-      }
-      header {
-        background: #020617;
-        padding: 16px 22px 10px;
-        border-bottom: 1px solid #1f2937;
-      }
-      h1 {
+      .sis-panel-title {
         font-size: 1.2rem;
-        margin: 0 0 12px 0;
+        margin-bottom: 12px;
       }
-      .controls {
+      .form-grid {
         display: flex;
         flex-wrap: wrap;
-        gap: 12px;
+        gap: 14px;
         align-items: flex-end;
       }
-      label {
-        font-size: 0.82rem;
-        display: block;
+      .form-field {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        min-width: 160px;
+      }
+      .form-field label {
+        font-size: 0.85rem;
         color: var(--muted);
-        margin-bottom: 3px;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
       }
-      input,
-      select {
-        background: #0f172a;
-        border: 1px solid #1f2937;
-        border-radius: 4px;
+      .form-input,
+      .form-select {
+        background: #0b1120;
+        border: 1px solid rgba(148,163,184,0.3);
+        border-radius: 10px;
         color: var(--text);
-        padding: 6px 7px;
-        font-size: 0.82rem;
-        min-width: 150px;
+        padding: 9px 12px;
+        font-size: 0.92rem;
+        min-width: 160px;
       }
-      button {
+      .form-input:focus,
+      .form-select:focus {
+        outline: none;
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px rgba(56,189,248,0.25);
+      }
+      .form-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .form-button {
         background: var(--accent);
         border: none;
-        border-radius: 4px;
-        padding: 7px 12px;
-        font-size: 0.82rem;
+        border-radius: 999px;
+        padding: 10px 20px;
+        font-size: 0.9rem;
         cursor: pointer;
         color: #020617;
         font-weight: 600;
+        letter-spacing: 0.04em;
       }
-      main {
-        padding: 18px 22px 44px;
+      .form-button.secondary {
+        background: transparent;
+        border: 1px solid rgba(148,163,184,0.4);
+        color: var(--text);
       }
       .group-header {
         margin-top: 16px;
@@ -190,60 +174,77 @@
         font-size: 0.72rem;
         color: #f97316;
       }
+      .funnel-header {
+        margin-bottom: 12px;
+      }
+      .funnel-body {
+        padding-top: 20px;
+      }
+      .funnel-body .group-header:first-of-type {
+        margin-top: 0;
+      }
+      .date-window {
+        margin-left: auto;
+        align-self: center;
+      }
     </style>
   </head>
   <body>
-    <div class="top-nav">
-      <div class="brand">Strivve Insights</div>
-      <nav>
-        <a href="/">Overview</a>
-        <a class="active" href="/funnel.html">FI Funnel</a>
-        <a href="/heatmap.html">Merchant Heatmap</a>
-      </nav>
-    </div>
-    <header>
-      <h1>GA + SIS CardUpdatr Funnel</h1>
-      <div class="controls">
-        <div>
-          <label for="fiFilter">Filter FI</label>
-          <select id="fiFilter">
-            <option value="__all__">(all FIs)</option>
-          </select>
-        </div>
-        <div>
-          <label for="integrationFilter">Integration</label>
-          <select id="integrationFilter">
-            <option value="(all)">(all)</option>
-            <option value="SSO">SSO</option>
-            <option value="NON-SSO">NON-SSO</option>
-            <option value="CardSavr">CardSavr</option>
-            <option value="UNKNOWN">UNKNOWN</option>
-          </select>
-        </div>
-        <div>
-          <label for="startDate">Start date</label>
-          <input id="startDate" type="date" />
-        </div>
-        <div>
-          <label for="endDate">End date</label>
-          <input id="endDate" type="date" />
-        </div>
-        <div style="min-width: 260px">
-          <label for="cardholderCounts">Cardholders (selected FI only)</label>
-          <input id="cardholderCounts" type="text" placeholder="e.g. 120000" disabled />
-        </div>
-        <div style="display:flex;flex-direction:column;gap:6px;">
-          <label>&nbsp;</label>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            <button id="applyBtn">Apply filters</button>
-            <button id="exportCsvBtn" style="background:#14b8a6;color:#020617;">Export CSV</button>
-          </div>
-        </div>
-        <div class="muted" id="dateWindowLabel" style="margin-left: auto"></div>
+    <header class="sis-header">
+      <div class="sis-header__inner">
+        <div class="sis-brand">Strivve Insights Service (SIS)</div>
+        <nav class="sis-nav">
+          <a class="sis-nav__item" href="/">Overview</a>
+          <a class="sis-nav__item sis-nav__item--active" href="/funnel.html">FI Funnel</a>
+          <a class="sis-nav__item" href="/heatmap.html">Merchant Heatmap</a>
+        </nav>
       </div>
     </header>
+    <main class="sis-main">
+      <section class="sis-panel">
+        <div class="funnel-header">
+          <h1 class="sis-panel-title">GA + SIS CardUpdatr Funnel</h1>
+          <div class="form-grid">
+            <div class="form-field">
+              <label for="fiFilter">Filter FI</label>
+              <select id="fiFilter" class="form-select">
+                <option value="__all__">(all FIs)</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label for="integrationFilter">Integration</label>
+              <select id="integrationFilter" class="form-select">
+                <option value="(all)">(all)</option>
+                <option value="SSO">SSO</option>
+                <option value="NON-SSO">NON-SSO</option>
+                <option value="CardSavr">CardSavr</option>
+                <option value="UNKNOWN">UNKNOWN</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label for="startDate">Start date</label>
+              <input id="startDate" type="date" class="form-input" />
+            </div>
+            <div class="form-field">
+              <label for="endDate">End date</label>
+              <input id="endDate" type="date" class="form-input" />
+            </div>
+            <div class="form-field" style="min-width: 240px">
+              <label for="cardholderCounts">Cardholders (selected FI only)</label>
+              <input id="cardholderCounts" type="text" class="form-input" placeholder="e.g. 120000" disabled />
+            </div>
+            <div class="form-field" style="min-width: 200px">
+              <label>&nbsp;</label>
+              <div class="form-actions">
+                <button id="applyBtn" class="form-button">Apply filters</button>
+                <button id="exportCsvBtn" class="form-button secondary">Export CSV</button>
+              </div>
+            </div>
+            <div class="muted date-window" id="dateWindowLabel"></div>
+          </div>
+        </div>
 
-    <main>
+    <div class="funnel-body">
       <div class="group-header">Highlights</div>
       <div id="bestWindows"></div>
       <div id="totalsBar" class="group-header" style="display: none;"></div>
@@ -263,6 +264,7 @@
             <th data-sort-key="reach">monthly reach %</th>
             <th data-sort-key="sel_user_pct">sel→user %</th>
             <th data-sort-key="sel_cred_pct">sel→cred %</th>
+            <th data-sort-key="sel_success_pct">sel→success %</th>
             <th data-sort-key="sessions">sessions</th>
             <th data-sort-key="sess_with_jobs">sess w/jobs</th>
             <th data-sort-key="sess_with_success">sess w/success</th>
@@ -289,6 +291,7 @@
             <th data-sort-key="reach">monthly reach %</th>
             <th data-sort-key="sel_user_pct">sel→user %</th>
             <th data-sort-key="sel_cred_pct">sel→cred %</th>
+            <th data-sort-key="sel_success_pct">sel→success %</th>
             <th data-sort-key="sessions">sessions</th>
             <th data-sort-key="sess_with_jobs">sess w/jobs</th>
             <th data-sort-key="sess_with_success">sess w/success</th>
@@ -315,6 +318,7 @@
             <th>monthly reach %</th>
             <th>sel→user %</th>
             <th>sel→cred %</th>
+            <th>sel→success %</th>
             <th>sessions</th>
             <th>sess w/jobs</th>
             <th>sess w/success</th>
@@ -341,6 +345,7 @@
             <th>monthly reach %</th>
             <th>sel→user %</th>
             <th>sel→cred %</th>
+            <th>sel→success %</th>
             <th>sessions</th>
             <th>sess w/jobs</th>
             <th>sess w/success</th>
@@ -355,7 +360,9 @@
       </div>
 
       <div id="singleFiView" style="display:none;"></div>
-    </main>
+    </div>
+    </section>
+  </main>
 
     <script>
       const startDateInput = document.getElementById("startDate");
@@ -671,6 +678,54 @@
         return (ratio * 100).toFixed(1) + "%";
       }
 
+      function getSelectToSuccessRatio(row) {
+        if (!row) return 0;
+        const selectCount =
+          typeof row.ga_select === "number" && row.ga_select > 0
+            ? row.ga_select
+            : typeof row.sel === "number" && row.sel > 0
+            ? row.sel
+            : typeof row.select === "number" && row.select > 0
+            ? row.select
+            : 0;
+        if (!selectCount) return 0;
+        const successSessions =
+          typeof row.sess_with_success === "number"
+            ? row.sess_with_success
+            : typeof row.sessions_with_success === "number"
+            ? row.sessions_with_success
+            : typeof row.success_sessions === "number"
+            ? row.success_sessions
+            : 0;
+        if (!successSessions) return 0;
+        return successSessions / selectCount;
+      }
+
+      function formatSelectToSuccessPct(row) {
+        const ratio = getSelectToSuccessRatio(row);
+        return ratio ? (ratio * 100).toFixed(1) + "%" : "";
+      }
+
+      function getBillablePlacementCount(placements) {
+        if (!placements || typeof placements !== "object") return 0;
+        if (typeof placements.successful_placements === "number") {
+          return placements.successful_placements;
+        }
+        if (
+          placements.by_termination &&
+          typeof placements.by_termination.BILLABLE === "number"
+        ) {
+          return placements.by_termination.BILLABLE;
+        }
+        if (typeof placements.total_placements === "number") {
+          return placements.total_placements;
+        }
+        if (typeof placements.total === "number") {
+          return placements.total;
+        }
+        return 0;
+      }
+
       function sanitizeKey(label) {
         return label.toLowerCase().replace(/[^a-z0-9]+/g, "-") || "section";
       }
@@ -685,6 +740,7 @@
         reach: (row) => getMonthlyReachValue(row),
         sel_user_pct: (row) => (row.ga_select ? (row.ga_user || 0) / row.ga_select : 0),
         sel_cred_pct: (row) => (row.ga_select ? (row.ga_cred || 0) / row.ga_select : 0),
+        sel_success_pct: (row) => getSelectToSuccessRatio(row),
         sessions: (row) => Number(row.sessions) || 0,
         sess_with_jobs: (row) => Number(row.sess_with_jobs) || 0,
         sess_with_success: (row) => Number(row.sess_with_success) || 0,
@@ -725,6 +781,10 @@
           getter: (row) =>
             row.ga_select ? (((row.ga_cred || 0) / row.ga_select) * 100).toFixed(1) + "%" : "",
         },
+        {
+          label: "Select→Session Success %",
+          getter: (row) => formatSelectToSuccessPct(row) || "",
+        },
         { label: "Sessions", getter: (row) => row.sessions || 0 },
         { label: "Sessions w/Jobs", getter: (row) => row.sess_with_jobs || 0 },
         { label: "Sessions w/Success", getter: (row) => row.sess_with_success || 0 },
@@ -753,7 +813,7 @@
         return CSV_COLUMNS.map((col) => csvEscape(col.getter(rowWithSection))).join(",");
       }
 
-      function buildCsvDocument({ summary, monthly, weekly, start, end }) {
+      function buildCsvDocument({ summary, monthly, weekly, daily, start, end }) {
         const header = CSV_COLUMNS.map((col) => csvEscape(col.label)).join(",");
         const lines = [];
         const title = `Strivve Insights Service Report ${start || ""} → ${end || ""}`.trim();
@@ -771,6 +831,7 @@
 
         appendSection("Monthly Rollups", monthly);
         appendSection("Weekly Rollups", weekly);
+        appendSection("Daily Rollups", daily);
 
         return lines.join("\n");
       }
@@ -1004,7 +1065,7 @@
             sessions: sessions.total || 0,
             sess_with_jobs: sessions.with_jobs || 0,
             sess_with_success: sessions.with_success || 0,
-            placements: placements.total_placements || 0,
+            placements: getBillablePlacementCount(placements),
             sources_missing: missingSources,
             fi: meta.fi,
             instance: meta.instance,
@@ -1232,7 +1293,7 @@
               agg.sess_with_success += row.sessions.with_success || 0;
             }
             if (row.placements) {
-              agg.placements += row.placements.total_placements || 0;
+              agg.placements += getBillablePlacementCount(row.placements);
             }
 
             const cardholders = cardholderMap[fiNorm];
@@ -1293,7 +1354,7 @@
               sessions: fiDay.sessions?.total || 0,
               sess_with_jobs: fiDay.sessions?.with_jobs || 0,
               sess_with_success: fiDay.sessions?.with_success || 0,
-              placements: fiDay.placements?.total_placements || 0,
+              placements: getBillablePlacementCount(fiDay.placements),
             };
           }
         }
@@ -1443,6 +1504,7 @@
               <th>monthly reach %</th>
               <th>sel→user %</th>
               <th>sel→cred %</th>
+              <th>sel→success %</th>
               <th>sessions</th>
               <th>sess w/jobs</th>
               <th>sess w/success</th>
@@ -1459,13 +1521,17 @@
           if (entry.empty) {
             tr.innerHTML = `
               <td>${entry.label}</td>
-              <td colspan="15" class="muted">No data for this highlight window.</td>
+              <td colspan="17" class="muted">No data for this highlight window.</td>
             `;
           } else {
             const convPct = entry.conv ? (entry.conv * 100).toFixed(1) + "%" : "0%";
             const selUserPct = entry.sel
               ? ((entry.user || 0) / entry.sel * 100).toFixed(1) + "%"
               : "";
+            const selSuccessPct = formatSelectToSuccessPct({
+              ga_select: entry.sel,
+              sess_with_success: entry.sess_with_success,
+            });
             const reachPct = formatMonthlyReachPct(entry);
             const sessSuccessPct = entry.successPct
               ? (entry.successPct * 100).toFixed(1) + "%"
@@ -1483,6 +1549,7 @@
               <td>${reachPct}</td>
               <td>${selUserPct}</td>
               <td>${convPct}</td>
+              <td>${selSuccessPct}</td>
               <td>${entry.sessions || 0}</td>
               <td>${entry.sess_with_jobs || 0}</td>
               <td>${entry.sess_with_success || 0}</td>
@@ -1537,32 +1604,24 @@
           rows: visibleRows,
         });
 
-        if (daySpan <= 14) {
-          if (dailyRows.length) sections.push({ key: "daily", title: "Daily", rows: dailyRows });
-        } else if (daySpan <= 28) {
-          if (dailyRows.length) sections.push({ key: "daily", title: "Daily", rows: dailyRows });
-          if (weeklyRows.length) {
-            sections.push({
-              key: "weekly",
-              title: "Weekly (Sunday → Saturday)",
-              rows: weeklyRows,
-            });
-          }
-        } else {
-          if (weeklyRows.length) {
-            sections.push({
-              key: "weekly",
-              title: "Weekly (Sunday → Saturday)",
-              rows: weeklyRows,
-            });
-          }
-          if (monthlyRows.length) {
-            sections.push({
-              key: "monthly",
-              title: "Monthly (Full Calendar Months)",
-              rows: monthlyRows,
-            });
-          }
+        if (dailyRows.length) {
+          sections.push({ key: "daily", title: "Daily", rows: dailyRows });
+        }
+
+        if (daySpan > 14 && weeklyRows.length) {
+          sections.push({
+            key: "weekly",
+            title: "Weekly (Sunday → Saturday)",
+            rows: weeklyRows,
+          });
+        }
+
+        if (daySpan > 28 && monthlyRows.length) {
+          sections.push({
+            key: "monthly",
+            title: "Monthly (Full Calendar Months)",
+            rows: monthlyRows,
+          });
         }
 
         const availableSections = sections.filter((section) => section.rows && section.rows.length);
@@ -1630,6 +1689,7 @@
               <th data-sort-key="reach">monthly reach %</th>
               <th data-sort-key="sel_user_pct">sel→user %</th>
               <th data-sort-key="sel_cred_pct">sel→cred %</th>
+              <th data-sort-key="sel_success_pct">sel→success %</th>
               <th data-sort-key="sessions">sessions</th>
               <th data-sort-key="sess_with_jobs">sess w/jobs</th>
               <th data-sort-key="sess_with_success">sess w/success</th>
@@ -1659,6 +1719,7 @@
         const selCredPct = row.ga_select
           ? ((row.ga_cred / row.ga_select) * 100).toFixed(1) + "%"
           : "";
+        const selSuccessPct = formatSelectToSuccessPct(row);
         const reachPct = formatMonthlyReachPct(row);
         const sessSuccessPct = formatSessSuccessPct(row);
         const instancesText = row.instance
@@ -1678,6 +1739,7 @@
           <td>${reachPct}</td>
           <td>${selUserPct}</td>
           <td>${selCredPct}</td>
+          <td>${selSuccessPct}</td>
           <td>${row.sessions || 0}</td>
           <td>${row.sess_with_jobs || 0}</td>
           <td>${row.sess_with_success || 0}</td>
@@ -1739,6 +1801,7 @@
           const selCredPct = row.ga_select
             ? ((row.ga_cred / row.ga_select) * 100).toFixed(1) + "%"
             : "";
+          const selSuccessPct = formatSelectToSuccessPct(row);
           const sessSuccessPct = formatSessSuccessPct(row);
           const reachPct = formatMonthlyReachPct(row);
 
@@ -1757,6 +1820,7 @@
             <td>${reachPct}</td>
             <td>${selUserPct}</td>
             <td>${selCredPct}</td>
+            <td>${selSuccessPct}</td>
             <td>${row.sessions}</td>
             <td>${row.sess_with_jobs}</td>
             <td>${row.sess_with_success}</td>
@@ -1813,9 +1877,13 @@
           const selCredPct = totals.ga_select
             ? ((totals.ga_cred / totals.ga_select) * 100).toFixed(1) + "%"
             : "";
+          const selSuccessPct = totals.ga_select
+            ? ((totals.sess_with_success / totals.ga_select) * 100).toFixed(1) + "%"
+            : "";
           totalsBar.textContent =
             `Totals (${visibleCount} FIs): sel ${totals.ga_select} | user ${totals.ga_user}` +
             ` | cred ${totals.ga_cred} | sel→user ${selUserPct || "—"} | sel→cred ${selCredPct || "—"}` +
+            ` | sel→success ${selSuccessPct || "—"}` +
             ` | sessions ${totals.sessions} (jobs ${totals.sess_with_jobs}, success ${totals.sess_with_success})` +
             ` | placements ${totals.placements}`;
           totalsBar.style.display = "block";
@@ -1913,11 +1981,16 @@
           isSingleFiSelected() && latestSingleFiBreakdowns?.weekly?.length
             ? latestSingleFiBreakdowns.weekly
             : [];
+        const dailyRows =
+          isSingleFiSelected() && latestSingleFiBreakdowns?.daily?.length
+            ? latestSingleFiBreakdowns.daily
+            : [];
 
         const csv = buildCsvDocument({
           summary: latestVisibleRows,
           monthly: monthlyRows,
           weekly: weeklyRows,
+          daily: dailyRows,
           start: lastRenderContext.startDate,
           end: lastRenderContext.endDate,
         });

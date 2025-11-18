@@ -4,6 +4,8 @@ import fs from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import url from "url";
 import { TERMINATION_RULES } from "../src/config/terminationMap.mjs";
+import { fetchRawRange } from "./fetch-raw.mjs";
+import { buildDailyFromRawRange } from "./build-daily-from-raw.mjs";
 const { URLSearchParams } = url;
 
 const __filename = fileURLToPath(import.meta.url);
@@ -18,6 +20,115 @@ const RAW_DIR = path.join(ROOT, "raw");
 const RAW_PLACEMENTS_DIR = path.join(RAW_DIR, "placements");
 const FI_REGISTRY_FILE = path.join(ROOT, "fi_registry.json");
 const PORT = 8787;
+
+const updateClients = new Set();
+
+let currentUpdateJob = {
+  running: false,
+  startedAt: null,
+  finishedAt: null,
+  startDate: null,
+  endDate: null,
+  lastMessage: null,
+  error: null,
+};
+
+function todayIsoDate() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function isoAddDays(isoDate, deltaDays) {
+  const d = new Date(`${isoDate}T00:00:00Z`);
+  if (Number.isNaN(d)) return isoDate;
+  d.setUTCDate(d.getUTCDate() + deltaDays);
+  return d.toISOString().slice(0, 10);
+}
+
+function sseSend(res, event, data) {
+  res.write(`event: ${event}\n`);
+  res.write(`data: ${JSON.stringify(data)}\n\n`);
+}
+
+function broadcastUpdate(event, data) {
+  for (const res of updateClients) {
+    try {
+      sseSend(res, event, data);
+    } catch {
+      // Ignore write errors; connection cleanup handled on close.
+    }
+  }
+}
+
+async function startUpdateJobIfNeeded() {
+  if (currentUpdateJob.running) {
+    return;
+  }
+
+  const endDate = todayIsoDate();
+  const startDate = isoAddDays(endDate, -29);
+
+  currentUpdateJob = {
+    running: true,
+    startedAt: new Date().toISOString(),
+    finishedAt: null,
+    startDate,
+    endDate,
+    lastMessage: `Starting update for ${startDate} → ${endDate}`,
+    error: null,
+  };
+
+  broadcastUpdate("init", {
+    startedAt: currentUpdateJob.startedAt,
+    startDate,
+    endDate,
+    message: currentUpdateJob.lastMessage,
+  });
+
+  try {
+    broadcastUpdate("progress", {
+      phase: "raw",
+      message: `Fetching raw for ${startDate} → ${endDate}...`,
+    });
+
+    await fetchRawRange({
+      startDate,
+      endDate,
+      onStatus: (message) =>
+        broadcastUpdate("progress", { phase: "raw", message }),
+    });
+
+    broadcastUpdate("progress", {
+      phase: "daily",
+      message: `Rebuilding daily rollups for ${startDate} → ${endDate}...`,
+    });
+
+    await buildDailyFromRawRange({ startDate, endDate });
+
+    currentUpdateJob.running = false;
+    currentUpdateJob.finishedAt = new Date().toISOString();
+    currentUpdateJob.lastMessage = "Update completed.";
+
+    broadcastUpdate("done", {
+      finishedAt: currentUpdateJob.finishedAt,
+      startDate,
+      endDate,
+      message: currentUpdateJob.lastMessage,
+    });
+  } catch (err) {
+    currentUpdateJob.running = false;
+    currentUpdateJob.finishedAt = new Date().toISOString();
+    currentUpdateJob.error = err?.message || String(err);
+    currentUpdateJob.lastMessage = `Update failed: ${currentUpdateJob.error}`;
+
+    broadcastUpdate("error", {
+      finishedAt: currentUpdateJob.finishedAt,
+      startDate,
+      endDate,
+      error: currentUpdateJob.error,
+      message: currentUpdateJob.lastMessage,
+    });
+  }
+}
 
 const mime = (ext) =>
   ({
@@ -209,8 +320,8 @@ async function buildGlobalMerchantHeatmap(startIso, endIso) {
     }
   }
 
-  // Filter merchants with low volume across range (<10 attempts)
-  const MIN_ATTEMPTS = 10;
+  // Filter merchants with low volume across range (<1 attempts)
+  const MIN_ATTEMPTS = 0;
   const rows = [];
   for (const [merchant, stats] of Object.entries(merchants)) {
     if ((stats.total || 0) < MIN_ATTEMPTS) continue;
@@ -269,6 +380,39 @@ const server = http.createServer(async (req, res) => {
   const pathname = decodeURIComponent(parsedUrl.pathname);
   const search = parsedUrl.search;
   const queryParams = new URLSearchParams(search || "");
+
+  if (pathname === "/run-update/stream") {
+    res.writeHead(200, {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+    });
+    res.write("retry: 5000\n\n");
+
+    updateClients.add(res);
+
+    sseSend(res, "snapshot", {
+      running: currentUpdateJob.running,
+      startedAt: currentUpdateJob.startedAt,
+      finishedAt: currentUpdateJob.finishedAt,
+      startDate: currentUpdateJob.startDate,
+      endDate: currentUpdateJob.endDate,
+      lastMessage: currentUpdateJob.lastMessage,
+      error: currentUpdateJob.error,
+    });
+
+    if (!currentUpdateJob.running) {
+      startUpdateJobIfNeeded().catch((err) => {
+        console.error("Update job failed:", err);
+      });
+    }
+
+    req.on("close", () => {
+      updateClients.delete(res);
+    });
+
+    return;
+  }
 
   // Diagnostics
   if (pathname === "/__diag") {

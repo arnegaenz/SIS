@@ -1,0 +1,115 @@
+.sis-header {
+  background: #050b17;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+  margin-bottom: 24px;
+}
+
+.sis-header__inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px 28px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #e2e8f0;
+}
+
+.sis-brand {
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #f8fafc;
+}
+
+.sis-nav {
+  display: flex;
+  gap: 12px;
+  margin-left: auto;
+  justify-content: flex-end;
+  padding-top: 8px;
+}
+
+.sis-nav__item {
+  text-decoration: none;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  color: #f1f5f9;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  background: rgba(15, 23, 42, 0.35);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sis-nav__item:visited {
+  color: #f1f5f9;
+}
+
+.sis-nav__item:hover {
+  color: #0f172a;
+  background: rgba(248, 250, 252, 0.9);
+  border-color: rgba(248, 250, 252, 0.9);
+}
+
+.sis-nav__item--active {
+  background: #38bdf8;
+  color: #02111e;
+  border-color: #38bdf8;
+}
+
+.sis-main {
+  max-width: 1200px;
+  margin: 36px auto 80px;
+  padding: 32px 32px 0;
+}
+
+.sis-panel {
+  background: var(--sis-panel-bg, rgba(17, 24, 39, 0.85));
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 20px;
+  padding: clamp(24px, 4vw, 40px);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
+}
+
+.sis-panel + .sis-panel {
+  margin-top: 24px;
+}
+
+.sis-panel-title {
+  margin: 0 0 20px;
+  font-size: clamp(28px, 3.5vw, 40px);
+  letter-spacing: 0.02em;
+}
+
+.sis-panel-subtitle {
+  margin: 0 0 28px;
+  color: #94a3b8;
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+@media (max-width: 720px) {
+  .sis-header__inner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .sis-nav {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .sis-main {
+    padding: 0 18px;
+    margin: 24px auto 60px;
+  }
+
+  .sis-panel {
+    padding: 24px;
+  }
+}
