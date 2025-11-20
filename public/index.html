@@ -109,30 +109,6 @@
       text-transform: uppercase;
       letter-spacing: .2em;
     }
-    .refresh-card .refresh-status {
-      margin-top: 8px;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-    .refresh-card #update-job-status {
-      min-height: 18px;
-      font-size: 13px;
-      color: var(--muted);
-    }
-    .refresh-card #update-job-log {
-      background: #030712;
-      border-radius: 8px;
-      border: 1px solid rgba(148, 163, 184, 0.25);
-      min-height: 80px;
-      max-height: 160px;
-      padding: 10px;
-      font-size: 12px;
-      color: #e2e8f0;
-      overflow-y: auto;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
-      margin: 0;
-    }
     @media (max-width: 640px) {
       .sis-panel { padding: 28px 24px; }
     }
@@ -146,6 +122,7 @@
         <a class="sis-nav__item sis-nav__item--active" href="/">Overview</a>
         <a class="sis-nav__item" href="/funnel.html">FI Funnel</a>
         <a class="sis-nav__item" href="/heatmap.html">Merchant Heatmap</a>
+        <a class="sis-nav__item" href="/maintenance.html">Maintenance</a>
       </nav>
     </div>
   </header>
@@ -188,21 +165,17 @@
         </div>
       </article>
 
-      <article class="card refresh-card">
+      <article class="card">
         <div class="card-body">
-          <h2>Data Refresh (GA + SIS)</h2>
+          <h2>Maintenance &amp; Registry</h2>
           <p>
-            Kick off the raw-data fetch plus daily rollup rebuild for the most recent 30 days.
-            Monitor progress without leaving the overview.
+            Launch the admin workspace to run GA/SIS refreshes, edit FI registry metadata,
+            and review operational tasks in one place.
           </p>
         </div>
         <div class="card-footer">
           <div class="actions">
-            <button class="btn" id="update-job-btn" type="button">Refresh Data</button>
-          </div>
-          <div class="refresh-status">
-            <div id="update-job-status"></div>
-            <pre id="update-job-log" aria-live="polite"></pre>
+            <a class="btn" href="/maintenance.html">Open Maintenance</a>
           </div>
         </div>
       </article>
@@ -211,104 +184,7 @@
     </section>
   </main>
   <script>
-    (function () {
-      const btn = document.getElementById("update-job-btn");
-      const statusEl = document.getElementById("update-job-status");
-      const logEl = document.getElementById("update-job-log");
-      let source = null;
-
-      if (!btn || !statusEl || !logEl) {
-        return;
-      }
-
-      function appendLogLine(text) {
-        if (!text) return;
-        const ts = new Date().toLocaleTimeString();
-        logEl.textContent += `[${ts}] ${text}\n`;
-        logEl.scrollTop = logEl.scrollHeight;
-      }
-
-      function setStatus(text) {
-        statusEl.textContent = text || "";
-      }
-
-      btn.addEventListener("click", () => {
-        if (source) {
-          source.close();
-          source = null;
-        }
-
-        logEl.textContent = "";
-        setStatus("Starting update…");
-
-        source = new EventSource("/run-update/stream");
-
-        source.addEventListener("open", () => {
-          appendLogLine("Connected to update stream.");
-        });
-
-        source.addEventListener("snapshot", (ev) => {
-          try {
-            const data = JSON.parse(ev.data || "{}");
-            if (data.running) {
-              setStatus(`Update already running for ${data.startDate} → ${data.endDate}…`);
-              appendLogLine(data.lastMessage || "Resumed existing job.");
-            } else if (data.finishedAt) {
-              setStatus("Last update complete (snapshot).");
-              if (data.lastMessage) appendLogLine(data.lastMessage);
-            } else {
-              setStatus("Ready to start update…");
-            }
-          } catch (err) {
-            console.error("snapshot parse error", err);
-          }
-        });
-
-        source.addEventListener("init", (ev) => {
-          try {
-            const data = JSON.parse(ev.data || "{}");
-            setStatus(`Running: ${data.startDate} → ${data.endDate}`);
-            appendLogLine(data.message || "Update started.");
-          } catch (err) {
-            console.error("init parse error", err);
-          }
-        });
-
-        source.addEventListener("progress", (ev) => {
-          try {
-            const data = JSON.parse(ev.data || "{}");
-            if (data.message) {
-              appendLogLine(data.message);
-            }
-          } catch (err) {
-            console.error("progress parse error", err);
-          }
-        });
-
-        source.addEventListener("done", (ev) => {
-          try {
-            const data = JSON.parse(ev.data || "{}");
-            setStatus("Update complete.");
-            appendLogLine(data.message || "Done.");
-          } catch (err) {
-            console.error("done parse error", err);
-          }
-          if (source) {
-            source.close();
-            source = null;
-          }
-        });
-
-        source.addEventListener("error", () => {
-          setStatus("Update failed or connection lost.");
-          appendLogLine("Stream error or disconnect.");
-          if (source) {
-            source.close();
-            source = null;
-          }
-        });
-      });
-    })();
+    // No JS required on the overview at this time.
   </script>
 </body>
 </html>

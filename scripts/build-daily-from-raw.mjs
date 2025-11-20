@@ -8,6 +8,7 @@ import {
   buildDailyDocument,
   writeDailyFile,
 } from "../src/lib/daily-rollups.mjs";
+import { isTestInstanceName } from "../src/config/testInstances.mjs";
 import { readRaw } from "../src/lib/rawStorage.mjs";
 import { parseDateArgs } from "./fetch-raw.mjs";
 
@@ -185,6 +186,7 @@ function aggregateGaFromRaw(day, raw, registryIndex) {
     const adjustedInstance = adjustInstanceForFi(fiKey, instanceRaw);
     const instanceDisplay = formatInstanceDisplay(adjustedInstance);
     const normalizedInstance = canonicalInstance(instanceDisplay);
+    const isTest = isTestInstanceName(normalizedInstance);
     const fiInstanceKey = makeFiInstanceKey(fiKey, normalizedInstance);
 
     if (!byInstance[fiInstanceKey]) {
@@ -192,12 +194,16 @@ function aggregateGaFromRaw(day, raw, registryIndex) {
         fi_lookup_key: fiKey,
         instance: instanceDisplay,
         instance_norm: normalizedInstance,
+        is_test: isTest,
         select_merchants: 0,
         user_data_collection: 0,
         credential_entry: 0,
       };
     }
     const bucket = byInstance[fiInstanceKey];
+    if (isTest) {
+      bucket.is_test = true;
+    }
     const count = Number(
       originalRow.active_users ??
         originalRow.activeUsers ??
@@ -281,6 +287,7 @@ function aggregateSessionsFromRaw(raw, registryIndex) {
     const normalizedFi = normalizeFiKey(fiLookup);
     const instanceDisplay = formatInstanceDisplay(instanceValue);
     const normalizedInstance = canonicalInstance(instanceDisplay);
+    const isTest = isTestInstanceName(normalizedInstance);
     const key = makeFiInstanceKey(normalizedFi, normalizedInstance);
     const totalJobs = Number(session.total_jobs) || 0;
     const successfulJobs = Number(session.successful_jobs) || 0;
@@ -291,12 +298,16 @@ function aggregateSessionsFromRaw(raw, registryIndex) {
         fi_lookup_norm: normalizedFi,
         instance: instanceDisplay,
         instance_norm: normalizedInstance,
+        is_test: isTest,
         total_sessions: 0,
         sessions_with_jobs: 0,
         sessions_with_success: 0,
       };
     }
     const bucket = byInstance[key];
+    if (isTest) {
+      bucket.is_test = true;
+    }
     bucket.total_sessions += 1;
     if (totalJobs > 0) bucket.sessions_with_jobs += 1;
     if (successfulJobs > 0) bucket.sessions_with_success += 1;
@@ -374,6 +385,7 @@ function aggregatePlacementsFromRaw(raw, registryIndex) {
     const normalizedFi = normalizeFiKey(fiKey);
     const instanceDisplay = formatInstanceDisplay(instanceValue);
     const normalizedInstance = canonicalInstance(instanceDisplay);
+    const isTest = isTestInstanceName(normalizedInstance);
     const key = makeFiInstanceKey(normalizedFi, normalizedInstance);
     const termination = (
       placement.termination_type ||
@@ -390,12 +402,16 @@ function aggregatePlacementsFromRaw(raw, registryIndex) {
         fi_lookup_norm: normalizedFi,
         instance: instanceDisplay,
         instance_norm: normalizedInstance,
+        is_test: isTest,
         total_placements: 0,
         successful_placements: 0,
         by_termination: {},
       };
     }
     const bucket = byInstance[key];
+    if (isTest) {
+      bucket.is_test = true;
+    }
     bucket.total_placements += 1;
     if (isSuccessfulPlacement(placement)) {
       bucket.successful_placements += 1;

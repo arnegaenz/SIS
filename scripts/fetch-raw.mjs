@@ -4,7 +4,7 @@ import process from "node:process";
 import { pathToFileURL } from "node:url";
 
 import { fetchGaRowsForDay } from "../src/ga.mjs";
-import { loginWithSdk } from "../src/api.mjs";
+import { loginWithSdk, getSessionsPage } from "../src/api.mjs";
 import { loadInstances } from "../src/utils/config.mjs";
 import { fetchSessionsForInstance } from "../src/fetch/fetchSessions.mjs";
 import { fetchPlacementsForInstance } from "../src/fetch/fetchPlacements.mjs";
@@ -19,7 +19,10 @@ const SRC_DIR = path.resolve("src");
 const DAILY_FORMAT = /^\d{4}-\d{2}-\d{2}$/;
 const DEFAULT_GA_PROPERTY = process.env.GA_PROPERTY_ID || "328054560";
 const DEFAULT_GA_KEYFILE =
-  process.env.GA_KEYFILE || "./secrets/ga-service-account.json";
+  process.env.GA_KEYFILE || process.env.GOOGLE_APPLICATION_CREDENTIALS || "./secrets/ga-service-account.json";
+const TEST_GA_PROPERTY = process.env.GA_TEST_PROPERTY_ID || null;
+const TEST_GA_KEYFILE =
+  process.env.GA_TEST_KEYFILE || "./secrets/ga-test.json";
 const REFRESH_WINDOW_DAYS = 7;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
@@ -81,12 +84,12 @@ export function parseDateArgs(argv = []) {
   throw new Error("Usage: node scripts/fetch-raw.mjs [startDate] [endDate]");
 }
 
-function gaRequestForDate(date) {
+function gaRequestForDate(date, overrides = {}) {
   return {
-    propertyId: DEFAULT_GA_PROPERTY,
-    keyFile: path.resolve(DEFAULT_GA_KEYFILE),
+    propertyId: overrides.propertyId || DEFAULT_GA_PROPERTY,
+    keyFile: path.resolve(overrides.keyFile || DEFAULT_GA_KEYFILE),
     date,
-    dimensions: ["date", "hostName", "pagePath"],
+    dimensions: ["date", "hostName", "pagePath", "hour"],
     metrics: ["screenPageViews"],
   };
 }
@@ -103,6 +106,48 @@ async function getSessionForInstance(instance, cache) {
   const { session } = await loginWithSdk(instance);
   cache.set(instanceName, session);
   return session;
+}
+
+async function verifySessionAccess(session, instanceName, verificationDate) {
+  try {
+    await getSessionsPage(session, verificationDate, verificationDate, null);
+    console.log(
+      `[login] ${instanceName}: verified sessions endpoint for ${verificationDate}`
+    );
+  } catch (err) {
+    const msg = err?.message || String(err);
+    throw new Error(`sessions endpoint check failed (${msg})`);
+  }
+}
+
+async function verifyInstanceLogins(instances, cache, options = {}) {
+  const verificationDate = options.verificationDate || todayUtc();
+  const failures = [];
+  for (const instance of instances) {
+    const instanceName =
+      instance?.name ||
+      instance?.CARDSAVR_INSTANCE ||
+      instance?.USERNAME ||
+      "default";
+    try {
+      const { session } = await loginWithSdk(instance);
+      cache.set(instanceName, session);
+      console.log(`[login] ${instanceName}: success`);
+      await verifySessionAccess(session, instanceName, verificationDate);
+    } catch (err) {
+      const msg = err?.message || String(err);
+      console.error(`[login] ${instanceName}: FAILED - ${msg}`);
+      failures.push({ instanceName, error: msg });
+    }
+  }
+  if (failures.length > 0) {
+    const detail = failures
+      .map((failure) => `${failure.instanceName}: ${failure.error}`)
+      .join("; ");
+    throw new Error(
+      `Instance login check failed for ${failures.length} instance(s): ${detail}`
+    );
+  }
 }
 
 async function collectSessionsForDay(date, instances, cache) {
@@ -151,13 +196,30 @@ async function collectPlacementsForDay(date, instances, cache) {
 }
 
 async function fetchGaRaw(date) {
-  const request = gaRequestForDate(date);
-  const rows = await fetchGaRowsForDay({
-    date: request.date,
-    propertyId: request.propertyId,
-    keyFile: request.keyFile,
-  });
-  return { date, rows, count: rows.length, request };
+  const configs = [
+    { propertyId: DEFAULT_GA_PROPERTY, keyFile: DEFAULT_GA_KEYFILE, isTest: false },
+  ];
+  if (TEST_GA_PROPERTY) {
+    configs.push({ propertyId: TEST_GA_PROPERTY, keyFile: TEST_GA_KEYFILE, isTest: true });
+  }
+  const allRows = [];
+  const requests = [];
+  for (const cfg of configs) {
+    const request = gaRequestForDate(date, cfg);
+    const rows = await fetchGaRowsForDay({
+      date: request.date,
+      propertyId: cfg.propertyId,
+      keyFile: cfg.keyFile,
+    });
+    const taggedRows = rows.map((row) => ({ ...row, is_test: cfg.isTest }));
+    allRows.push(...taggedRows);
+    requests.push({ ...request, is_test: cfg.isTest, fetched: rows.length });
+    const label = cfg.isTest ? "GA (test)" : "GA (prod)";
+    console.log(
+      `[${date}] ${label}: queried ${cfg.propertyId}, fetched ${rows.length} rows`
+    );
+  }
+  return { date, rows: allRows, count: allRows.length, requests };
 }
 
 async function fetchSessionsRaw(date, instances, cache) {
@@ -227,6 +289,8 @@ export async function fetchRawRange({ startDate, endDate, onStatus }) {
   const sessionCache = new Map();
   const dates = enumerateDates(startDate, endDate);
   ensureRawDirs();
+  const verificationDate = dates[0] || todayUtc();
+  await verifyInstanceLogins(instances, sessionCache, { verificationDate });
 
   for (const date of dates) {
     console.log(`\n=== ${date} ===`);
@@ -252,7 +316,7 @@ export async function fetchRawRange({ startDate, endDate, onStatus }) {
           error: err.message || String(err),
           rows: [],
           count: 0,
-          request: gaRequestForDate(date),
+          requests: [],
         });
       }
     } else {

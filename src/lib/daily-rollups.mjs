@@ -211,10 +211,15 @@ export function buildDailyDocument({
       0,
       (s.total_sessions || 0) - (s.sessions_with_jobs || 0)
     );
+    const isTest =
+      Boolean(gaEntry?.is_test) ||
+      Boolean(sessionEntry?.is_test) ||
+      Boolean(placementEntry?.is_test);
 
     fiInstances[instanceKey] = {
       fi_lookup_key: fiLookupKey,
       instance: instanceValue,
+      is_test: isTest,
       ga: {
         select_merchants: g.select_merchants || 0,
         user_data_collection: g.user_data_collection || 0,

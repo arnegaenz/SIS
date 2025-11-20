@@ -4,6 +4,7 @@ import fs from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import url from "url";
 import { TERMINATION_RULES } from "../src/config/terminationMap.mjs";
+import { isTestInstanceName } from "../src/config/testInstances.mjs";
 import { fetchRawRange } from "./fetch-raw.mjs";
 import { buildDailyFromRawRange } from "./build-daily-from-raw.mjs";
 const { URLSearchParams } = url;
@@ -153,6 +154,20 @@ const send = (res, code, body, type) => {
   }
 };
 
+const readRequestBody = (req) =>
+  new Promise((resolve, reject) => {
+    const chunks = [];
+    req.on("data", (chunk) => chunks.push(chunk));
+    req.on("end", () => {
+      try {
+        resolve(Buffer.concat(chunks).toString("utf8"));
+      } catch (err) {
+        reject(err);
+      }
+    });
+    req.on("error", reject);
+  });
+
 async function fileExists(fp) {
   try {
     await fs.access(fp);
@@ -252,6 +267,70 @@ async function readPlacementDay(day) {
   }
 }
 
+function createPlacementStore() {
+  return {
+    total: 0,
+    billable: 0,
+    siteFailures: 0,
+    userFlowIssues: 0,
+    daily: Object.create(null),
+  };
+}
+
+function ensureDailyEntry(store, day) {
+  if (!store.daily[day]) {
+    store.daily[day] = {
+      billable: 0,
+      siteFailures: 0,
+      userFlowIssues: 0,
+      total: 0,
+    };
+  }
+  return store.daily[day];
+}
+
+function summarizeStore(store, days) {
+  const dayCells = days.map((day) => {
+    const entry = store.daily[day] || {
+      billable: 0,
+      siteFailures: 0,
+      userFlowIssues: 0,
+      total: 0,
+    };
+    const billable = entry.billable || 0;
+    const siteFailures = entry.siteFailures || 0;
+    const userFlowIssues = entry.userFlowIssues || 0;
+    const total = entry.total || 0;
+    const denom = billable + siteFailures;
+    const pct =
+      denom > 0 ? Number(((billable / denom) * 100).toFixed(1)) : null;
+    return {
+      day,
+      billable,
+      siteFail: siteFailures,
+      siteFailures,
+      userFlowIssues,
+      total,
+      pct,
+    };
+  });
+
+  const overallDenom = (store.billable || 0) + (store.siteFailures || 0);
+  const overallHealthPct =
+    overallDenom > 0
+      ? Number(((store.billable / overallDenom) * 100).toFixed(1))
+      : null;
+
+  return {
+    total: store.total || 0,
+    billable: store.billable || 0,
+    siteFailures: store.siteFailures || 0,
+    userFlowIssues: store.userFlowIssues || 0,
+    overallHealthPct,
+    days: dayCells,
+  };
+}
+
 async function buildGlobalMerchantHeatmap(startIso, endIso) {
   // Build day list
   const days = daysBetween(startIso, endIso);
@@ -267,16 +346,27 @@ async function buildGlobalMerchantHeatmap(startIso, endIso) {
       const merchant =
         pl.merchant_site_hostname ||
         (pl.merchant_site_id ? `merchant_${pl.merchant_site_id}` : "UNKNOWN");
+      const instanceName =
+        pl._instance ||
+        pl.instance ||
+        pl.instance_name ||
+        pl.org_name ||
+        "";
+      const isTestInstance = isTestInstanceName(instanceName);
       if (!merchants[merchant]) {
         merchants[merchant] = {
-          total: 0,
-          billable: 0,
-          siteFailures: 0,
-          userFlowIssues: 0,
-          daily: Object.create(null),
+          prod: createPlacementStore(),
+          test: createPlacementStore(),
+          testInstanceSet: new Set(),
         };
       }
       const bucket = merchants[merchant];
+      const targetStore = isTestInstance ? bucket.test : bucket.prod;
+      if (isTestInstance) {
+        if (instanceName) {
+          bucket.testInstanceSet.add(instanceName);
+        }
+      }
 
       // Determine termination class
       const term = (pl.termination_type || "").toString().toUpperCase();
@@ -286,86 +376,55 @@ async function buildGlobalMerchantHeatmap(startIso, endIso) {
         TERMINATION_RULES[status] ||
         TERMINATION_RULES.UNKNOWN;
 
-      bucket.total += 1;
+      targetStore.total += 1;
 
       // Day attribution (prefer actual placement timestamps; fallback = file day)
       const dKey = placementDay(pl) || day;
-      if (!bucket.daily[dKey]) {
-        bucket.daily[dKey] = {
-          billable: 0,
-          siteFailures: 0,
-          userFlowIssues: 0,
-          total: 0,
-        };
-      }
-      const d = bucket.daily[dKey];
+      const d = ensureDailyEntry(targetStore, dKey);
       d.total += 1;
 
       if (rule.includeInHealth) {
         if (rule.severity === "success") {
-          bucket.billable += 1;
+          targetStore.billable += 1;
           d.billable += 1;
         } else {
-          bucket.siteFailures += 1;
+          targetStore.siteFailures += 1;
           d.siteFailures += 1;
         }
       } else if (rule.includeInUx) {
-        bucket.userFlowIssues += 1;
+        targetStore.userFlowIssues += 1;
         d.userFlowIssues += 1;
       } else {
         // treat unknown as site failure for conservative health
-        bucket.siteFailures += 1;
+        targetStore.siteFailures += 1;
         d.siteFailures += 1;
       }
     }
   }
 
-  // Filter merchants with low volume across range (<1 attempts)
-  const MIN_ATTEMPTS = 0;
   const rows = [];
   for (const [merchant, stats] of Object.entries(merchants)) {
-    if ((stats.total || 0) < MIN_ATTEMPTS) continue;
-
-    // Build per-day health color
-    const dayCells = days.map((day) => {
-      const m = stats.daily[day];
-      if (!m)
-        return {
-          day,
-          color: colorFromHealth(null),
-          pct: null,
-          billable: 0,
-          siteFail: 0,
-          total: 0,
-        };
-      const denom = (m.billable || 0) + (m.siteFailures || 0);
-      const pct =
-        denom > 0 ? Number(((m.billable / denom) * 100).toFixed(1)) : null;
-      return {
-        day,
-        color: colorFromHealth(pct),
-        pct,
-        billable: m.billable || 0,
-        siteFail: m.siteFailures || 0,
-        total: m.total || 0,
-      };
-    });
-
-    // Overall site-health % for sorting
-    const overallDenom = (stats.billable || 0) + (stats.siteFailures || 0);
-    const overallPct =
-      overallDenom > 0
-        ? Number(((stats.billable / overallDenom) * 100).toFixed(1))
-        : null;
+    const prodStats = summarizeStore(stats.prod, days);
+    const testStats = summarizeStore(stats.test, days);
+    const testInstances = Array.from(stats.testInstanceSet || []);
+    const hasTestTraffic = testStats.total > 0;
 
     rows.push({
       merchant,
-      total: stats.total || 0,
-      billable: stats.billable || 0,
-      siteFailures: stats.siteFailures || 0,
-      userFlowIssues: stats.userFlowIssues || 0,
-      overallHealthPct: overallPct,
-      days: dayCells,
+      total: prodStats.total,
+      billable: prodStats.billable,
+      siteFailures: prodStats.siteFailures,
+      userFlowIssues: prodStats.userFlowIssues,
+      overallHealthPct: prodStats.overallHealthPct,
+      days: prodStats.days,
+      prod_stats: prodStats,
+      test_stats: testStats,
+      is_test: hasTestTraffic,
+      has_test_fi: hasTestTraffic,
+      has_prod_fi: prodStats.total > 0,
+      test_traffic: testStats.total,
+      prod_traffic: prodStats.total,
+      test_instances: testInstances,
     });
   }
 
@@ -449,6 +508,112 @@ const server = http.createServer(async (req, res) => {
       return send(res, status, { error: "fi_registry.json not found" });
     }
   }
+  if (pathname === "/fi-registry/update" && req.method === "POST") {
+    try {
+      const rawBody = await readRequestBody(req);
+      const payload = JSON.parse(rawBody || "{}");
+      if (!payload || typeof payload !== "object") {
+        return send(res, 400, { error: "Invalid payload" });
+      }
+      const { key, updates } = payload;
+      if (!key || typeof updates !== "object" || Array.isArray(updates)) {
+        return send(res, 400, { error: "Missing key or updates" });
+      }
+      const raw = await fs.readFile(FI_REGISTRY_FILE, "utf8").catch((err) => {
+        if (err.code === "ENOENT") {
+          throw Object.assign(new Error("fi_registry.json not found"), { status: 404 });
+        }
+        throw err;
+      });
+      const registry = JSON.parse(raw);
+      if (!registry[key]) {
+        return send(res, 404, { error: "Registry entry not found", key });
+      }
+
+      const normalizeIntegration = (value) => {
+        if (!value) return "non-sso";
+        const rawVal = value.toString().trim().toLowerCase();
+        if (rawVal === "sso") return "sso";
+        if (rawVal === "cardsavr" || rawVal === "card-savr") return "cardsavr";
+        if (rawVal === "test") return "test";
+        if (rawVal === "unknown") return "unknown";
+        return "non-sso";
+      };
+      const normalizeCardholders = (value) => {
+        if (value === null || value === undefined || value === "") return null;
+        const cleaned = value.toString().replace(/,/g, "").trim();
+        if (!cleaned) return null;
+        const num = Number(cleaned);
+        if (!Number.isFinite(num) || num < 0) {
+          throw Object.assign(new Error("Cardholder total must be a positive number"), {
+            status: 400,
+          });
+        }
+        return String(Math.round(num));
+      };
+      const normalizeAsOf = (value) => {
+        if (!value) return null;
+        const str = value.toString().trim();
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+          throw Object.assign(new Error("cardholder_as_of must be YYYY-MM-DD"), {
+            status: 400,
+          });
+        }
+        return str;
+      };
+      const normalizeSource = (value) => {
+        if (!value) return null;
+        return value.toString().trim();
+      };
+      const normalizePartner = (value) => {
+        if (!value) return null;
+        const rawVal = value.toString().trim().toLowerCase();
+        const canonical =
+          {
+            alkami: "Alkami",
+            "digital-onboarding": "DigitalOnboarding",
+            digitalonboarding: "DigitalOnboarding",
+            pscu: "PSCU",
+            marquis: "Marquis",
+            msu: "MSU",
+            advancial: "Advancial",
+            "advancial-prod": "Advancial",
+            cardsavr: "CardSavr",
+            direct: "Direct",
+          }[rawVal] || rawVal;
+        return canonical
+          .replace(/(^|\s|-)([a-z])/g, (m, p1, p2) => p1 + p2.toUpperCase());
+      };
+
+      const next = { ...registry[key] };
+      if ("integration_type" in updates) {
+        next.integration_type = normalizeIntegration(updates.integration_type);
+      }
+      if ("partner" in updates) {
+        next.partner = normalizePartner(updates.partner);
+      }
+      if ("cardholder_total" in updates) {
+        next.cardholder_total = normalizeCardholders(updates.cardholder_total);
+      }
+      if ("cardholder_source" in updates) {
+        next.cardholder_source = normalizeSource(updates.cardholder_source);
+      }
+      if ("cardholder_as_of" in updates) {
+        next.cardholder_as_of = normalizeAsOf(updates.cardholder_as_of);
+      }
+
+      registry[key] = next;
+      await fs.writeFile(
+        FI_REGISTRY_FILE,
+        JSON.stringify(registry, null, 2) + "\n",
+        "utf8"
+      );
+      return send(res, 200, { key, entry: next });
+    } catch (err) {
+      const status = err?.status || 500;
+      return send(res, status, { error: err.message || "Unable to update registry" });
+    }
+  }
   if (pathname === "/daily") {
     const dateStr = queryParams.get("date");
     if (!dateStr) {
@@ -509,6 +674,11 @@ const server = http.createServer(async (req, res) => {
 
   if (pathname === "/funnel" || pathname === "/funnel.html") {
     const fp = path.join(PUBLIC_DIR, "funnel.html");
+    if (await fileExists(fp)) return serveFile(res, fp);
+  }
+
+  if (pathname === "/maintenance" || pathname === "/maintenance.html") {
+    const fp = path.join(PUBLIC_DIR, "maintenance.html");
     if (await fileExists(fp)) return serveFile(res, fp);
   }
 

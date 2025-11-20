@@ -84,6 +84,19 @@
       font-size: 0.9rem;
     }
     .filter-btn:hover { filter: brightness(1.08); }
+    .filter-toggle label.toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--ink);
+      text-transform: none;
+    }
+    .filter-toggle input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--accent);
+    }
     .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
     label { font-size: 13px; color: var(--muted); }
     input[type="date"] {
@@ -218,6 +231,7 @@
         <a class="sis-nav__item" href="/">Overview</a>
         <a class="sis-nav__item" href="/funnel.html">FI Funnel</a>
         <a class="sis-nav__item sis-nav__item--active" href="/heatmap.html">Merchant Heatmap</a>
+        <a class="sis-nav__item" href="/maintenance.html">Maintenance</a>
       </nav>
     </div>
   </header>
@@ -241,6 +255,17 @@
               <button id="apply" class="filter-btn" type="button">Apply filters</button>
               <span class="muted tiny mono" id="count"></span>
             </div>
+          </div>
+          <div class="filter-field filter-toggle">
+            <label>Traffic sources</label>
+            <label class="toggle">
+              <input type="checkbox" id="includeProdMerchants" checked />
+              Include production traffic
+            </label>
+            <label class="toggle">
+              <input type="checkbox" id="includeTestMerchants" />
+              Include traffic from test (customer-dev) FIs
+            </label>
           </div>
         </div>
         <div class="right">
@@ -333,6 +358,163 @@
     }
     const veryLight = "rgba(255,255,255,0.04)";
 
+    function normalizeMerchantStats(stats, daysOrder) {
+      const safe = stats && typeof stats === "object" ? stats : {};
+      const total = Number(safe.total || 0);
+      const billable = Number(safe.billable || 0);
+      const siteFailures = Number(
+        safe.siteFailures ?? safe.siteFail ?? 0
+      );
+      const userFlowIssues = Number(safe.userFlowIssues || 0);
+      const overall =
+        typeof safe.overallHealthPct === "number"
+          ? safe.overallHealthPct
+          : null;
+      const baseDays = Array.isArray(safe.days)
+        ? safe.days
+        : (daysOrder || []).map((day) => ({ day }));
+      const days = baseDays.map((cell) => {
+        const day = cell.day;
+        const bill = Number(cell.billable || 0);
+        const sf = Number((cell.siteFail ?? cell.siteFailures) || 0);
+        const ux = Number(cell.userFlowIssues || 0);
+        const tot = Number(cell.total || 0);
+        const denom = bill + sf;
+        const pct =
+          denom > 0 ? Number(((bill / denom) * 100).toFixed(1)) : null;
+        return {
+          day,
+          billable: bill,
+          siteFail: sf,
+          siteFailures: sf,
+          userFlowIssues: ux,
+          total: tot,
+          pct,
+        };
+      });
+      return {
+        total,
+        billable,
+        siteFailures,
+        userFlowIssues,
+        overallHealthPct: overall,
+        days,
+      };
+    }
+
+    function mergeDayStats(daysOrder, primaryDays, secondaryDays) {
+      const map = new Map();
+      const add = (cell) => {
+        if (!cell || !cell.day) return;
+        const key = cell.day;
+        if (!map.has(key)) {
+          map.set(key, {
+            day: key,
+            billable: 0,
+            siteFail: 0,
+            siteFailures: 0,
+            userFlowIssues: 0,
+            total: 0,
+          });
+        }
+        const bucket = map.get(key);
+        bucket.billable += Number(cell.billable || 0);
+        const sf = Number((cell.siteFail ?? cell.siteFailures) || 0);
+        bucket.siteFail += sf;
+        bucket.siteFailures = bucket.siteFail;
+        bucket.userFlowIssues += Number(cell.userFlowIssues || 0);
+        bucket.total += Number(cell.total || 0);
+      };
+      (primaryDays || []).forEach(add);
+      (secondaryDays || []).forEach(add);
+      return (daysOrder || []).map((day) => {
+        const base =
+          map.get(day) || {
+            day,
+            billable: 0,
+            siteFail: 0,
+            siteFailures: 0,
+            userFlowIssues: 0,
+            total: 0,
+          };
+        const denom = base.billable + base.siteFail;
+        const pct =
+          denom > 0 ? Number(((base.billable / denom) * 100).toFixed(1)) : null;
+        return { ...base, siteFailures: base.siteFail, pct };
+      });
+    }
+
+    function mergeMerchantStats(prodStats, testStats, daysOrder) {
+      const billable = prodStats.billable + testStats.billable;
+      const siteFailures = prodStats.siteFailures + testStats.siteFailures;
+      const total = prodStats.total + testStats.total;
+      const userFlowIssues =
+        prodStats.userFlowIssues + testStats.userFlowIssues;
+      const denom = billable + siteFailures;
+      const overall =
+        denom > 0 ? Number(((billable / denom) * 100).toFixed(1)) : null;
+      const days = mergeDayStats(daysOrder, prodStats.days, testStats.days);
+      return {
+        total,
+        billable,
+        siteFailures,
+        userFlowIssues,
+        overallHealthPct: overall,
+        days,
+      };
+    }
+
+function transformMerchantRow(row, options, daysOrder) {
+  const includeProd = options?.includeProd ?? true;
+  const includeTests = options?.includeTest ?? false;
+  const prodFallback = {
+    total: row.prod_traffic ?? row.total ?? 0,
+    billable: row.billable ?? 0,
+        siteFailures: row.siteFailures ?? row.siteFail ?? 0,
+        userFlowIssues: row.userFlowIssues ?? 0,
+        days: row.days || [],
+        overallHealthPct: row.overallHealthPct ?? null,
+      };
+      const prodStats = normalizeMerchantStats(
+        row.prod_stats || prodFallback,
+        daysOrder
+      );
+      const testStats = normalizeMerchantStats(
+        row.test_stats || {
+          total: row.test_traffic ?? 0,
+          billable: 0,
+          siteFailures: 0,
+          userFlowIssues: 0,
+          days: row.test_days || [],
+        },
+        daysOrder
+      );
+  let mergedStats;
+  if (includeProd && includeTests) {
+    mergedStats = mergeMerchantStats(prodStats, testStats, daysOrder);
+  } else if (includeTests && !includeProd) {
+    mergedStats = testStats;
+  } else {
+    mergedStats = prodStats;
+  }
+  return {
+    ...row,
+    total: mergedStats.total,
+        billable: mergedStats.billable,
+        siteFailures: mergedStats.siteFailures,
+        userFlowIssues: mergedStats.userFlowIssues,
+        overallHealthPct: mergedStats.overallHealthPct,
+        days: mergedStats.days,
+        prod_traffic: prodStats.total,
+        test_traffic: testStats.total,
+        has_test_fi:
+          row.has_test_fi ?? testStats.total > 0,
+        has_prod_fi: prodStats.total > 0,
+        prod_stats: prodStats,
+        test_stats: testStats,
+      };
+    }
+
     // ===== State =====
     let MODE = "traffic"; // traffic | health | conversion | anomaly
     const startEl = $("#start");
@@ -344,6 +526,16 @@
     const legendEl = $("#legend");
     const tip = $("#tip");
     const countEl = $("#count");
+    const includeProdToggle = document.getElementById("includeProdMerchants");
+    const includeTestToggle = document.getElementById("includeTestMerchants");
+    let latestMerchantPayload = null;
+    function rerenderIfLoaded() {
+      if (latestMerchantPayload) {
+        render(latestMerchantPayload);
+      }
+    }
+    includeTestToggle?.addEventListener("change", rerenderIfLoaded);
+    includeProdToggle?.addEventListener("change", rerenderIfLoaded);
 
     // initial dates: from query or default last 90 days
     const initStart = urlParams.get("start") || isoDaysAgo(89);
@@ -401,6 +593,7 @@
       }
       const json = await res.json();
       currentData = json;
+      latestMerchantPayload = json;
       render(json);
       $("#grid").removeAttribute("aria-busy");
     }
@@ -412,7 +605,21 @@
       }
       hideTooltip();
       const days = json.days;
-      countEl.textContent = `${json.merchants.length} merchants • ${days.length} days`;
+      const includeProd = includeProdToggle?.checked !== false;
+      const includeTests = includeTestToggle?.checked;
+      const transformed = (json.merchants || []).map((m) =>
+        transformMerchantRow(
+          m,
+          { includeProd, includeTest: includeTests },
+          days
+        )
+      );
+      const merchants = transformed.filter((row) => {
+        const hasProd = includeProd && row.prod_traffic > 0;
+        const hasTest = includeTests && row.test_traffic > 0;
+        return hasProd || hasTest;
+      });
+      countEl.textContent = `${merchants.length} merchants • ${days.length} days`;
 
       // header ticks (visual rhythm)
       headTicks.innerHTML = "";
@@ -423,7 +630,7 @@
       }
 
       // sort merchants by total traffic across window (desc)
-      const sorted = [...json.merchants].sort((a,b) => (b.total||0) - (a.total||0));
+      const sorted = [...merchants].sort((a,b) => (b.total||0) - (a.total||0));
 
       // build left labels
       leftCol.innerHTML = "";
