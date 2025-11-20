@@ -33,32 +33,35 @@
 
 .sis-nav__item {
   text-decoration: none;
-  padding: 6px 14px;
+  padding: 8px 20px;
   border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.45);
-  color: #f1f5f9;
+  color: #e0e7ff;
   font-weight: 600;
-  letter-spacing: 0.05em;
-  background: rgba(15, 23, 42, 0.35);
+  font-size: 0.88rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: rgba(15, 23, 42, 0.4);
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
 }
 
 .sis-nav__item:visited {
-  color: #f1f5f9;
+  color: #e0e7ff;
 }
 
 .sis-nav__item:hover {
-  color: #0f172a;
-  background: rgba(248, 250, 252, 0.9);
-  border-color: rgba(248, 250, 252, 0.9);
+  color: #050712;
+  background: rgba(248, 250, 252, 0.95);
+  border-color: rgba(248, 250, 252, 0.95);
 }
 
 .sis-nav__item--active {
-  background: #38bdf8;
-  color: #02111e;
-  border-color: #38bdf8;
+  background: linear-gradient(120deg, #38bdf8, #6366f1);
+  color: #020617;
+  border-color: transparent;
 }
 
 .sis-main {

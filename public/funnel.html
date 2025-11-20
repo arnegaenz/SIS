@@ -70,6 +70,20 @@
         flex-wrap: wrap;
         align-items: center;
       }
+      .form-checkbox label {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.85rem;
+        color: var(--muted);
+        text-transform: none;
+        letter-spacing: 0;
+      }
+      .form-checkbox input[type="checkbox"] {
+        width: 16px;
+        height: 16px;
+        accent-color: var(--accent);
+      }
       .form-button {
         background: var(--accent);
         border: none;
@@ -130,6 +144,10 @@
       .highlights-table th {
         background: #020617;
       }
+      .highlights-table th:first-child,
+      .highlights-table td:first-child {
+        min-width: 180px;
+      }
       .muted {
         color: var(--muted);
       }
@@ -170,6 +188,11 @@
         letter-spacing: 0.08em;
         text-transform: uppercase;
       }
+      .totals-row td {
+        font-weight: 600;
+        border-top: 2px solid rgba(148,163,184,0.4);
+        background: rgba(2,6,23,0.65);
+      }
       .sources-missing {
         font-size: 0.72rem;
         color: #f97316;
@@ -187,6 +210,43 @@
         margin-left: auto;
         align-self: center;
       }
+      .partner-summary {
+        margin-top: 16px;
+        padding: 16px;
+        border-radius: 14px;
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        background: rgba(15, 23, 42, 0.65);
+      }
+      .partner-summary h3 {
+        margin: 0 0 8px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        font-size: 0.85rem;
+        color: var(--muted);
+      }
+      .partner-summary p {
+        margin: 0 0 12px;
+        color: var(--muted);
+        font-size: 0.8rem;
+      }
+      .partner-summary__table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      .partner-summary__table th,
+      .partner-summary__table td {
+        border: 1px solid rgba(148, 163, 184, 0.25);
+        padding: 6px 8px;
+        text-align: left;
+        font-size: 0.78rem;
+      }
+      .partner-summary__table th {
+        background: rgba(15, 23, 42, 0.55);
+        position: static;
+      }
+      .partner-summary__table tfoot td {
+        font-weight: 600;
+      }
     </style>
   </head>
   <body>
@@ -197,6 +257,7 @@
           <a class="sis-nav__item" href="/">Overview</a>
           <a class="sis-nav__item sis-nav__item--active" href="/funnel.html">FI Funnel</a>
           <a class="sis-nav__item" href="/heatmap.html">Merchant Heatmap</a>
+          <a class="sis-nav__item" href="/maintenance.html">Maintenance</a>
         </nav>
       </div>
     </header>
@@ -218,7 +279,20 @@
                 <option value="SSO">SSO</option>
                 <option value="NON-SSO">NON-SSO</option>
                 <option value="CardSavr">CardSavr</option>
+                <option value="TEST">TEST</option>
                 <option value="UNKNOWN">UNKNOWN</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label for="partnerFilter">Partner</label>
+              <select id="partnerFilter" class="form-select">
+                <option value="__all_partners__">(all partners)</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label for="instanceFilter">Instances</label>
+              <select id="instanceFilter" class="form-select" multiple size="4">
+                <option value="__all_instances__" selected>(all instances)</option>
               </select>
             </div>
             <div class="form-field">
@@ -240,14 +314,21 @@
                 <button id="exportCsvBtn" class="form-button secondary">Export CSV</button>
               </div>
             </div>
+            <div class="form-field form-checkbox" style="min-width: 200px">
+              <label>
+                <input type="checkbox" id="includeTestDataCheckbox" />
+                Include test data
+              </label>
+            </div>
             <div class="muted date-window" id="dateWindowLabel"></div>
           </div>
         </div>
 
     <div class="funnel-body">
       <div class="group-header">Highlights</div>
-      <div id="bestWindows"></div>
+      <div id="bestWindows" style="margin-bottom: 24px;"></div>
       <div id="totalsBar" class="group-header" style="display: none;"></div>
+      <div id="partnerSummary" class="partner-summary" style="display: none;"></div>
 
       <div id="multiFiView">
       <div class="group-block" data-group="SSO">
@@ -255,22 +336,23 @@
         <table id="table-SSO">
         <thead>
           <tr>
-            <th data-sort-key="fi">FI</th>
-            <th data-sort-key="instances">instances</th>
-            <th data-sort-key="integration">integration</th>
-            <th data-sort-key="ga_select">GA select</th>
-            <th data-sort-key="ga_user">GA user</th>
-            <th data-sort-key="ga_cred">GA cred</th>
-            <th data-sort-key="reach">monthly reach %</th>
-            <th data-sort-key="sel_user_pct">sel→user %</th>
-            <th data-sort-key="sel_cred_pct">sel→cred %</th>
-            <th data-sort-key="sel_success_pct">sel→success %</th>
-            <th data-sort-key="sessions">sessions</th>
-            <th data-sort-key="sess_with_jobs">sess w/jobs</th>
-            <th data-sort-key="sess_with_success">sess w/success</th>
-            <th data-sort-key="sess_success_pct">sess→success %</th>
-            <th data-sort-key="placements">placements</th>
-            <th data-sort-key="sources_missing">sources missing</th>
+            <th data-sort-key="fi" data-col="fi">FI</th>
+            <th data-sort-key="instances" data-col="instances">instances</th>
+            <th data-sort-key="integration" data-col="integration">integration</th>
+            <th data-sort-key="ga_select" data-col="ga_select">GA select</th>
+            <th data-sort-key="ga_user" data-col="ga_user">GA user</th>
+            <th data-sort-key="ga_cred" data-col="ga_cred">GA cred</th>
+            <th data-sort-key="reach" data-col="reach">monthly reach %</th>
+            <th data-sort-key="sel_user_pct" data-col="sel_user_pct">sel→user %</th>
+            <th data-sort-key="sel_cred_pct" data-col="sel_cred_pct">sel→cred %</th>
+            <th data-sort-key="sel_success_pct" data-col="sel_success_pct">sel→success %</th>
+            <th data-sort-key="sessions" data-col="sessions">sessions</th>
+            <th data-sort-key="sess_with_jobs" data-col="sess_with_jobs">sess w/jobs</th>
+            <th data-sort-key="sess_jobs_pct" data-col="sess_jobs_pct">sess→jobs %</th>
+            <th data-sort-key="sess_with_success" data-col="sess_with_success">sess w/success</th>
+            <th data-sort-key="sess_success_pct" data-col="sess_success_pct">sess→success %</th>
+            <th data-sort-key="placements" data-col="placements">placements</th>
+            <th data-sort-key="sources_missing" data-col="sources_missing">sources missing</th>
           </tr>
         </thead>
         <tbody></tbody>
@@ -282,22 +364,23 @@
         <table id="table-NON-SSO">
         <thead>
           <tr>
-            <th data-sort-key="fi">FI</th>
-            <th data-sort-key="instances">instances</th>
-            <th data-sort-key="integration">integration</th>
-            <th data-sort-key="ga_select">GA select</th>
-            <th data-sort-key="ga_user">GA user</th>
-            <th data-sort-key="ga_cred">GA cred</th>
-            <th data-sort-key="reach">monthly reach %</th>
-            <th data-sort-key="sel_user_pct">sel→user %</th>
-            <th data-sort-key="sel_cred_pct">sel→cred %</th>
-            <th data-sort-key="sel_success_pct">sel→success %</th>
-            <th data-sort-key="sessions">sessions</th>
-            <th data-sort-key="sess_with_jobs">sess w/jobs</th>
-            <th data-sort-key="sess_with_success">sess w/success</th>
-            <th data-sort-key="sess_success_pct">sess→success %</th>
-            <th data-sort-key="placements">placements</th>
-            <th data-sort-key="sources_missing">sources missing</th>
+            <th data-sort-key="fi" data-col="fi">FI</th>
+            <th data-sort-key="instances" data-col="instances">instances</th>
+            <th data-sort-key="integration" data-col="integration">integration</th>
+            <th data-sort-key="ga_select" data-col="ga_select">GA select</th>
+            <th data-sort-key="ga_user" data-col="ga_user">GA user</th>
+            <th data-sort-key="ga_cred" data-col="ga_cred">GA cred</th>
+            <th data-sort-key="reach" data-col="reach">monthly reach %</th>
+            <th data-sort-key="sel_user_pct" data-col="sel_user_pct">sel→user %</th>
+            <th data-sort-key="sel_cred_pct" data-col="sel_cred_pct">sel→cred %</th>
+            <th data-sort-key="sel_success_pct" data-col="sel_success_pct">sel→success %</th>
+            <th data-sort-key="sessions" data-col="sessions">sessions</th>
+            <th data-sort-key="sess_with_jobs" data-col="sess_with_jobs">sess w/jobs</th>
+            <th data-sort-key="sess_jobs_pct" data-col="sess_jobs_pct">sess→jobs %</th>
+            <th data-sort-key="sess_with_success" data-col="sess_with_success">sess w/success</th>
+            <th data-sort-key="sess_success_pct" data-col="sess_success_pct">sess→success %</th>
+            <th data-sort-key="placements" data-col="placements">placements</th>
+            <th data-sort-key="sources_missing" data-col="sources_missing">sources missing</th>
           </tr>
         </thead>
         <tbody></tbody>
@@ -309,22 +392,51 @@
         <table id="table-CardSavr">
         <thead>
           <tr>
-            <th>FI</th>
-            <th>instances</th>
-            <th>integration</th>
-            <th>GA select</th>
-            <th>GA user</th>
-            <th>GA cred</th>
-            <th>monthly reach %</th>
-            <th>sel→user %</th>
-            <th>sel→cred %</th>
-            <th>sel→success %</th>
-            <th>sessions</th>
-            <th>sess w/jobs</th>
-            <th>sess w/success</th>
-            <th>sess→success %</th>
-            <th>placements</th>
-            <th>sources missing</th>
+            <th data-col="fi">FI</th>
+            <th data-col="instances">instances</th>
+            <th data-col="integration">integration</th>
+            <th data-col="ga_select">GA select</th>
+            <th data-col="ga_user">GA user</th>
+            <th data-col="ga_cred">GA cred</th>
+            <th data-col="reach">monthly reach %</th>
+            <th data-col="sel_user_pct">sel→user %</th>
+            <th data-col="sel_cred_pct">sel→cred %</th>
+            <th data-col="sel_success_pct">sel→success %</th>
+            <th data-col="sessions">sessions</th>
+            <th data-col="sess_with_jobs">sess w/jobs</th>
+            <th data-col="sess_jobs_pct">sess→jobs %</th>
+            <th data-col="sess_with_success">sess w/success</th>
+            <th data-col="sess_success_pct">sess→success %</th>
+            <th data-col="placements">placements</th>
+            <th data-col="sources_missing">sources missing</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+        </table>
+      </div>
+
+      <div class="group-block" data-group="TEST">
+        <div class="group-header">TEST</div>
+        <table id="table-TEST">
+        <thead>
+          <tr>
+            <th data-col="fi">FI</th>
+            <th data-col="instances">instances</th>
+            <th data-col="integration">integration</th>
+            <th data-col="ga_select">GA select</th>
+            <th data-col="ga_user">GA user</th>
+            <th data-col="ga_cred">GA cred</th>
+            <th data-col="reach">monthly reach %</th>
+            <th data-col="sel_user_pct">sel→user %</th>
+            <th data-col="sel_cred_pct">sel→cred %</th>
+            <th data-col="sel_success_pct">sel→success %</th>
+            <th data-col="sessions">sessions</th>
+            <th data-col="sess_with_jobs">sess w/jobs</th>
+            <th data-col="sess_jobs_pct">sess→jobs %</th>
+            <th data-col="sess_with_success">sess w/success</th>
+            <th data-col="sess_success_pct">sess→success %</th>
+            <th data-col="placements">placements</th>
+            <th data-col="sources_missing">sources missing</th>
           </tr>
         </thead>
         <tbody></tbody>
@@ -336,22 +448,23 @@
         <table id="table-UNKNOWN">
         <thead>
           <tr>
-            <th>FI</th>
-            <th>instances</th>
-            <th>integration</th>
-            <th>GA select</th>
-            <th>GA user</th>
-            <th>GA cred</th>
-            <th>monthly reach %</th>
-            <th>sel→user %</th>
-            <th>sel→cred %</th>
-            <th>sel→success %</th>
-            <th>sessions</th>
-            <th>sess w/jobs</th>
-            <th>sess w/success</th>
-            <th>sess→success %</th>
-            <th>placements</th>
-            <th>sources missing</th>
+            <th data-col="fi">FI</th>
+            <th data-col="instances">instances</th>
+            <th data-col="integration">integration</th>
+            <th data-col="ga_select">GA select</th>
+            <th data-col="ga_user">GA user</th>
+            <th data-col="ga_cred">GA cred</th>
+            <th data-col="reach">monthly reach %</th>
+            <th data-col="sel_user_pct">sel→user %</th>
+            <th data-col="sel_cred_pct">sel→cred %</th>
+            <th data-col="sel_success_pct">sel→success %</th>
+            <th data-col="sessions">sessions</th>
+            <th data-col="sess_with_jobs">sess w/jobs</th>
+            <th data-col="sess_jobs_pct">sess→jobs %</th>
+            <th data-col="sess_with_success">sess w/success</th>
+            <th data-col="sess_success_pct">sess→success %</th>
+            <th data-col="placements">placements</th>
+            <th data-col="sources_missing">sources missing</th>
           </tr>
         </thead>
         <tbody></tbody>
@@ -369,12 +482,16 @@
       const endDateInput = document.getElementById("endDate");
       const fiFilterSelect = document.getElementById("fiFilter");
       const integrationSelect = document.getElementById("integrationFilter");
+      const partnerSelect = document.getElementById("partnerFilter");
+      const instanceSelect = document.getElementById("instanceFilter");
       const cardholderInput = document.getElementById("cardholderCounts");
+      const includeTestCheckbox = document.getElementById("includeTestDataCheckbox");
       const applyBtn = document.getElementById("applyBtn");
       const exportCsvBtn = document.getElementById("exportCsvBtn");
       const dateWindowLabel = document.getElementById("dateWindowLabel");
       const bestWindowsDiv = document.getElementById("bestWindows");
       const totalsBar = document.getElementById("totalsBar");
+      const partnerSummaryBox = document.getElementById("partnerSummary");
       const multiFiView = document.getElementById("multiFiView");
       const singleFiView = document.getElementById("singleFiView");
 
@@ -382,26 +499,201 @@
         SSO: document.querySelector("#table-SSO tbody"),
         "NON-SSO": document.querySelector("#table-NON-SSO tbody"),
         CardSavr: document.querySelector("#table-CardSavr tbody"),
+        TEST: document.querySelector("#table-TEST tbody"),
         UNKNOWN: document.querySelector("#table-UNKNOWN tbody"),
       };
       const groupBlocks = {
         SSO: document.querySelector('[data-group="SSO"]'),
         "NON-SSO": document.querySelector('[data-group="NON-SSO"]'),
         CardSavr: document.querySelector('[data-group="CardSavr"]'),
+        TEST: document.querySelector('[data-group="TEST"]'),
         UNKNOWN: document.querySelector('[data-group="UNKNOWN"]'),
+      };
+      const groupHeaders = Object.fromEntries(
+        Object.entries(groupBlocks).map(([key, block]) => [
+          key,
+          block ? block.querySelector(".group-header") : null,
+        ])
+      );
+      const GROUP_LABELS = {
+        SSO: "SSO",
+        "NON-SSO": "NON-SSO",
+        CardSavr: "CardSavr",
+        TEST: "TEST",
+        UNKNOWN: "UNKNOWN",
       };
 
       const today = new Date();
       const todayStr = today.toISOString().slice(0, 10);
-      const sixMonthsAgo = new Date(today);
-      sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-      const sixMonthsAgoStr = sixMonthsAgo.toISOString().slice(0, 10);
-      startDateInput.value = sixMonthsAgoStr;
-      startDateInput.valueAsDate = sixMonthsAgo;
-      endDateInput.value = todayStr;
-      endDateInput.valueAsDate = today;
+      const prevMonthStart = new Date(
+        Date.UTC(today.getUTCFullYear(), today.getUTCMonth() - 1, 1)
+      );
+      const prevMonthEnd = new Date(
+        Date.UTC(prevMonthStart.getUTCFullYear(), prevMonthStart.getUTCMonth() + 1, 0)
+      );
+      const defaultStartDateStr = prevMonthStart.toISOString().slice(0, 10);
+      const defaultEndDateStr = prevMonthEnd.toISOString().slice(0, 10);
 
-      const MIN_SELECTS = 10;
+      function applyDefaultDateRange(force = false) {
+        if (force || !startDateInput.value) {
+          startDateInput.value = defaultStartDateStr;
+          startDateInput.valueAsDate = new Date(`${defaultStartDateStr}T00:00:00`);
+        }
+        if (force || !endDateInput.value) {
+          endDateInput.value = defaultEndDateStr;
+          endDateInput.valueAsDate = new Date(`${defaultEndDateStr}T00:00:00`);
+        }
+      }
+
+      function updatePartnerOptions(perFi) {
+        if (!partnerSelect || !perFi) return;
+        const integrationValue = integrationSelect.value;
+        const includeTests = includeTestCheckbox?.checked;
+        const partners = Array.from(
+          new Set(
+            Object.values(perFi)
+              .filter((row) => (includeTests || !row.is_test))
+              .filter((row) =>
+                integrationValue === "(all)" ? true : row.integration_type === integrationValue
+              )
+              .map((row) => row.partner || "Unknown")
+          )
+        ).sort((a, b) => a.localeCompare(b));
+        const existingValue = partnerSelect.value || PARTNER_ALL_VALUE;
+        partnerSelect.innerHTML = "";
+        const addOption = (value, label) => {
+          const opt = document.createElement("option");
+          opt.value = value;
+          opt.textContent = label;
+          partnerSelect.appendChild(opt);
+        };
+        addOption(PARTNER_ALL_VALUE, "(all partners)");
+        partners.forEach((partner) => addOption(partner, partner));
+        if (existingValue && partners.includes(existingValue)) {
+          partnerSelect.value = existingValue;
+        } else {
+          partnerSelect.value = PARTNER_ALL_VALUE;
+        }
+      }
+
+      applyDefaultDateRange(true);
+
+const MIN_SELECTS = 10;
+const registryInfoMap = new Map();
+const registryCardholderMap = new Map();
+
+function buildRegistryLookupKey(fiName, instanceValue) {
+  const fiKey = normalizeFiKey(fiName);
+  const instKey = normalizeInstanceKey(instanceValue);
+  return makeFiInstanceKey(fiKey, instKey);
+}
+
+function updateRegistryLookups(registryData = {}) {
+  registryInfoMap.clear();
+  registryCardholderMap.clear();
+  Object.values(registryData || {}).forEach((entry) => {
+    if (!entry || typeof entry !== "object") return;
+    const fiKey = normalizeFiKey(entry.fi_lookup_key || entry.fi_name);
+    const instanceValue = entry.instance || (Array.isArray(entry.instances) ? entry.instances[0] : null);
+    const comboKey = buildRegistryLookupKey(fiKey, instanceValue);
+    if (comboKey && !registryInfoMap.has(comboKey)) {
+      registryInfoMap.set(comboKey, entry);
+    }
+    if (fiKey && !registryInfoMap.has(fiKey)) {
+      registryInfoMap.set(fiKey, entry);
+    }
+    const total = Number(entry.cardholder_total);
+    if (!Number.isFinite(total) || total <= 0) return;
+    const info = {
+      total,
+      as_of: entry.cardholder_as_of || null,
+      source: entry.cardholder_source || null,
+    };
+    if (comboKey && !registryCardholderMap.has(comboKey)) {
+      registryCardholderMap.set(comboKey, info);
+    }
+    if (fiKey && !registryCardholderMap.has(fiKey)) {
+      registryCardholderMap.set(fiKey, info);
+    }
+  });
+}
+
+function getRegistryEntry(fiName, instanceValue) {
+  const fiKey = normalizeFiKey(fiName);
+  const comboKey = buildRegistryLookupKey(fiName, instanceValue);
+  return (
+    registryInfoMap.get(comboKey) ||
+    registryInfoMap.get(fiKey) ||
+    null
+  );
+}
+
+function getRegistryCardholderInfo(fiName, instanceValue) {
+  const fiKey = normalizeFiKey(fiName);
+  const comboKey = buildRegistryLookupKey(fiName, instanceValue);
+  return (
+    registryCardholderMap.get(comboKey) ||
+    registryCardholderMap.get(fiKey) ||
+    null
+  );
+}
+
+function normalizeIntegrationLabel(value) {
+  if (!value) return "NON-SSO";
+  const raw = value.toString().trim().toUpperCase().replace(/[_\s-]+/g, "-");
+  if (raw === "SSO") return "SSO";
+  if (raw === "CARDSAVR" || raw === "CARD-SAVR" || raw === "CARDSAVER") {
+    return "CardSavr";
+  }
+  if (raw === "TEST") return "TEST";
+  if (raw === "UNKNOWN") return "UNKNOWN";
+  return "NON-SSO";
+}
+
+function formatPartnerLabel(value) {
+  if (!value) return "Unknown";
+  return value.toString();
+}
+
+const COLUMN_TITLES = {
+  highlight: "Name of the highlight window.",
+  fi: "Financial institution name.",
+  instances: "Cardsavr instance(s) producing this data.",
+  integration: "Integration type for the FI (SSO, CardSavr, etc.).",
+  dates: "Date range covered by the highlight window.",
+  ga_select: "Number of GA select-merchants page views.",
+  ga_user: "GA user-data-collection page views.",
+  ga_cred: "GA credential-entry page views.",
+  reach: "Monthly reach estimate (select views normalized by cardholders).",
+  sel_user_pct: "Percent of select views that reached the user data collection step.",
+  sel_cred_pct: "Percent of select views that reached the credential entry step.",
+  sel_success_pct: "Percent of select views that produced a successful SIS session.",
+  sessions: "Total SIS sessions fetched for this FI/instance.",
+  sess_with_jobs: "Sessions that contained one or more placement jobs.",
+  sess_jobs_pct: "Percent of sessions that contained placement jobs.",
+  sess_with_success: "Sessions with at least one successful job.",
+  sess_success_pct: "Percent of sessions with a successful job.",
+  placements: "Billable placement attempts over the period.",
+  sources_missing: "Days where GA or SIS data was missing.",
+  period: "Time bucket label for the single-FI view.",
+};
+
+function columnAttr(key) {
+  const tip = COLUMN_TITLES[key];
+  const title = tip ? ` title="${tip}"` : "";
+  return ` data-col="${key}"${title}`;
+}
+
+function applyColumnTitles(root = document) {
+  Object.entries(COLUMN_TITLES).forEach(([key, tip]) => {
+    if (!tip) return;
+    root.querySelectorAll(`[data-col="${key}"]`).forEach((el) => {
+      if (!el.getAttribute("title")) {
+        el.setAttribute("title", tip);
+      }
+    });
+  });
+}
 
       const normalizeFiKey = (value) =>
         value ? value.toString().trim().toLowerCase() : "";
@@ -421,6 +713,8 @@
         return { fi, instance: instance || "unknown" };
       };
       const FI_ALL_VALUE = "__all__";
+      const PARTNER_ALL_VALUE = "__all_partners__";
+      const INSTANCE_ALL_VALUE = "__all_instances__";
 
       let registryMap = {};
       let dailyFiles = [];
@@ -430,6 +724,8 @@
       let lastFilterSnapshot = null;
       let latestVisibleRows = [];
       let latestSingleFiBreakdowns = null;
+      let latestHighlights = [];
+      let latestPartnerSummary = null;
 
       const tableSortState = {
         multi: {},
@@ -500,6 +796,27 @@
           if (!existing.fi_lookup_key && payload.fi_lookup_key) {
             existing.fi_lookup_key = payload.fi_lookup_key;
           }
+          if (!existing.fi_name && payload.fi_name) {
+            existing.fi_name = payload.fi_name;
+          }
+          if (!existing.partner && payload.partner) {
+            existing.partner = payload.partner;
+          }
+          const incomingCardholders = Number(payload.cardholder_total);
+          if (
+            Number.isFinite(incomingCardholders) &&
+            incomingCardholders > 0 &&
+            (!Number.isFinite(Number(existing.cardholder_total)) ||
+              Number(existing.cardholder_total) <= 0)
+          ) {
+            existing.cardholder_total = payload.cardholder_total;
+          }
+          if (!existing.cardholder_source && payload.cardholder_source) {
+            existing.cardholder_source = payload.cardholder_source;
+          }
+          if (!existing.cardholder_as_of && payload.cardholder_as_of) {
+            existing.cardholder_as_of = payload.cardholder_as_of;
+          }
         };
 
         const assignMeta = (metaLike = {}) => {
@@ -509,29 +826,39 @@
           if (!fiKey) return;
           const integration = deriveIntegration(metaLike);
           const instances = extractInstances(metaLike);
-          mergeEntry(fiKey, {
+          const cardholderTotal =
+            metaLike.cardholder_total !== undefined
+              ? metaLike.cardholder_total
+              : null;
+          const basePayload = {
             integration,
             instances,
             fi_lookup_key: fiKey,
+            fi_name: metaLike.fi_name || metaLike.fi || metaLike.fi_lookup_key || "",
+            partner: metaLike.partner || null,
+            cardholder_total: cardholderTotal,
+            cardholder_as_of: metaLike.cardholder_as_of || null,
+            cardholder_source: metaLike.cardholder_source || null,
+          };
+          mergeEntry(fiKey, {
+            ...basePayload,
           });
           if (instances.length) {
             instances.forEach((instance) => {
               const normInstance = normalizeInstanceKey(instance);
               const comboKey = makeFiInstanceKey(fiKey, normInstance);
               mergeEntry(comboKey, {
-                integration,
+                ...basePayload,
                 instances: [instance],
                 instance,
-                fi_lookup_key: fiKey,
               });
             });
           } else {
             const comboKey = makeFiInstanceKey(fiKey, "unknown");
             mergeEntry(comboKey, {
-              integration,
+              ...basePayload,
               instances: ["unknown"],
               instance: "unknown",
-              fi_lookup_key: fiKey,
             });
           }
         };
@@ -573,14 +900,110 @@
         }
       }
 
+      function updateInstanceOptions(perFi) {
+        if (!instanceSelect) return;
+        if (!perFi) return;
+        const integrationValue = integrationSelect.value;
+        const includeTests = includeTestCheckbox?.checked;
+        const filterFi = fiFilterSelect.value;
+        const partnerValue = partnerSelect?.value || PARTNER_ALL_VALUE;
+        let eligible = Array.from(
+          new Set(
+            Object.values(perFi)
+              .filter((row) => (includeTests || !row.is_test))
+              .filter((row) =>
+                integrationValue === "(all)" ? true : row.integration_type === integrationValue
+              )
+              .filter((row) =>
+                !filterFi || filterFi === FI_ALL_VALUE ? true : row.fi === filterFi
+              )
+              .filter((row) =>
+                partnerValue === PARTNER_ALL_VALUE ? true : (row.partner || "Unknown") === partnerValue
+              )
+              .flatMap((row) =>
+                Array.isArray(row.instances) && row.instances.length
+                  ? row.instances
+                  : row.instance
+                  ? [row.instance]
+                  : []
+              )
+              .map((value) => formatInstanceDisplay(value))
+          )
+        ).sort((a, b) => a.localeCompare(b));
+        if (!eligible.length) {
+          eligible = Array.from(
+            new Set(
+              Object.values(perFi)
+                .filter((row) => includeTests || !row.is_test)
+                .filter((row) =>
+                  integrationValue === "(all)" ? true : row.integration_type === integrationValue
+                )
+                .filter((row) =>
+                  !filterFi || filterFi === FI_ALL_VALUE ? true : row.fi === filterFi
+                )
+                .filter((row) =>
+                  partnerValue === PARTNER_ALL_VALUE ? true : (row.partner || "Unknown") === partnerValue
+                )
+                .map((row) =>
+                  row.instance
+                    ? formatInstanceDisplay(row.instance)
+                    : Array.isArray(row.instances) && row.instances.length
+                    ? formatInstanceDisplay(row.instances[0])
+                    : "unknown"
+                )
+            )
+          ).sort((a, b) => a.localeCompare(b));
+        }
+
+        const previouslySelected = new Set(
+          Array.from(instanceSelect.selectedOptions).map((opt) => opt.value)
+        );
+        const hadSelection = previouslySelected.size > 0;
+        instanceSelect.innerHTML = "";
+
+        const addOption = (value, label, selected = false) => {
+          const opt = document.createElement("option");
+          opt.value = value;
+          opt.textContent = label;
+          if (selected) {
+            opt.selected = true;
+          }
+          instanceSelect.appendChild(opt);
+        };
+
+        addOption(
+          INSTANCE_ALL_VALUE,
+          "(all instances)",
+          !hadSelection || previouslySelected.has(INSTANCE_ALL_VALUE)
+        );
+        eligible.forEach((instance) => {
+          addOption(instance, instance, previouslySelected.has(instance));
+        });
+
+        // ensure at least one option is selected
+        const selectedCount = Array.from(instanceSelect.selectedOptions).length;
+        if (selectedCount === 0) {
+          const allOption = instanceSelect.querySelector(
+            `option[value="${INSTANCE_ALL_VALUE}"]`
+          );
+          if (allOption) allOption.selected = true;
+        }
+      }
+
       function updateFiOptions(perFi) {
         if (!perFi) return;
         const integrationValue = integrationSelect.value;
+        const includeTests = includeTestCheckbox?.checked;
+        const partnerValue = partnerSelect?.value || PARTNER_ALL_VALUE;
         const eligible = Array.from(
           new Set(
             Object.values(perFi)
+              .filter((row) => (includeTests || !row.is_test))
               .filter((row) =>
                 integrationValue === "(all)" ? true : row.integration_type === integrationValue
+              )
+              .filter((row) =>
+                partnerValue === PARTNER_ALL_VALUE ? true : (row.partner || "Unknown") === partnerValue
               )
               .map((row) => row.fi)
           )
@@ -606,17 +1029,49 @@
         }
 
         syncCardholderInputState();
+        updateInstanceOptions(perFi);
+      }
+
+      function getSelectedInstances() {
+        if (!instanceSelect) return [];
+        const values = Array.from(instanceSelect.selectedOptions)
+          .map((opt) => opt.value)
+          .filter((value) => value !== INSTANCE_ALL_VALUE);
+        return values.map((value) => normalizeInstanceKey(value));
       }
 
       function getVisibleRows(perFi) {
         const filterFi = fiFilterSelect.value;
         const filterIntegration = integrationSelect.value;
+        const filterPartner = partnerSelect?.value || PARTNER_ALL_VALUE;
+        const includeTests = includeTestCheckbox?.checked;
+        const selectedInstances = getSelectedInstances();
         return Object.values(perFi).filter((row) => {
+          if (!includeTests && row.is_test) {
+            return false;
+          }
           if (filterFi && filterFi !== FI_ALL_VALUE && row.fi !== filterFi) {
             return false;
           }
           if (filterIntegration !== "(all)" && row.integration_type !== filterIntegration) {
             return false;
+          }
+          if (filterPartner !== PARTNER_ALL_VALUE) {
+            const rowPartner = row.partner || "Unknown";
+            if (rowPartner !== filterPartner) {
+              return false;
+            }
+          }
+          if (selectedInstances.length > 0) {
+            const rowInstances = Array.isArray(row.instances) && row.instances.length
+              ? row.instances.map((inst) => normalizeInstanceKey(inst))
+              : [normalizeInstanceKey(row.instance)];
+            const hasMatch = rowInstances.some((inst) =>
+              selectedInstances.includes(inst)
+            );
+            if (!hasMatch) {
+              return false;
+            }
           }
           return true;
         });
@@ -672,9 +1127,20 @@
         return (row.sess_with_success || 0) / row.sessions;
       }
 
+      function getSessJobsRatio(row) {
+        if (!row.sessions) return 0;
+        return (row.sess_with_jobs || 0) / row.sessions;
+      }
+
       function formatSessSuccessPct(row) {
         if (!row.sessions) return "";
         const ratio = getSessSuccessRatio(row);
+        return (ratio * 100).toFixed(1) + "%";
+      }
+
+      function formatSessJobsPct(row) {
+        if (!row.sessions) return "";
+        const ratio = getSessJobsRatio(row);
         return (ratio * 100).toFixed(1) + "%";
       }
 
@@ -743,6 +1209,7 @@
         sel_success_pct: (row) => getSelectToSuccessRatio(row),
         sessions: (row) => Number(row.sessions) || 0,
         sess_with_jobs: (row) => Number(row.sess_with_jobs) || 0,
+        sess_jobs_pct: (row) => getSessJobsRatio(row),
         sess_with_success: (row) => Number(row.sess_with_success) || 0,
         sess_success_pct: (row) => getSessSuccessRatio(row),
         placements: (row) => Number(row.placements) || 0,
@@ -751,7 +1218,9 @@
       };
 
       const CSV_COLUMNS = [
+        { label: "Section", getter: (row) => row.__section || "" },
         { label: "FI", getter: (row) => row.fi || "" },
+        { label: "Partner", getter: (row) => row.partner || "" },
         { label: "Integration", getter: (row) => row.integration_type || "" },
         {
           label: "Instances",
@@ -787,6 +1256,10 @@
         },
         { label: "Sessions", getter: (row) => row.sessions || 0 },
         { label: "Sessions w/Jobs", getter: (row) => row.sess_with_jobs || 0 },
+        {
+          label: "Sessions→Jobs %",
+          getter: (row) => formatSessJobsPct(row) || "",
+        },
         { label: "Sessions w/Success", getter: (row) => row.sess_with_success || 0 },
         {
           label: "Session Success %",
@@ -813,13 +1286,157 @@
         return CSV_COLUMNS.map((col) => csvEscape(col.getter(rowWithSection))).join(",");
       }
 
-      function buildCsvDocument({ summary, monthly, weekly, daily, start, end }) {
+      function highlightEntryToRow(entry = {}) {
+        const instances =
+          Array.isArray(entry.instances) && entry.instances.length
+            ? entry.instances
+            : entry.instances && typeof entry.instances === "string"
+            ? entry.instances.split(",").map((value) => value.trim()).filter(Boolean)
+            : entry.instance
+            ? [entry.instance]
+            : [];
+        return {
+          fi: entry.fi || "",
+          partner: entry.partner || "",
+          integration_type: entry.integration || "",
+          instances,
+          periodStart: entry.start || "",
+          periodEnd: entry.end || "",
+          ga_select: entry.sel || 0,
+          ga_user: entry.user || 0,
+          ga_cred: entry.cred || 0,
+          sessions: entry.sessions || 0,
+          sess_with_jobs: entry.sess_with_jobs || 0,
+          sess_with_success: entry.sess_with_success || 0,
+          placements: entry.placements || 0,
+          sources_missing: entry.sources_missing ? entry.sources_missing.split(" | ") : [],
+        };
+      }
+
+      function buildTotalsCsvRow(rows, integrationLabel, start, end) {
+        const totals = rows.reduce(
+          (acc, row) => {
+            acc.ga_select += row.ga_select || 0;
+            acc.ga_user += row.ga_user || 0;
+            acc.ga_cred += row.ga_cred || 0;
+            acc.sessions += row.sessions || 0;
+            acc.sess_with_jobs += row.sess_with_jobs || 0;
+            acc.sess_with_success += row.sess_with_success || 0;
+            acc.placements += row.placements || 0;
+            acc.cardholders += row.cardholders || 0;
+            return acc;
+          },
+          {
+            ga_select: 0,
+            ga_user: 0,
+            ga_cred: 0,
+            sessions: 0,
+            sess_with_jobs: 0,
+            sess_with_success: 0,
+            placements: 0,
+            cardholders: 0,
+          }
+        );
+        return {
+          fi: "Total",
+          partner: rows[0]?.partner || "",
+          integration_type: integrationLabel,
+          instances: ["—"],
+          periodStart: start,
+          periodEnd: end,
+          ga_select: totals.ga_select,
+          ga_user: totals.ga_user,
+          ga_cred: totals.ga_cred,
+          sessions: totals.sessions,
+          sess_with_jobs: totals.sess_with_jobs,
+          sess_with_success: totals.sess_with_success,
+          placements: totals.placements,
+          cardholders: totals.cardholders > 0 ? totals.cardholders : null,
+          sources_missing: [],
+        };
+      }
+
+      function buildCsvDocument({ summary, monthly, weekly, daily, highlights, partnerSummary, start, end }) {
         const header = CSV_COLUMNS.map((col) => csvEscape(col.label)).join(",");
         const lines = [];
         const title = `Strivve Insights Service Report ${start || ""} → ${end || ""}`.trim();
         lines.push(`"${title}"`, "", "");
-        lines.push(header);
-        (summary || []).forEach((row) => lines.push(rowToCsvLine("Summary", row)));
+        const highlightRows = (highlights || []).filter((h) => h && !h.empty);
+        if (highlightRows.length) {
+          lines.push("Highlights");
+          lines.push(header);
+          highlightRows.forEach((entry) => {
+            const mapped = highlightEntryToRow(entry);
+            lines.push(rowToCsvLine(entry.label || "Highlight", mapped));
+          });
+          lines.push("", "");
+        }
+
+        if (partnerSummary && partnerSummary.rows && partnerSummary.rows.length) {
+          const percentString = (value) =>
+            typeof value === "number" && Number.isFinite(value)
+              ? value.toFixed(1) + "%"
+              : "";
+          const partnerHeader = [
+            "Integration",
+            "FIs",
+            "GA Select",
+            "Sel→Success %",
+            "Sessions",
+            "Sessions w/Success",
+            "Sessions→Success %",
+            "Cardholders",
+            "Cardholder Mix %",
+            "Monthly Reach %",
+          ]
+            .map(csvEscape)
+            .join(",");
+          lines.push(`${partnerSummary.partner} Integration Mix`);
+          lines.push(partnerHeader);
+          partnerSummary.rows.forEach((row) => {
+            const values = [
+              row.integration,
+              row.fiCount,
+              row.ga_select,
+              percentString(row.selSuccessPct),
+              row.sessions,
+              row.sess_with_success,
+              percentString(row.sessionSuccessPct),
+              row.cardholders,
+              percentString(row.cardholderMixPct),
+              percentString(row.reachPct),
+            ];
+            lines.push(values.map(csvEscape).join(","));
+          });
+          const totals = partnerSummary.totals || {};
+          const totalValues = [
+            totals.integration || "Total",
+            totals.fiCount || 0,
+            totals.ga_select || 0,
+            percentString(totals.selSuccessPct),
+            totals.sessions || 0,
+            totals.sess_with_success || 0,
+            percentString(totals.sessionSuccessPct),
+            totals.cardholders || 0,
+            percentString(totals.cardholderMixPct),
+            percentString(totals.reachPct),
+          ];
+          lines.push(totalValues.map(csvEscape).join(","));
+          lines.push("", "");
+        }
+
+        const summaryRows = summary || [];
+        const bucketOrder = ["SSO", "NON-SSO", "CardSavr", "TEST", "UNKNOWN"];
+        bucketOrder.forEach((label) => {
+          const bucketRows = summaryRows.filter((row) => row.integration_type === label);
+          if (!bucketRows.length) return;
+          lines.push("", "");
+          lines.push(`"${label} Table"`);
+          lines.push(header);
+          bucketRows.forEach((row) => lines.push(rowToCsvLine(label, row)));
+          const totalsRow = buildTotalsCsvRow(bucketRows, label, start, end);
+          lines.push(rowToCsvLine(`${label} Total`, totalsRow));
+        });
 
         const appendSection = (labelText, rows) => {
           if (!rows || !rows.length) return;
@@ -1013,15 +1630,18 @@
       }
 
       function attachSortHandlers(table, tableId, scope = "multi") {
-        if (!table) return;
-        const headers = table.querySelectorAll("th[data-sort-key]");
-        headers.forEach((th) => {
+        if (!table || table.dataset.sortHandlerAttached === "true") return;
+        table.addEventListener("click", (event) => {
+          const th = event.target.closest("th[data-sort-key]");
+          if (!th || !table.contains(th)) return;
+          event.preventDefault();
+          const key = th.dataset.sortKey;
+          if (!key) return;
+          handleSortClick(tableId, key, scope);
+        });
+        table.dataset.sortHandlerAttached = "true";
+        table.querySelectorAll("th[data-sort-key]").forEach((th) => {
           th.style.cursor = "pointer";
-          th.onclick = () => {
-            const key = th.dataset.sortKey;
-            if (!key) return;
-            handleSortClick(tableId, key, scope);
-          };
         });
       }
       function dayCountInclusive(start, end) {
@@ -1071,7 +1691,10 @@
             instance: meta.instance,
             instances: meta.instances,
             integration_type: meta.integration,
+            partner: meta.partner || "",
             cardholders: meta.cardholders,
+            cardholder_source: meta.cardholder_source || null,
+            cardholder_as_of: meta.cardholder_as_of || null,
             dayCount: 1,
           });
         }
@@ -1097,7 +1720,10 @@
           instance: meta.instance,
           instances: meta.instances,
           integration_type: meta.integration,
+          partner: meta.partner || "",
           cardholders: meta.cardholders,
+          cardholder_source: meta.cardholder_source || null,
+          cardholder_as_of: meta.cardholder_as_of || null,
           dayCount: dayCountInclusive(start, end) || rows.length || 1,
         };
 
@@ -1243,15 +1869,21 @@
             const instanceName = entry.instance || "unknown";
             const fiNorm = normalizeFiKey(fiName);
             const comboKey = entry.key || makeFiInstanceKey(fiNorm, instanceName);
-            const registryEntry =
-              registryMap[comboKey] || registryMap[fiNorm] || null;
-            const integration = registryEntry?.integration || "NON-SSO";
+            const registryEntry = getRegistryEntry(fiName, instanceName);
+            const row = entry.row || {};
+            const rowIsTest = Boolean(row.is_test);
+            const baseIntegration = normalizeIntegrationLabel(
+              registryEntry?.integration || registryEntry?.integration_type
+            );
+            const integration = rowIsTest ? "TEST" : baseIntegration;
+            const partnerLabel = formatPartnerLabel(registryEntry?.partner);
             const agg =
               perFi[comboKey] || {
                 key: comboKey,
                 fi: fiName,
                 instance: instanceName,
                 integration_type: integration,
+                partner: partnerLabel,
                 ga_select: 0,
                 ga_user: 0,
                 ga_cred: 0,
@@ -1261,9 +1893,14 @@
                 placements: 0,
                 sources_missing: [],
                 instances: [instanceName],
+                is_test: rowIsTest,
+                cardholders: null,
+                cardholder_source: null,
+                cardholder_as_of: null,
               };
 
             agg.integration_type = integration;
+            agg.is_test = agg.is_test || rowIsTest;
             const existingInstanceKey = normalizeInstanceKey(agg.instance);
             const incomingInstanceKey = normalizeInstanceKey(instanceName);
             if (
@@ -1281,7 +1918,6 @@
               agg.instances.push(instanceName);
             }
 
-            const row = entry.row;
             if (row.ga) {
               agg.ga_select += row.ga.select_merchants || 0;
               agg.ga_user += row.ga.user_data_collection || 0;
@@ -1295,10 +1931,25 @@
             if (row.placements) {
               agg.placements += getBillablePlacementCount(row.placements);
             }
+            if (rowIsTest) {
+              agg.is_test = true;
+            }
 
             const cardholders = cardholderMap[fiNorm];
-            if (typeof cardholders === "number") {
+            if (typeof cardholders === "number" && cardholders > 0) {
               agg.cardholders = cardholders;
+              agg.cardholder_source = "manual";
+              agg.cardholder_as_of = null;
+            } else {
+              const registryInfo = getRegistryCardholderInfo(fiName, instanceName);
+              if (registryInfo?.total) {
+                agg.cardholders = registryInfo.total;
+                agg.cardholder_source = registryInfo.source || null;
+                agg.cardholder_as_of = registryInfo.as_of || null;
+              }
+            }
+            if (!agg.partner || agg.partner === "Unknown") {
+              agg.partner = partnerLabel;
             }
 
             if (missingSources.length) {
@@ -1310,20 +1961,33 @@
         }
 
         for (const agg of Object.values(perFi)) {
+          const registryInfo = getRegistryEntry(agg.fi, agg.instance);
+          const derivedIntegration =
+            registryInfo?.integration || registryInfo?.integration_type || agg.integration_type;
           const instanceKey = normalizeInstanceKey(agg.instance);
-          if (instanceKey === "ondot") {
-            agg.integration_type = "CardSavr";
+          let normalized = agg.is_test ? "TEST" : normalizeIntegrationLabel(derivedIntegration);
+          if (instanceKey === "ondot" && normalized !== "TEST") {
+            normalized = "CardSavr";
           }
+          agg.integration_type = normalized;
         }
 
         return perFi;
       }
 
-      function computeBestWindows(startDate, endDate, perFiLookup = {}, visibleRows = [], monthlyFactor = 1) {
+      function computeBestWindows(
+        startDate,
+        endDate,
+        perFiLookup = {},
+        visibleRows = [],
+        monthlyFactor = 1,
+        options = {}
+      ) {
         const dates = Object.keys(dailyData)
           .filter((d) => inRange(d, startDate, endDate))
           .sort();
         if (!dates.length) return [];
+        const allowLowVolume = Boolean(options.allowLowVolume);
 
         const allowedSet = new Set(
           visibleRows.map((row) => row.key || makeFiInstanceKey(normalizeFiKey(row.fi), normalizeInstanceKey(row.instance)))
@@ -1370,20 +2034,82 @@
           }
         });
 
+        const defaultCompare = (cand, best) => {
+          if (cand.sessionSuccessRatio !== best.sessionSuccessRatio) {
+            return cand.sessionSuccessRatio - best.sessionSuccessRatio;
+          }
+          if (cand.sel !== best.sel) {
+            return cand.sel - best.sel;
+          }
+          return cand.sessions - best.sessions;
+        };
+
         const windows = [
-          { label: "Best 1-day", len: 1 },
-          { label: "Best 3-day", len: 3 },
-          { label: "Best 7-day", len: 7 },
+          {
+            label: "Most Select Merchant Loads",
+            len: 7,
+            minSelects: MIN_SELECTS,
+            minSessions: 0,
+            compare: (cand, best) => {
+              if (cand.sel !== best.sel) return cand.sel - best.sel;
+              if (cand.sessionSuccessRatio !== best.sessionSuccessRatio) {
+                return cand.sessionSuccessRatio - best.sessionSuccessRatio;
+              }
+              return cand.sessions - best.sessions;
+            },
+          },
+          {
+            label: "Most Select Merchant Loads with Successful Placements",
+            len: 7,
+            minSelects: 25,
+            minSessions: 14,
+            compare: (cand, best) => {
+              if (cand.selSuccessRatio !== best.selSuccessRatio) {
+                return cand.selSuccessRatio - best.selSuccessRatio;
+              }
+              if (cand.sel !== best.sel) return cand.sel - best.sel;
+              return cand.sessions - best.sessions;
+            },
+          },
+          {
+            label: "Most Total Sessions",
+            len: 7,
+            minSelects: MIN_SELECTS,
+            minSessions: MIN_SELECTS,
+            compare: (cand, best) => {
+              if (cand.sessions !== best.sessions) return cand.sessions - best.sessions;
+              if (cand.sessionSuccessRatio !== best.sessionSuccessRatio) {
+                return cand.sessionSuccessRatio - best.sessionSuccessRatio;
+              }
+              return cand.sel - best.sel;
+            },
+          },
+          {
+            label: "Highest Sessions with Success %",
+            len: 7,
+            minSelects: MIN_SELECTS,
+            minSessions: MIN_SELECTS,
+            compare: (cand, best) => {
+              if (cand.sess_with_success !== best.sess_with_success) {
+                return cand.sess_with_success - best.sess_with_success;
+              }
+              if (cand.sessions !== best.sessions) return cand.sessions - best.sessions;
+              return cand.sel - best.sel;
+            },
+          },
         ];
 
         const results = [];
 
-        for (const { label, len } of windows) {
+        for (const config of windows) {
+          const { label, len } = config;
           if (dates.length < len) {
             results.push({ label, empty: true });
             continue;
           }
-          const minSessions = len * 25;
+          const compareFn = typeof config.compare === "function" ? config.compare : defaultCompare;
+          const minSelects = allowLowVolume ? 1 : config.minSelects || MIN_SELECTS;
+          const minSessions = allowLowVolume ? 1 : config.minSessions || 0;
           let best = null;
           for (const [comboKey, dailyMap] of Object.entries(fiDaily)) {
             if (restrict && !allowedSet.has(comboKey)) continue;
@@ -1413,43 +2139,50 @@
                   missingEntries.push(`${dayKey}: ${missing.join(",")}`);
                 }
               }
+              if (sel < minSelects) continue;
               if (sessions < minSessions) continue;
-              const successPct = sessions ? sessWithSuccess / sessions : 0;
-              if (
-                !best ||
-                successPct > best.successPct ||
-                (successPct === best.successPct && sessions > best.sessions)
-              ) {
-                best = {
-                  label,
-                  key: comboKey,
-                  fi: perFiByKey[comboKey]?.fi || comboKey,
-                  instance: perFiByKey[comboKey]?.instance || parseFiInstanceKey(comboKey).instance,
-                  start: dates[idx],
-                  end: dates[idx + len - 1],
-                  sel,
-                  user,
-                  cred,
-                  conv: sel ? cred / sel : 0,
-                  successPct,
-                  sessions,
-                  sess_with_jobs: sessWithJobs,
-                  sess_with_success: sessWithSuccess,
-                  placements,
-                  sources_missing: missingEntries.join(" | "),
-                };
+              const sessionSuccessRatio = sessions ? sessWithSuccess / sessions : 0;
+              const selSuccessRatio = sel ? sessWithSuccess / sel : 0;
+              const candidate = {
+                label,
+                key: comboKey,
+                fi: perFiByKey[comboKey]?.fi || comboKey,
+                instance: perFiByKey[comboKey]?.instance || parseFiInstanceKey(comboKey).instance,
+                start: dates[idx],
+                end: dates[idx + len - 1],
+                sel,
+                user,
+                cred,
+                conv: sel ? cred / sel : 0,
+                successPct: sessionSuccessRatio,
+                sessionSuccessRatio,
+                selSuccessRatio,
+                sessions,
+                sess_with_jobs: sessWithJobs,
+                sess_with_success: sessWithSuccess,
+                placements,
+                sources_missing: missingEntries.join(" | "),
+              };
+              if (!best || compareFn(candidate, best) > 0) {
+                best = candidate;
               }
             }
           }
           if (best) {
             const aggRow = perFiByKey[best.key] || {};
-            const fallbackKey = best.key || makeFiInstanceKey(best.fi, best.instance);
-            const registryInstances = registryMap[fallbackKey]?.instances || [];
+            const registryInfo = getRegistryEntry(best.fi, best.instance);
+            const registryInstances = registryInfo?.instances || [];
             const instanceList = Array.isArray(aggRow.instances) && aggRow.instances.length
               ? aggRow.instances
               : registryInstances;
             best.instances = instanceList.join(", ") || best.instance || "";
-            best.integration = aggRow.integration_type || registryMap[fallbackKey]?.integration || "UNKNOWN";
+            best.integration = normalizeIntegrationLabel(
+              aggRow.integration_type ||
+                registryInfo?.integration ||
+                registryInfo?.integration_type ||
+                "UNKNOWN"
+            );
+            best.partner = aggRow.partner || registryInfo?.partner || "";
             if (typeof aggRow.cardholders === "number" && aggRow.cardholders > 0) {
               const rowDays = dayCountInclusive(best.start, best.end) || 1;
               const reachBase = best.sel > 0 ? best.sel : best.sessions;
@@ -1493,24 +2226,23 @@
         table.innerHTML = `
           <thead>
             <tr>
-              <th>Highlight</th>
-              <th>FI</th>
-              <th>instances</th>
-              <th>integration</th>
-              <th>dates</th>
-              <th>GA select</th>
-              <th>GA user</th>
-              <th>GA cred</th>
-              <th>monthly reach %</th>
-              <th>sel→user %</th>
-              <th>sel→cred %</th>
-              <th>sel→success %</th>
-              <th>sessions</th>
-              <th>sess w/jobs</th>
-              <th>sess w/success</th>
-              <th>sess→success %</th>
-              <th>placements</th>
-              <th>sources missing</th>
+              <th${columnAttr("highlight")}>Highlight</th>
+              <th${columnAttr("fi")}>FI</th>
+              <th${columnAttr("instances")}>instances</th>
+              <th${columnAttr("integration")}>integration</th>
+              <th${columnAttr("dates")}>dates</th>
+              <th${columnAttr("ga_select")}>GA select</th>
+              <th${columnAttr("ga_user")}>GA user</th>
+              <th${columnAttr("ga_cred")}>GA cred</th>
+              <th${columnAttr("sel_user_pct")}>sel→user %</th>
+              <th${columnAttr("sel_cred_pct")}>sel→cred %</th>
+              <th${columnAttr("sel_success_pct")}>sel→success %</th>
+              <th${columnAttr("sessions")}>sessions</th>
+              <th${columnAttr("sess_with_jobs")}>sess w/jobs</th>
+              <th${columnAttr("sess_jobs_pct")}>sess→jobs %</th>
+              <th${columnAttr("sess_with_success")}>sess w/success</th>
+              <th${columnAttr("sess_success_pct")}>sess→success %</th>
+              <th${columnAttr("placements")}>placements</th>
             </tr>
           </thead>
         `;
@@ -1520,42 +2252,46 @@
           const tr = document.createElement("tr");
           if (entry.empty) {
             tr.innerHTML = `
-              <td>${entry.label}</td>
-              <td colspan="17" class="muted">No data for this highlight window.</td>
+              <td${columnAttr("highlight")}>${entry.label}</td>
+              <td colspan="16" class="muted">No data for this highlight window.</td>
             `;
           } else {
             const convPct = entry.conv ? (entry.conv * 100).toFixed(1) + "%" : "0%";
             const selUserPct = entry.sel
               ? ((entry.user || 0) / entry.sel * 100).toFixed(1) + "%"
               : "";
-            const selSuccessPct = formatSelectToSuccessPct({
-              ga_select: entry.sel,
-              sess_with_success: entry.sess_with_success,
-            });
-            const reachPct = formatMonthlyReachPct(entry);
-            const sessSuccessPct = entry.successPct
-              ? (entry.successPct * 100).toFixed(1) + "%"
+            const selSuccessPct = typeof entry.selSuccessRatio === "number"
+              ? (entry.selSuccessRatio * 100).toFixed(1) + "%"
+              : formatSelectToSuccessPct({
+                  ga_select: entry.sel,
+                  sess_with_success: entry.sess_with_success,
+                });
+            const sessJobsPct =
+              entry.sessions && entry.sess_with_jobs
+                ? ((entry.sess_with_jobs / entry.sessions) * 100).toFixed(1) + "%"
+                : "";
+            const sessSuccessPct = typeof entry.sessionSuccessRatio === "number"
+              ? (entry.sessionSuccessRatio * 100).toFixed(1) + "%"
               : "";
             const dateRange = entry.start === entry.end ? entry.start : `${entry.start} → ${entry.end}`;
             tr.innerHTML = `
-              <td>${entry.label}</td>
-              <td>${entry.fi}</td>
-              <td>${entry.instance || entry.instances || ""}</td>
-              <td>${entry.integration || ""}</td>
-              <td>${dateRange}</td>
-              <td>${entry.sel}</td>
-              <td>${entry.user || 0}</td>
-              <td>${entry.cred}</td>
-              <td>${reachPct}</td>
-              <td>${selUserPct}</td>
-              <td>${convPct}</td>
-              <td>${selSuccessPct}</td>
-              <td>${entry.sessions || 0}</td>
-              <td>${entry.sess_with_jobs || 0}</td>
-              <td>${entry.sess_with_success || 0}</td>
-              <td>${sessSuccessPct}</td>
-              <td>${entry.placements || 0}</td>
-              <td>${entry.sources_missing || ""}</td>
+              <td${columnAttr("highlight")}>${entry.label}</td>
+              <td${columnAttr("fi")}>${entry.fi}</td>
+              <td${columnAttr("instances")}>${entry.instance || entry.instances || ""}</td>
+              <td${columnAttr("integration")}>${entry.integration || ""}</td>
+              <td${columnAttr("dates")}>${dateRange}</td>
+              <td${columnAttr("ga_select")}>${entry.sel}</td>
+              <td${columnAttr("ga_user")}>${entry.user || 0}</td>
+              <td${columnAttr("ga_cred")}>${entry.cred}</td>
+              <td${columnAttr("sel_user_pct")}>${selUserPct}</td>
+              <td${columnAttr("sel_cred_pct")}>${convPct}</td>
+              <td${columnAttr("sel_success_pct")}>${selSuccessPct}</td>
+              <td${columnAttr("sessions")}>${entry.sessions || 0}</td>
+              <td${columnAttr("sess_with_jobs")}>${entry.sess_with_jobs || 0}</td>
+              <td${columnAttr("sess_jobs_pct")}>${sessJobsPct}</td>
+              <td${columnAttr("sess_with_success")}>${entry.sess_with_success || 0}</td>
+              <td${columnAttr("sess_success_pct")}>${sessSuccessPct}</td>
+              <td${columnAttr("placements")}>${entry.placements || 0}</td>
             `;
           }
           tbody.appendChild(tr);
@@ -1563,8 +2299,200 @@
 
         table.appendChild(tbody);
         bestWindowsDiv.appendChild(table);
+        applyColumnTitles(bestWindowsDiv);
       }
 
+      function buildPartnerSummaryData(rows = [], daySpan = 0, partnerValue = PARTNER_ALL_VALUE) {
+        if (!rows || !rows.length || !partnerValue || partnerValue === PARTNER_ALL_VALUE) {
+          return null;
+        }
+        const relevant = rows.filter((row) => (row.partner || "Unknown") === partnerValue);
+        if (!relevant.length) {
+          return null;
+        }
+        const makeBucket = () => ({
+          fiCount: 0,
+          ga_select: 0,
+          sessions: 0,
+          sess_with_success: 0,
+          placements: 0,
+          cardholders: 0,
+        });
+        const buckets = {
+          SSO: makeBucket(),
+          "NON-SSO": makeBucket(),
+        };
+        relevant.forEach((row) => {
+          const key =
+            row.integration_type === "SSO"
+              ? "SSO"
+              : row.integration_type === "NON-SSO"
+              ? "NON-SSO"
+              : null;
+          if (!key) return;
+          const bucket = buckets[key];
+          bucket.ga_select += row.ga_select || 0;
+          bucket.sessions += row.sessions || 0;
+          bucket.sess_with_success += row.sess_with_success || 0;
+          bucket.placements += row.placements || 0;
+          if (typeof row.cardholders === "number" && row.cardholders > 0) {
+            bucket.cardholders += row.cardholders;
+          }
+          bucket.fiCount += 1;
+        });
+        const monthlyFactor = daySpan ? 30 / daySpan : 1;
+        const totals = makeBucket();
+        const bucketSummaries = Object.entries(buckets).map(([key, bucket]) => {
+          bucket.monthlySelect = bucket.ga_select * monthlyFactor;
+          bucket.selSuccessPct =
+            bucket.ga_select > 0 && bucket.sess_with_success > 0
+              ? (bucket.sess_with_success / bucket.ga_select) * 100
+              : null;
+          bucket.sessionSuccessPct =
+            bucket.sessions > 0 && bucket.sess_with_success > 0
+              ? (bucket.sess_with_success / bucket.sessions) * 100
+              : null;
+          bucket.reachPct =
+            bucket.cardholders > 0 && bucket.monthlySelect > 0
+              ? (bucket.monthlySelect / bucket.cardholders) * 100
+              : null;
+          totals.ga_select += bucket.ga_select;
+          totals.sessions += bucket.sessions;
+          totals.sess_with_success += bucket.sess_with_success;
+          totals.placements += bucket.placements;
+          totals.cardholders += bucket.cardholders;
+          totals.fiCount += bucket.fiCount;
+          return { key, bucket };
+        });
+        const totalCardholders = totals.cardholders;
+        const rowsOut = bucketSummaries.map(({ key, bucket }) => {
+          const cardholderMixPct =
+            totalCardholders > 0 && bucket.cardholders > 0
+              ? (bucket.cardholders / totalCardholders) * 100
+              : null;
+          return {
+            integration: key,
+            fiCount: bucket.fiCount,
+            ga_select: bucket.ga_select,
+            selSuccessPct: bucket.selSuccessPct,
+            sessions: bucket.sessions,
+            sess_with_success: bucket.sess_with_success,
+            sessionSuccessPct: bucket.sessionSuccessPct,
+            cardholders: bucket.cardholders,
+            cardholderMixPct,
+            reachPct: bucket.reachPct,
+          };
+        });
+        totals.monthlySelect = totals.ga_select * monthlyFactor;
+        totals.selSuccessPct =
+          totals.ga_select > 0 && totals.sess_with_success > 0
+            ? (totals.sess_with_success / totals.ga_select) * 100
+            : null;
+        totals.sessionSuccessPct =
+          totals.sessions > 0 && totals.sess_with_success > 0
+            ? (totals.sess_with_success / totals.sessions) * 100
+            : null;
+        totals.cardholderMixPct = totalCardholders > 0 ? 100 : null;
+        totals.reachPct =
+          totals.cardholders > 0 && totals.monthlySelect > 0
+            ? (totals.monthlySelect / totals.cardholders) * 100
+            : null;
+        return {
+          partner: partnerValue,
+          daySpan,
+          rows: rowsOut,
+          totals: {
+            integration: "Total",
+            fiCount: totals.fiCount,
+            ga_select: totals.ga_select,
+            selSuccessPct: totals.selSuccessPct,
+            sessions: totals.sessions,
+            sess_with_success: totals.sess_with_success,
+            sessionSuccessPct: totals.sessionSuccessPct,
+            cardholders: totals.cardholders,
+            cardholderMixPct: totals.cardholderMixPct,
+            reachPct: totals.reachPct,
+          },
+          instanceCount: relevant.length,
+        };
+      }
+
+      function renderPartnerSummary(summaryData) {
+        if (!partnerSummaryBox) return;
+        if (!summaryData) {
+          partnerSummaryBox.style.display = "none";
+          partnerSummaryBox.innerHTML = "";
+          return;
+        }
+        const formatNumber = (value) =>
+          typeof value === "number" && !Number.isNaN(value)
+            ? value.toLocaleString("en-US")
+            : "0";
+        const formatCardholders = (value) =>
+          typeof value === "number" && value > 0
+            ? value.toLocaleString("en-US")
+            : "—";
+        const formatPercent = (value) =>
+          typeof value === "number" && Number.isFinite(value)
+            ? value.toFixed(1) + "%"
+            : "—";
+        const integrationRows = summaryData.rows
+          .map(
+            (row) => `
+            <tr>
+              <td>${row.integration}</td>
+              <td>${row.fiCount}</td>
+              <td>${formatNumber(row.ga_select)}</td>
+              <td>${formatPercent(row.selSuccessPct)}</td>
+              <td>${formatNumber(row.sessions)}</td>
+              <td>${formatNumber(row.sess_with_success)}</td>
+              <td>${formatPercent(row.sessionSuccessPct)}</td>
+              <td>${formatCardholders(row.cardholders)}</td>
+              <td>${formatPercent(row.cardholderMixPct)}</td>
+              <td>${formatPercent(row.reachPct)}</td>
+            </tr>`
+          )
+          .join("");
+        const totals = summaryData.totals || {};
+        partnerSummaryBox.innerHTML = `
+          <h3>${summaryData.partner} integration mix</h3>
+          <p>Comparing ${summaryData.instanceCount} FI instances over ${summaryData.daySpan || 0}-day window.</p>
+          <table class="partner-summary__table">
+            <thead>
+              <tr>
+                <th>Integration</th>
+                <th>FIs</th>
+                <th>GA select</th>
+                <th>Sel→success %</th>
+                <th>Sessions</th>
+                <th>Sessions w/success</th>
+                <th>Sessions→success %</th>
+                <th>Cardholders</th>
+                <th>Cardholder mix %</th>
+                <th>Monthly reach %</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${integrationRows}
+            </tbody>
+            <tfoot>
+              <tr>
+                <td>Total</td>
+                <td>${totals.fiCount || 0}</td>
+                <td>${formatNumber(totals.ga_select || 0)}</td>
+                <td>${formatPercent(totals.selSuccessPct)}</td>
+                <td>${formatNumber(totals.sessions || 0)}</td>
+                <td>${formatNumber(totals.sess_with_success || 0)}</td>
+                <td>${formatPercent(totals.sessionSuccessPct)}</td>
+                <td>${formatCardholders(totals.cardholders || 0)}</td>
+                <td>${formatPercent(totals.cardholderMixPct)}</td>
+                <td>${formatPercent(totals.reachPct)}</td>
+              </tr>
+            </tfoot>
+          </table>
+        `;
+        partnerSummaryBox.style.display = "";
+      }
       function renderSingleFiSections(visibleRows, startDate, endDate, daySpan) {
         if (!visibleRows || !visibleRows.length) {
           const div = document.createElement("div");
@@ -1579,12 +2507,21 @@
         const perFiRow = visibleRows[0] || {};
         const norm = normalizeFiKey(fiName);
         const instanceDisplay = perFiRow.instance || (perFiRow.instances?.[0]) || "unknown";
+        const registryInfo = getRegistryEntry(fiName, instanceDisplay);
         const meta = {
           fi: fiName,
           instance: instanceDisplay,
           instances: [instanceDisplay],
-          integration: perFiRow.integration_type || registryMap[norm]?.integration || "UNKNOWN",
+          integration: normalizeIntegrationLabel(
+            perFiRow.integration_type ||
+              registryInfo?.integration ||
+              registryInfo?.integration_type ||
+              "UNKNOWN"
+          ),
+          partner: perFiRow.partner || registryInfo?.partner || "Unknown",
           cardholders: perFiRow.cardholders,
+          cardholder_source: perFiRow.cardholder_source || null,
+          cardholder_as_of: perFiRow.cardholder_as_of || null,
         };
 
         const dailyRows = buildDailyRowsForFi(fiName, startDate, endDate, meta);
@@ -1672,6 +2609,8 @@
 
         singleFiView.appendChild(tabBar);
         singleFiView.appendChild(panelsWrap);
+        activateTab(availableSections[0].key);
+        applyColumnTitles(singleFiView);
       }
 
       function createSingleFiTable(rows, key) {
@@ -1679,23 +2618,24 @@
         table.innerHTML = `
           <thead>
             <tr>
-              <th data-sort-key="period">Period</th>
-              <th data-sort-key="fi">FI</th>
-              <th data-sort-key="instances">instances</th>
-              <th data-sort-key="integration">integration</th>
-              <th data-sort-key="ga_select">GA select</th>
-              <th data-sort-key="ga_user">GA user</th>
-              <th data-sort-key="ga_cred">GA cred</th>
-              <th data-sort-key="reach">monthly reach %</th>
-              <th data-sort-key="sel_user_pct">sel→user %</th>
-              <th data-sort-key="sel_cred_pct">sel→cred %</th>
-              <th data-sort-key="sel_success_pct">sel→success %</th>
-              <th data-sort-key="sessions">sessions</th>
-              <th data-sort-key="sess_with_jobs">sess w/jobs</th>
-              <th data-sort-key="sess_with_success">sess w/success</th>
-              <th data-sort-key="sess_success_pct">sess→success %</th>
-              <th data-sort-key="placements">placements</th>
-              <th data-sort-key="sources_missing">sources missing</th>
+              <th data-sort-key="period"${columnAttr("period")}>Period</th>
+              <th data-sort-key="fi"${columnAttr("fi")}>FI</th>
+              <th data-sort-key="instances"${columnAttr("instances")}>instances</th>
+              <th data-sort-key="integration"${columnAttr("integration")}>integration</th>
+              <th data-sort-key="ga_select"${columnAttr("ga_select")}>GA select</th>
+              <th data-sort-key="ga_user"${columnAttr("ga_user")}>GA user</th>
+              <th data-sort-key="ga_cred"${columnAttr("ga_cred")}>GA cred</th>
+              <th data-sort-key="reach"${columnAttr("reach")}>monthly reach %</th>
+              <th data-sort-key="sel_user_pct"${columnAttr("sel_user_pct")}>sel→user %</th>
+              <th data-sort-key="sel_cred_pct"${columnAttr("sel_cred_pct")}>sel→cred %</th>
+              <th data-sort-key="sel_success_pct"${columnAttr("sel_success_pct")}>sel→success %</th>
+              <th data-sort-key="sessions"${columnAttr("sessions")}>sessions</th>
+              <th data-sort-key="sess_with_jobs"${columnAttr("sess_with_jobs")}>sess w/jobs</th>
+              <th data-sort-key="sess_jobs_pct"${columnAttr("sess_jobs_pct")}>sess→jobs %</th>
+              <th data-sort-key="sess_with_success"${columnAttr("sess_with_success")}>sess w/success</th>
+              <th data-sort-key="sess_success_pct"${columnAttr("sess_success_pct")}>sess→success %</th>
+              <th data-sort-key="placements"${columnAttr("placements")}>placements</th>
+              <th data-sort-key="sources_missing"${columnAttr("sources_missing")}>sources missing</th>
             </tr>
           </thead>
         `;
@@ -1721,6 +2661,7 @@
           : "";
         const selSuccessPct = formatSelectToSuccessPct(row);
         const reachPct = formatMonthlyReachPct(row);
+        const sessJobsPct = formatSessJobsPct(row);
         const sessSuccessPct = formatSessSuccessPct(row);
         const instancesText = row.instance
           ? row.instance
@@ -1729,23 +2670,24 @@
           : "";
         const missing = (row.sources_missing || []).join(" | ");
         tr.innerHTML = `
-          <td>${row.periodLabel}</td>
-          <td>${row.fi}</td>
-          <td>${instancesText}</td>
-          <td>${row.integration_type || ""}</td>
-          <td>${row.ga_select}</td>
-          <td>${row.ga_user}</td>
-          <td>${row.ga_cred}</td>
-          <td>${reachPct}</td>
-          <td>${selUserPct}</td>
-          <td>${selCredPct}</td>
-          <td>${selSuccessPct}</td>
-          <td>${row.sessions || 0}</td>
-          <td>${row.sess_with_jobs || 0}</td>
-          <td>${row.sess_with_success || 0}</td>
-          <td>${sessSuccessPct}</td>
-          <td>${row.placements || 0}</td>
-          <td>${missing}</td>
+          <td${columnAttr("period")}>${row.periodLabel}</td>
+          <td${columnAttr("fi")}>${row.fi}</td>
+          <td${columnAttr("instances")}>${instancesText}</td>
+          <td${columnAttr("integration")}>${row.integration_type || ""}</td>
+          <td${columnAttr("ga_select")}>${row.ga_select}</td>
+          <td${columnAttr("ga_user")}>${row.ga_user}</td>
+          <td${columnAttr("ga_cred")}>${row.ga_cred}</td>
+          <td${columnAttr("reach")}>${reachPct}</td>
+          <td${columnAttr("sel_user_pct")}>${selUserPct}</td>
+          <td${columnAttr("sel_cred_pct")}>${selCredPct}</td>
+          <td${columnAttr("sel_success_pct")}>${selSuccessPct}</td>
+          <td${columnAttr("sessions")}>${row.sessions || 0}</td>
+          <td${columnAttr("sess_with_jobs")}>${row.sess_with_jobs || 0}</td>
+          <td${columnAttr("sess_jobs_pct")}>${sessJobsPct}</td>
+          <td${columnAttr("sess_with_success")}>${row.sess_with_success || 0}</td>
+          <td${columnAttr("sess_success_pct")}>${sessSuccessPct}</td>
+          <td${columnAttr("placements")}>${row.placements || 0}</td>
+          <td${columnAttr("sources_missing")}>${missing}</td>
         `;
         return tr;
       }
@@ -1759,6 +2701,11 @@
           row.dayCount = row.dayCount || daySpan;
         });
         const singleFiMode = isSingleFiSelected();
+        const partnerValue = partnerSelect?.value || PARTNER_ALL_VALUE;
+        latestPartnerSummary = !singleFiMode
+          ? buildPartnerSummaryData(visibleRows, daySpan, partnerValue)
+          : null;
+        renderPartnerSummary(latestPartnerSummary);
         latestSingleFiBreakdowns = null;
         if (singleFiMode) {
           singleFiView.style.display = "";
@@ -1781,76 +2728,21 @@
           SSO: [],
           "NON-SSO": [],
           CardSavr: [],
+          TEST: [],
           UNKNOWN: [],
         };
         visibleRows.forEach((row) => {
-          const integration = row.integration_type || "UNKNOWN";
-          const bucketKey = bucketed[integration] ? integration : "UNKNOWN";
+            const integration = row.integration_type || "UNKNOWN";
+          const normalizedIntegration = normalizeIntegrationLabel(integration);
+          row.integration_type = normalizedIntegration;
+          const bucketKey = bucketed[normalizedIntegration]
+            ? normalizedIntegration
+            : "UNKNOWN";
           bucketed[bucketKey].push(row);
         });
 
-        const renderRow = (row, integration) => {
-          const instancesText = row.instance
-            ? row.instance
-            : Array.isArray(row.instances) && row.instances.length
-            ? row.instances.join(", ")
-            : "";
-          const selUserPct = row.ga_select
-            ? ((row.ga_user / row.ga_select) * 100).toFixed(1) + "%"
-            : "";
-          const selCredPct = row.ga_select
-            ? ((row.ga_cred / row.ga_select) * 100).toFixed(1) + "%"
-            : "";
-          const selSuccessPct = formatSelectToSuccessPct(row);
-          const sessSuccessPct = formatSessSuccessPct(row);
-          const reachPct = formatMonthlyReachPct(row);
-
-          const missing = (row.sources_missing || [])
-            .map((entry) => `${entry.date}: ${entry.missing.join(",")}`)
-            .join(" | ");
-
-          const tr = document.createElement("tr");
-          tr.innerHTML = `
-            <td>${row.fi}</td>
-            <td>${instancesText}</td>
-            <td>${integration}</td>
-            <td>${row.ga_select}</td>
-            <td>${row.ga_user}</td>
-            <td>${row.ga_cred}</td>
-            <td>${reachPct}</td>
-            <td>${selUserPct}</td>
-            <td>${selCredPct}</td>
-            <td>${selSuccessPct}</td>
-            <td>${row.sessions}</td>
-            <td>${row.sess_with_jobs}</td>
-            <td>${row.sess_with_success}</td>
-            <td>${sessSuccessPct}</td>
-            <td>${row.placements}</td>
-            <td class="sources-missing">${missing}</td>
-          `;
-
-          return tr;
-        };
-
-        Object.entries(bucketed).forEach(([integration, rows]) => {
-          const tbody = tableBodies[integration] || tableBodies.UNKNOWN;
-          tbody.innerHTML = "";
-          const tableId = `table-${integration}`;
-          const sortedRows = sortRowsForTable(rows, tableId, "multi");
-          sortedRows.forEach((row) => tbody.appendChild(renderRow(row, integration)));
-          const block = groupBlocks[integration] || groupBlocks.UNKNOWN;
-          if (block) {
-            block.style.display = rows.length ? "" : "none";
-          }
-          const tableEl = tbody.closest("table");
-          attachSortHandlers(tableEl, tableId, "multi");
-        });
-
-        const visibleCount = visibleRows.length;
-        dateWindowLabel.textContent = `Date window: ${startDate} → ${endDate} (${visibleCount} FIs)`;
-
-        if (visibleCount > 1) {
-          const totals = visibleRows.reduce(
+        const sumMetrics = (rows) =>
+          rows.reduce(
             (acc, row) => {
               acc.ga_select += row.ga_select || 0;
               acc.ga_user += row.ga_user || 0;
@@ -1871,6 +2763,124 @@
               placements: 0,
             }
           );
+
+        const buildTotalsRow = (rows, integration) => {
+          if (!rows.length) return null;
+          const totals = sumMetrics(rows);
+          const selUserPct = totals.ga_select
+            ? ((totals.ga_user / totals.ga_select) * 100).toFixed(1) + "%"
+            : "";
+          const selCredPct = totals.ga_select
+            ? ((totals.ga_cred / totals.ga_select) * 100).toFixed(1) + "%"
+            : "";
+          const selSuccessPct = totals.ga_select
+            ? ((totals.sess_with_success / totals.ga_select) * 100).toFixed(1) + "%"
+            : "";
+          const sessJobsPct = totals.sessions
+            ? ((totals.sess_with_jobs / totals.sessions) * 100).toFixed(1) + "%"
+            : "";
+          const sessSuccessPct = totals.sessions
+            ? ((totals.sess_with_success / totals.sessions) * 100).toFixed(1) + "%"
+            : "";
+          const reachPct = "";
+          const tr = document.createElement("tr");
+          tr.className = "totals-row";
+          tr.innerHTML = `
+            <td${columnAttr("fi")}>Total</td>
+            <td${columnAttr("instances")}>—</td>
+            <td${columnAttr("integration")}>${integration}</td>
+            <td${columnAttr("ga_select")}>${totals.ga_select}</td>
+            <td${columnAttr("ga_user")}>${totals.ga_user}</td>
+            <td${columnAttr("ga_cred")}>${totals.ga_cred}</td>
+            <td${columnAttr("reach")}>${reachPct}</td>
+            <td${columnAttr("sel_user_pct")}>${selUserPct}</td>
+            <td${columnAttr("sel_cred_pct")}>${selCredPct}</td>
+            <td${columnAttr("sel_success_pct")}>${selSuccessPct}</td>
+            <td${columnAttr("sessions")}>${totals.sessions}</td>
+            <td${columnAttr("sess_with_jobs")}>${totals.sess_with_jobs}</td>
+            <td${columnAttr("sess_jobs_pct")}>${sessJobsPct}</td>
+            <td${columnAttr("sess_with_success")}>${totals.sess_with_success}</td>
+            <td${columnAttr("sess_success_pct")}>${sessSuccessPct}</td>
+            <td${columnAttr("placements")}>${totals.placements}</td>
+            <td${columnAttr("sources_missing")}></td>
+          `;
+          return tr;
+        };
+
+        const renderRow = (row, integration) => {
+          const instancesText = row.instance
+            ? row.instance
+            : Array.isArray(row.instances) && row.instances.length
+            ? row.instances.join(", ")
+            : "";
+          const selUserPct = row.ga_select
+            ? ((row.ga_user / row.ga_select) * 100).toFixed(1) + "%"
+            : "";
+          const selCredPct = row.ga_select
+            ? ((row.ga_cred / row.ga_select) * 100).toFixed(1) + "%"
+            : "";
+          const selSuccessPct = formatSelectToSuccessPct(row);
+          const reachPct = formatMonthlyReachPct(row);
+          const sessJobsPct = formatSessJobsPct(row);
+          const sessSuccessPct = formatSessSuccessPct(row);
+
+          const missing = (row.sources_missing || [])
+            .map((entry) => `${entry.date}: ${entry.missing.join(",")}`)
+            .join(" | ");
+
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td${columnAttr("fi")}>${row.fi}</td>
+            <td${columnAttr("instances")}>${instancesText}</td>
+            <td${columnAttr("integration")}>${integration}</td>
+            <td${columnAttr("ga_select")}>${row.ga_select}</td>
+            <td${columnAttr("ga_user")}>${row.ga_user}</td>
+            <td${columnAttr("ga_cred")}>${row.ga_cred}</td>
+            <td${columnAttr("reach")}>${reachPct}</td>
+            <td${columnAttr("sel_user_pct")}>${selUserPct}</td>
+            <td${columnAttr("sel_cred_pct")}>${selCredPct}</td>
+            <td${columnAttr("sel_success_pct")}>${selSuccessPct}</td>
+            <td${columnAttr("sessions")}>${row.sessions}</td>
+            <td${columnAttr("sess_with_jobs")}>${row.sess_with_jobs}</td>
+            <td${columnAttr("sess_jobs_pct")}>${sessJobsPct}</td>
+            <td${columnAttr("sess_with_success")}>${row.sess_with_success}</td>
+            <td${columnAttr("sess_success_pct")}>${sessSuccessPct}</td>
+            <td${columnAttr("placements")}>${row.placements}</td>
+            <td class="sources-missing"${columnAttr("sources_missing")}>${missing}</td>
+          `;
+
+          return tr;
+        };
+
+        Object.entries(bucketed).forEach(([integration, rows]) => {
+          const tbody = tableBodies[integration] || tableBodies.UNKNOWN;
+          tbody.innerHTML = "";
+          const tableId = `table-${integration}`;
+          const sortedRows = sortRowsForTable(rows, tableId, "multi");
+          sortedRows.forEach((row) => tbody.appendChild(renderRow(row, integration)));
+          const totalsRow = buildTotalsRow(rows, integration);
+          if (totalsRow) {
+            tbody.appendChild(totalsRow);
+          }
+          const block = groupBlocks[integration] || groupBlocks.UNKNOWN;
+          if (block) {
+            block.style.display = rows.length ? "" : "none";
+          }
+          const headerEl = groupHeaders[integration] || groupHeaders.UNKNOWN;
+          if (headerEl) {
+            const baseLabel = GROUP_LABELS[integration] || integration;
+            headerEl.textContent = rows.length ? `${baseLabel} (${rows.length})` : baseLabel;
+          }
+          const tableEl = tbody.closest("table");
+          attachSortHandlers(tableEl, tableId, "multi");
+        });
+        applyColumnTitles(multiFiView);
+
+        const visibleCount = visibleRows.length;
+        dateWindowLabel.textContent = `Date window: ${startDate} → ${endDate} (${visibleCount} FIs)`;
+
+        if (visibleCount > 1) {
+          const totals = sumMetrics(visibleRows);
           const selUserPct = totals.ga_select
             ? ((totals.ga_user / totals.ga_select) * 100).toFixed(1) + "%"
             : "";
@@ -1885,7 +2895,7 @@
             ` | cred ${totals.ga_cred} | sel→user ${selUserPct || "—"} | sel→cred ${selCredPct || "—"}` +
             ` | sel→success ${selSuccessPct || "—"}` +
             ` | sessions ${totals.sessions} (jobs ${totals.sess_with_jobs}, success ${totals.sess_with_success})` +
-            ` | placements ${totals.placements}`;
+            ` | sess→jobs ${sessJobsPct || "—"} | placements ${totals.placements}`;
           totalsBar.style.display = "block";
         } else {
           totalsBar.style.display = "none";
@@ -1893,8 +2903,8 @@
       }
 
       async function applyFilters() {
-        const startDate = startDateInput.value || sixMonthsAgoStr;
-        const endDate = endDateInput.value || todayStr;
+        const startDate = startDateInput.value || defaultStartDateStr;
+        const endDate = endDateInput.value || defaultEndDateStr;
         const startDt = new Date(`${startDate}T00:00:00Z`);
         const endDt = new Date(`${endDate}T00:00:00Z`);
         const daySpan = Math.max(1, Math.floor((endDt - startDt) / (1000 * 60 * 60 * 24)) + 1);
@@ -1902,9 +2912,14 @@
         const cardholderMap = getCardholderMap();
         const perFi = aggregateData(startDate, endDate, cardholderMap);
         lastAggregated = perFi;
+        updatePartnerOptions(perFi);
         updateFiOptions(perFi);
         const visibleRows = getVisibleRows(perFi);
-        const best = computeBestWindows(startDate, endDate, perFi, visibleRows, monthlyFactor);
+        const singleFiMode = isSingleFiSelected();
+        const best = computeBestWindows(startDate, endDate, perFi, visibleRows, monthlyFactor, {
+          allowLowVolume: singleFiMode,
+        });
+        latestHighlights = best;
         renderBestWindows(best, visibleRows);
         renderTables(visibleRows, startDate, endDate, daySpan);
 
@@ -1918,7 +2933,9 @@
         lastFilterSnapshot = {
           fi: fiFilterSelect.value,
           integration: integrationSelect.value,
+          partner: partnerSelect?.value || PARTNER_ALL_VALUE,
           cardholders: cardholderInput.value,
+          includeTest: includeTestCheckbox.checked,
         };
       }
 
@@ -1928,7 +2945,9 @@
           !lastFilterSnapshot ||
           lastFilterSnapshot.fi !== fiFilterSelect.value ||
           lastFilterSnapshot.integration !== integrationSelect.value ||
-          lastFilterSnapshot.cardholders !== cardholderInput.value;
+          lastFilterSnapshot.partner !== (partnerSelect?.value || PARTNER_ALL_VALUE) ||
+          lastFilterSnapshot.cardholders !== cardholderInput.value ||
+          lastFilterSnapshot.includeTest !== includeTestCheckbox.checked;
         if (snapshotChanged) {
           applyFilters();
           return;
@@ -1941,12 +2960,13 @@
       }
 
       async function init() {
-        try {
-          registryMap = await fetchRegistry();
-        } catch (err) {
-          console.error("Failed to load fi_registry:", err);
-          registryMap = {};
-        }
+      try {
+        registryMap = await fetchRegistry();
+        updateRegistryLookups(registryMap);
+      } catch (err) {
+        console.error("Failed to load fi_registry:", err);
+        registryMap = {};
+      }
 
         try {
           dailyFiles = await fetchDailyList();
@@ -1968,11 +2988,11 @@
         applyFilters();
       });
 
+      includeTestCheckbox.addEventListener("change", () => {
+        applyFilters();
+      });
+
       exportCsvBtn.addEventListener("click", () => {
-        if (!lastRenderContext || !latestVisibleRows.length) {
-          alert("Run the filters first to generate data.");
-          return;
-        }
         const monthlyRows =
           isSingleFiSelected() && latestSingleFiBreakdowns?.monthly?.length
             ? latestSingleFiBreakdowns.monthly
@@ -1985,31 +3005,79 @@
           isSingleFiSelected() && latestSingleFiBreakdowns?.daily?.length
             ? latestSingleFiBreakdowns.daily
             : [];
+        const summaryRows =
+          latestVisibleRows && latestVisibleRows.length
+            ? latestVisibleRows
+            : lastRenderContext?.perFi
+            ? Object.values(lastRenderContext.perFi)
+            : [];
 
         const csv = buildCsvDocument({
-          summary: latestVisibleRows,
+          summary: summaryRows,
           monthly: monthlyRows,
           weekly: weeklyRows,
           daily: dailyRows,
-          start: lastRenderContext.startDate,
-          end: lastRenderContext.endDate,
+          highlights: latestHighlights,
+          partnerSummary: latestPartnerSummary,
+          start: lastRenderContext?.startDate || startDateInput.value || defaultStartDateStr,
+          end: lastRenderContext?.endDate || endDateInput.value || defaultEndDateStr,
         });
-        const start = (lastRenderContext.startDate || "start").replace(/[^0-9-]/g, "");
-        const end = (lastRenderContext.endDate || "end").replace(/[^0-9-]/g, "");
+        const start = ((lastRenderContext?.startDate || startDateInput.value || "start")).replace(/[^0-9-]/g, "");
+        const end = ((lastRenderContext?.endDate || endDateInput.value || "end")).replace(/[^0-9-]/g, "");
         downloadCsv(`sis-funnel-${start}-to-${end}.csv`, csv);
       });
 
       fiFilterSelect.addEventListener("change", () => {
         syncCardholderInputState();
+        if (lastAggregated) {
+          updateInstanceOptions(lastAggregated);
+          rerenderFromCache();
+        }
       });
 
       integrationSelect.addEventListener("change", () => {
+        if (lastAggregated) {
+          updatePartnerOptions(lastAggregated);
+          updateFiOptions(lastAggregated);
+        } else {
+          fiFilterSelect.value = FI_ALL_VALUE;
+          syncCardholderInputState();
+        }
+        rerenderFromCache();
+      });
+
+      partnerSelect?.addEventListener("change", () => {
         if (lastAggregated) {
           updateFiOptions(lastAggregated);
         } else {
           fiFilterSelect.value = FI_ALL_VALUE;
           syncCardholderInputState();
         }
+        rerenderFromCache();
+      });
+
+      instanceSelect?.addEventListener("change", () => {
+        if (!instanceSelect) return;
+        const selectedValues = Array.from(instanceSelect.selectedOptions).map(
+          (opt) => opt.value
+        );
+        const hasAll = selectedValues.includes(INSTANCE_ALL_VALUE);
+        if (hasAll && selectedValues.length > 1) {
+          const allOption = instanceSelect.querySelector(
+            `option[value="${INSTANCE_ALL_VALUE}"]`
+          );
+          if (allOption) {
+            allOption.selected = false;
+          }
+        } else if (!hasAll && selectedValues.length === 0) {
+          const allOption = instanceSelect.querySelector(
+            `option[value="${INSTANCE_ALL_VALUE}"]`
+          );
+          if (allOption) {
+            allOption.selected = true;
+          }
+        }
+        rerenderFromCache();
       });
 
       init().catch((err) => {
@@ -2017,6 +3085,7 @@
       });
 
       syncCardholderInputState();
+      applyColumnTitles();
     </script>
   </body>
 </html>

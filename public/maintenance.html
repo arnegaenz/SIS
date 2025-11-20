@@ -1,0 +1,715 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>SIS Maintenance</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="/sis-shared.css" />
+  <style>
+    :root {
+      --panel-bg: #0d1421;
+      --panel-border: rgba(255, 255, 255, 0.08);
+      --panel-title: #e0e7ff;
+      --muted: #94a3b8;
+      --surface: rgba(13, 20, 33, 0.55);
+      --success: #22c55e;
+      --danger: #f97316;
+    }
+    body {
+      background: #04070d;
+      color: #f4f6fb;
+      font-family: "Inter", "Segoe UI", ui-sans-serif, system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+    .maintenance-main {
+      padding: 42px 32px 0 42px;
+    }
+    .maintenance-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 24px;
+      margin-top: 28px;
+    }
+    .maint-card {
+      background: rgba(30, 45, 74, 0.8);
+      border: 1px solid rgba(148, 163, 184, 0.32);
+      border-radius: 18px;
+      padding: 26px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      min-height: 320px;
+      box-shadow: 0 18px 45px rgba(3, 7, 18, 0.45);
+    }
+    
+    .maint-card p.description {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.5;
+      font-size: 14px;
+    }
+    .refresh-status {
+      background: #030712;
+      border-radius: 10px;
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      padding: 12px;
+      min-height: 120px;
+      font-size: 13px;
+      color: #e2e8f0;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    }
+    .refresh-status p {
+      margin: 0 0 6px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .refresh-log {
+      margin: 0;
+      white-space: pre-wrap;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    .btn {
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      text-decoration: none;
+      color: #f8fafc;
+      border-radius: 999px;
+      padding: 10px 26px;
+      min-width: 160px;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      border: none;
+      background: linear-gradient(120deg, #5e8bff, #a879ff);
+      transition: transform 0.15s ease, filter 0.15s ease;
+      cursor: pointer;
+      appearance: none;
+    }
+    .btn.secondary {
+      background: transparent;
+      border: 1px solid var(--panel-border);
+      color: var(--muted);
+    }
+    .btn:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.05);
+    }
+    .maint-card button,
+    .maint-card .btn {
+      align-self: flex-start;
+    }
+    .registry-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: flex-end;
+    }
+    .registry-controls label {
+      display: flex;
+      flex-direction: column;
+      font-size: 12px;
+      text-transform: uppercase;
+      color: var(--muted);
+      gap: 4px;
+    }
+    .registry-controls input,
+    .registry-controls select {
+      min-width: 180px;
+      border-radius: 8px;
+      border: 1px solid var(--panel-border);
+      background: rgba(0, 0, 0, 0.35);
+      color: #f8fafc;
+      padding: 8px 10px;
+      font-size: 14px;
+    }
+    .registry-body {
+      display: grid;
+      grid-template-columns: minmax(280px, 1.2fr) minmax(280px, 1fr);
+      gap: 16px;
+      align-items: start;
+    }
+    .registry-table-wrapper {
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+      overflow: hidden;
+      max-height: 520px;
+      display: flex;
+      flex-direction: column;
+    }
+    .registry-table-wrapper table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .registry-table-wrapper thead {
+      background: rgba(255,255,255,0.04);
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+    .registry-table-wrapper th,
+    .registry-table-wrapper td {
+      padding: 8px 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      text-align: left;
+    }
+    .registry-table-wrapper tbody {
+      display: block;
+      overflow-y: auto;
+      max-height: 460px;
+    }
+    .registry-table-wrapper thead,
+    .registry-table-wrapper tbody tr {
+      display: table;
+      width: 100%;
+      table-layout: fixed;
+    }
+    .registry-table-wrapper tbody tr.selected {
+      background: rgba(94, 139, 255, 0.15);
+    }
+    .registry-table-wrapper tbody tr:hover {
+      background: rgba(94, 139, 255, 0.12);
+      cursor: pointer;
+    }
+    .registry-editor {
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+      padding: 16px;
+      background: rgba(255, 255, 255, 0.02);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .registry-editor fieldset {
+      border: none;
+      padding: 0;
+      margin: 0;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+    }
+    .registry-editor label {
+      display: flex;
+      flex-direction: column;
+      font-size: 12px;
+      text-transform: uppercase;
+      color: var(--muted);
+      gap: 4px;
+    }
+    .registry-editor input,
+    .registry-editor select {
+      border-radius: 8px;
+      border: 1px solid var(--panel-border);
+      background: rgba(0, 0, 0, 0.35);
+      color: #f8fafc;
+      padding: 8px 10px;
+      font-size: 14px;
+    }
+    .editor-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+    .editor-meta {
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .status-line {
+      font-size: 13px;
+      min-height: 20px;
+    }
+    .status-line.success { color: var(--success); }
+    .status-line.error { color: var(--danger); }
+    @media (max-width: 960px) {
+      .registry-body {
+        grid-template-columns: 1fr;
+      }
+      .registry-table-wrapper,
+      .registry-table-wrapper tbody {
+        max-height: 320px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="sis-header">
+    <div class="sis-header__inner">
+      <div class="sis-brand">Strivve Insights Service (SIS)</div>
+      <nav class="sis-nav">
+        <a class="sis-nav__item" href="/">Overview</a>
+        <a class="sis-nav__item" href="/funnel.html">FI Funnel</a>
+        <a class="sis-nav__item" href="/heatmap.html">Merchant Heatmap</a>
+        <a class="sis-nav__item sis-nav__item--active" href="/maintenance.html">Maintenance</a>
+      </nav>
+    </div>
+  </header>
+  <main class="sis-main maintenance-main">
+    <section class="sis-panel">
+      <h1 class="sis-panel-title">Maintenance &amp; Registry</h1>
+      <p class="sis-panel-subtitle">
+        Run SIS refresh jobs and curate FI registry metadata without leaving your browser.
+        The registry editor honors overrides (cardholder totals, sources, dates) and pushes
+        changes back to <code>fi_registry.json</code>.
+      </p>
+
+      <div class="maintenance-grid" style="padding-right: 10px;">
+        <article class="maint-card" id="refreshCard">
+          <div>
+            <h2>Data Refresh (GA + SIS)</h2>
+            <p class="description">
+              Launch the 30-day raw ingest plus daily rebuild pipeline. You can keep this
+              page open to watch progress or leave it running in the background.
+            </p>
+          </div>
+          <button class="btn" id="refreshBtn" type="button">Start Refresh</button>
+          <div class="refresh-status" aria-live="polite">
+            <p id="refreshStatus">Idle.</p>
+            <pre id="refreshLog" class="refresh-log"></pre>
+          </div>
+        </article>
+
+        <article class="maint-card registry-card">
+          <div>
+            <h2>FI Registry Editor</h2>
+            <p class="description">
+              Search, filter, and update integration metadata plus cardholder totals. Select a row
+              to enable editing; changes are written back to <code>fi_registry.json</code>.
+            </p>
+          </div>
+          <div class="registry-controls">
+            <label>
+              Search
+              <input type="text" id="registrySearch" placeholder="FI or instance name" />
+            </label>
+            <label>
+              Integration
+              <select id="registryIntegrationFilter">
+                <option value="">(all)</option>
+                <option value="SSO">SSO</option>
+                <option value="NON-SSO">NON-SSO</option>
+                <option value="CardSavr">CardSavr</option>
+                <option value="TEST">TEST</option>
+                <option value="UNKNOWN">UNKNOWN</option>
+              </select>
+            </label>
+            <button class="btn secondary" id="registryReloadBtn" type="button">Reload Registry</button>
+          </div>
+          <div class="registry-body">
+            <div class="registry-table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>FI</th>
+                    <th>Lookup Key</th>
+                    <th>Integration</th>
+                  </tr>
+                </thead>
+                <tbody id="registryTableBody">
+                  <tr><td colspan="3">Loading…</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="registry-editor" id="registryEditor">
+              <div class="status-line" id="editorStatus">Select an FI row to edit its metadata.</div>
+              <form id="registryForm">
+                <fieldset>
+                  <label>
+                    FI Name
+                    <input type="text" id="editorFiName" disabled />
+                  </label>
+                  <label>
+                    Instance
+                    <input type="text" id="editorInstance" disabled />
+                  </label>
+                  <label>
+                    Integration Type
+                    <select id="editorIntegration" required>
+                      <option value="SSO">SSO</option>
+                      <option value="NON-SSO">NON-SSO</option>
+                      <option value="CardSavr">CardSavr</option>
+                      <option value="TEST">TEST</option>
+                      <option value="UNKNOWN">UNKNOWN</option>
+                    </select>
+                  </label>
+                  <label>
+                    Partner
+                    <input type="text" id="editorPartner" list="partnerOptions" placeholder="e.g. Alkami" />
+                    <datalist id="partnerOptions">
+                      <option value="Alkami"></option>
+                      <option value="DigitalOnboarding"></option>
+                      <option value="PSCU"></option>
+                      <option value="Marquis"></option>
+                      <option value="MSU"></option>
+                      <option value="CardSavr"></option>
+                      <option value="Direct"></option>
+                      <option value="Advancial"></option>
+                    </datalist>
+                  </label>
+                  <label>
+                    Cardholders
+                    <input type="text" id="editorCardholders" placeholder="e.g. 125000" />
+                  </label>
+                  <label>
+                    Cardholder Source
+                    <select id="editorSource">
+                      <option value="">(none)</option>
+                      <option value="customer-provided">customer-provided</option>
+                      <option value="estimate">estimate</option>
+                    </select>
+                  </label>
+                  <label>
+                    Cardholder As Of
+                    <input type="date" id="editorAsOf" />
+                  </label>
+                </fieldset>
+                <div class="editor-meta" id="editorMeta"></div>
+                <div class="editor-actions">
+                  <button class="btn" type="submit" id="editorSaveBtn" disabled>Save Changes</button>
+                  <button class="btn secondary" type="button" id="editorResetBtn" disabled>Reset</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    (function setupRefreshPanel() {
+      const button = document.getElementById("refreshBtn");
+      const statusEl = document.getElementById("refreshStatus");
+      const logEl = document.getElementById("refreshLog");
+      let source = null;
+
+      function setStatus(text) {
+        statusEl.textContent = text || "";
+      }
+
+      function appendLogLine(text) {
+        if (!text) return;
+        const ts = new Date().toLocaleTimeString();
+        logEl.textContent += `[${ts}] ${text}\\n`;
+        logEl.scrollTop = logEl.scrollHeight;
+      }
+
+      button?.addEventListener("click", () => {
+        if (!button) return;
+        if (source) {
+          source.close();
+          source = null;
+        }
+        logEl.textContent = "";
+        setStatus("Starting refresh…");
+        source = new EventSource("/run-update/stream");
+
+        source.addEventListener("open", () => appendLogLine("Connected to update stream."));
+
+        source.addEventListener("snapshot", (ev) => {
+          try {
+            const data = JSON.parse(ev.data || "{}");
+            if (data.running) {
+              setStatus(`Update already running for ${data.startDate} → ${data.endDate}…`);
+              appendLogLine(data.lastMessage || "Resumed existing job.");
+            } else if (data.finishedAt) {
+              setStatus("Last update complete (snapshot).");
+              if (data.lastMessage) appendLogLine(data.lastMessage);
+            } else {
+              setStatus("Ready to start update…");
+            }
+          } catch (err) {
+            console.error("snapshot parse error", err);
+          }
+        });
+
+        source.addEventListener("init", (ev) => {
+          try {
+            const data = JSON.parse(ev.data || "{}");
+            setStatus(`Running: ${data.startDate} → ${data.endDate}`);
+            appendLogLine(data.message || "Update started.");
+          } catch (err) {
+            console.error("init parse error", err);
+          }
+        });
+
+        source.addEventListener("progress", (ev) => {
+          try {
+            const data = JSON.parse(ev.data || "{}");
+            if (data.message) appendLogLine(data.message);
+          } catch (err) {
+            console.error("progress parse error", err);
+          }
+        });
+
+        source.addEventListener("done", (ev) => {
+          try {
+            const data = JSON.parse(ev.data || "{}");
+            setStatus("Update complete.");
+            appendLogLine(data.message || "Done.");
+          } catch (err) {
+            console.error("done parse error", err);
+          }
+          source?.close();
+          source = null;
+        });
+
+        source.addEventListener("error", () => {
+          setStatus("Update failed or connection lost.");
+          appendLogLine("Stream error or disconnect.");
+          source?.close();
+          source = null;
+        });
+      });
+    })();
+
+    (function setupRegistryEditor() {
+      const searchInput = document.getElementById("registrySearch");
+      const integrationFilter = document.getElementById("registryIntegrationFilter");
+      const reloadBtn = document.getElementById("registryReloadBtn");
+      const tableBody = document.getElementById("registryTableBody");
+      const statusLine = document.getElementById("editorStatus");
+      const metaLine = document.getElementById("editorMeta");
+      const form = document.getElementById("registryForm");
+      const saveBtn = document.getElementById("editorSaveBtn");
+      const resetBtn = document.getElementById("editorResetBtn");
+      const inputs = {
+        fi: document.getElementById("editorFiName"),
+        instance: document.getElementById("editorInstance"),
+        integration: document.getElementById("editorIntegration"),
+        partner: document.getElementById("editorPartner"),
+        cardholders: document.getElementById("editorCardholders"),
+        source: document.getElementById("editorSource"),
+        asOf: document.getElementById("editorAsOf"),
+      };
+
+      let entries = [];
+      let filteredEntries = [];
+      let selectedKey = null;
+      let saving = false;
+
+      function normalizeIntegration(value) {
+        if (!value) return "NON-SSO";
+        const upper = value.toString().trim().toUpperCase();
+        if (upper === "CARDSAVR" || upper === "CARD-SAVR") return "CardSavr";
+        if (upper === "SSO") return "SSO";
+        if (upper === "TEST") return "TEST";
+        if (upper === "UNKNOWN") return "UNKNOWN";
+        return "NON-SSO";
+      }
+
+      function formatCardholders(value) {
+        if (!value && value !== 0) return "";
+        return value.toString().replace(/\\B(?=(\\d{3})+(?!\\d))/g, ",");
+      }
+
+      function normalizeEntry(key, entry = {}) {
+        const fiName = entry.fi_name || key.split("__")[0] || key;
+        const instance = entry.instance || (Array.isArray(entry.instances) ? entry.instances[0] : "unknown");
+        return {
+          key,
+          fi_name: fiName,
+          instance: instance || "unknown",
+          fi_lookup_key: entry.fi_lookup_key || fiName,
+          partner: entry.partner || "",
+          integration_type: normalizeIntegration(entry.integration_type),
+          cardholder_total: entry.cardholder_total ?? "",
+          cardholder_source: entry.cardholder_source || "",
+          cardholder_as_of: entry.cardholder_as_of || "",
+          first_seen: entry.first_seen || "",
+          last_seen: entry.last_seen || "",
+        };
+      }
+
+      function setStatus(message, kind = "") {
+        statusLine.textContent = message || "";
+        statusLine.className = "status-line " + kind;
+      }
+
+      function renderTable() {
+        const search = (searchInput.value || "").trim().toLowerCase();
+        const integrationValue = integrationFilter.value;
+        filteredEntries = entries
+          .filter((entry) => {
+            if (search) {
+              const haystack = `${entry.fi_name} ${entry.instance} ${entry.fi_lookup_key || ""} ${entry.partner || ""} ${entry.cardholder_source || ""}`.toLowerCase();
+              if (!haystack.includes(search)) return false;
+            }
+            if (integrationValue && entry.integration_type !== integrationValue) {
+              return false;
+            }
+            return true;
+          })
+          .sort((a, b) => a.fi_name.localeCompare(b.fi_name));
+
+        tableBody.innerHTML = "";
+        if (!filteredEntries.length) {
+          const tr = document.createElement("tr");
+          const td = document.createElement("td");
+          td.colSpan = 3;
+          td.textContent = "No registry entries match the current filters.";
+          tr.appendChild(td);
+          tableBody.appendChild(tr);
+          return;
+        }
+
+        filteredEntries.forEach((entry) => {
+          const tr = document.createElement("tr");
+          tr.dataset.key = entry.key;
+          if (entry.key === selectedKey) {
+            tr.classList.add("selected");
+          }
+          tr.innerHTML = `
+            <td>${entry.fi_name}</td>
+            <td>${entry.fi_lookup_key || "—"}</td>
+            <td>${entry.integration_type}</td>
+          `;
+          tableBody.appendChild(tr);
+        });
+      }
+
+      function populateForm(entry) {
+        if (!entry) {
+          inputs.fi.value = "";
+          inputs.instance.value = "";
+          inputs.integration.value = "NON-SSO";
+          inputs.partner.value = "";
+          inputs.cardholders.value = "";
+          inputs.source.value = "";
+          inputs.asOf.value = "";
+          metaLine.textContent = "";
+          saveBtn.disabled = true;
+          resetBtn.disabled = true;
+          return;
+        }
+        inputs.fi.value = entry.fi_name;
+        inputs.instance.value = entry.instance;
+        inputs.integration.value = entry.integration_type || "NON-SSO";
+        inputs.partner.value = entry.partner || "";
+        inputs.cardholders.value = entry.cardholder_total || "";
+        const sourceValue = entry.cardholder_source || "";
+        if (
+          sourceValue &&
+          !Array.from(inputs.source.options).some((opt) => opt.value === sourceValue)
+        ) {
+          const opt = document.createElement("option");
+          opt.value = sourceValue;
+          opt.textContent = sourceValue;
+          inputs.source.appendChild(opt);
+        }
+        inputs.source.value = sourceValue;
+        inputs.asOf.value = entry.cardholder_as_of || "";
+        metaLine.textContent = `First seen: ${entry.first_seen || "—"} • Last seen: ${entry.last_seen || "—"}`;
+        saveBtn.disabled = false;
+        resetBtn.disabled = false;
+      }
+
+      function getEntryByKey(key) {
+        return entries.find((entry) => entry.key === key) || null;
+      }
+
+      function selectEntry(key) {
+        selectedKey = key;
+        const entry = getEntryByKey(key);
+        populateForm(entry);
+        setStatus(entry ? `Editing ${entry.fi_name} (${entry.instance})` : "Select an FI row to edit its metadata.");
+        renderTable();
+      }
+
+      async function loadRegistry() {
+        setStatus("Loading registry…");
+        tableBody.innerHTML = "<tr><td colspan='6'>Loading…</td></tr>";
+        try {
+          const res = await fetch("/fi-registry");
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const payload = await res.json();
+          entries = Object.entries(payload || {}).map(([key, value]) => normalizeEntry(key, value));
+          selectedKey = selectedKey && entries.some((e) => e.key === selectedKey) ? selectedKey : null;
+          populateForm(getEntryByKey(selectedKey));
+          renderTable();
+          setStatus("Registry loaded.", "success");
+        } catch (err) {
+          console.error("registry load failed", err);
+          setStatus("Failed to load registry.", "error");
+          tableBody.innerHTML = "<tr><td colspan='6'>Unable to load registry.</td></tr>";
+        }
+      }
+
+      function gatherFormUpdates() {
+        const updates = {
+          integration_type: inputs.integration.value,
+          partner: inputs.partner.value.trim(),
+          cardholder_total: inputs.cardholders.value.trim(),
+          cardholder_source: inputs.source.value.trim(),
+          cardholder_as_of: inputs.asOf.value || "",
+        };
+        updates.partner = updates.partner === "" ? null : updates.partner;
+        updates.cardholder_total = updates.cardholder_total === "" ? null : updates.cardholder_total;
+        updates.cardholder_source = updates.cardholder_source === "" ? null : updates.cardholder_source;
+        updates.cardholder_as_of = updates.cardholder_as_of === "" ? null : updates.cardholder_as_of;
+        return updates;
+      }
+
+      async function saveEntry() {
+        if (!selectedKey || saving) return;
+        saving = true;
+        saveBtn.disabled = true;
+        setStatus("Saving changes…");
+        try {
+          const payload = {
+            key: selectedKey,
+            updates: gatherFormUpdates(),
+          };
+          const res = await fetch("/fi-registry/update", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          if (!res.ok) {
+            const errText = await res.text();
+            throw new Error(errText || `HTTP ${res.status}`);
+          }
+          const data = await res.json();
+          const idx = entries.findIndex((entry) => entry.key === selectedKey);
+          if (idx >= 0) {
+            entries[idx] = normalizeEntry(selectedKey, data.entry || {});
+            populateForm(entries[idx]);
+            renderTable();
+          }
+          setStatus("Registry updated.", "success");
+        } catch (err) {
+          console.error("save failed", err);
+          setStatus("Failed to save changes.", "error");
+        } finally {
+          saving = false;
+          saveBtn.disabled = !selectedKey;
+        }
+      }
+
+      tableBody.addEventListener("click", (event) => {
+        const tr = event.target.closest("tr[data-key]");
+        if (!tr) return;
+        selectEntry(tr.dataset.key);
+      });
+
+      searchInput.addEventListener("input", renderTable);
+      integrationFilter.addEventListener("change", renderTable);
+      reloadBtn.addEventListener("click", loadRegistry);
+
+      form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        saveEntry();
+      });
+
+      resetBtn.addEventListener("click", () => {
+        if (!selectedKey) return;
+        populateForm(getEntryByKey(selectedKey));
+        setStatus("Values reset.", "");
+      });
+
+      loadRegistry();
+    })();
+  </script>
+</body>
+</html>
