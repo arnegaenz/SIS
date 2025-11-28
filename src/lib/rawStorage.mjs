@@ -27,3 +27,13 @@ export function readRaw(type, date) {
   if (!fs.existsSync(p)) return null;
   return JSON.parse(fs.readFileSync(p, "utf8"));
 }
+
+export function deleteRaw(type, date) {
+  const p = rawPath(type, date);
+  try {
+    fs.unlinkSync(p);
+    return true;
+  } catch {
+    return false;
+  }
+}

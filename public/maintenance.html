@@ -4,9 +4,10 @@
   <meta charset="utf-8" />
   <title>SIS Maintenance</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="stylesheet" href="/sis-shared.css?v=navfix" />
-  <link rel="stylesheet" href="assets/css/sis.css">
-  <script defer src="assets/js/sis.js"></script>
+  <link rel="stylesheet" href="./sis-shared.css?v=navfix" />
+  <link rel="stylesheet" href="./assets/css/sis.css">
+  <script defer src="./assets/js/sis.js"></script>
+  <script defer src="./assets/js/filters.js"></script>
   <style>
     :root {
       --bg: #f5f7fb;
@@ -47,16 +48,14 @@
       font-family: "Inter", "Segoe UI", ui-sans-serif, system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
       --sis-panel-bg: var(--panel-bg);
       margin: 0;
-      padding: 16px 16px 64px;
-    }
-    .maintenance-main {
       padding: 0;
     }
     .maintenance-grid {
       display: grid;
-      grid-template-columns: repeat(2, minmax(520px, 1fr));
+      grid-template-columns: repeat(2, minmax(360px, 1fr));
       gap: 24px;
-      margin-top: 28px;
+      margin-top: 24px;
+      width: 100%;
     }
     .maint-card {
       background: var(--panel-bg);
@@ -491,7 +490,6 @@
   <header class="sis-header">
     <div class="sis-topbar">
       <div class="sis-title">Strivve Insights Service</div>
-
       <nav class="sis-nav">
         <a href="index.html">Overview</a>
         <a href="funnel.html">FI Funnel</a>
@@ -502,7 +500,10 @@
     </div>
 
     <h1 class="sis-page-name">Maintenance &amp; Registry</h1>
-    <p class="sis-page-desc">Run SIS refresh jobs and curate FI registry metadata without leaving your browser. The registry editor honors overrides (cardholder totals, sources, dates) and pushes changes back to fi_registry.json.</p>
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+      <p class="sis-page-desc" style="flex:1 1 auto;">Run SIS refresh jobs and curate FI registry metadata without leaving your browser. The registry editor honors overrides (cardholder totals, sources, dates) and pushes changes back to fi_registry.json.</p>
+      <button class="theme-toggle" type="button" aria-pressed="false" style="flex:0 0 auto;">Light mode</button>
+    </div>
   </header>
   <div class="sis-content">
   <main class="sis-main maintenance-main">
@@ -521,9 +522,10 @@
             <label>
               Range Preset
               <select id="refreshPreset">
-                <option value="last30" selected>Last 30 days</option>
+                <option value="last3" selected>Last 3 days</option>
                 <option value="last7">Last 7 days</option>
                 <option value="last14">Last 14 days</option>
+                <option value="last30">Last 30 days</option>
                 <option value="last60">Last 60 days</option>
                 <option value="last90">Last 90 days</option>
                 <option value="ytd">Year to date</option>
@@ -565,6 +567,12 @@
             <label>
               Search
               <input type="text" id="registrySearch" placeholder="FI or instance name" />
+            </label>
+            <label>
+              Instance
+              <select id="registryInstanceFilter">
+                <option value="">(all)</option>
+              </select>
             </label>
             <label>
               Integration
@@ -739,7 +747,7 @@
   </main>
   </div>
 
-  <script src="/public/theme-toggle.js"></script>
+  <script src="./theme-toggle.js"></script>
   <script>
     (function setupRefreshPanel() {
       const button = document.getElementById("refreshBtn");
@@ -752,7 +760,12 @@
       const freshnessEl = document.getElementById("dataFreshness");
       let source = null;
 
-      const iso = (d) => d.toISOString().slice(0, 10);
+      const iso = (d) => {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, "0");
+        const day = String(d.getDate()).padStart(2, "0");
+        return `${y}-${m}-${day}`;
+      };
 
       function setStatus(text) {
         statusEl.textContent = text || "";
@@ -805,18 +818,25 @@
 
       function applyPreset(value) {
         const today = new Date();
-        const todayIso = iso(today);
-        const startOfYear = `${today.getFullYear()}-01-01`;
         const dayMs = 86400000;
-        const daysAgo = (n) => iso(new Date(today.getTime() - n * dayMs));
-        let start = daysAgo(29);
-        let end = todayIso;
+        const endDate = new Date(today.getTime() - dayMs); // yesterday
+        const endIso = iso(endDate);
+        const startOfYear = `${endDate.getFullYear()}-01-01`;
+        const daysAgo = (n) => iso(new Date(endDate.getTime() - n * dayMs));
+        let start = daysAgo(2); // default 3-day window
+        let end = endIso;
         switch (value) {
+          case "last3":
+            start = daysAgo(2);
+            break;
           case "last7":
             start = daysAgo(6);
             break;
           case "last14":
             start = daysAgo(13);
+            break;
+          case "last30":
+            start = daysAgo(29);
             break;
           case "last60":
             start = daysAgo(59);
@@ -827,10 +847,8 @@
           case "ytd":
             start = startOfYear;
             break;
-          case "last30":
           default:
-            start = daysAgo(29);
-            break;
+            start = daysAgo(2);
         }
         startInput.value = start;
         endInput.value = end;
@@ -839,13 +857,15 @@
       function validRangeOrFallback(fallback) {
         const endVal = endInput.value || "";
         const startVal = startInput.value || "";
-        const todayStr = iso(new Date());
+        const today = new Date();
+        const yesterday = new Date(today.getTime() - 86400000);
+        const defaultEnd = iso(yesterday);
         const end = /^\d{4}-\d{2}-\d{2}$/.test(endVal)
           ? endVal
-          : fallback?.end || todayStr;
+          : fallback?.end || defaultEnd;
         const start = /^\d{4}-\d{2}-\d{2}$/.test(startVal)
           ? startVal
-          : fallback?.start || iso(new Date(new Date(end).getTime() - 29 * 86400000));
+          : fallback?.start || iso(new Date(new Date(end).getTime() - 2 * 86400000)); // default 3-day window
         if (new Date(`${start}T00:00:00Z`) > new Date(`${end}T00:00:00Z`)) {
           return null;
         }
@@ -853,8 +873,14 @@
       }
 
       function setDefaultRange() {
-        applyPreset("last30");
-        if (presetSelect) presetSelect.value = "last30";
+        applyPreset("last3");
+        if (presetSelect) presetSelect.value = "last3";
+        // Ensure end never exceeds yesterday on load
+        const today = new Date();
+        const yesterdayIso = iso(new Date(today.getTime() - 86400000));
+        if (endInput && endInput.value > yesterdayIso) {
+          endInput.value = yesterdayIso;
+        }
         if (forceCheckbox) forceCheckbox.checked = false;
       }
 
@@ -952,7 +978,7 @@
       button?.addEventListener("click", () => openStream());
       if (presetSelect) {
         presetSelect.addEventListener("change", () => {
-          applyPreset(presetSelect.value || "last30");
+          applyPreset(presetSelect.value || "last3");
         });
       }
       startInput?.addEventListener("input", () => {
@@ -974,16 +1000,15 @@
           const res = await fetch("/run-update/status");
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           const data = await res.json();
-          if (data.defaultRange) {
-            const dr = data.defaultRange;
-            startInput.value = dr.startDate || dr.start || startInput.value;
-            endInput.value = dr.endDate || dr.end || endInput.value;
-            if (presetSelect) {
-              presetSelect.value = "last30";
-            }
+          // Ignore server-provided default ranges; stick to our preset defaults
+          const today = new Date();
+          const yesterdayIso = iso(new Date(today.getTime() - 86400000));
+          if (startInput.value && new Date(startInput.value) > new Date(yesterdayIso)) {
+            startInput.value = yesterdayIso;
           }
-          if (data.startDate) startInput.value = data.startDate;
-          if (data.endDate) endInput.value = data.endDate;
+          if (endInput.value && endInput.value > yesterdayIso) {
+            endInput.value = yesterdayIso;
+          }
           if (forceCheckbox) forceCheckbox.checked = Boolean(data.forceRaw);
           if (data.lastMessage) appendLogLine(data.lastMessage);
           if (data.running) {
@@ -1007,6 +1032,7 @@
     (function setupRegistryEditor() {
       const searchInput = document.getElementById("registrySearch");
       const integrationFilter = document.getElementById("registryIntegrationFilter");
+      const instanceFilter = document.getElementById("registryInstanceFilter");
       const reloadBtn = document.getElementById("registryReloadBtn");
       const tableBody = document.getElementById("registryTableBody");
       const statusLine = document.getElementById("editorStatus");
@@ -1072,6 +1098,18 @@
       function renderTable() {
         const search = (searchInput.value || "").trim().toLowerCase();
         const integrationValue = integrationFilter.value;
+        const instanceValue = instanceFilter.value;
+        // rebuild instance options from current entries
+        const instances = Array.from(new Set(entries.map((e) => e.instance || "unknown"))).sort((a, b) =>
+          a.localeCompare(b)
+        );
+        const keepInstance = instanceFilter.value || "";
+        instanceFilter.innerHTML = `<option value="">(all)</option>${instances
+          .map((val) => `<option value="${val}">${val}</option>`)
+          .join("")}`;
+        if (instances.includes(keepInstance)) {
+          instanceFilter.value = keepInstance;
+        }
         filteredEntries = entries
           .filter((entry) => {
             if (search) {
@@ -1079,6 +1117,9 @@
               if (!haystack.includes(search)) return false;
             }
             if (integrationValue && entry.integration_type !== integrationValue) {
+              return false;
+            }
+            if (instanceValue && entry.instance !== instanceValue) {
               return false;
             }
             return true;
@@ -1179,6 +1220,115 @@
           console.error("registry load failed", err);
           setStatus("Failed to load registry.", "error");
           tableBody.innerHTML = "<tr><td colspan='6'>Unable to load registry.</td></tr>";
+        }
+      }
+      async function reloadRegistryFromData() {
+        if (!window.confirm("Reload registry from data? New FI + instance combos will be added; existing entries are untouched.")) return;
+        setStatus("Scanning data for new FI + instance combos…");
+        tableBody.innerHTML = "<tr><td colspan='6'>Scanning…</td></tr>";
+        try {
+          const normalizeFiKey = (val) =>
+            val ? val.toString().trim().toLowerCase() : "";
+          const normalizeInstanceKey = (val) => {
+            if (!val) return "unknown";
+            const s = val.toString().trim().toLowerCase();
+            return s || "unknown";
+          };
+          const makeKey = (fi, inst) => `${normalizeFiKey(fi)}__${normalizeInstanceKey(inst)}`;
+
+          const resRegistry = await fetch("/fi-registry");
+          if (!resRegistry.ok) throw new Error(`Registry load failed: ${resRegistry.status}`);
+          const registryPayload = await resRegistry.json();
+          const existingKeys = new Set(
+            Object.entries(registryPayload || {}).flatMap(([key, value]) => {
+              const keys = [];
+              if (key.includes("__")) {
+                keys.push(key.toLowerCase());
+              } else {
+                const [fi, inst] = key.split("__");
+                keys.push(makeKey(fi, inst || "unknown"));
+              }
+              // also include lookup-key + instance from the value to avoid re-adding
+              const valFi = (value?.fi_lookup_key || value?.fi_name || "").toLowerCase();
+              const valInst = (value?.instance || (Array.isArray(value?.instances) ? value.instances[0] : "") || "unknown").toLowerCase();
+              if (valFi) {
+                keys.push(makeKey(valFi, valInst || "unknown"));
+              }
+              return keys;
+            })
+          );
+
+          const listRes = await fetch("/list-daily");
+          if (!listRes.ok) throw new Error(`Daily list failed: ${listRes.status}`);
+          const listPayload = await listRes.json();
+          const files = listPayload.files || [];
+
+          const seenNew = new Map();
+          for (const file of files) {
+            try {
+              const daily = await fetch(`/daily?date=${file.replace(".json", "")}`).then((r) => r.json());
+              const fiInstances = daily?.fi_instances || {};
+              const fiEntries = daily?.fi || {};
+
+              const addCombo = (fiKeyRaw, instanceRaw) => {
+                const fiKey = (fiKeyRaw || "").toString().trim();
+                const instance = (instanceRaw || "unknown").toString().trim();
+                if (!fiKey) return;
+                const normKey = makeKey(fiKey, instance);
+                if (existingKeys.has(normKey)) return;
+                if (seenNew.has(normKey)) return;
+                const guessedIntegration = /dev|test/i.test(instance) ? "TEST" : "NON-SSO";
+                seenNew.set(normKey, {
+                  fi_name: fiKey,
+                  fi_lookup_key: normalizeFiKey(fiKey),
+                  instance: instance || "unknown",
+                  integration_type: guessedIntegration,
+                  partner: "Unknown",
+                });
+              };
+
+              Object.entries(fiInstances).forEach(([key, val]) => {
+                addCombo(val.fi_lookup_key || val.fi_name || val.fi || key.split("__")[0], val.instance || key.split("__")[1]);
+              });
+
+              Object.entries(fiEntries).forEach(([fiName, entry]) => {
+                const instances =
+                  (Array.isArray(entry.ga_instances) && entry.ga_instances.length
+                    ? entry.ga_instances
+                    : entry.instance
+                    ? [entry.instance]
+                    : ["unknown"]);
+                instances.forEach((inst) => addCombo(fiName, inst));
+              });
+            } catch (err) {
+              console.warn("daily scan failed", file, err);
+            }
+          }
+
+          const newEntries = Array.from(seenNew.entries());
+          if (!newEntries.length) {
+            setStatus("No new FI instances found.", "success");
+            await loadRegistry();
+            return;
+          }
+
+          setStatus(`Adding ${newEntries.length} new FI instances…`);
+          for (const [key, payload] of newEntries) {
+            try {
+              await fetch("/fi-registry/update", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ key, updates: payload }),
+              });
+            } catch (err) {
+              console.warn("failed to add", key, err);
+            }
+          }
+          setStatus(`Added ${newEntries.length} new entries. Reloading…`, "success");
+          await loadRegistry();
+        } catch (err) {
+          console.error("reload scan failed", err);
+          setStatus(err?.message || "Failed to reload registry from data.", "error");
         }
       }
 
@@ -1285,7 +1435,8 @@
 
       searchInput.addEventListener("input", renderTable);
       integrationFilter.addEventListener("change", renderTable);
-      reloadBtn.addEventListener("click", loadRegistry);
+      instanceFilter.addEventListener("change", renderTable);
+      reloadBtn.addEventListener("click", reloadRegistryFromData);
 
       form.addEventListener("submit", (event) => {
         event.preventDefault();

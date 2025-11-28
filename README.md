@@ -78,7 +78,7 @@ By default the server listens on `http://localhost:8787`. Key pages:
 | --- | --- |
 | `/` | Landing page with quick links to the primary reports. |
 | `/funnel.html` | GA + SIS CardUpdatr funnel with filtering, drilldowns, and CSV export. |
-| `/heatmap.html` | Merchant site health heatmap with traffic/health/conversion/anomaly modes. |
+| `/heatmap.html` | Merchant site heatmap using per‑FI/per‑merchant/per‑day slices with Traffic / Health / Conversion / Anomaly / Availability modes. |
 
 While the server is running you can also hit the JSON helpers directly:
 
@@ -107,3 +107,10 @@ The CardUpdatr funnel view (and its CSV export) combines GA4 traffic with SIS se
 - **Totals bar** — Sums visible rows per column and then recomputes the conversion percentages from those summed values (e.g., `Σ ga_user / Σ ga_select`). This mirrors what partners see when exporting the same filtered set.
 - **Highlights panel** — Evaluates rolling windows (7/14/30 days, depending on the overall date range) and surfaces the best contiguous stretch per integration bucket with ≥200 GA selects. Each highlight row uses the same column math listed above.
 - **CSV export** — The “Summary”, “Monthly Rollups”, and “Weekly Rollups” tabs in the CSV reuse the exact same calculations as the UI to keep the narrative consistent when sharing reports outside the CLI.
+
+## Heatmap (Merchant Availability & Filters)
+
+- Backend now returns per‑slice records for each day/merchant/FI: `{ day, merchant, fi, is_test, total, billable, siteFailures, userFlowIssues }`. The client filters slices by the checked FI list and prod/test toggles, then aggregates to render the grid.
+- Availability mode highlights simple reachability: green when any traffic is seen that day, red when there is no traffic (likely down), gray when no signal.
+- FI filtering is deterministic: only checked FIs are included; an empty selection shows no data. Partner/integration/instance no longer filter data.
+- Date preset “Last 90 days” anchors to yesterday and 89 days prior; start/end inputs reflect the preset on load.

@@ -1,12 +1,14 @@
 <!doctype html>
 <html lang="en">
   <head>
-    <meta charset="utf-8" />
-    <title>GA + SIS CardUpdatr Funnel</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="stylesheet" href="/sis-shared.css?v=navfix" />
-    <link rel="stylesheet" href="assets/css/sis.css">
-    <script defer src="assets/js/sis.js"></script>
+  <meta charset="utf-8" />
+  <title>GA + SIS CardUpdatr Funnel</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="./sis-shared.css?v=navfix" />
+  <link rel="stylesheet" href="./assets/css/sis.css">
+  <script defer src="./assets/js/sis.js"></script>
+  <script defer src="./assets/js/filters.js?v=shared"></script>
+  <link rel="stylesheet" href="./assets/css/filters.css">
     <style>
       :root {
         --bg: #f6f8fb;
@@ -24,26 +26,26 @@
         --table-alt: #f8fafc;
       }
       [data-theme="dark"] {
-        --bg: #0f172a;
+        --bg: #070a0f;
         --panel: #111827;
-        --panel-light: #1f2937;
+        --panel-light: #1a2333;
         --text: #e2e8f0;
         --muted: #94a3b8;
         --accent: #38bdf8;
         --accent-2: #6366f1;
-        --border: rgba(148, 163, 184, 0.3);
+        --border: rgba(148, 163, 184, 0.22);
         --input-bg: #0b1120;
         --input-border: rgba(148,163,184,0.3);
         --table-border: #1f2937;
-        --table-header: #020617;
-        --table-alt: rgba(2,6,23,0.65);
+        --table-header: #0b1220;
+        --table-alt: rgba(11,18,32,0.65);
       }
       * {
         box-sizing: border-box;
       }
       body {
         margin: 0;
-        padding: 16px 16px 64px;
+        padding: 0;
         font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         background: var(--bg);
         color: var(--text);
@@ -59,6 +61,9 @@
         flex-wrap: wrap;
         gap: 6px;
         align-items: flex-end;
+      }
+      .form-grid--dates {
+        margin-top: 8px;
       }
       .form-field {
         display: flex;
@@ -174,6 +179,32 @@
       .highlights-table th {
         background: var(--table-header);
       }
+      .loading-status {
+        min-height: 18px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: var(--accent);
+        margin: 4px 0 8px;
+        display: block;
+      }
+      .quarter-summary {
+        margin-top: 12px;
+      }
+      .quarter-summary table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 8px;
+        font-size: 0.8rem;
+      }
+      .quarter-summary th,
+      .quarter-summary td {
+        border: 1px solid var(--table-border);
+        padding: 5px 7px;
+        text-align: left;
+      }
+      .quarter-summary th {
+        background: var(--table-header);
+      }
       .highlights-table th:first-child,
       .highlights-table td:first-child {
         min-width: 180px;
@@ -287,6 +318,16 @@
       .partner-summary__table tfoot td {
         font-weight: 600;
       }
+      .date-warning {
+        margin: 4px 0 0;
+        color: #f97316;
+        font-size: 0.9rem;
+        display: none;
+      }
+      .date-warning a {
+        color: inherit;
+        text-decoration: underline;
+      }
     </style>
   </head>
   <body>
@@ -303,52 +344,25 @@
         </nav>
       </div>
 
-      <h1 class="sis-page-name">GA + SIS CardUpdatr Funnel</h1>
-      <p class="sis-page-desc">Inspect daily rollups and conversion steps from GA through SIS sessions to placements. Slice by integration type, partner, or instances to spot deltas fast.</p>
-    </header>
-    <div class="sis-content">
-    <main class="sis-main">
+    <h1 class="sis-page-name">GA + SIS CardUpdatr Funnel</h1>
+    <p class="sis-page-desc">Inspect daily rollups and conversion steps from GA through SIS sessions to placements. Slice by integration type, partner, or instances to spot deltas fast.</p>
+  </header>
+  <div class="sis-content">
+  <main class="sis-main">
       <section class="sis-panel">
+        <div id="filter-bar"></div>
         <div class="funnel-header">
-          <div class="form-grid">
-            <div class="form-field">
-              <label for="fiFilter">Filter FI</label>
-              <select id="fiFilter" class="form-select">
-                <option value="__all__">(all FIs)</option>
-              </select>
-            </div>
-            <div class="form-field">
-              <label for="integrationFilter">Integration</label>
-              <select id="integrationFilter" class="form-select">
-                <option value="(all)">(all)</option>
-                <option value="SSO">SSO</option>
-                <option value="NON-SSO">NON-SSO</option>
-                <option value="CardSavr">CardSavr</option>
-                <option value="TEST">TEST</option>
-                <option value="UNKNOWN">UNKNOWN</option>
-              </select>
-            </div>
-            <div class="form-field">
-              <label for="partnerFilter">Partner</label>
-              <select id="partnerFilter" class="form-select">
-                <option value="__all_partners__">(all partners)</option>
-              </select>
-            </div>
-            <div class="form-field">
-              <label for="instanceFilter">Instances</label>
-              <select id="instanceFilter" class="form-select">
-                <option value="__all_instances__" selected>(all instances)</option>
-              </select>
-            </div>
+          <div class="form-grid form-grid--dates">
             <div class="form-field">
               <label for="datePreset">Range preset</label>
               <select id="datePreset" class="form-select">
-                <option value="last30" selected>Last 30 days</option>
-                <option value="last7">Last 7 days</option>
+                <option value="last7" selected>Last 7 days</option>
                 <option value="last14">Last 14 days</option>
+                <option value="last30">Last 30 days</option>
                 <option value="last60">Last 60 days</option>
                 <option value="last90">Last 90 days</option>
                 <option value="ytd">Year to date</option>
+                <option value="last4q">Past 4 quarters</option>
                 <option value="">Custom</option>
               </select>
             </div>
@@ -361,7 +375,7 @@
               <input id="endDate" type="date" class="form-input" />
             </div>
             <div class="form-field" style="min-width: 200px">
-              <label>&nbsp;</label>
+              <label for="applyBtn">Actions</label>
               <div class="form-actions">
                 <button id="applyBtn" class="form-button">Apply filters</button>
                 <button id="exportCsvBtn" class="form-button secondary">Export CSV</button>
@@ -372,6 +386,7 @@
               </div>
             </div>
           </div>
+          <div id="dateWarning" class="date-warning" aria-live="polite"></div>
         </div>
 
     <div class="funnel-body">
@@ -379,6 +394,7 @@
       <div id="bestWindows" style="margin-bottom: 8px;"></div>
       <div id="totalsBar" class="group-header" style="display: none;"></div>
       <div id="partnerSummary" class="partner-summary" style="display: none;"></div>
+      <div id="funnelLoading" class="loading-status" aria-live="polite">Loading…</div>
 
       <div id="multiFiView">
       <div class="group-block" data-group="SSO">
@@ -528,10 +544,10 @@
   </main>
   </div>
 
-    <script src="/public/theme-toggle.js"></script>
     <script>
       const startDateInput = document.getElementById("startDate");
       const endDateInput = document.getElementById("endDate");
+      const dateWarningEl = document.getElementById("dateWarning");
       const fiFilterSelect = document.getElementById("fiFilter");
       const integrationSelect = document.getElementById("integrationFilter");
       const partnerSelect = document.getElementById("partnerFilter");
@@ -543,8 +559,19 @@
       const bestWindowsDiv = document.getElementById("bestWindows");
       const totalsBar = document.getElementById("totalsBar");
       const partnerSummaryBox = document.getElementById("partnerSummary");
+      const quarterSummaryBox = document.createElement("div");
+      quarterSummaryBox.id = "quarterSummary";
+      quarterSummaryBox.className = "quarter-summary";
+      if (partnerSummaryBox?.parentNode) {
+        partnerSummaryBox.parentNode.insertBefore(quarterSummaryBox, partnerSummaryBox.nextSibling);
+      }
       const multiFiView = document.getElementById("multiFiView");
       const singleFiView = document.getElementById("singleFiView");
+      const loadingEl = document.getElementById("funnelLoading");
+      let loadingInterval = null;
+      if (includeTestCheckbox) includeTestCheckbox.checked = false;
+      let latestDailyDate = null;
+      let earliestDailyDate = null;
 
       const tableBodies = {
         SSO: document.querySelector("#table-SSO tbody"),
@@ -574,23 +601,98 @@
         UNKNOWN: "UNKNOWN",
       };
 
+      const dayMs = 86400000;
       const today = new Date();
-      const todayStr = today.toISOString().slice(0, 10);
-      const isoDaysAgo = (n) => {
-        const d = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() - n));
-        return d.toISOString().slice(0, 10);
+      const isoLocalFromDate = (d) => {
+        const copy = new Date(d.getTime());
+        copy.setHours(0, 0, 0, 0);
+        const tzOffset = copy.getTimezoneOffset() * 60000;
+        return new Date(copy.getTime() - tzOffset).toISOString().slice(0, 10);
       };
-      const defaultStartDateStr = isoDaysAgo(29);
-      const defaultEndDateStr = todayStr;
+      const isoLocalToday = () => isoLocalFromDate(new Date());
+      const isoLocalDaysAgo = (n) => {
+        const d = new Date();
+        d.setDate(d.getDate() - n);
+        return isoLocalFromDate(d);
+      };
+      const isoLocalYesterday = () => isoLocalDaysAgo(1);
+      const defaultEndDateStr = isoLocalYesterday(); // yesterday by default
+      const defaultStartDateStr = isoLocalDaysAgo(6); // last 7 days ending yesterday
+
+      const getLatestUsableDateIso = () => {
+        const yesterday = isoLocalYesterday();
+        if (latestDailyDate) {
+          return latestDailyDate < yesterday ? latestDailyDate : yesterday;
+        }
+        return yesterday;
+      };
+
+      function getReferenceDate() {
+        const latestIso = getLatestUsableDateIso();
+        return new Date(`${latestIso}T00:00:00Z`);
+      }
+
+      function enforceEndDateBounds() {
+        try {
+          const baseRef = getReferenceDate();
+          const baseIso = isoLocalFromDate(baseRef);
+          if (endDateInput && endDateInput.value && endDateInput.value > baseIso) {
+            endDateInput.value = baseIso;
+          }
+          if (
+            startDateInput &&
+            endDateInput &&
+            startDateInput.value &&
+            endDateInput.value &&
+            startDateInput.value > endDateInput.value
+          ) {
+            startDateInput.value = endDateInput.value;
+          }
+        } catch (err) {
+          console.warn("enforceEndDateBounds failed", err);
+        }
+      }
+
+      function renderDateWarning() {
+        if (!dateWarningEl) return;
+        try {
+          if (!latestDailyDate) {
+            dateWarningEl.style.display = "none";
+            dateWarningEl.textContent = "";
+            return;
+          }
+          const chosenEnd = endDateInput?.value;
+          if (!chosenEnd || chosenEnd <= latestDailyDate) {
+            dateWarningEl.style.display = "none";
+            dateWarningEl.textContent = "";
+            return;
+          }
+          const linkHref = `maintenance.html?date=${encodeURIComponent(chosenEnd)}`;
+          dateWarningEl.innerHTML = `Heads up: data is only available through ${latestDailyDate}. You selected ${chosenEnd}. <a href="${linkHref}">Open maintenance for that date</a>.`;
+          dateWarningEl.style.display = "block";
+        } catch (err) {
+          console.warn("renderDateWarning failed", err);
+        }
+      }
 
       function applyPresetRange(value) {
-        const dayMs = 86400000;
-        const now = new Date();
+        const ref = getReferenceDate();
         const iso = (d) => d.toISOString().slice(0, 10);
-        const daysAgo = (n) => iso(new Date(now.getTime() - n * dayMs));
-        const startOfYear = `${now.getFullYear()}-01-01`;
-        let start = daysAgo(29);
-        let end = iso(now);
+        const daysAgo = (n) => iso(new Date(ref.getTime() - n * dayMs));
+        const startOfYear = `${ref.getUTCFullYear()}-01-01`;
+        const lastFullQuarterRange = () => {
+          const q = Math.floor(ref.getUTCMonth() / 3); // 0-based current quarter
+          const endQuarter = q === 0 ? 3 : q; // last full quarter index (1..4)
+          const endYear = q === 0 ? ref.getUTCFullYear() - 1 : ref.getUTCFullYear();
+          const endMonth = endQuarter * 3; // 3,6,9,12
+          const end = new Date(Date.UTC(endYear, endMonth, 0)); // last day of that quarter
+          const start = new Date(Date.UTC(endYear, endMonth - 3, 1)); // first day of that quarter
+          const start4q = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() - 9, 1));
+          return { start: iso(start4q), end: iso(end) };
+        };
+
+        let start = daysAgo(6); // default last 7
+        let end = iso(ref);
         switch (value) {
           case "last7":
             start = daysAgo(6);
@@ -598,39 +700,61 @@
           case "last14":
             start = daysAgo(13);
             break;
+          case "last30":
+            start = daysAgo(29);
+            break;
           case "last60":
             start = daysAgo(59);
             break;
           case "last90":
             start = daysAgo(89);
             break;
+          case "last4q": {
+            const qRange = lastFullQuarterRange();
+            start = qRange.start;
+            end = qRange.end;
+            break;
+          }
           case "ytd":
             start = startOfYear;
             break;
           default:
-            start = daysAgo(29);
-            end = iso(now);
+            start = daysAgo(6);
         }
         startDateInput.value = start;
         endDateInput.value = end;
+        renderDateWarning();
+      }
+
+      function ensureDateDefaults() {
+        if (!startDateInput.value) startDateInput.value = defaultStartDateStr;
+        if (!endDateInput.value) endDateInput.value = defaultEndDateStr;
+        enforceEndDateBounds();
+        const preset = document.getElementById("datePreset");
+        if (preset && !preset.value) preset.value = "last7";
       }
 
       function applyDefaultDateRange(force = false) {
         if (force || !startDateInput.value || !endDateInput.value) {
-          applyPresetRange("last30");
+          applyPresetRange("last7");
           const preset = document.getElementById("datePreset");
-          if (preset) preset.value = "last30";
+          if (preset) preset.value = "last7";
         }
+      }
+
+      function safeApplyFilters() {
+        ensureDateDefaults();
+        enforceEndDateBounds();
+        renderDateWarning();
+        applyFilters();
       }
 
       function updatePartnerOptions(perFi) {
         if (!partnerSelect || !perFi) return;
-        const integrationValue = integrationSelect.value;
-        const includeTests = includeTestCheckbox?.checked;
+        const integrationValue = integrationSelect?.value || "(all)";
         const partners = Array.from(
           new Set(
             Object.values(perFi)
-              .filter((row) => (includeTests || !row.is_test))
               .filter((row) =>
                 integrationValue === "(all)" ? true : row.integration_type === integrationValue
               )
@@ -804,6 +928,170 @@ function applyColumnTitles(root = document) {
       let latestSingleFiBreakdowns = null;
       let latestHighlights = [];
       let latestPartnerSummary = null;
+      let latestQuarterSummary = null;
+
+      function buildLast4QuarterRanges(endIso) {
+        const parseIso = (iso) => new Date(`${iso}T00:00:00Z`);
+        const endDate = endIso ? parseIso(endIso) : new Date();
+        let q = Math.floor(endDate.getUTCMonth() / 3) + 1;
+        let year = endDate.getUTCFullYear();
+        // use last full quarter
+        if (q === Math.floor(new Date().getUTCMonth() / 3) + 1 && endDate.getUTCDate() < 31) {
+          // already end of quarter? assume preset ensures full quarter; keep as is
+        }
+        if (endDate > new Date()) {
+          q = Math.floor(new Date().getUTCMonth() / 3);
+          year = new Date().getUTCFullYear();
+        }
+        if (q === Math.floor(new Date().getUTCMonth() / 3) + 1) {
+          q = q - 1 || 4;
+          if (q === 4) year -= 1;
+        }
+        const ranges = [];
+        for (let i = 0; i < 4; i++) {
+          const endMonth = q * 3; // 3,6,9,12
+          const end = new Date(Date.UTC(year, endMonth, 0));
+          const start = new Date(Date.UTC(year, endMonth - 3, 1));
+          ranges.unshift({
+            label: `Q${q} ${year}`,
+            start: start.toISOString().slice(0, 10),
+            end: end.toISOString().slice(0, 10),
+          });
+          q -= 1;
+          if (q === 0) {
+            q = 4;
+            year -= 1;
+          }
+        }
+        return ranges;
+      }
+
+      function summarizeRange(perFi = {}, includeTests = true) {
+        const totals = {
+          ga_select: 0,
+          ga_user: 0,
+          ga_cred: 0,
+          sessions: 0,
+          sess_with_jobs: 0,
+          sess_with_success: 0,
+          placements: 0,
+          cardholders: 0,
+        };
+        const seenFi = new Set();
+        Object.values(perFi || {}).forEach((row) => {
+          if (!includeTests && row.is_test) return;
+          totals.ga_select += Number(row.ga_select || 0);
+          totals.ga_user += Number(row.ga_user || 0);
+          totals.ga_cred += Number(row.ga_cred || 0);
+          totals.sessions += Number(row.sessions || 0);
+          totals.sess_with_jobs += Number(row.sess_with_jobs || 0);
+          totals.sess_with_success += Number(row.sess_with_success || 0);
+          totals.placements += Number(row.placements || 0);
+          const fiKey = row.fi || row.key || "";
+          if (!seenFi.has(fiKey) && Number.isFinite(row.cardholders)) {
+            totals.cardholders += Number(row.cardholders);
+            seenFi.add(fiKey);
+          }
+        });
+        return totals;
+      }
+
+      function summarizeQuarterRanges(ranges = [], includeTests = true, cardholderMap) {
+        const rows = ranges.map((range) => {
+          const perFi = aggregateData(range.start, range.end, cardholderMap);
+          const totals = summarizeRange(perFi, includeTests);
+          return { ...range, totals };
+        });
+        const total = rows.reduce(
+          (acc, row) => {
+            Object.keys(acc).forEach((k) => {
+              acc[k] += Number(row.totals[k] || 0);
+            });
+            return acc;
+          },
+          {
+            ga_select: 0,
+            ga_user: 0,
+            ga_cred: 0,
+            sessions: 0,
+            sess_with_jobs: 0,
+            sess_with_success: 0,
+            placements: 0,
+            cardholders: 0,
+          }
+        );
+        return { rows, total };
+      }
+
+      function renderQuarterSummary(summary) {
+        const box = document.getElementById("quarterSummary");
+        if (!box) return;
+        if (!summary || !summary.rows || !summary.rows.length) {
+          box.style.display = "none";
+          box.innerHTML = "";
+          return;
+        }
+        const percent = (num, den) =>
+          den && Number.isFinite(num) ? ((num / den) * 100).toFixed(1) + "%" : "—";
+        const rowsHtml = summary.rows
+          .map((row) => {
+            const t = row.totals || {};
+            const sessSuccessPct = percent(t.sess_with_success, t.sessions);
+            const rangeLabel = row.start === row.end ? row.start : `${row.start} → ${row.end}`;
+            return `
+              <tr>
+                <td>${row.label}</td>
+                <td>${rangeLabel}</td>
+                <td>${t.ga_select}</td>
+                <td>${t.ga_user}</td>
+                <td>${t.ga_cred}</td>
+                <td>${t.sessions}</td>
+                <td>${t.sess_with_success}</td>
+                <td>${sessSuccessPct}</td>
+                <td>${t.placements}</td>
+                <td>${t.cardholders}</td>
+              </tr>
+            `;
+          })
+          .join("");
+        const total = summary.total || {};
+        const totalPct = percent(total.sess_with_success, total.sessions);
+        box.innerHTML = `
+          <h3>Past 4 quarters</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Quarter</th>
+                <th>Dates</th>
+                <th>GA select</th>
+                <th>GA user</th>
+                <th>GA cred</th>
+                <th>Sessions</th>
+                <th>Sessions w/success</th>
+                <th>sess→success %</th>
+                <th>Placements</th>
+                <th>Cardholders</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rowsHtml}
+              <tr>
+                <th>Total</th>
+                <td>4Q aggregate</td>
+                <td>${total.ga_select || 0}</td>
+                <td>${total.ga_user || 0}</td>
+                <td>${total.ga_cred || 0}</td>
+                <td>${total.sessions || 0}</td>
+                <td>${total.sess_with_success || 0}</td>
+                <td>${totalPct}</td>
+                <td>${total.placements || 0}</td>
+                <td>${total.cardholders || 0}</td>
+              </tr>
+            </tbody>
+          </table>
+        `;
+        box.style.display = "";
+      }
 
       const tableSortState = {
         multi: {},
@@ -811,6 +1099,11 @@ function applyColumnTitles(root = document) {
       };
 
       const DEFAULT_SORT = { column: "sessions", direction: "desc" };
+      // Initialize date inputs with default window on load
+      if (startDateInput && !startDateInput.value) startDateInput.value = defaultStartDateStr;
+      if (endDateInput && !endDateInput.value) endDateInput.value = defaultEndDateStr;
+      const presetEl = document.getElementById("datePreset");
+      if (presetEl) presetEl.value = "last30";
 
       async function fetchJson(url) {
         const res = await fetch(url);
@@ -970,14 +1263,12 @@ function applyColumnTitles(root = document) {
       function updateInstanceOptions(perFi) {
         if (!instanceSelect) return;
         if (!perFi) return;
-        const integrationValue = integrationSelect.value;
-        const includeTests = includeTestCheckbox?.checked;
-        const filterFi = fiFilterSelect.value;
+        const integrationValue = integrationSelect?.value || "(all)";
+        const filterFi = fiFilterSelect?.value || FI_ALL_VALUE;
         const partnerValue = partnerSelect?.value || PARTNER_ALL_VALUE;
         const eligible = Array.from(
           new Set(
             Object.values(perFi)
-              .filter((row) => (includeTests || !row.is_test))
               .filter((row) =>
                 integrationValue === "(all)" ? true : row.integration_type === integrationValue
               )
@@ -1024,14 +1315,12 @@ function applyColumnTitles(root = document) {
       }
 
       function updateFiOptions(perFi) {
-        if (!perFi) return;
-        const integrationValue = integrationSelect.value;
-        const includeTests = includeTestCheckbox?.checked;
+        if (!perFi || !fiFilterSelect) return;
+        const integrationValue = integrationSelect?.value || "(all)";
         const partnerValue = partnerSelect?.value || PARTNER_ALL_VALUE;
         const eligible = Array.from(
           new Set(
             Object.values(perFi)
-              .filter((row) => (includeTests || !row.is_test))
               .filter((row) =>
                 integrationValue === "(all)" ? true : row.integration_type === integrationValue
               )
@@ -1042,7 +1331,7 @@ function applyColumnTitles(root = document) {
           )
         ).sort((a, b) => a.localeCompare(b));
 
-        const existingValue = fiFilterSelect.value;
+        const existingValue = fiFilterSelect?.value;
         fiFilterSelect.innerHTML = "";
         const addOption = (value, label) => {
           const opt = document.createElement("option");
@@ -1071,45 +1360,94 @@ function applyColumnTitles(root = document) {
         return [normalizeInstanceKey(value)];
       }
 
+      const normalizeIntegrationKey = (val) => {
+        const upper = (val || "").toString().trim().toUpperCase();
+        if (upper === "NON-SSO" || upper === "NON_SSO" || upper === "NONSSO") return "NON-SSO";
+        if (upper === "SSO") return "SSO";
+        return upper;
+      };
+
       function getVisibleRows(perFi) {
-        const filterFi = fiFilterSelect.value;
-        const filterIntegration = integrationSelect.value;
-        const filterPartner = partnerSelect?.value || PARTNER_ALL_VALUE;
+        const shared = window.__FILTER_STATE;
         const includeTests = includeTestCheckbox?.checked;
+        const fiTouched = shared && shared.__fiTouched;
+        const canonicalSet =
+          shared && shared.canonicalFiInstances && shared.canonicalFiInstances.size
+            ? shared.canonicalFiInstances
+            : null;
+        const matchesCanonical = (row) => {
+          if (!canonicalSet) return true;
+          const fiKey = normalizeFiKey(row.fi);
+          const instRaw =
+            row.instance ||
+            (Array.isArray(row.instances) && row.instances.length ? row.instances[0] : "any");
+          const instKey = normalizeInstanceKey(instRaw || "any");
+          const keyExact = makeFiInstanceKey(fiKey, instKey);
+          const keyAny = makeFiInstanceKey(fiKey, "any");
+          return canonicalSet.has(keyExact) || canonicalSet.has(keyAny);
+        };
+        if (shared && shared.page === "funnel") {
+          const sharedFiSet = shared.fis
+            ? new Set(Array.from(shared.fis).map((fi) => normalizeFiKey(fi)))
+            : new Set();
+          const sharedIntegration = normalizeIntegrationKey(shared.integration);
+          const selectedInstances =
+            shared.instance && shared.instance !== "All"
+              ? [normalizeInstanceKey(shared.instance)]
+              : [];
+          return Object.values(perFi).filter((row) => {
+            if (!includeTests && row.is_test) return false;
+            if (!matchesCanonical(row)) return false;
+            const rowPartner = row.partner || "Unknown";
+            if (shared.partner !== "All" && rowPartner !== shared.partner) return false;
+            const rowIntegration = normalizeIntegrationKey(row.integration_type);
+            if (shared.integration !== "All" && rowIntegration !== sharedIntegration) return false;
+            if (fiTouched && sharedFiSet.size === 0) return false;
+            if (sharedFiSet.size) {
+              const fiKey = normalizeFiKey(row.fi);
+              if (!sharedFiSet.has(fiKey)) return false;
+            }
+            if (selectedInstances.length > 0) {
+              const rowInstances =
+                Array.isArray(row.instances) && row.instances.length
+                  ? row.instances.map((inst) => normalizeInstanceKey(inst))
+                  : [normalizeInstanceKey(row.instance)];
+              if (!rowInstances.some((inst) => selectedInstances.includes(inst))) return false;
+            }
+            return true;
+          });
+        }
+
+        const filterFi = fiFilterSelect?.value || FI_ALL_VALUE;
+        const filterIntegration = integrationSelect?.value || "(all)";
+        const filterPartner = partnerSelect?.value || PARTNER_ALL_VALUE;
         const selectedInstances = getSelectedInstances();
         return Object.values(perFi).filter((row) => {
-          if (!includeTests && row.is_test) {
-            return false;
-          }
-          if (filterFi && filterFi !== FI_ALL_VALUE && row.fi !== filterFi) {
-            return false;
-          }
-          if (filterIntegration !== "(all)" && row.integration_type !== filterIntegration) {
-            return false;
-          }
+          if (!includeTests && row.is_test) return false;
+          if (!matchesCanonical(row)) return false;
+          if (filterFi && filterFi !== FI_ALL_VALUE && row.fi !== filterFi) return false;
+          if (filterIntegration !== "(all)" && row.integration_type !== filterIntegration) return false;
           if (filterPartner !== PARTNER_ALL_VALUE) {
             const rowPartner = row.partner || "Unknown";
-            if (rowPartner !== filterPartner) {
-              return false;
-            }
+            if (rowPartner !== filterPartner) return false;
           }
           if (selectedInstances.length > 0) {
-            const rowInstances = Array.isArray(row.instances) && row.instances.length
-              ? row.instances.map((inst) => normalizeInstanceKey(inst))
-              : [normalizeInstanceKey(row.instance)];
-            const hasMatch = rowInstances.some((inst) =>
-              selectedInstances.includes(inst)
-            );
-            if (!hasMatch) {
-              return false;
-            }
+            const rowInstances =
+              Array.isArray(row.instances) && row.instances.length
+                ? row.instances.map((inst) => normalizeInstanceKey(inst))
+                : [normalizeInstanceKey(row.instance)];
+            if (!rowInstances.some((inst) => selectedInstances.includes(inst))) return false;
           }
           return true;
         });
       }
 
       function isSingleFiSelected() {
-        return fiFilterSelect.value && fiFilterSelect.value !== FI_ALL_VALUE;
+        const shared = window.__FILTER_STATE;
+        if (shared && shared.page === "funnel") {
+          return shared.fis && shared.fis.size === 1;
+        }
+        return fiFilterSelect && fiFilterSelect.value && fiFilterSelect.value !== FI_ALL_VALUE;
       }
 
       function parseDateUtc(dateStr) {
@@ -1245,7 +1583,11 @@ function applyColumnTitles(root = document) {
         sess_success_pct: (row) => getSessSuccessRatio(row),
         placements: (row) => Number(row.placements) || 0,
         sources_missing: (row) => (row.sources_missing ? row.sources_missing.length : 0),
-        period: (row) => (row.periodLabel || row.start || "").toLowerCase(),
+        period: (row) => {
+          const iso = row.start || row.periodStart || row.period;
+          if (iso) return iso.toString().toLowerCase();
+          return (row.periodLabel || "").toLowerCase();
+        },
       };
 
       const CSV_COLUMNS = [
@@ -1387,11 +1729,23 @@ function applyColumnTitles(root = document) {
         };
       }
 
-      function buildCsvDocument({ summary, monthly, weekly, daily, highlights, partnerSummary, start, end }) {
+      function buildCsvDocument({
+        summary,
+        monthly,
+        weekly,
+        daily,
+        quarterly,
+        quarterSummary,
+        highlights,
+        partnerSummary,
+        start,
+        end,
+      }) {
         const header = CSV_COLUMNS.map((col) => csvEscape(col.label)).join(",");
         const lines = [];
         const title = `Strivve Insights Service Report ${start || ""} → ${end || ""}`.trim();
         lines.push(`"${title}"`, "", "");
+
         const highlightRows = (highlights || []).filter((h) => h && !h.empty);
         if (highlightRows.length) {
           lines.push("Highlights");
@@ -1403,6 +1757,21 @@ function applyColumnTitles(root = document) {
           lines.push("", "");
         }
 
+        // Integration buckets (SSO/Non-SSO/etc)
+        const summaryRows = summary || [];
+        const bucketOrder = ["SSO", "NON-SSO", "CardSavr", "TEST", "UNKNOWN"];
+        bucketOrder.forEach((label) => {
+          const bucketRows = summaryRows.filter((row) => row.integration_type === label);
+          if (!bucketRows.length) return;
+          lines.push("", "");
+          lines.push(`"${label} Table"`);
+          lines.push(header);
+          bucketRows.forEach((row) => lines.push(rowToCsvLine(label, row)));
+          const totalsRow = buildTotalsCsvRow(bucketRows, label, start, end);
+          lines.push(rowToCsvLine(`${label} Total`, totalsRow));
+        });
+
+        // Partner integration mix (SSO vs NON-SSO for selected partner)
         if (partnerSummary && partnerSummary.rows && partnerSummary.rows.length) {
           const percentString = (value) =>
             typeof value === "number" && Number.isFinite(value)
@@ -1422,6 +1791,7 @@ function applyColumnTitles(root = document) {
           ]
             .map(csvEscape)
             .join(",");
+          lines.push("", "");
           lines.push(`${partnerSummary.partner} Integration Mix`);
           lines.push(partnerHeader);
           partnerSummary.rows.forEach((row) => {
@@ -1453,21 +1823,69 @@ function applyColumnTitles(root = document) {
             percentString(totals.reachPct),
           ];
           lines.push(totalValues.map(csvEscape).join(","));
-          lines.push("", "");
         }
 
-        const summaryRows = summary || [];
-        const bucketOrder = ["SSO", "NON-SSO", "CardSavr", "TEST", "UNKNOWN"];
-        bucketOrder.forEach((label) => {
-          const bucketRows = summaryRows.filter((row) => row.integration_type === label);
-          if (!bucketRows.length) return;
+        // Quarterly rollups (multi-FI when last4q)
+        if (quarterSummary && quarterSummary.rows && quarterSummary.rows.length) {
+          const pct = (n, d) => (d ? ((n / d) * 100).toFixed(1) + "%" : "—");
           lines.push("", "");
-          lines.push(`"${label} Table"`);
-          lines.push(header);
-          bucketRows.forEach((row) => lines.push(rowToCsvLine(label, row)));
-          const totalsRow = buildTotalsCsvRow(bucketRows, label, start, end);
-          lines.push(rowToCsvLine(`${label} Total`, totalsRow));
-        });
+          lines.push(`"Quarterly (past 4 quarters)"`);
+          lines.push(
+            [
+              "Quarter",
+              "Dates",
+              "GA select",
+              "GA user",
+              "GA cred",
+              "Sessions",
+              "Sessions w/success",
+              "sess→success %",
+              "Placements",
+              "Cardholders",
+            ]
+              .map(csvEscape)
+              .join(",")
+          );
+          quarterSummary.rows.forEach((row) => {
+            const t = row.totals || {};
+            const rangeLabel = row.start === row.end ? row.start : `${row.start} → ${row.end}`;
+            lines.push(
+              [
+                row.label,
+                rangeLabel,
+                t.ga_select || 0,
+                t.ga_user || 0,
+                t.ga_cred || 0,
+                t.sessions || 0,
+                t.sess_with_success || 0,
+                pct(t.sess_with_success, t.sessions),
+                t.placements || 0,
+                t.cardholders || 0,
+              ]
+                .map(csvEscape)
+                .join(",")
+            );
+          });
+          const tot = quarterSummary.total || {};
+          lines.push(
+            [
+              "4Q total",
+              "aggregate",
+              tot.ga_select || 0,
+              tot.ga_user || 0,
+              tot.ga_cred || 0,
+              tot.sessions || 0,
+              tot.sess_with_success || 0,
+              ((tot.sess_with_success && tot.sessions)
+                ? ((tot.sess_with_success / tot.sessions) * 100).toFixed(1) + "%"
+                : "—"),
+              tot.placements || 0,
+              tot.cardholders || 0,
+            ]
+              .map(csvEscape)
+              .join(",")
+          );
+        }
 
         const appendSection = (labelText, rows) => {
           if (!rows || !rows.length) return;
@@ -1477,6 +1895,7 @@ function applyColumnTitles(root = document) {
           rows.forEach((row) => lines.push(rowToCsvLine(labelText, row)));
         };
 
+        appendSection("Quarterly Rollups", quarterly);
         appendSection("Monthly Rollups", monthly);
         appendSection("Weekly Rollups", weekly);
         appendSection("Daily Rollups", daily);
@@ -1830,6 +2249,51 @@ function applyColumnTitles(root = document) {
             )
           )
           .filter(Boolean);
+      }
+
+      function buildQuarterlyRowsForFi(dailyRows, startDate, endDate, meta) {
+        const buckets = new Map();
+        for (const row of dailyRows) {
+          const date = parseDateUtc(row.start);
+          const q = Math.floor(date.getUTCMonth() / 3) + 1;
+          const year = date.getUTCFullYear();
+          const key = `${year}-Q${q}`;
+          const quarterStartDate = new Date(Date.UTC(year, (q - 1) * 3, 1));
+          const quarterEndDate = new Date(Date.UTC(year, q * 3, 0));
+          const quarterStart = formatDateUtc(quarterStartDate);
+          const quarterEnd = formatDateUtc(quarterEndDate);
+          if (quarterStart < startDate || quarterEnd > endDate) continue;
+          if (!buckets.has(key)) {
+            buckets.set(key, { start: quarterStart, end: quarterEnd, label: `Q${q} ${year}`, rows: [] });
+          }
+          buckets.get(key).rows.push(row);
+        }
+        return Array.from(buckets.values())
+          .sort((a, b) => a.start.localeCompare(b.start))
+          .map((bucket) =>
+            aggregateRowsForPeriod(bucket.rows, bucket.label, bucket.start, bucket.end, meta)
+          )
+          .filter(Boolean);
+      }
+
+      function startLoading() {
+        if (!loadingEl) return;
+        let dots = 0;
+        loadingEl.style.display = "block";
+        loadingEl.textContent = "Loading";
+        clearInterval(loadingInterval);
+        loadingInterval = setInterval(() => {
+          dots = (dots + 1) % 6;
+          loadingEl.textContent = "Loading" + ".".repeat(dots || 1);
+        }, 400);
+      }
+
+      function stopLoading() {
+        if (!loadingEl) return;
+        clearInterval(loadingInterval);
+        loadingInterval = null;
+        loadingEl.textContent = "";
+        loadingEl.style.display = "none";
       }
 
       function inRange(date, start, end) {
@@ -2534,10 +2998,20 @@ function applyColumnTitles(root = document) {
           return;
         }
 
-        const fiName = fiFilterSelect.value;
+        const shared = window.__FILTER_STATE;
+        const sharedFi =
+          shared && shared.page === "funnel" && shared.fis && shared.fis.size === 1
+            ? Array.from(shared.fis)[0]
+            : null;
+        const fiName =
+          (fiFilterSelect && fiFilterSelect.value && fiFilterSelect.value !== FI_ALL_VALUE
+            ? fiFilterSelect.value
+            : sharedFi) ||
+          (visibleRows[0]?.fi || "Unknown FI");
         const perFiRow = visibleRows[0] || {};
         const norm = normalizeFiKey(fiName);
-        const instanceDisplay = perFiRow.instance || (perFiRow.instances?.[0]) || "unknown";
+        const instanceDisplay =
+          perFiRow.instance || (perFiRow.instances?.[0]) || shared?.instance || "unknown";
         const registryInfo = getRegistryEntry(fiName, instanceDisplay);
         const meta = {
           fi: fiName,
@@ -2558,11 +3032,13 @@ function applyColumnTitles(root = document) {
         const dailyRows = buildDailyRowsForFi(fiName, startDate, endDate, meta);
         const weeklyRows = buildWeeklyRowsForFi(dailyRows, startDate, endDate, meta);
         const monthlyRows = buildMonthlyRowsForFi(dailyRows, startDate, endDate, meta);
+        const quarterlyRows = buildQuarterlyRowsForFi(dailyRows, startDate, endDate, meta);
         latestSingleFiBreakdowns = {
           summary: visibleRows,
           daily: dailyRows,
           weekly: weeklyRows,
           monthly: monthlyRows,
+          quarterly: quarterlyRows,
         };
 
         const sections = [];
@@ -2572,11 +3048,23 @@ function applyColumnTitles(root = document) {
           rows: visibleRows,
         });
 
-        if (dailyRows.length) {
-          sections.push({ key: "daily", title: "Daily", rows: dailyRows });
+        if (quarterlyRows.length) {
+          sections.push({
+            key: "quarterly",
+            title: "Quarterly",
+            rows: quarterlyRows,
+          });
         }
 
-        if (daySpan > 14 && weeklyRows.length) {
+        if (monthlyRows.length) {
+          sections.push({
+            key: "monthly",
+            title: "Monthly (Full Calendar Months)",
+            rows: monthlyRows,
+          });
+        }
+
+        if (weeklyRows.length) {
           sections.push({
             key: "weekly",
             title: "Weekly (Sunday → Saturday)",
@@ -2584,12 +3072,8 @@ function applyColumnTitles(root = document) {
           });
         }
 
-        if (daySpan > 28 && monthlyRows.length) {
-          sections.push({
-            key: "monthly",
-            title: "Monthly (Full Calendar Months)",
-            rows: monthlyRows,
-          });
+        if (dailyRows.length) {
+          sections.push({ key: "daily", title: "Daily", rows: dailyRows });
         }
 
         const availableSections = sections.filter((section) => section.rows && section.rows.length);
@@ -2684,6 +3168,10 @@ function applyColumnTitles(root = document) {
 
       function renderSingleFiRow(row) {
         const tr = document.createElement("tr");
+        tr.dataset.fi = row.fi || "";
+        tr.dataset.partner = row.partner || "Unknown";
+        tr.dataset.integration = row.integration_type || "";
+        tr.dataset.instance = row.instance || (Array.isArray(row.instances) ? row.instances[0] : "");
         const selUserPct = row.ga_select
           ? ((row.ga_user / row.ga_select) * 100).toFixed(1) + "%"
           : "";
@@ -2724,6 +3212,7 @@ function applyColumnTitles(root = document) {
       }
 
       function renderTables(visibleRows, startDate, endDate, daySpan) {
+        startLoading();
         latestVisibleRows = visibleRows.slice();
         const monthlyFactor = 30 / Math.max(daySpan || 1, 1);
         visibleRows.forEach((row) => {
@@ -2732,11 +3221,26 @@ function applyColumnTitles(root = document) {
           row.dayCount = row.dayCount || daySpan;
         });
         const singleFiMode = isSingleFiSelected();
-        const partnerValue = partnerSelect?.value || PARTNER_ALL_VALUE;
+        const shared = window.__FILTER_STATE;
+        const partnerValue =
+          shared && shared.page === "funnel"
+            ? shared.partner || PARTNER_ALL_VALUE
+            : partnerSelect?.value || PARTNER_ALL_VALUE;
         latestPartnerSummary = !singleFiMode
           ? buildPartnerSummaryData(visibleRows, daySpan, partnerValue)
           : null;
         renderPartnerSummary(latestPartnerSummary);
+
+        // Quarter summary when past 4 quarters preset is selected
+        const presetVal = document.getElementById("datePreset")?.value || "";
+        if (presetVal === "last4q") {
+          const ranges = buildLast4QuarterRanges(endDate);
+          latestQuarterSummary = summarizeQuarterRanges(ranges, includeTests, cardholderMap);
+          renderQuarterSummary(latestQuarterSummary);
+        } else {
+          latestQuarterSummary = null;
+          renderQuarterSummary(null);
+        }
         latestSingleFiBreakdowns = null;
         if (singleFiMode) {
           singleFiView.style.display = "";
@@ -2921,6 +3425,10 @@ function applyColumnTitles(root = document) {
           const selSuccessPct = totals.ga_select
             ? ((totals.sess_with_success / totals.ga_select) * 100).toFixed(1) + "%"
             : "";
+          const sessJobsPct =
+            totals.sessions && totals.sess_with_jobs
+              ? ((totals.sess_with_jobs / totals.sessions) * 100).toFixed(1) + "%"
+              : "";
           totalsBar.textContent =
             `Totals (${visibleCount} FIs): sel ${totals.ga_select} | user ${totals.ga_user}` +
             ` | cred ${totals.ga_cred} | sel→user ${selUserPct || "—"} | sel→cred ${selCredPct || "—"}` +
@@ -2931,42 +3439,48 @@ function applyColumnTitles(root = document) {
         } else {
           totalsBar.style.display = "none";
         }
+        stopLoading();
       }
 
       async function applyFilters() {
-        const startDate = startDateInput.value || defaultStartDateStr;
-        const endDate = endDateInput.value || defaultEndDateStr;
-        const startDt = new Date(`${startDate}T00:00:00Z`);
-        const endDt = new Date(`${endDate}T00:00:00Z`);
-        const daySpan = Math.max(1, Math.floor((endDt - startDt) / (1000 * 60 * 60 * 24)) + 1);
-        const monthlyFactor = 30 / daySpan;
-        const cardholderMap = getCardholderMap();
-        const perFi = aggregateData(startDate, endDate, cardholderMap);
-        lastAggregated = perFi;
-        updatePartnerOptions(perFi);
-        updateFiOptions(perFi);
-        const visibleRows = getVisibleRows(perFi);
-        const singleFiMode = isSingleFiSelected();
-        const best = computeBestWindows(startDate, endDate, perFi, visibleRows, monthlyFactor, {
-          allowLowVolume: singleFiMode,
-        });
-        latestHighlights = best;
-        renderBestWindows(best, visibleRows);
-        renderTables(visibleRows, startDate, endDate, daySpan);
+        startLoading();
+        try {
+          const startDate = startDateInput.value || defaultStartDateStr;
+          const endDate = endDateInput.value || defaultEndDateStr;
+          const startDt = new Date(`${startDate}T00:00:00Z`);
+          const endDt = new Date(`${endDate}T00:00:00Z`);
+          const daySpan = Math.max(1, Math.floor((endDt - startDt) / (1000 * 60 * 60 * 24)) + 1);
+          const monthlyFactor = 30 / daySpan;
+          const cardholderMap = getCardholderMap();
+          const perFi = aggregateData(startDate, endDate, cardholderMap);
+          lastAggregated = perFi;
+          updatePartnerOptions(perFi);
+          updateFiOptions(perFi);
+          const visibleRows = getVisibleRows(perFi);
+          const singleFiMode = isSingleFiSelected();
+          const best = computeBestWindows(startDate, endDate, perFi, visibleRows, monthlyFactor, {
+            allowLowVolume: singleFiMode,
+          });
+          latestHighlights = best;
+          renderBestWindows(best, visibleRows);
+          renderTables(visibleRows, startDate, endDate, daySpan);
 
-        lastRenderContext = {
-          perFi,
-          startDate,
-          endDate,
-          daySpan,
-          best,
-        };
-        lastFilterSnapshot = {
-          fi: fiFilterSelect.value,
-          integration: integrationSelect.value,
-          partner: partnerSelect?.value || PARTNER_ALL_VALUE,
-          includeTest: includeTestCheckbox.checked,
-        };
+          lastRenderContext = {
+            perFi,
+            startDate,
+            endDate,
+            daySpan,
+            best,
+          };
+          lastFilterSnapshot = {
+            fi: fiFilterSelect?.value || FI_ALL_VALUE,
+            integration: integrationSelect?.value || "(all)",
+            partner: partnerSelect?.value || PARTNER_ALL_VALUE,
+            includeTest: includeTestCheckbox?.checked,
+          };
+        } finally {
+          stopLoading();
+        }
       }
 
       function rerenderFromCache() {
@@ -2974,7 +3488,7 @@ function applyColumnTitles(root = document) {
         const snapshotChanged =
           !lastFilterSnapshot ||
           lastFilterSnapshot.fi !== fiFilterSelect.value ||
-          lastFilterSnapshot.integration !== integrationSelect.value ||
+          lastFilterSnapshot.integration !== (integrationSelect?.value || "(all)") ||
           lastFilterSnapshot.partner !== (partnerSelect?.value || PARTNER_ALL_VALUE) ||
           lastFilterSnapshot.includeTest !== includeTestCheckbox.checked;
         if (snapshotChanged) {
@@ -2989,33 +3503,61 @@ function applyColumnTitles(root = document) {
       }
 
       async function init() {
-      try {
-        registryMap = await fetchRegistry();
-        updateRegistryLookups(registryMap);
-      } catch (err) {
-        console.error("Failed to load fi_registry:", err);
-        registryMap = {};
-      }
-
         try {
-          dailyFiles = await fetchDailyList();
-          for (const file of dailyFiles) {
-            const date = file.replace(".json", "");
-            const data = await fetchDaily(date);
-            if (data) {
-              dailyData[date] = data;
-            }
+          try {
+            registryMap = await fetchRegistry();
+            updateRegistryLookups(registryMap);
+          } catch (err) {
+            console.error("Failed to load fi_registry:", err);
+            registryMap = {};
           }
-        } catch (err) {
-          console.error("Failed to load daily data:", err);
-        }
 
-        applyFilters();
+          try {
+            const fetched = await fetchDailyList();
+            dailyFiles = Array.isArray(fetched) ? fetched : [];
+            if (dailyFiles.length) {
+              const sortedDates = dailyFiles
+                .map((file) => file.replace(".json", ""))
+                .filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d))
+                .sort();
+              earliestDailyDate = sortedDates[0] || null;
+              latestDailyDate = sortedDates[sortedDates.length - 1] || null;
+              const baseIso = getLatestUsableDateIso();
+              if (endDateInput && (!endDateInput.value || endDateInput.value > baseIso)) {
+                endDateInput.value = baseIso;
+              }
+              if (startDateInput && startDateInput.value > (endDateInput?.value || baseIso)) {
+                startDateInput.value = endDateInput.value || baseIso;
+              }
+              renderDateWarning();
+            }
+            for (const file of dailyFiles) {
+              const date = file.replace(".json", "");
+              const data = await fetchDaily(date);
+              if (data) {
+                dailyData[date] = data;
+              }
+            }
+          } catch (err) {
+            console.error("Failed to load daily data:", err);
+          }
+
+          safeApplyFilters();
+        } catch (err) {
+          console.error("Init failed", err);
+          stopLoading();
+        }
       }
 
       applyBtn.addEventListener("click", () => {
-        applyFilters();
+        // Force a full recompute for new date ranges
+        lastRenderContext = null;
+        lastFilterSnapshot = null;
+        safeApplyFilters();
       });
+
+      endDateInput?.addEventListener("change", renderDateWarning);
+      startDateInput?.addEventListener("change", renderDateWarning);
 
       includeTestCheckbox.addEventListener("change", () => {
         applyFilters();
@@ -3025,6 +3567,10 @@ function applyColumnTitles(root = document) {
         const monthlyRows =
           isSingleFiSelected() && latestSingleFiBreakdowns?.monthly?.length
             ? latestSingleFiBreakdowns.monthly
+            : [];
+        const quarterlyRows =
+          isSingleFiSelected() && latestSingleFiBreakdowns?.quarterly?.length
+            ? latestSingleFiBreakdowns.quarterly
             : [];
         const weeklyRows =
           isSingleFiSelected() && latestSingleFiBreakdowns?.weekly?.length
@@ -3044,30 +3590,32 @@ function applyColumnTitles(root = document) {
         const csv = buildCsvDocument({
           summary: summaryRows,
           monthly: monthlyRows,
+          quarterly: quarterlyRows,
           weekly: weeklyRows,
           daily: dailyRows,
           highlights: latestHighlights,
           partnerSummary: latestPartnerSummary,
+          quarterSummary: latestQuarterSummary,
           start: lastRenderContext?.startDate || startDateInput.value || defaultStartDateStr,
           end: lastRenderContext?.endDate || endDateInput.value || defaultEndDateStr,
         });
-        const start = ((lastRenderContext?.startDate || startDateInput.value || "start")).replace(/[^0-9-]/g, "");
-        const end = ((lastRenderContext?.endDate || endDateInput.value || "end")).replace(/[^0-9-]/g, "");
+        const start = ((startDateInput.value || lastRenderContext?.startDate || "start")).replace(/[^0-9-]/g, "");
+        const end = ((endDateInput.value || lastRenderContext?.endDate || "end")).replace(/[^0-9-]/g, "");
         downloadCsv(`sis-funnel-${start}-to-${end}.csv`, csv);
       });
 
-      fiFilterSelect.addEventListener("change", () => {
+      fiFilterSelect?.addEventListener("change", () => {
         if (lastAggregated) {
           updateInstanceOptions(lastAggregated);
-          rerenderFromCache();
         }
+        rerenderFromCache();
       });
 
-      integrationSelect.addEventListener("change", () => {
+      integrationSelect?.addEventListener("change", () => {
         if (lastAggregated) {
           updatePartnerOptions(lastAggregated);
           updateFiOptions(lastAggregated);
-        } else {
+        } else if (fiFilterSelect) {
           fiFilterSelect.value = FI_ALL_VALUE;
         }
         rerenderFromCache();
@@ -3076,7 +3624,7 @@ function applyColumnTitles(root = document) {
       partnerSelect?.addEventListener("change", () => {
         if (lastAggregated) {
           updateFiOptions(lastAggregated);
-        } else {
+        } else if (fiFilterSelect) {
           fiFilterSelect.value = FI_ALL_VALUE;
         }
         rerenderFromCache();
@@ -3113,15 +3661,47 @@ function applyColumnTitles(root = document) {
       const presetSelect = document.getElementById("datePreset");
       if (presetSelect) {
         presetSelect.addEventListener("change", () => {
-          const val = presetSelect.value || "last30";
+          const val = presetSelect.value || "last7";
           if (val) {
             applyPresetRange(val);
+            safeApplyFilters();
           }
         });
       }
 
       applyDefaultDateRange(true);
       applyColumnTitles();
+      (function ensureFilters(pageId){
+        const run = () => {
+          if (window.initFilters) {
+            console.log("[filters] invoking initFilters for", pageId);
+            window.initFilters(pageId);
+          }
+        };
+        if (window.initFilters) return run();
+        const candidates = [
+          "/assets/js/filters.js?v=shared-fallback",
+          "/public/assets/js/filters.js?v=shared-fallback",
+        ];
+        const loadNext = (idx) => {
+          if (idx >= candidates.length) {
+            console.error("[filters] unable to load shared filters script");
+            return;
+          }
+          const s = document.createElement("script");
+          s.src = candidates[idx] + "&ts=" + Date.now();
+          s.onload = () => {
+            console.log("[filters] loaded fallback script", candidates[idx]);
+            run();
+          };
+          s.onerror = () => {
+            console.warn("[filters] failed to load", candidates[idx]);
+            loadNext(idx + 1);
+          };
+          document.head.appendChild(s);
+        };
+        loadNext(0);
+      })("funnel");
     </script>
   </body>
 </html>

@@ -1,0 +1,60 @@
+:root{
+  --page-x:24px; --page-y:28px;
+  --gap-sm:8px; --gap-md:12px; --gap-lg:16px;
+  --ink:#0b1520; --muted:#5f6673; --hair:#e7e9ee; --bg:#ffffff; --bg-subtle:#f7f8fb;
+  --brand:#0b57d0; --brand-ink:#083b8f; --brand-ghost:#e8f0ff;
+  --r:12px;
+}
+
+/* Top header (title + nav) */
+.sis-header{
+  background: var(--bg);
+  border-bottom: 1px solid var(--hair);
+  padding: calc(var(--page-y) - 8px) var(--page-x) var(--gap-lg);
+}
+
+/* Small top title row */
+.sis-topbar{
+  display:flex; align-items:center; justify-content:space-between;
+  gap: var(--gap-lg);
+  margin-bottom: var(--gap-md);
+}
+.sis-title{
+  font-size:18px; font-weight:700; letter-spacing:.2px; color:var(--brand-ink);
+}
+
+/* Nav as tabs */
+.sis-nav{ display:flex; flex-wrap:wrap; gap: var(--gap-sm); }
+.sis-nav a{
+  text-decoration:none; color:#225; font-weight:600;
+  padding:10px 14px; border-radius:10px;
+  border:1px solid transparent; background:transparent;
+  transition: background .15s ease, color .15s ease, border-color .15s ease;
+}
+.sis-nav a:hover{ background: var(--bg-subtle); }
+.sis-nav a.active{
+  color: var(--brand);
+  background: var(--brand-ghost);
+  border-color: var(--hair);
+}
+
+/* Page name and description (subtle) */
+.sis-page-name{
+  font-size:26px; font-weight:700; color:var(--ink);
+  margin: 2px 0 2px 0;
+}
+.sis-page-desc{
+  font-size:15px; color:var(--muted); margin:0;
+}
+
+/* Main page content wrapper */
+.sis-content{ padding: 12px var(--page-x) 0; }
+
+/* Cards/buttons on your overview tiles keep their look */
+button, .btn{ cursor:pointer; }
+
+/* Responsive niceties */
+@media (max-width: 720px){
+  .sis-header{ padding: 16px var(--page-x) var(--gap-md); }
+  .sis-page-name{ font-size:22px; }
+}

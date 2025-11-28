@@ -1,0 +1,1689 @@
+diff --git a/fi_registry.json b/fi_registry.json
+index 29d6e5f..8b429da 100644
+--- a/fi_registry.json
++++ b/fi_registry.json
+@@ -55,7 +55,7 @@
+     "cardholder_source": null
+   },
+   "UNKNOWN_FI__advancial-prod": {
+-    "fi_name": "UNKNOWN_FI",
++    "fi_name": "advancial-default",
+     "fi_lookup_key": "default",
+     "partner": "Advancial",
+     "instance": "advancial-prod",
+@@ -2341,7 +2341,7 @@
+     "cardholder_source": null
+   },
+   "UNKNOWN_FI__digital-onboarding": {
+-    "fi_name": "UNKNOWN_FI",
++    "fi_name": "First Premier Bank",
+     "fi_lookup_key": "firstpremier",
+     "partner": "DigitalOnboarding",
+     "instance": "digital-onboarding",
+@@ -2603,7 +2603,7 @@
+     "sources": [
+       "placement"
+     ],
+-    "integration_type": "non-sso",
++    "integration_type": "sso",
+     "first_seen": "2023-12-09",
+     "last_seen": "2024-12-28",
+     "cardholder_total": null,
+@@ -2629,7 +2629,7 @@
+     "cardholder_source": null
+   },
+   "UNKNOWN_FI__msu": {
+-    "fi_name": "UNKNOWN_FI",
++    "fi_name": "MSU FCU",
+     "fi_lookup_key": "msufcu",
+     "partner": "MSU",
+     "instance": "msu",
+@@ -2790,24 +2790,6 @@
+     "cardholder_as_of": null,
+     "cardholder_source": null
+   },
+-  "UNKNOWN_FI__pscu": {
+-    "fi_name": "UNKNOWN_FI",
+-    "fi_lookup_key": "5379",
+-    "partner": "PSCU",
+-    "instance": "pscu",
+-    "instances": [
+-      "pscu"
+-    ],
+-    "sources": [
+-      "session"
+-    ],
+-    "integration_type": "sso",
+-    "first_seen": "2023-09-05",
+-    "last_seen": "2025-11-11",
+-    "cardholder_total": null,
+-    "cardholder_as_of": null,
+-    "cardholder_source": null
+-  },
+   "Vystar CU__pscu": {
+     "fi_name": "Vystar CU",
+     "fi_lookup_key": "5811",
+@@ -3726,28 +3708,10 @@
+     "cardholder_as_of": "2024-09-01",
+     "cardholder_source": "estimate"
+   },
+-  "UNKNOWN_FI__ss01": {
+-    "fi_name": "UNKNOWN_FI",
+-    "fi_lookup_key": "nasafcu",
+-    "partner": "Alkami",
+-    "instance": "ss01",
+-    "instances": [
+-      "ss01"
+-    ],
+-    "sources": [
+-      "session"
+-    ],
+-    "integration_type": "sso",
+-    "first_seen": "2023-07-25",
+-    "last_seen": "2025-11-11",
+-    "cardholder_total": null,
+-    "cardholder_as_of": null,
+-    "cardholder_source": null
+-  },
+   "US Bank__ss01": {
+     "fi_name": "US Bank",
+     "fi_lookup_key": "usbank",
+-    "partner": "Alkami",
++    "partner": "Direct",
+     "instance": "ss01",
+     "instances": [
+       "ss01"
+diff --git a/public/funnel.html b/public/funnel.html
+index 7d9faf5..935051e 100644
+--- a/public/funnel.html
++++ b/public/funnel.html
+@@ -3,10 +3,12 @@
+   <head>
+     <meta charset="utf-8" />
+     <title>GA + SIS CardUpdatr Funnel</title>
+-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+-    <link rel="stylesheet" href="/sis-shared.css?v=navfix" />
+-    <link rel="stylesheet" href="assets/css/sis.css">
+-    <script defer src="assets/js/sis.js"></script>
++  <meta name="viewport" content="width=device-width, initial-scale=1" />
++  <link rel="stylesheet" href="/sis-shared.css?v=navfix" />
++  <link rel="stylesheet" href="assets/css/sis.css">
++  <script defer src="assets/js/sis.js"></script>
++  <script defer src="assets/js/filters.js"></script>
++  <link rel="stylesheet" href="/assets/css/filters.css">
+     <style>
+       :root {
+         --bg: #f6f8fb;
+@@ -303,21 +305,22 @@
+         </nav>
+       </div>
+ 
+-      <h1 class="sis-page-name">GA + SIS CardUpdatr Funnel</h1>
+-      <p class="sis-page-desc">Inspect daily rollups and conversion steps from GA through SIS sessions to placements. Slice by integration type, partner, or instances to spot deltas fast.</p>
+-    </header>
+-    <div class="sis-content">
+-    <main class="sis-main">
++    <h1 class="sis-page-name">GA + SIS CardUpdatr Funnel</h1>
++    <p class="sis-page-desc">Inspect daily rollups and conversion steps from GA through SIS sessions to placements. Slice by integration type, partner, or instances to spot deltas fast.</p>
++  </header>
++  <div id="filter-bar"></div>
++  <div class="sis-content">
++  <main class="sis-main">
+       <section class="sis-panel">
+         <div class="funnel-header">
+           <div class="form-grid">
+-            <div class="form-field">
++            <div class="form-field legacy-filters">
+               <label for="fiFilter">Filter FI</label>
+               <select id="fiFilter" class="form-select">
+                 <option value="__all__">(all FIs)</option>
+               </select>
+             </div>
+-            <div class="form-field">
++            <div class="form-field legacy-filters">
+               <label for="integrationFilter">Integration</label>
+               <select id="integrationFilter" class="form-select">
+                 <option value="(all)">(all)</option>
+@@ -328,13 +331,13 @@
+                 <option value="UNKNOWN">UNKNOWN</option>
+               </select>
+             </div>
+-            <div class="form-field">
++            <div class="form-field legacy-filters">
+               <label for="partnerFilter">Partner</label>
+               <select id="partnerFilter" class="form-select">
+                 <option value="__all_partners__">(all partners)</option>
+               </select>
+             </div>
+-            <div class="form-field">
++            <div class="form-field legacy-filters">
+               <label for="instanceFilter">Instances</label>
+               <select id="instanceFilter" class="form-select">
+                 <option value="__all_instances__" selected>(all instances)</option>
+@@ -1072,37 +1075,47 @@ function applyColumnTitles(root = document) {
+       }
+ 
+       function getVisibleRows(perFi) {
++        const shared = window.__FILTER_STATE;
++        const includeTests = includeTestCheckbox?.checked;
++        if (shared && shared.page === "funnel") {
++          const selectedInstances =
++            shared.instance && shared.instance !== "All"
++              ? [normalizeInstanceKey(shared.instance)]
++              : [];
++          return Object.values(perFi).filter((row) => {
++            if (!includeTests && row.is_test) return false;
++            if (shared.partner !== "All" && (row.partner || "Unknown") !== shared.partner) return false;
++            if (shared.integration !== "All" && row.integration_type !== shared.integration) return false;
++            if (shared.fis.size && !shared.fis.has(row.fi)) return false;
++            if (selectedInstances.length > 0) {
++              const rowInstances =
++                Array.isArray(row.instances) && row.instances.length
++                  ? row.instances.map((inst) => normalizeInstanceKey(inst))
++                  : [normalizeInstanceKey(row.instance)];
++              if (!rowInstances.some((inst) => selectedInstances.includes(inst))) return false;
++            }
++            return true;
++          });
++        }
++
+         const filterFi = fiFilterSelect.value;
+         const filterIntegration = integrationSelect.value;
+         const filterPartner = partnerSelect?.value || PARTNER_ALL_VALUE;
+-        const includeTests = includeTestCheckbox?.checked;
+         const selectedInstances = getSelectedInstances();
+         return Object.values(perFi).filter((row) => {
+-          if (!includeTests && row.is_test) {
+-            return false;
+-          }
+-          if (filterFi && filterFi !== FI_ALL_VALUE && row.fi !== filterFi) {
+-            return false;
+-          }
+-          if (filterIntegration !== "(all)" && row.integration_type !== filterIntegration) {
+-            return false;
+-          }
++          if (!includeTests && row.is_test) return false;
++          if (filterFi && filterFi !== FI_ALL_VALUE && row.fi !== filterFi) return false;
++          if (filterIntegration !== "(all)" && row.integration_type !== filterIntegration) return false;
+           if (filterPartner !== PARTNER_ALL_VALUE) {
+             const rowPartner = row.partner || "Unknown";
+-            if (rowPartner !== filterPartner) {
+-              return false;
+-            }
++            if (rowPartner !== filterPartner) return false;
+           }
+           if (selectedInstances.length > 0) {
+-            const rowInstances = Array.isArray(row.instances) && row.instances.length
+-              ? row.instances.map((inst) => normalizeInstanceKey(inst))
+-              : [normalizeInstanceKey(row.instance)];
+-            const hasMatch = rowInstances.some((inst) =>
+-              selectedInstances.includes(inst)
+-            );
+-            if (!hasMatch) {
+-              return false;
+-            }
++            const rowInstances =
++              Array.isArray(row.instances) && row.instances.length
++                ? row.instances.map((inst) => normalizeInstanceKey(inst))
++                : [normalizeInstanceKey(row.instance)];
++            if (!rowInstances.some((inst) => selectedInstances.includes(inst))) return false;
+           }
+           return true;
+         });
+@@ -2684,6 +2697,10 @@ function applyColumnTitles(root = document) {
+ 
+       function renderSingleFiRow(row) {
+         const tr = document.createElement("tr");
++        tr.dataset.fi = row.fi || "";
++        tr.dataset.partner = row.partner || "Unknown";
++        tr.dataset.integration = row.integration_type || "";
++        tr.dataset.instance = row.instance || (Array.isArray(row.instances) ? row.instances[0] : "");
+         const selUserPct = row.ga_select
+           ? ((row.ga_user / row.ga_select) * 100).toFixed(1) + "%"
+           : "";
+@@ -3122,6 +3139,7 @@ function applyColumnTitles(root = document) {
+ 
+       applyDefaultDateRange(true);
+       applyColumnTitles();
++      window.initFilters && window.initFilters("funnel");
+     </script>
+   </body>
+ </html>
+diff --git a/public/heatmap.html b/public/heatmap.html
+index 4019af5..6c367f7 100644
+--- a/public/heatmap.html
++++ b/public/heatmap.html
+@@ -7,6 +7,8 @@
+   <link rel="stylesheet" href="/sis-shared.css?v=navfix" />
+   <link rel="stylesheet" href="assets/css/sis.css">
+   <script defer src="assets/js/sis.js"></script>
++  <script defer src="assets/js/filters.js"></script>
++  <link rel="stylesheet" href="/assets/css/filters.css">
+   <style>
+     :root {
+       --bg: #f5f7fb;
+@@ -287,19 +289,20 @@
+     <h1 class="sis-page-name">Merchant Site Heatmap</h1>
+     <p class="sis-page-desc">Visualize merchant reliability day by day across production and test traffic. Switch modes to highlight traffic volume, health, conversion, or anomalies.</p>
+   </header>
++  <div id="filter-bar"></div>
+   <div class="sis-content">
+   <main class="sis-main">
+     <section class="sis-panel heatmap-panel">
+ 
+     <div class="toolbar">
+       <div class="filter-row">
+-        <div class="filter-field">
++        <div class="filter-field legacy-filters">
+           <label for="fiFilter">Filter FI</label>
+           <select id="fiFilter">
+             <option value="__all__">(all FIs)</option>
+           </select>
+         </div>
+-        <div class="filter-field">
++        <div class="filter-field legacy-filters">
+           <label for="integrationFilter">Integration</label>
+           <select id="integrationFilter">
+             <option value="(all)">(all)</option>
+@@ -310,13 +313,13 @@
+             <option value="UNKNOWN">UNKNOWN</option>
+           </select>
+         </div>
+-        <div class="filter-field">
++        <div class="filter-field legacy-filters">
+           <label for="partnerFilter">Partner</label>
+           <select id="partnerFilter">
+             <option value="__all_partners__">(all partners)</option>
+           </select>
+         </div>
+-        <div class="filter-field">
++        <div class="filter-field legacy-filters">
+           <label for="instanceFilter">Instances</label>
+           <select id="instanceFilter">
+             <option value="__all_instances__" selected>(all instances)</option>
+@@ -770,13 +773,29 @@
+       };
+     }
+ 
++    function currentFiSet() {
++      const shared = window.__FILTER_STATE;
++      const registry = window.__FILTER_REGISTRY || [];
++      if (!shared || shared.page !== "heatmap" || !registry.length) return null;
++      let eligible = registry.filter((entry) => {
++        if (shared.partner !== "All" && entry.partner !== shared.partner) return false;
++        if (shared.integration !== "All" && entry.integration !== shared.integration) return false;
++        if (shared.instance !== "All" && entry.instance !== shared.instance) return false;
++        return true;
++      });
++      if (shared.fis && shared.fis.size) {
++        eligible = eligible.filter((e) => shared.fis.has(e.fi_lookup_key));
++      }
++      return new Set(eligible.map((e) => e.fi_lookup_key));
++    }
++
+     function filterMerchants(rows, opts = {}, days) {
+       const includeProd = opts.includeProd ?? (includeProdToggle?.checked !== false);
+       const includeTests = opts.includeTests ?? (includeTestToggle?.checked ?? false);
+-      const integrationFilter = opts.integration ?? integrationSelect?.value ?? "(all)";
+-      const partnerFilter = opts.partner ?? partnerSelect?.value ?? PARTNER_ALL_VALUE;
+-      const fiFilter = opts.fi ?? fiSelect?.value ?? FI_ALL_VALUE;
+-      const instanceFilter = opts.instance ?? instanceSelect?.value ?? INSTANCE_ALL_VALUE;
++      const integrationFilter = opts.integration ?? "(all)";
++      const partnerFilter = opts.partner ?? PARTNER_ALL_VALUE;
++      const fiFilter = opts.fi ?? FI_ALL_VALUE;
++      const instanceFilter = opts.instance ?? INSTANCE_ALL_VALUE;
+ 
+       const instanceFilterNormalized =
+         instanceFilter && instanceFilter !== INSTANCE_ALL_VALUE
+@@ -791,17 +810,39 @@
+     }
+     function applyFilters() {
+       if (!currentData) return;
++      const shared = window.__FILTER_STATE;
++      const useShared = shared && shared.page === "heatmap";
++      const fiSet = useShared ? currentFiSet() : null;
++
++      const baseRows = currentData.merchants || [];
++      const fiFiltered = fiSet && fiSet.size
++        ? baseRows.filter((m) => {
++            const list = Array.isArray(m.fi_list) ? m.fi_list.map(normalizeFi) : [];
++            if (!list.length) return false;
++            return list.some((fi) => fiSet.has(fi));
++          })
++        : baseRows;
++
+       // Always repopulate options based on current selection + registry seed
+       const filtered = filterMerchants(
+-        currentData.merchants || [],
+-        {
+-          includeProd: includeProdToggle?.checked !== false,
+-          includeTests: includeTestToggle?.checked,
+-          integration: integrationSelect?.value || "(all)",
+-          partner: partnerSelect?.value || PARTNER_ALL_VALUE,
+-          fi: fiSelect?.value || FI_ALL_VALUE,
+-          instance: instanceSelect?.value || INSTANCE_ALL_VALUE,
+-        },
++        fiFiltered,
++        useShared
++          ? {
++              includeProd: includeProdToggle?.checked !== false,
++              includeTests: includeTestToggle?.checked,
++              integration: "(all)",
++              partner: PARTNER_ALL_VALUE,
++              fi: FI_ALL_VALUE,
++              instance: INSTANCE_ALL_VALUE,
++            }
++          : {
++              includeProd: includeProdToggle?.checked !== false,
++              includeTests: includeTestToggle?.checked,
++              integration: integrationSelect?.value || "(all)",
++              partner: partnerSelect?.value || PARTNER_ALL_VALUE,
++              fi: fiSelect?.value || FI_ALL_VALUE,
++              instance: instanceSelect?.value || INSTANCE_ALL_VALUE,
++            },
+         currentData.days
+       );
+ 
+@@ -1310,6 +1351,7 @@
+     (async () => {
+       await fetchRegistry();
+       loadAndRender(initStart, initEnd);
++      window.initFilters && window.initFilters("heatmap");
+     })();
+   </script>
+ </body>
+diff --git a/public/index.html b/public/index.html
+index ff5f6b9..589767f 100644
+--- a/public/index.html
++++ b/public/index.html
+@@ -7,6 +7,7 @@
+   <link rel="stylesheet" href="/sis-shared.css?v=navfix" />
+   <link rel="stylesheet" href="assets/css/sis.css">
+   <script defer src="assets/js/sis.js"></script>
++  <script defer src="assets/js/filters.js"></script>
+   <style>
+     :root {
+       --bg: #f6f8fb;
+diff --git a/public/maintenance.html b/public/maintenance.html
+index 3212436..420ce73 100644
+--- a/public/maintenance.html
++++ b/public/maintenance.html
+@@ -7,6 +7,7 @@
+   <link rel="stylesheet" href="/sis-shared.css?v=navfix" />
+   <link rel="stylesheet" href="assets/css/sis.css">
+   <script defer src="assets/js/sis.js"></script>
++  <script defer src="assets/js/filters.js"></script>
+   <style>
+     :root {
+       --bg: #f5f7fb;
+diff --git a/public/troubleshoot.html b/public/troubleshoot.html
+index 914c610..54d8767 100644
+--- a/public/troubleshoot.html
++++ b/public/troubleshoot.html
+@@ -7,6 +7,8 @@
+   <link rel="stylesheet" href="/sis-shared.css?v=navfix" />
+   <link rel="stylesheet" href="assets/css/sis.css">
+   <script defer src="assets/js/sis.js"></script>
++  <script defer src="assets/js/filters.js"></script>
++  <link rel="stylesheet" href="/assets/css/filters.css">
+   <style>
+     :root {
+       --bg: #f6f8fb;
+@@ -317,6 +319,7 @@
+     <h1 class="sis-page-name">Troubleshooting</h1>
+     <p class="sis-page-desc">Mirror the FI Funnel filters, then drill into every session and card placement for a single day. Spot bad terminations, job timing, and click patterns without leaving the browser.</p>
+   </header>
++  <div id="filter-bar"></div>
+   <div class="sis-content">
+   <main class="sis-main">
+     <section class="sis-panel">
+@@ -336,13 +339,13 @@
+             <option value="">Custom</option>
+           </select>
+         </div>
+-        <div class="form-field">
++        <div class="form-field legacy-filters">
+           <label for="fiFilter">Filter FI</label>
+           <select id="fiFilter" class="form-select">
+             <option value="__all__">(all FIs)</option>
+           </select>
+         </div>
+-        <div class="form-field">
++        <div class="form-field legacy-filters">
+           <label for="integrationFilter">Integration</label>
+           <select id="integrationFilter" class="form-select">
+             <option value="(all)">(all)</option>
+@@ -353,13 +356,13 @@
+             <option value="UNKNOWN">UNKNOWN</option>
+           </select>
+         </div>
+-        <div class="form-field">
++        <div class="form-field legacy-filters">
+           <label for="partnerFilter">Partner</label>
+           <select id="partnerFilter" class="form-select">
+             <option value="__all_partners__">(all partners)</option>
+           </select>
+         </div>
+-        <div class="form-field">
++        <div class="form-field legacy-filters">
+           <label for="instanceFilter">Instances</label>
+           <select id="instanceFilter" class="form-select">
+             <option value="__all_instances__">(all instances)</option>
+@@ -808,7 +811,12 @@
+                 ? session.integration_display
+                 : "Unknown integration";
+             return `
+-              <div class="session-card">
++              <div class="session-card"
++                data-fi="${escapeHtml(session.fi_lookup_key || "")}"
++                data-partner="${escapeHtml(session.partner || "Unknown")}"
++                data-integration="${escapeHtml(integrationLabel)}"
++                data-instance="${escapeHtml(session.instance || "")}"
++              >
+                 <div class="session-top">
+                   <div class="chip">${escapeHtml(session.fi_name)}</div>
+                   <div class="chip muted">${escapeHtml(session.instance)}</div>
+@@ -846,6 +854,37 @@
+           .join("");
+       }
+ 
++      function currentFilterFiSet() {
++        const shared = window.__FILTER_STATE;
++        const registry = window.__FILTER_REGISTRY || [];
++        if (!shared || shared.page !== "troubleshoot" || !registry.length) return null;
++        const eligible = registry.filter((entry) => {
++          if (shared.partner !== "All" && entry.partner !== shared.partner) return false;
++          if (shared.integration !== "All" && entry.integration !== shared.integration) return false;
++          if (shared.instance !== "All" && entry.instance !== shared.instance) return false;
++          return true;
++        });
++        const fiKeys = shared.fis.size ? eligible.filter((e) => shared.fis.has(e.fi_lookup_key)) : eligible;
++        return new Set(fiKeys.map((e) => e.fi_lookup_key));
++      }
++
++      function applyFilters() {
++        if (!state.data || !Array.isArray(state.data.sessions)) return;
++        const fiSet = currentFilterFiSet();
++        if (!fiSet) {
++          renderSummary(state.data.totals);
++          renderSessions(state.data.sessions || []);
++          return;
++        }
++        const filtered = state.data.sessions.filter((s) => {
++          if (!fiSet || !fiSet.size) return true;
++          return fiSet.has((s.fi_lookup_key || "").toString());
++        });
++        const totals = summarizeTroubleshootSessions(filtered);
++        renderSummary(totals);
++        renderSessions(filtered);
++      }
++
+       async function loadDay() {
+         const start = els.startDate.value;
+         const end = els.endDate.value || start;
+@@ -872,8 +911,7 @@
+           setStatus(
+             `Loaded ${data.sessions?.length || 0} sessions for ${data.startDate || start} → ${data.endDate || end}.`
+           );
+-          renderSummary(data.totals);
+-          renderSessions(data.sessions || []);
++          applyFilters();
+         } catch (err) {
+           console.error(err);
+           setStatus(err.message || "Unable to load data", "error");
+@@ -957,6 +995,7 @@
+         });
+       }
+       loadOptions();
++      window.initFilters && window.initFilters("troubleshoot");
+     })();
+   </script>
+ </body>
+diff --git a/scripts/fetch-raw.mjs b/scripts/fetch-raw.mjs
+index ac6dbb0..7ae0761 100644
+--- a/scripts/fetch-raw.mjs
++++ b/scripts/fetch-raw.mjs
+@@ -13,6 +13,7 @@ import {
+   rawExists,
+   writeRaw,
+   readRaw,
++  deleteRaw,
+ } from "../src/lib/rawStorage.mjs";
+ 
+ const SRC_DIR = path.resolve("src");
+@@ -255,7 +256,8 @@ function logRefetch(date, type, reason, onStatus) {
+   console.log(msg);
+ }
+ 
+-function shouldRefreshRaw(type, date) {
++function shouldRefreshRaw(type, date, force = false) {
++  if (force) return { refresh: true, reason: "forced refetch" };
+   const raw = readRaw(type, date);
+   if (!raw) {
+     return { refresh: true, reason: "missing cache" };
+@@ -284,7 +286,7 @@ function shouldRefreshRaw(type, date) {
+   return { refresh: false, reason: null };
+ }
+ 
+-export async function fetchRawRange({ startDate, endDate, onStatus }) {
++export async function fetchRawRange({ startDate, endDate, onStatus, forceRaw }) {
+   const instances = loadInstances(SRC_DIR);
+   const sessionCache = new Map();
+   const dates = enumerateDates(startDate, endDate);
+@@ -297,11 +299,12 @@ export async function fetchRawRange({ startDate, endDate, onStatus }) {
+ 
+     const hasGa = rawExists("ga", date);
+     const { refresh: shouldRefreshGa, reason: gaReason } = hasGa
+-      ? shouldRefreshRaw("ga", date)
++      ? shouldRefreshRaw("ga", date, forceRaw)
+       : { refresh: true, reason: "missing cache" };
+     if (shouldRefreshGa) {
+       if (hasGa) {
+         logRefetch(date, "GA", gaReason, onStatus);
++        if (forceRaw) deleteRaw("ga", date);
+       }
+       try {
+         const payload = await fetchGaRaw(date);
+@@ -325,11 +328,12 @@ export async function fetchRawRange({ startDate, endDate, onStatus }) {
+ 
+     const hasSessions = rawExists("sessions", date);
+     const { refresh: shouldRefreshSessions, reason: sessionsReason } = hasSessions
+-      ? shouldRefreshRaw("sessions", date)
++      ? shouldRefreshRaw("sessions", date, forceRaw)
+       : { refresh: true, reason: "missing cache" };
+     if (shouldRefreshSessions) {
+       if (hasSessions) {
+         logRefetch(date, "Sessions", sessionsReason, onStatus);
++        if (forceRaw) deleteRaw("sessions", date);
+       }
+       try {
+         const payload = await fetchSessionsRaw(date, instances, sessionCache);
+@@ -358,11 +362,12 @@ export async function fetchRawRange({ startDate, endDate, onStatus }) {
+     const hasPlacements = rawExists("placements", date);
+     const { refresh: shouldRefreshPlacements, reason: placementsReason } =
+       hasPlacements
+-        ? shouldRefreshRaw("placements", date)
++        ? shouldRefreshRaw("placements", date, forceRaw)
+         : { refresh: true, reason: "missing cache" };
+     if (shouldRefreshPlacements) {
+       if (hasPlacements) {
+         logRefetch(date, "Placements", placementsReason, onStatus);
++        if (forceRaw) deleteRaw("placements", date);
+       }
+       try {
+         const payload = await fetchPlacementsRaw(date, instances, sessionCache);
+diff --git a/scripts/serve-funnel.mjs b/scripts/serve-funnel.mjs
+index debe696..5ce5eff 100644
+--- a/scripts/serve-funnel.mjs
++++ b/scripts/serve-funnel.mjs
+@@ -20,7 +20,14 @@ const DAILY_DIR = path.join(DATA_DIR, "daily");
+ const RAW_DIR = path.join(ROOT, "raw");
+ const RAW_PLACEMENTS_DIR = path.join(RAW_DIR, "placements");
+ const FI_REGISTRY_FILE = path.join(ROOT, "fi_registry.json");
++const INSTANCES_FILES = [
++  path.join(ROOT, "src", "instances.json"),
++  path.join(ROOT, "instances.json"),
++];
+ const PORT = 8787;
++const FI_ALL_VALUE = "__all__";
++const PARTNER_ALL_VALUE = "__all_partners__";
++const INSTANCE_ALL_VALUE = "__all_instances__";
+ 
+ const updateClients = new Set();
+ 
+@@ -32,6 +39,7 @@ let currentUpdateJob = {
+   endDate: null,
+   lastMessage: null,
+   error: null,
++  forceRaw: false,
+ };
+ 
+ function todayIsoDate() {
+@@ -45,6 +53,38 @@ function isoAddDays(isoDate, deltaDays) {
+   return d.toISOString().slice(0, 10);
+ }
+ 
++function defaultUpdateRange() {
++  const endDate = todayIsoDate();
++  const startDate = isoAddDays(endDate, -29);
++  return { startDate, endDate };
++}
++
++function currentUpdateSnapshot() {
++  const defaults = defaultUpdateRange();
++  return {
++    running: currentUpdateJob.running,
++    startedAt: currentUpdateJob.startedAt,
++    finishedAt: currentUpdateJob.finishedAt,
++    startDate: currentUpdateJob.startDate || defaults.startDate,
++    endDate: currentUpdateJob.endDate || defaults.endDate,
++    lastMessage: currentUpdateJob.lastMessage,
++    error: currentUpdateJob.error,
++    forceRaw: currentUpdateJob.forceRaw || false,
++    defaultRange: defaults,
++  };
++}
++
++function normalizeUpdateRange(startDate, endDate) {
++  const isIso = (value) => typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value);
++  const validEnd = isIso(endDate) ? endDate : todayIsoDate();
++  let validStart = isIso(startDate) ? startDate : isoAddDays(validEnd, -29);
++  // ensure start <= end
++  if (new Date(`${validStart}T00:00:00Z`) > new Date(`${validEnd}T00:00:00Z`)) {
++    validStart = isoAddDays(validEnd, -29);
++  }
++  return { startDate: validStart, endDate: validEnd };
++}
++
+ function sseSend(res, event, data) {
+   res.write(`event: ${event}\n`);
+   res.write(`data: ${JSON.stringify(data)}\n\n`);
+@@ -60,13 +100,15 @@ function broadcastUpdate(event, data) {
+   }
+ }
+ 
+-async function startUpdateJobIfNeeded() {
++async function startUpdateJobIfNeeded(range = {}) {
+   if (currentUpdateJob.running) {
+     return;
+   }
+ 
+-  const endDate = todayIsoDate();
+-  const startDate = isoAddDays(endDate, -29);
++  const { startDate, endDate } = normalizeUpdateRange(
++    range.startDate,
++    range.endDate
++  );
+ 
+   currentUpdateJob = {
+     running: true,
+@@ -76,6 +118,7 @@ async function startUpdateJobIfNeeded() {
+     endDate,
+     lastMessage: `Starting update for ${startDate} → ${endDate}`,
+     error: null,
++    forceRaw: Boolean(range.forceRaw),
+   };
+ 
+   broadcastUpdate("init", {
+@@ -88,7 +131,7 @@ async function startUpdateJobIfNeeded() {
+   try {
+     broadcastUpdate("progress", {
+       phase: "raw",
+-      message: `Fetching raw for ${startDate} → ${endDate}...`,
++      message: `Fetching raw for ${startDate} → ${endDate}${range.forceRaw ? " (forced refetch)" : ""}...`,
+     });
+ 
+     await fetchRawRange({
+@@ -96,6 +139,7 @@ async function startUpdateJobIfNeeded() {
+       endDate,
+       onStatus: (message) =>
+         broadcastUpdate("progress", { phase: "raw", message }),
++      forceRaw: Boolean(range.forceRaw),
+     });
+ 
+     broadcastUpdate("progress", {
+@@ -180,7 +224,14 @@ async function fileExists(fp) {
+ async function serveFile(res, fp) {
+   try {
+     const buf = await fs.readFile(fp);
+-    send(res, 200, buf, mime(path.extname(fp)));
++    res.writeHead(200, {
++      "Content-Type": mime(path.extname(fp)),
++      "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
++      Pragma: "no-cache",
++      Expires: "0",
++      "Surrogate-Control": "no-store",
++    });
++    res.end(buf);
+   } catch (e) {
+     send(res, 500, { error: e.message, file: fp });
+   }
+@@ -238,6 +289,41 @@ function colorFromHealth(pct) {
+   if (pct >= 50) return "#f59e0b"; // amber-500
+   return "#ef4444"; // red-500
+ }
++
++async function loadInstanceMetaMap() {
++  const map = new Map();
++  try {
++    const raw = await fs.readFile(FI_REGISTRY_FILE, "utf8");
++    const json = JSON.parse(raw);
++    const normalizeIntegration = (value) => {
++      if (!value) return "UNKNOWN";
++      const upper = value.toString().trim().toUpperCase();
++      if (upper === "SSO") return "SSO";
++      if (upper === "NON-SSO") return "NON-SSO";
++      if (upper === "CARDSAVR" || upper === "CARD-SAVR") return "CardSavr";
++      if (upper === "TEST") return "TEST";
++      return "UNKNOWN";
++    };
++    for (const [key, entry] of Object.entries(json || {})) {
++      const fiName = entry.fi_name || key.split("__")[0] || key;
++      const integration = normalizeIntegration(entry.integration_type);
++      const partner = entry.partner || "Unknown";
++      const instances = Array.isArray(entry.instances) ? entry.instances : [];
++      const instValue = entry.instance || null;
++      const candidates = instValue ? [instValue, ...instances] : instances;
++      candidates
++        .filter(Boolean)
++        .map((v) => v.toString().trim().toLowerCase())
++        .forEach((inst) => {
++          if (!inst) return;
++          map.set(inst, { fi: fiName, integration, partner });
++        });
++    }
++  } catch {
++    // if registry missing, fall back to unknown metadata
++  }
++  return map;
++}
+ // Extract a best-effort placement date for day-bucketing:
+ function placementDay(p) {
+   const keys = [
+@@ -257,6 +343,70 @@ function placementDay(p) {
+   return null;
+ }
+ 
++async function readInstancesFile() {
++  for (const candidate of INSTANCES_FILES) {
++    try {
++      const raw = await fs.readFile(candidate, "utf8");
++      const parsed = JSON.parse(raw);
++      if (!Array.isArray(parsed)) {
++        throw Object.assign(new Error("instances.json must be an array"), {
++          status: 400,
++        });
++      }
++      return { entries: parsed, path: candidate };
++    } catch (err) {
++      if (err.code === "ENOENT") {
++        // try next candidate
++        continue;
++      }
++      throw err;
++    }
++  }
++  return { entries: [], path: INSTANCES_FILES[0] };
++}
++
++const normalizeInstanceEntry = (entry = {}) => {
++  const cleaned = (value) =>
++    value === null || value === undefined ? "" : value.toString().trim();
++  const next = {
++    name: cleaned(entry.name),
++    CARDSAVR_INSTANCE: cleaned(entry.CARDSAVR_INSTANCE),
++    USERNAME: cleaned(entry.USERNAME),
++    PASSWORD: cleaned(entry.PASSWORD),
++    API_KEY: cleaned(entry.API_KEY),
++    APP_NAME: cleaned(entry.APP_NAME),
++  };
++  if (!next.name) {
++    throw Object.assign(new Error("Instance name is required"), {
++      status: 400,
++    });
++  }
++  if (!next.CARDSAVR_INSTANCE) {
++    throw Object.assign(new Error("CARDSAVR_INSTANCE is required"), {
++      status: 400,
++    });
++  }
++  return next;
++};
++
++async function writeInstancesFile(entries) {
++  const sorted = [...entries].sort((a, b) =>
++    (a?.name || "").localeCompare(b?.name || "")
++  );
++  let target = INSTANCES_FILES[0];
++  for (const candidate of INSTANCES_FILES) {
++    try {
++      await fs.access(candidate);
++      target = candidate;
++      break;
++    } catch {
++      // missing, keep searching
++    }
++  }
++  await fs.writeFile(target, JSON.stringify(sorted, null, 2) + "\n", "utf8");
++  return { entries: sorted, path: target };
++}
++
+ async function readPlacementDay(day) {
+   try {
+     const fp = path.join(RAW_PLACEMENTS_DIR, `${day}.json`);
+@@ -267,6 +417,345 @@ async function readPlacementDay(day) {
+   }
+ }
+ 
++async function readSessionDay(day) {
++  try {
++    const fp = path.join(RAW_DIR, "sessions", `${day}.json`);
++    const raw = await fs.readFile(fp, "utf8");
++    return JSON.parse(raw);
++  } catch {
++    return null;
++  }
++}
++
++async function listRawDays(type = "sessions") {
++  const dir = path.join(RAW_DIR, type);
++  try {
++    const files = await fs.readdir(dir);
++    return files
++      .filter((f) => /^\d{4}-\d{2}-\d{2}\.json$/.test(f))
++      .map((f) => f.replace(/\.json$/, ""))
++      .sort();
++  } catch {
++    return [];
++  }
++}
++
++function normalizeFiKey(value) {
++  return value ? value.toString().trim().toLowerCase() : "";
++}
++
++function normalizeIntegration(value) {
++  if (!value) return "UNKNOWN";
++  const upper = value.toString().trim().toUpperCase();
++  if (upper === "NON-SSO" || upper === "NON_SSO" || upper.includes("NONSSO")) return "NON-SSO";
++  if (upper.includes("SSO")) return "SSO";
++  if (upper.includes("CARDSAVR") || upper.includes("CARD-SAVR")) return "CardSavr";
++  if (upper === "TEST") return "TEST";
++  return "UNKNOWN";
++}
++
++function canonicalInstance(value) {
++  if (!value) return "";
++  return value.toString().trim().toLowerCase().replace(/[^a-z0-9]/g, "");
++}
++
++function formatInstanceDisplay(value) {
++  if (!value) return "unknown";
++  const base = value
++    .toString()
++    .trim()
++    .toLowerCase()
++    .replace(/[\s_]+/g, "-");
++  return base || "unknown";
++}
++
++async function loadFiRegistrySafe() {
++  try {
++    const raw = await fs.readFile(FI_REGISTRY_FILE, "utf8");
++    return JSON.parse(raw);
++  } catch {
++    return {};
++  }
++}
++
++function buildFiMetaMap(fiRegistry = {}) {
++  const map = new Map();
++  for (const entry of Object.values(fiRegistry)) {
++    if (!entry || typeof entry !== "object") continue;
++    const fiKey = normalizeFiKey(entry.fi_lookup_key || entry.fi_name);
++    if (!fiKey) continue;
++    const integration = normalizeIntegration(entry.integration_type);
++    const partner = entry.partner || "Unknown";
++    map.set(fiKey, {
++      fi: entry.fi_name || fiKey,
++      integration,
++      partner,
++    });
++  }
++  return map;
++}
++
++function mapPlacementToJob(placement, fiFallback, instanceFallback) {
++  const termination = (placement?.termination_type || placement?.termination || placement?.status || "UNKNOWN")
++    .toString()
++    .trim()
++    .toUpperCase() || "UNKNOWN";
++  const terminationRule = TERMINATION_RULES[termination] || TERMINATION_RULES.UNKNOWN;
++  const created = placement.job_created_on || placement.created_on || null;
++  const completed =
++    placement.completed_on ||
++    placement.account_linked_on ||
++    placement.last_updated_on ||
++    null;
++  let durationMs = null;
++  if (created && completed) {
++    const start = new Date(created);
++    const end = new Date(completed);
++    if (!Number.isNaN(start) && !Number.isNaN(end)) {
++      durationMs = end - start;
++    }
++  }
++  const instance =
++    placement._instance ||
++    placement.instance ||
++    placement.instance_name ||
++    placement.org_name ||
++    instanceFallback ||
++    "";
++  const fi = normalizeFiKey(
++    placement.fi_lookup_key ||
++      placement.financial_institution_lookup_key ||
++      placement.fi_name ||
++      fiFallback
++  );
++  const jobId =
++    placement.id ||
++    placement.result_id ||
++    placement.place_card_on_single_site_job_id ||
++    placement.job_id ||
++    null;
++  const merchant =
++    placement.merchant_site_hostname ||
++    (placement.merchant_site_id
++      ? `merchant_${placement.merchant_site_id}`
++      : "unknown");
++  return {
++    id: jobId,
++    merchant,
++    termination,
++    termination_label: terminationRule?.label || termination,
++    severity: terminationRule?.severity || "unknown",
++    status: placement.status || "",
++    status_message: placement.status_message || "",
++    created_on: created || null,
++    ready_on: placement.job_ready_on || null,
++    completed_on: completed,
++    duration_ms: durationMs,
++    instance: formatInstanceDisplay(instance),
++    fi_key: fi || fiFallback || "",
++    source_integration: placement.source?.integration || null,
++    is_success:
++      termination === "BILLABLE" ||
++      (placement.status || "").toString().toUpperCase() === "SUCCESSFUL",
++  };
++}
++
++function mapSessionToTroubleshootEntry(session, placementMap, fiMeta, instanceMeta) {
++  const agentId =
++    session.agent_session_id ||
++    session.session_id ||
++    session.id ||
++    session.cuid ||
++    null;
++  const instanceRaw =
++    session._instance || session.instance || session.instance_name || session.org_name || "";
++  const instanceDisplay = formatInstanceDisplay(instanceRaw || "unknown");
++  const normalizedInstance = canonicalInstance(instanceDisplay);
++  const instanceLookup = instanceMeta.get(instanceDisplay.toLowerCase());
++  const fiFromInstance = instanceLookup?.fi || null;
++  const fiLookupRaw =
++    session.financial_institution_lookup_key ||
++    session.fi_lookup_key ||
++    session.fi_name ||
++    null;
++  const fiKey = normalizeFiKey(
++    fiLookupRaw || fiFromInstance || session.fi_name || null
++  );
++  const fiEntry = fiMeta.get(fiKey);
++  const partner = instanceLookup?.partner || fiEntry?.partner || "Unknown";
++  const placementsRaw = agentId ? placementMap.get(agentId) || [] : [];
++  const jobs = placementsRaw
++    .map((pl) => mapPlacementToJob(pl, fiKey, instanceDisplay))
++    .sort((a, b) => {
++      if (!a.created_on || !b.created_on) return 0;
++      return a.created_on.localeCompare(b.created_on);
++    });
++  const jobIntegrationRaw = jobs.find((j) => j.source_integration)?.source_integration || null;
++  const jobIntegrationNormalized = normalizeIntegration(jobIntegrationRaw);
++  const sourceIntegrationRaw = session.source?.integration || null;
++  const sourceIntegrationNormalized = normalizeIntegration(sourceIntegrationRaw);
++  let integrationNormalized = sourceIntegrationNormalized;
++  let integrationRaw = sourceIntegrationRaw;
++  if (integrationNormalized === "UNKNOWN" && jobIntegrationRaw) {
++    integrationNormalized = jobIntegrationNormalized;
++    integrationRaw = jobIntegrationRaw;
++  }
++  if (integrationNormalized === "UNKNOWN" && fiEntry?.integration) {
++    integrationNormalized = normalizeIntegration(fiEntry.integration);
++    if (!integrationRaw) integrationRaw = fiEntry.integration;
++  }
++  const displayIntegration =
++    integrationNormalized !== "UNKNOWN"
++      ? integrationNormalized
++      : integrationRaw
++      ? integrationRaw.toString()
++      : "UNKNOWN";
++  const totalJobs = session.total_jobs ?? jobs.length;
++  const successfulJobs = session.successful_jobs ?? jobs.filter((j) => j.is_success).length;
++  const failedJobs =
++    session.failed_jobs ??
++    (Number.isFinite(totalJobs) ? Math.max(0, totalJobs - successfulJobs) : jobs.length - successfulJobs);
++
++  return {
++    id: session.id || session.session_id || agentId || session.cuid || null,
++    cuid: session.cuid || null,
++    agent_session_id: agentId,
++    fi_key: fiKey || fiFromInstance || "unknown_fi",
++    fi_lookup_key: fiLookupRaw || null,
++    fi_name: fiEntry?.fi || session.fi_name || fiKey || "Unknown FI",
++    partner,
++    integration: integrationNormalized,
++    integration_raw: integrationRaw || null,
++    integration_display: displayIntegration || integrationNormalized || "UNKNOWN",
++    instance: instanceDisplay,
++    is_test: isTestInstanceName(instanceDisplay),
++    created_on: session.created_on || null,
++    closed_on: session.closed_on || null,
++    total_jobs: totalJobs,
++    successful_jobs: successfulJobs,
++    failed_jobs: failedJobs,
++    clickstream: Array.isArray(session.clickstream)
++      ? session.clickstream.map((step) => ({
++          url: step.url || "",
++          page_title: step.page_title || "",
++          at: step.timestamp || step.time || null,
++        }))
++      : [],
++    jobs,
++    source: {
++      integration: session.source?.integration || null,
++      device: session.source?.device || null,
++    },
++    placements_raw: placementsRaw,
++  };
++}
++
++function buildTroubleshootPayload(date, sessionsRaw, placementsRaw, fiMeta, instanceMeta) {
++  const placementMap = new Map();
++  const placements = Array.isArray(placementsRaw?.placements) ? placementsRaw.placements : [];
++  for (const pl of placements) {
++    const key =
++      pl.agent_session_id ||
++      pl.session_id ||
++      pl.cardholder_session_id ||
++      pl.cuid ||
++      null;
++    if (!key) continue;
++    const list = placementMap.get(key) || [];
++    list.push(pl);
++    placementMap.set(key, list);
++  }
++
++  const sessions = Array.isArray(sessionsRaw?.sessions) ? sessionsRaw.sessions : [];
++  const rows = sessions.map((s) =>
++    mapSessionToTroubleshootEntry(s, placementMap, fiMeta, instanceMeta)
++  );
++
++  const totals = summarizeTroubleshootSessions(rows);
++
++  return {
++    date,
++    totals,
++    sessions: rows,
++    placements: placements.length,
++  };
++}
++
++function summarizeTroubleshootSessions(rows = []) {
++  return rows.reduce(
++    (acc, row) => {
++      acc.sessions += 1;
++      const jobCount = Array.isArray(row.jobs) ? row.jobs.length : 0;
++      if (jobCount > 0) acc.sessions_with_jobs += 1;
++      const successes = row.jobs.filter((j) => j.is_success).length;
++      if (successes > 0) acc.sessions_with_success += 1;
++      acc.jobs += jobCount;
++      acc.jobs_success += successes;
++      acc.jobs_failure += Math.max(0, jobCount - successes);
++      for (const job of row.jobs) {
++        const term = job.termination || "UNKNOWN";
++        acc.by_termination[term] = (acc.by_termination[term] || 0) + 1;
++      }
++      return acc;
++    },
++    {
++      sessions: 0,
++      sessions_with_jobs: 0,
++      sessions_with_success: 0,
++      jobs: 0,
++      jobs_success: 0,
++      jobs_failure: 0,
++      by_termination: {},
++    }
++  );
++}
++
++async function loadTroubleshootRange(startDate, endDate) {
++  const days = daysBetween(startDate, endDate);
++  const sessions = [];
++  const placements = [];
++  for (const day of days) {
++    const s = await readSessionDay(day);
++    if (s?.sessions) sessions.push(...s.sessions);
++    const p = await readPlacementDay(day);
++    if (p?.placements) placements.push(...p.placements);
++  }
++  return { sessions, placements };
++}
++
++async function buildTroubleshootOptions() {
++  const [days, fiRegistry] = await Promise.all([
++    listRawDays("sessions"),
++    loadFiRegistrySafe(),
++  ]);
++  const fiMeta = buildFiMetaMap(fiRegistry);
++  const fiOptions = Array.from(fiMeta.entries()).map(([key, entry]) => ({
++    key,
++    label: entry.fi || key,
++    partner: entry.partner || "Unknown",
++    integration: entry.integration || "UNKNOWN",
++  }));
++  const partnerSet = new Set(fiOptions.map((fi) => fi.partner || "Unknown"));
++  const integrationSet = new Set(fiOptions.map((fi) => fi.integration || "UNKNOWN"));
++  const instanceSet = new Set();
++  for (const entry of Object.values(fiRegistry)) {
++    const primary = entry.instance ? formatInstanceDisplay(entry.instance) : null;
++    const list = Array.isArray(entry.instances) ? entry.instances : [];
++    if (primary) instanceSet.add(primary);
++    list.forEach((inst) => instanceSet.add(formatInstanceDisplay(inst)));
++  }
++  return {
++    days,
++    defaultDate: days[days.length - 1] || todayIsoDate(),
++    fi: fiOptions.sort((a, b) => a.label.localeCompare(b.label)),
++    partners: Array.from(partnerSet).sort(),
++    integrations: Array.from(integrationSet)
++      .filter(Boolean)
++      .sort((a, b) => a.localeCompare(b)),
++    instances: Array.from(instanceSet).sort(),
++  };
++}
++
+ function createPlacementStore() {
+   return {
+     total: 0,
+@@ -336,6 +825,7 @@ async function buildGlobalMerchantHeatmap(startIso, endIso) {
+   const days = daysBetween(startIso, endIso);
+   // merchant => { totals, daily: dayKey => {billable, siteFail, total} }
+   const merchants = Object.create(null);
++  const instanceMeta = await loadInstanceMetaMap();
+ 
+   for (const day of days) {
+     const raw = await readPlacementDay(day);
+@@ -353,11 +843,17 @@ async function buildGlobalMerchantHeatmap(startIso, endIso) {
+         pl.org_name ||
+         "";
+       const isTestInstance = isTestInstanceName(instanceName);
++      const meta = instanceMeta.get(instanceName?.toLowerCase?.() || "");
+       if (!merchants[merchant]) {
+         merchants[merchant] = {
+           prod: createPlacementStore(),
+           test: createPlacementStore(),
+           testInstanceSet: new Set(),
++          instanceSet: new Set(),
++          fiSet: new Set(),
++          integrationSet: new Set(),
++          partnerSet: new Set(),
++          buckets: new Map(),
+         };
+       }
+       const bucket = merchants[merchant];
+@@ -367,6 +863,15 @@ async function buildGlobalMerchantHeatmap(startIso, endIso) {
+           bucket.testInstanceSet.add(instanceName);
+         }
+       }
++      if (instanceName) {
++        bucket.instanceSet.add(instanceName);
++      }
++      const fiName = meta?.fi || "Unknown FI";
++      const integration = meta?.integration || "UNKNOWN";
++      const partner = meta?.partner || "Unknown";
++      if (fiName) bucket.fiSet.add(fiName);
++      if (integration) bucket.integrationSet.add(integration);
++      if (partner) bucket.partnerSet.add(partner);
+ 
+       // Determine termination class
+       const term = (pl.termination_type || "").toString().toUpperCase();
+@@ -399,6 +904,44 @@ async function buildGlobalMerchantHeatmap(startIso, endIso) {
+         targetStore.siteFailures += 1;
+         d.siteFailures += 1;
+       }
++
++      // Bucketed stats per FI/instance/integration/partner/is_test
++      const bucketKey = [
++        fiName || "unknown",
++        (instanceName || "").toString(),
++        integration || "UNKNOWN",
++        partner || "Unknown",
++        isTestInstance ? "test" : "prod",
++      ].join("||");
++      if (!bucket.buckets.has(bucketKey)) {
++        bucket.buckets.set(bucketKey, {
++          fi: fiName,
++          instance: instanceName || "unknown",
++          integration,
++          partner,
++          is_test: isTestInstance,
++          store: createPlacementStore(),
++        });
++      }
++      const bucketStore = bucket.buckets.get(bucketKey).store;
++      bucketStore.total += 1;
++      const bd = ensureDailyEntry(bucketStore, dKey);
++      bd.total += 1;
++      if (rule.includeInHealth) {
++        if (rule.severity === "success") {
++          bucketStore.billable += 1;
++          bd.billable += 1;
++        } else {
++          bucketStore.siteFailures += 1;
++          bd.siteFailures += 1;
++        }
++      } else if (rule.includeInUx) {
++        bucketStore.userFlowIssues += 1;
++        bd.userFlowIssues += 1;
++      } else {
++        bucketStore.siteFailures += 1;
++        bd.siteFailures += 1;
++      }
+     }
+   }
+ 
+@@ -425,6 +968,18 @@ async function buildGlobalMerchantHeatmap(startIso, endIso) {
+       test_traffic: testStats.total,
+       prod_traffic: prodStats.total,
+       test_instances: testInstances,
++      instance_list: Array.from(stats.instanceSet || []),
++      fi_list: Array.from(stats.fiSet || []),
++      integration_list: Array.from(stats.integrationSet || []),
++      partner_list: Array.from(stats.partnerSet || []),
++      buckets: Array.from(stats.buckets.values()).map((b) => ({
++        fi: b.fi,
++        instance: b.instance,
++        integration: b.integration,
++        partner: b.partner,
++        is_test: b.is_test,
++        stats: summarizeStore(b.store, days),
++      })),
+     });
+   }
+ 
+@@ -440,6 +995,10 @@ const server = http.createServer(async (req, res) => {
+   const search = parsedUrl.search;
+   const queryParams = new URLSearchParams(search || "");
+ 
++  if (pathname === "/run-update/status") {
++    return send(res, 200, currentUpdateSnapshot());
++  }
++
+   if (pathname === "/run-update/stream") {
+     res.writeHead(200, {
+       "Content-Type": "text/event-stream",
+@@ -450,18 +1009,13 @@ const server = http.createServer(async (req, res) => {
+ 
+     updateClients.add(res);
+ 
+-    sseSend(res, "snapshot", {
+-      running: currentUpdateJob.running,
+-      startedAt: currentUpdateJob.startedAt,
+-      finishedAt: currentUpdateJob.finishedAt,
+-      startDate: currentUpdateJob.startDate,
+-      endDate: currentUpdateJob.endDate,
+-      lastMessage: currentUpdateJob.lastMessage,
+-      error: currentUpdateJob.error,
+-    });
++    sseSend(res, "snapshot", currentUpdateSnapshot());
+ 
+     if (!currentUpdateJob.running) {
+-      startUpdateJobIfNeeded().catch((err) => {
++      const qsStart = queryParams.get("start") || queryParams.get("startDate");
++      const qsEnd = queryParams.get("end") || queryParams.get("endDate");
++      const forceRaw = queryParams.get("forceRaw") === "true";
++      startUpdateJobIfNeeded({ startDate: qsStart, endDate: qsEnd, forceRaw }).catch((err) => {
+         console.error("Update job failed:", err);
+       });
+     }
+@@ -499,6 +1053,38 @@ const server = http.createServer(async (req, res) => {
+     const days = await listDaily();
+     return send(res, 200, { files: days, days });
+   }
++  if (pathname === "/data-freshness") {
++    try {
++      const [rawSessionDays, rawPlacementDays, dailyDays] = await Promise.all([
++        listRawDays("sessions"),
++        listRawDays("placements"),
++        listDaily(),
++      ]);
++      const latest = (arr = []) => (arr.length ? arr[arr.length - 1] : null);
++      const rawLatest = latest(
++        rawSessionDays.length && rawPlacementDays.length
++          ? rawSessionDays.filter((d) => rawPlacementDays.includes(d))
++          : rawSessionDays.length
++          ? rawSessionDays
++          : rawPlacementDays
++      );
++      const dailyLatest = latest(dailyDays);
++      const today = todayIsoDate();
++      const age = (iso) => {
++        if (!iso) return null;
++        const ms = new Date(`${today}T00:00:00Z`) - new Date(`${iso}T00:00:00Z`);
++        return Math.floor(ms / 86400000);
++      };
++      return send(res, 200, {
++        rawLatest,
++        rawAgeDays: age(rawLatest),
++        dailyLatest,
++        dailyAgeDays: age(dailyLatest),
++      });
++    } catch (err) {
++      return send(res, 500, { error: err?.message || "Unable to load freshness" });
++    }
++  }
+   if (pathname === "/fi-registry") {
+     try {
+       const raw = await fs.readFile(FI_REGISTRY_FILE, "utf8");
+@@ -565,6 +1151,23 @@ const server = http.createServer(async (req, res) => {
+         if (!value) return null;
+         return value.toString().trim();
+       };
++      const normalizeFiName = (value) => {
++        if (value === undefined) return undefined;
++        const str = value === null ? "" : value.toString().trim();
++        if (!str) {
++          throw Object.assign(new Error("fi_name is required"), { status: 400 });
++        }
++        return str;
++      };
++      const normalizeFiLookupKey = (value, fallback) => {
++        const raw = value === undefined ? fallback : value;
++        if (raw === undefined) return undefined;
++        const str = raw === null ? "" : raw.toString().trim();
++        if (!str) {
++          throw Object.assign(new Error("fi_lookup_key is required"), { status: 400 });
++        }
++        return str;
++      };
+       const normalizePartner = (value) => {
+         if (!value) return null;
+         const rawVal = value.toString().trim().toLowerCase();
+@@ -584,11 +1187,23 @@ const server = http.createServer(async (req, res) => {
+         return canonical
+           .replace(/(^|\s|-)([a-z])/g, (m, p1, p2) => p1 + p2.toUpperCase());
+       };
++      const canonicalLookupKey = (value) =>
++        value ? value.toString().trim().toLowerCase() : "";
++      const canonicalInstance = (value) =>
++        value ? value.toString().trim().toLowerCase() : "";
+ 
+       const next = { ...registry[key] };
+       if ("integration_type" in updates) {
+         next.integration_type = normalizeIntegration(updates.integration_type);
+       }
++      if ("fi_name" in updates) {
++        const fiName = normalizeFiName(updates.fi_name);
++        if (fiName !== undefined) next.fi_name = fiName;
++      }
++      if ("fi_lookup_key" in updates) {
++        const fiLookup = normalizeFiLookupKey(updates.fi_lookup_key, next.fi_lookup_key);
++        if (fiLookup !== undefined) next.fi_lookup_key = fiLookup;
++      }
+       if ("partner" in updates) {
+         next.partner = normalizePartner(updates.partner);
+       }
+@@ -602,6 +1217,40 @@ const server = http.createServer(async (req, res) => {
+         next.cardholder_as_of = normalizeAsOf(updates.cardholder_as_of);
+       }
+ 
++      const targetLookup = canonicalLookupKey(next.fi_lookup_key || next.fi_name || key);
++      const targetInstance = canonicalInstance(
++        next.instance || (Array.isArray(next.instances) ? next.instances[0] : "")
++      );
++      for (const [otherKey, otherEntry] of Object.entries(registry)) {
++        if (otherKey === key) continue;
++        const otherLookup = canonicalLookupKey(
++          otherEntry?.fi_lookup_key || otherEntry?.fi_name || otherKey
++        );
++        const otherInstance = canonicalInstance(
++          otherEntry?.instance ||
++            (Array.isArray(otherEntry?.instances) ? otherEntry.instances[0] : "")
++        );
++        if (
++          targetLookup &&
++          otherLookup &&
++          targetInstance &&
++          otherInstance &&
++          targetLookup === otherLookup &&
++          targetInstance === otherInstance
++        ) {
++          return send(res, 409, {
++            error: "Duplicate fi_lookup_key for this instance.",
++            conflict: {
++              key: otherKey,
++              fi_lookup_key: otherEntry?.fi_lookup_key || null,
++              instance:
++                otherEntry?.instance ||
++                (Array.isArray(otherEntry?.instances) ? otherEntry.instances[0] : null),
++            },
++          });
++        }
++      }
++
+       registry[key] = next;
+       await fs.writeFile(
+         FI_REGISTRY_FILE,
+@@ -614,6 +1263,190 @@ const server = http.createServer(async (req, res) => {
+       return send(res, status, { error: err.message || "Unable to update registry" });
+     }
+   }
++  if (pathname === "/fi-registry/delete" && req.method === "POST") {
++    try {
++      const rawBody = await readRequestBody(req);
++      const payload = JSON.parse(rawBody || "{}");
++      const key = payload?.key;
++      if (!key) {
++        return send(res, 400, { error: "Missing key" });
++      }
++      const raw = await fs.readFile(FI_REGISTRY_FILE, "utf8").catch((err) => {
++        if (err.code === "ENOENT") {
++          throw Object.assign(new Error("fi_registry.json not found"), { status: 404 });
++        }
++        throw err;
++      });
++      const registry = JSON.parse(raw);
++      if (!registry[key]) {
++        return send(res, 404, { error: "Registry entry not found", key });
++      }
++      delete registry[key];
++      await fs.writeFile(
++        FI_REGISTRY_FILE,
++        JSON.stringify(registry, null, 2) + "\n",
++        "utf8"
++      );
++      return send(res, 200, { deleted: key, registrySize: Object.keys(registry).length });
++    } catch (err) {
++      const status = err?.status || 500;
++      return send(res, status, { error: err.message || "Unable to delete registry entry" });
++    }
++  }
++  if (pathname === "/troubleshoot/options") {
++    try {
++      const opts = await buildTroubleshootOptions();
++      return send(res, 200, opts);
++    } catch (err) {
++      const status = err?.status || 500;
++      return send(res, status, { error: err?.message || "Unable to load options" });
++    }
++  }
++  if (pathname === "/troubleshoot/day") {
++    const startParam =
++      queryParams.get("start") ||
++      queryParams.get("startDate") ||
++      queryParams.get("date") ||
++      queryParams.get("day");
++    const endParam = queryParams.get("end") || queryParams.get("endDate") || startParam;
++    const isoRe = /^\d{4}-\d{2}-\d{2}$/;
++    if (!startParam || !isoRe.test(startParam)) {
++      return send(res, 400, { error: "start date query param must be YYYY-MM-DD" });
++    }
++    if (!endParam || !isoRe.test(endParam)) {
++      return send(res, 400, { error: "end date query param must be YYYY-MM-DD" });
++    }
++    const startDate = startParam;
++    const endDate = endParam;
++    if (new Date(`${startDate}T00:00:00Z`) > new Date(`${endDate}T00:00:00Z`)) {
++      return send(res, 400, { error: "start date must be on or before end date" });
++    }
++    const includeTests = queryParams.get("includeTests") === "true";
++    const fiFilter = queryParams.get("fi") || FI_ALL_VALUE;
++    const partnerFilter = queryParams.get("partner") || PARTNER_ALL_VALUE;
++    const instanceFilter = queryParams.get("instance") || INSTANCE_ALL_VALUE;
++    const rawIntegrationFilter = queryParams.get("integration") || "(all)";
++    const integrationFilter =
++      rawIntegrationFilter === "(all)" ? "(all)" : normalizeIntegration(rawIntegrationFilter);
++    try {
++      const [rangeData, fiRegistry, instanceMeta] = await Promise.all([
++        loadTroubleshootRange(startDate, endDate),
++        loadFiRegistrySafe(),
++        loadInstanceMetaMap(),
++      ]);
++      if (!rangeData.sessions.length && !rangeData.placements.length) {
++        return send(res, 404, { error: "No raw data found for date range", startDate, endDate });
++      }
++      const fiMeta = buildFiMetaMap(fiRegistry);
++      const payload = buildTroubleshootPayload(
++        `${startDate} → ${endDate}`,
++        { sessions: rangeData.sessions },
++        { placements: rangeData.placements },
++        fiMeta,
++        instanceMeta
++      );
++      const filteredSessions = payload.sessions.filter((row) => {
++        if (!includeTests && row.is_test) return false;
++        if (fiFilter && fiFilter !== FI_ALL_VALUE) {
++          if (normalizeFiKey(row.fi_key) !== normalizeFiKey(fiFilter)) return false;
++        }
++        if (integrationFilter !== "(all)" && row.integration !== integrationFilter) {
++          return false;
++        }
++        if (partnerFilter && partnerFilter !== PARTNER_ALL_VALUE) {
++          if ((row.partner || "Unknown") !== partnerFilter) return false;
++        }
++        if (instanceFilter && instanceFilter !== INSTANCE_ALL_VALUE) {
++          if (canonicalInstance(row.instance) !== canonicalInstance(instanceFilter)) return false;
++        }
++        return true;
++      });
++      const totals = summarizeTroubleshootSessions(filteredSessions);
++      return send(res, 200, {
++        date: payload.date,
++        startDate,
++        endDate,
++        totals,
++        sessions: filteredSessions,
++        placements: payload.placements,
++        filters: {
++          fi: fiFilter,
++          integration: rawIntegrationFilter,
++          partner: partnerFilter,
++          instance: instanceFilter,
++          includeTests,
++        },
++      });
++    } catch (err) {
++      const status = err?.status || 500;
++      return send(res, status, { error: err?.message || "Unable to load troubleshooting data" });
++    }
++  }
++  if (pathname === "/instances") {
++    try {
++      const { entries, path: foundAt } = await readInstancesFile();
++      return send(res, 200, { instances: entries, path: foundAt });
++    } catch (err) {
++      console.error("instances load failed", err);
++      const status = err?.status || 500;
++      return send(res, status, { error: err.message || "Unable to read instances" });
++    }
++  }
++  if (pathname === "/instances/save" && req.method === "POST") {
++    try {
++      const rawBody = await readRequestBody(req);
++      const payload = JSON.parse(rawBody || "{}");
++      if (!payload || typeof payload !== "object") {
++        return send(res, 400, { error: "Invalid payload" });
++      }
++      const { entry, originalName } = payload;
++      if (!entry || typeof entry !== "object") {
++        return send(res, 400, { error: "Missing entry" });
++      }
++      const normalized = normalizeInstanceEntry(entry);
++      const { entries: current } = await readInstancesFile();
++      const targetName = originalName || normalized.name;
++      const existingIdx = current.findIndex((inst) => inst?.name === targetName);
++      const conflict = current.findIndex(
++        (inst, idx) => inst?.name === normalized.name && idx !== existingIdx
++      );
++      if (conflict >= 0) {
++        return send(res, 409, { error: "An instance with that name already exists." });
++      }
++
++      if (existingIdx >= 0) {
++        current[existingIdx] = normalized;
++      } else {
++        current.push(normalized);
++      }
++
++      const { entries: saved, path: savedPath } = await writeInstancesFile(current);
++      return send(res, 200, { entry: normalized, instances: saved, path: savedPath });
++    } catch (err) {
++      const status = err?.status || 500;
++      return send(res, status, { error: err.message || "Unable to save instance" });
++    }
++  }
++  if (pathname === "/instances/delete" && req.method === "POST") {
++    try {
++      const rawBody = await readRequestBody(req);
++      const payload = JSON.parse(rawBody || "{}");
++      if (!payload || typeof payload !== "object" || !payload.name) {
++        return send(res, 400, { error: "Missing instance name" });
++      }
++      const { entries: current } = await readInstancesFile();
++      const idx = current.findIndex((inst) => inst?.name === payload.name);
++      if (idx === -1) {
++        return send(res, 404, { error: "Instance not found" });
++      }
++      current.splice(idx, 1);
++      const { entries: saved, path: savedPath } = await writeInstancesFile(current);
++      return send(res, 200, { deleted: payload.name, instances: saved, path: savedPath });
++    } catch (err) {
++      const status = err?.status || 500;
++      return send(res, status, { error: err.message || "Unable to delete instance" });
++    }
++  }
+   if (pathname === "/daily") {
+     const dateStr = queryParams.get("date");
+     if (!dateStr) {
+@@ -677,6 +1510,11 @@ const server = http.createServer(async (req, res) => {
+     if (await fileExists(fp)) return serveFile(res, fp);
+   }
+ 
++  if (pathname === "/troubleshoot" || pathname === "/troubleshoot.html") {
++    const fp = path.join(PUBLIC_DIR, "troubleshoot.html");
++    if (await fileExists(fp)) return serveFile(res, fp);
++  }
++
+   if (pathname === "/maintenance" || pathname === "/maintenance.html") {
+     const fp = path.join(PUBLIC_DIR, "maintenance.html");
+     if (await fileExists(fp)) return serveFile(res, fp);
+diff --git a/src/lib/rawStorage.mjs b/src/lib/rawStorage.mjs
+index 315cd0b..35339c0 100644
+--- a/src/lib/rawStorage.mjs
++++ b/src/lib/rawStorage.mjs
+@@ -27,3 +27,13 @@ export function readRaw(type, date) {
+   if (!fs.existsSync(p)) return null;
+   return JSON.parse(fs.readFileSync(p, "utf8"));
+ }
++
++export function deleteRaw(type, date) {
++  const p = rawPath(type, date);
++  try {
++    fs.unlinkSync(p);
++    return true;
++  } catch {
++    return false;
++  }
++}

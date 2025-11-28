@@ -39,15 +39,16 @@
 .sis-header {
   background: var(--header-bg);
   border-bottom: 1px solid var(--border);
-  margin-bottom: 24px;
+  margin-bottom: 8px;
   position: sticky;
   top: 0;
   z-index: 10;
 }
 
 .sis-header__inner {
-  max-width: 1200px;
-  margin: 0 auto;
+  max-width: none;
+  width: 100%;
+  margin: 0;
   padding: 18px 28px;
   display: flex;
   align-items: center;
@@ -94,6 +95,29 @@
 .sis-nav__item:visited,
 .sis-nav__item:active {
   color: var(--muted);
+}
+
+[data-theme="dark"] .sis-title {
+  color: #e5edff;
+}
+[data-theme="dark"] .sis-nav__item {
+  color: #cbd5f5;
+}
+[data-theme="dark"] .sis-nav__item:hover {
+  color: #f8fafc;
+  background: rgba(255,255,255,0.08);
+}
+[data-theme="dark"] .sis-nav__item--active,
+[data-theme="dark"] .sis-nav__item[aria-current="page"] {
+  color: #020617 !important;
+  background: #e5edff !important;
+  border-color: rgba(255,255,255,0.2);
+}
+[data-theme="dark"] .sis-page-name {
+  color: #eef2ff;
+}
+[data-theme="dark"] .sis-page-desc {
+  color: #cdd4ea;
 }
 
 .sis-nav__item:hover {
@@ -160,9 +184,10 @@
 }
 
 .sis-main {
-  max-width: 1200px;
-  margin: 36px auto 80px;
-  padding: 32px 32px 0;
+  max-width: none;
+  width: 100%;
+  margin: 16px 0 24px;
+  padding: 0 16px;
 }
 
 .sis-panel {
@@ -234,7 +259,7 @@
 
   .sis-main {
     padding: 0 18px;
-    margin: 24px auto 60px;
+    margin: 16px 0 60px;
   }
 
   .sis-panel {

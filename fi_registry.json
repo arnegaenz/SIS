@@ -17,25 +17,6 @@
     "cardholder_as_of": null,
     "cardholder_source": null
   },
-  "advancial-prod__advancial-prod": {
-    "fi_name": "advancial-prod",
-    "fi_lookup_key": "advancial-prod",
-    "partner": "Advancial",
-    "instance": "advancial-prod",
-    "instances": [
-      "advancial-prod"
-    ],
-    "sources": [
-      "placement",
-      "session"
-    ],
-    "integration_type": "sso",
-    "first_seen": "2020-10-26",
-    "last_seen": "2025-10-29",
-    "cardholder_total": null,
-    "cardholder_as_of": null,
-    "cardholder_source": null
-  },
   "Default__advancial-prod": {
     "fi_name": "Default",
     "fi_lookup_key": "default",
@@ -50,24 +31,6 @@
     "integration_type": "sso",
     "first_seen": "2020-10-26",
     "last_seen": "2025-10-22",
-    "cardholder_total": null,
-    "cardholder_as_of": null,
-    "cardholder_source": null
-  },
-  "UNKNOWN_FI__advancial-prod": {
-    "fi_name": "UNKNOWN_FI",
-    "fi_lookup_key": "default",
-    "partner": "Advancial",
-    "instance": "advancial-prod",
-    "instances": [
-      "advancial-prod"
-    ],
-    "sources": [
-      "session"
-    ],
-    "integration_type": "sso",
-    "first_seen": "2023-07-25",
-    "last_seen": "2025-10-29",
     "cardholder_total": null,
     "cardholder_as_of": null,
     "cardholder_source": null
@@ -1098,24 +1061,6 @@
     "cardholder_as_of": null,
     "cardholder_source": null
   },
-  "Inactive - Default__digital-onboarding": {
-    "fi_name": "Inactive - Default",
-    "fi_lookup_key": "default",
-    "partner": "DigitalOnboarding",
-    "instance": "digital-onboarding",
-    "instances": [
-      "digital-onboarding"
-    ],
-    "sources": [
-      "placement"
-    ],
-    "integration_type": "non-sso",
-    "first_seen": "2025-06-25",
-    "last_seen": "2025-06-25",
-    "cardholder_total": null,
-    "cardholder_as_of": null,
-    "cardholder_source": null
-  },
   "Island FCU__digital-onboarding": {
     "fi_name": "Island FCU",
     "fi_lookup_key": "islandfcu",
@@ -1440,24 +1385,6 @@
     "cardholder_as_of": null,
     "cardholder_source": null
   },
-  "My Bank__digital-onboarding": {
-    "fi_name": "My Bank",
-    "fi_lookup_key": "mybank",
-    "partner": "DigitalOnboarding",
-    "instance": "digital-onboarding",
-    "instances": [
-      "digital-onboarding"
-    ],
-    "sources": [
-      "placement"
-    ],
-    "integration_type": "non-sso",
-    "first_seen": "2020-12-06",
-    "last_seen": "2025-01-08",
-    "cardholder_total": null,
-    "cardholder_as_of": null,
-    "cardholder_source": null
-  },
   "My Credit Union__digital-onboarding": {
     "fi_name": "My Credit Union",
     "fi_lookup_key": "mycreditunion",
@@ -1746,24 +1673,6 @@
     "cardholder_as_of": null,
     "cardholder_source": null
   },
-  "Peoples Advantage FCU__digital-onboarding": {
-    "fi_name": "Peoples Advantage FCU",
-    "fi_lookup_key": "peoplesadvantagefcu",
-    "partner": "DigitalOnboarding",
-    "instance": "digital-onboarding",
-    "instances": [
-      "digital-onboarding"
-    ],
-    "sources": [
-      "placement"
-    ],
-    "integration_type": "non-sso",
-    "first_seen": "2022-11-23",
-    "last_seen": "2025-09-11",
-    "cardholder_total": null,
-    "cardholder_as_of": null,
-    "cardholder_source": null
-  },
   "Peoples Bank__digital-onboarding": {
     "fi_name": "Peoples Bank",
     "fi_lookup_key": "bankatpeoples",
@@ -1940,24 +1849,6 @@
     "integration_type": "non-sso",
     "first_seen": "2022-09-27",
     "last_seen": "2024-07-17",
-    "cardholder_total": null,
-    "cardholder_as_of": null,
-    "cardholder_source": null
-  },
-  "SCE Credit Union__digital-onboarding": {
-    "fi_name": "SCE Credit Union",
-    "fi_lookup_key": "scefcu",
-    "partner": "DigitalOnboarding",
-    "instance": "digital-onboarding",
-    "instances": [
-      "digital-onboarding"
-    ],
-    "sources": [
-      "placement"
-    ],
-    "integration_type": "non-sso",
-    "first_seen": "2023-06-29",
-    "last_seen": "2023-07-29",
     "cardholder_total": null,
     "cardholder_as_of": null,
     "cardholder_source": null
@@ -2340,24 +2231,6 @@
     "cardholder_as_of": null,
     "cardholder_source": null
   },
-  "UNKNOWN_FI__digital-onboarding": {
-    "fi_name": "UNKNOWN_FI",
-    "fi_lookup_key": "firstpremier",
-    "partner": "DigitalOnboarding",
-    "instance": "digital-onboarding",
-    "instances": [
-      "digital-onboarding"
-    ],
-    "sources": [
-      "session"
-    ],
-    "integration_type": "non-sso",
-    "first_seen": "2023-07-25",
-    "last_seen": "2025-11-11",
-    "cardholder_total": null,
-    "cardholder_as_of": null,
-    "cardholder_source": null
-  },
   "Veritas FCU__digital-onboarding": {
     "fi_name": "Veritas FCU",
     "fi_lookup_key": "veritasfcu",
@@ -2603,7 +2476,7 @@
     "sources": [
       "placement"
     ],
-    "integration_type": "non-sso",
+    "integration_type": "sso",
     "first_seen": "2023-12-09",
     "last_seen": "2024-12-28",
     "cardholder_total": null,
@@ -2628,20 +2501,21 @@
     "cardholder_as_of": null,
     "cardholder_source": null
   },
-  "UNKNOWN_FI__msu": {
-    "fi_name": "UNKNOWN_FI",
+  "MSUFCU__msu-dev": {
+    "fi_name": "MSUFCU",
     "fi_lookup_key": "msufcu",
     "partner": "MSU",
-    "instance": "msu",
+    "instance": "msu-dev",
     "instances": [
-      "msu"
+      "msu-dev"
     ],
     "sources": [
+      "placement",
       "session"
     ],
-    "integration_type": "sso",
-    "first_seen": "2023-12-09",
-    "last_seen": "2025-11-11",
+    "integration_type": "SSO",
+    "first_seen": "2020-01-01",
+    "last_seen": "2025-11-26",
     "cardholder_total": null,
     "cardholder_as_of": null,
     "cardholder_source": null
@@ -2656,24 +2530,6 @@
     ],
     "sources": [
       "placement"
-    ],
-    "integration_type": "cardsavr",
-    "first_seen": "2023-09-07",
-    "last_seen": "2025-10-31",
-    "cardholder_total": null,
-    "cardholder_as_of": null,
-    "cardholder_source": null
-  },
-  "UNKNOWN_FI__ondot": {
-    "fi_name": "UNKNOWN_FI",
-    "fi_lookup_key": "default",
-    "partner": null,
-    "instance": "ondot",
-    "instances": [
-      "ondot"
-    ],
-    "sources": [
-      "session"
     ],
     "integration_type": "cardsavr",
     "first_seen": "2023-09-07",
@@ -2790,24 +2646,6 @@
     "cardholder_as_of": null,
     "cardholder_source": null
   },
-  "UNKNOWN_FI__pscu": {
-    "fi_name": "UNKNOWN_FI",
-    "fi_lookup_key": "5379",
-    "partner": "PSCU",
-    "instance": "pscu",
-    "instances": [
-      "pscu"
-    ],
-    "sources": [
-      "session"
-    ],
-    "integration_type": "sso",
-    "first_seen": "2023-09-05",
-    "last_seen": "2025-11-11",
-    "cardholder_total": null,
-    "cardholder_as_of": null,
-    "cardholder_source": null
-  },
   "Vystar CU__pscu": {
     "fi_name": "Vystar CU",
     "fi_lookup_key": "5811",
@@ -2847,7 +2685,7 @@
   "Admin__ss01": {
     "fi_name": "Admin",
     "fi_lookup_key": "admin",
-    "partner": "Alkami",
+    "partner": null,
     "instance": "ss01",
     "instances": [
       "ss01"
@@ -2855,7 +2693,7 @@
     "sources": [
       "placement"
     ],
-    "integration_type": "non-sso",
+    "integration_type": "test",
     "first_seen": "2022-11-15",
     "last_seen": "2023-07-25",
     "cardholder_total": null,
@@ -3420,24 +3258,6 @@
     "cardholder_as_of": null,
     "cardholder_source": null
   },
-  "Lookout Credit Union__ss01": {
-    "fi_name": "Lookout Credit Union",
-    "fi_lookup_key": "isucu",
-    "partner": "Direct",
-    "instance": "ss01",
-    "instances": [
-      "ss01"
-    ],
-    "sources": [
-      "placement"
-    ],
-    "integration_type": "non-sso",
-    "first_seen": "2021-01-20",
-    "last_seen": "2023-02-03",
-    "cardholder_total": null,
-    "cardholder_as_of": null,
-    "cardholder_source": null
-  },
   "MainStreet Bank__ss01": {
     "fi_name": "MainStreet Bank",
     "fi_lookup_key": "mstreetbank",
@@ -3726,28 +3546,10 @@
     "cardholder_as_of": "2024-09-01",
     "cardholder_source": "estimate"
   },
-  "UNKNOWN_FI__ss01": {
-    "fi_name": "UNKNOWN_FI",
-    "fi_lookup_key": "nasafcu",
-    "partner": "Alkami",
-    "instance": "ss01",
-    "instances": [
-      "ss01"
-    ],
-    "sources": [
-      "session"
-    ],
-    "integration_type": "sso",
-    "first_seen": "2023-07-25",
-    "last_seen": "2025-11-11",
-    "cardholder_total": null,
-    "cardholder_as_of": null,
-    "cardholder_source": null
-  },
   "US Bank__ss01": {
     "fi_name": "US Bank",
     "fi_lookup_key": "usbank",
-    "partner": "Alkami",
+    "partner": "Direct",
     "instance": "ss01",
     "instances": [
       "ss01"
@@ -3779,5 +3581,1761 @@
     "cardholder_total": "49230",
     "cardholder_as_of": "2023-09-01",
     "cardholder_source": "estimate"
+  },
+  "default__digitalonboarding": {
+    "fi_name": "default",
+    "fi_lookup_key": "default",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "mybank__digitalonboarding": {
+    "fi_name": "mybank",
+    "fi_lookup_key": "mybank",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "mycreditunion__digitalonboarding": {
+    "fi_name": "mycreditunion",
+    "fi_lookup_key": "mycreditunion",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "dcu__digitalonboarding": {
+    "fi_name": "dcu",
+    "fi_lookup_key": "dcu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "elevate-cu__digitalonboarding": {
+    "fi_name": "elevate-cu",
+    "fi_lookup_key": "elevate-cu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "suma-fcu__digitalonboarding": {
+    "fi_name": "suma-fcu",
+    "fi_lookup_key": "suma-fcu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "pscu__digitalonboarding": {
+    "fi_name": "pscu",
+    "fi_lookup_key": "pscu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "somersettc__digitalonboarding": {
+    "fi_name": "somersettc",
+    "fi_lookup_key": "somersettc",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "lookoutcu__ss01": {
+    "fi_name": "lookoutcu",
+    "fi_lookup_key": "lookoutcu",
+    "instance": "ss01",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "Unknown"
+  },
+  "somersettrust__digitalonboarding": {
+    "fi_name": "somersettrust",
+    "fi_lookup_key": "somersettrust",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "adventurecu__digitalonboarding": {
+    "fi_name": "adventurecu",
+    "fi_lookup_key": "adventurecu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "theabcbank__digitalonboarding": {
+    "fi_name": "theabcbank",
+    "fi_lookup_key": "theabcbank",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "mygeorgiacu__digitalonboarding": {
+    "fi_name": "mygeorgiacu",
+    "fi_lookup_key": "mygeorgiacu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "foothillscu__digitalonboarding": {
+    "fi_name": "foothillscu",
+    "fi_lookup_key": "foothillscu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "watertownsavings__digitalonboarding": {
+    "fi_name": "watertownsavings",
+    "fi_lookup_key": "watertownsavings",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "islandfcu__digitalonboarding": {
+    "fi_name": "islandfcu",
+    "fi_lookup_key": "islandfcu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "mobiloilcu__digitalonboarding": {
+    "fi_name": "mobiloilcu",
+    "fi_lookup_key": "mobiloilcu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "peoplesbank-tn__digitalonboarding": {
+    "fi_name": "peoplesbank-tn",
+    "fi_lookup_key": "peoplesbank-tn",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "gatherfcu__digitalonboarding": {
+    "fi_name": "gatherfcu",
+    "fi_lookup_key": "gatherfcu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "freedom__digitalonboarding": {
+    "fi_name": "freedom",
+    "fi_lookup_key": "freedom",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "mauicountyfcu__digitalonboarding": {
+    "fi_name": "mauicountyfcu",
+    "fi_lookup_key": "mauicountyfcu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "northeastbank__digitalonboarding": {
+    "fi_name": "northeastbank",
+    "fi_lookup_key": "northeastbank",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "noblecu__digitalonboarding": {
+    "fi_name": "noblecu",
+    "fi_lookup_key": "noblecu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "mybanktx__digitalonboarding": {
+    "fi_name": "mybanktx",
+    "fi_lookup_key": "mybanktx",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "firstbankal__digitalonboarding": {
+    "fi_name": "firstbankal",
+    "fi_lookup_key": "firstbankal",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "gncu__digitalonboarding": {
+    "fi_name": "gncu",
+    "fi_lookup_key": "gncu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "harborstonecu__digitalonboarding": {
+    "fi_name": "harborstonecu",
+    "fi_lookup_key": "harborstonecu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "lafcu__digitalonboarding": {
+    "fi_name": "lafcu",
+    "fi_lookup_key": "lafcu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "solutionsbank__digitalonboarding": {
+    "fi_name": "solutionsbank",
+    "fi_lookup_key": "solutionsbank",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "peoplesadvantagefcu__digitalonboarding": {
+    "fi_name": "peoplesadvantagefcu",
+    "fi_lookup_key": "peoplesadvantagefcu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "delonefcu__digitalonboarding": {
+    "fi_name": "delonefcu",
+    "fi_lookup_key": "delonefcu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "capecodfive__digitalonboarding": {
+    "fi_name": "capecodfive",
+    "fi_lookup_key": "capecodfive",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "riograndecu__digitalonboarding": {
+    "fi_name": "riograndecu",
+    "fi_lookup_key": "riograndecu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "4frontcu__digitalonboarding": {
+    "fi_name": "4frontcu",
+    "fi_lookup_key": "4frontcu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "umassfivefcu__digitalonboarding": {
+    "fi_name": "umassfivefcu",
+    "fi_lookup_key": "umassfivefcu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "deseretfirstcu__digitalonboarding": {
+    "fi_name": "deseretfirstcu",
+    "fi_lookup_key": "deseretfirstcu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "columbiacu__digitalonboarding": {
+    "fi_name": "columbiacu",
+    "fi_lookup_key": "columbiacu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "ahcu__digitalonboarding": {
+    "fi_name": "ahcu",
+    "fi_lookup_key": "ahcu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "fafcu__digitalonboarding": {
+    "fi_name": "fafcu",
+    "fi_lookup_key": "fafcu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "acmebank__customer-dev": {
+    "fi_name": "acmebank",
+    "fi_lookup_key": "acmebank",
+    "instance": "customer-dev",
+    "integration": "TEST",
+    "integration_type": "TEST",
+    "partner": "Unknown"
+  },
+  "default__customer-dev": {
+    "fi_name": "default",
+    "fi_lookup_key": "default",
+    "instance": "customer-dev",
+    "integration": "TEST",
+    "integration_type": "TEST",
+    "partner": "Unknown"
+  },
+  "0000__customer-dev": {
+    "fi_name": "0000",
+    "fi_lookup_key": "0000",
+    "instance": "customer-dev",
+    "integration": "TEST",
+    "integration_type": "TEST",
+    "partner": "Unknown"
+  },
+  "hopen__customer-dev": {
+    "fi_name": "hopen",
+    "fi_lookup_key": "hopen",
+    "instance": "customer-dev",
+    "integration": "TEST",
+    "integration_type": "TEST",
+    "partner": "Unknown"
+  },
+  "hfcu__digitalonboarding": {
+    "fi_name": "hfcu",
+    "fi_lookup_key": "hfcu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "admin__customer-dev": {
+    "fi_name": "admin",
+    "fi_lookup_key": "admin",
+    "instance": "customer-dev",
+    "integration": "TEST",
+    "integration_type": "TEST",
+    "partner": "Unknown"
+  },
+  "onenevada__digitalonboarding": {
+    "fi_name": "onenevada",
+    "fi_lookup_key": "onenevada",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "wyhyfcu__digitalonboarding": {
+    "fi_name": "wyhyfcu",
+    "fi_lookup_key": "wyhyfcu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "ondot__customer-dev": {
+    "fi_name": "ondot",
+    "fi_lookup_key": "ondot",
+    "instance": "customer-dev",
+    "integration": "TEST",
+    "integration_type": "TEST",
+    "partner": "Unknown"
+  },
+  "cofcu__digitalonboarding": {
+    "fi_name": "cofcu",
+    "fi_lookup_key": "cofcu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "whiterosecu__digitalonboarding": {
+    "fi_name": "whiterosecu",
+    "fi_lookup_key": "whiterosecu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "heritagevalleyfcu__digitalonboarding": {
+    "fi_name": "heritagevalleyfcu",
+    "fi_lookup_key": "heritagevalleyfcu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "mybank__customer-dev": {
+    "fi_name": "mybank",
+    "fi_lookup_key": "mybank",
+    "instance": "customer-dev",
+    "integration": "TEST",
+    "integration_type": "TEST",
+    "partner": "Unknown"
+  },
+  "lancofcu__digitalonboarding": {
+    "fi_name": "lancofcu",
+    "fi_lookup_key": "lancofcu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "americafirst__customer-dev": {
+    "fi_name": "americafirst",
+    "fi_lookup_key": "americafirst",
+    "instance": "customer-dev",
+    "integration": "TEST",
+    "integration_type": "TEST",
+    "partner": "Unknown"
+  },
+  "staging__staging": {
+    "fi_name": "staging",
+    "fi_lookup_key": "staging",
+    "instance": "staging",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "Unknown"
+  },
+  "localhost__localhost": {
+    "fi_name": "localhost",
+    "fi_lookup_key": "localhost",
+    "instance": "localhost",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "Unknown"
+  },
+  "mbudos__mbudos": {
+    "fi_name": "mbudos",
+    "fi_lookup_key": "mbudos",
+    "instance": "mbudos",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "Unknown"
+  },
+  "default__localhost": {
+    "fi_name": "default",
+    "fi_lookup_key": "default",
+    "instance": "localhost",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "Unknown"
+  },
+  "argfcu__customer-dev": {
+    "fi_name": "argfcu",
+    "fi_lookup_key": "argfcu",
+    "instance": "customer-dev",
+    "integration": "TEST",
+    "integration_type": "TEST",
+    "partner": "Unknown"
+  },
+  "arggtfcu__customer-dev": {
+    "fi_name": "arggtfcu",
+    "fi_lookup_key": "arggtfcu",
+    "instance": "customer-dev",
+    "integration": "TEST",
+    "integration_type": "TEST",
+    "partner": "Unknown"
+  },
+  "ornlfcu__alkami": {
+    "fi_name": "ornlfcu",
+    "fi_lookup_key": "ornlfcu",
+    "instance": "alkami",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "Unknown"
+  },
+  "rmlefcu__digitalonboarding": {
+    "fi_name": "rmlefcu",
+    "fi_lookup_key": "rmlefcu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "trustonefinancial__digitalonboarding": {
+    "fi_name": "trustonefinancial",
+    "fi_lookup_key": "trustonefinancial",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "cutx__digitalonboarding": {
+    "fi_name": "cutx",
+    "fi_lookup_key": "cutx",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "customer-dev__customer-dev": {
+    "fi_name": "customer-dev",
+    "fi_lookup_key": "customer-dev",
+    "instance": "customer-dev",
+    "integration": "TEST",
+    "integration_type": "TEST",
+    "partner": "Unknown"
+  },
+  "firstunited__digitalonboarding": {
+    "fi_name": "firstunited",
+    "fi_lookup_key": "firstunited",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "kellycommunity__digitalonboarding": {
+    "fi_name": "kellycommunity",
+    "fi_lookup_key": "kellycommunity",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "gerberfcu__digitalonboarding": {
+    "fi_name": "gerberfcu",
+    "fi_lookup_key": "gerberfcu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "p1fcu__digitalonboarding": {
+    "fi_name": "p1fcu",
+    "fi_lookup_key": "p1fcu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "umb__digitalonboarding": {
+    "fi_name": "umb",
+    "fi_lookup_key": "umb",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "wabt__digitalonboarding": {
+    "fi_name": "wabt",
+    "fi_lookup_key": "wabt",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "clintonsavings__digitalonboarding": {
+    "fi_name": "clintonsavings",
+    "fi_lookup_key": "clintonsavings",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "scefcu__digitalonboarding": {
+    "fi_name": "scefcu",
+    "fi_lookup_key": "scefcu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "test-automation__customer-dev": {
+    "fi_name": "test-automation",
+    "fi_lookup_key": "test-automation",
+    "instance": "customer-dev",
+    "integration": "TEST",
+    "integration_type": "TEST",
+    "partner": "Unknown"
+  },
+  "swfinancial__digitalonboarding": {
+    "fi_name": "swfinancial",
+    "fi_lookup_key": "swfinancial",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "hersheyfcu__digitalonboarding": {
+    "fi_name": "hersheyfcu",
+    "fi_lookup_key": "hersheyfcu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "cscutx__digitalonboarding": {
+    "fi_name": "cscutx",
+    "fi_lookup_key": "cscutx",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "massmutualfcu__digitalonboarding": {
+    "fi_name": "massmutualfcu",
+    "fi_lookup_key": "massmutualfcu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "ss01__ss01": {
+    "fi_name": "ss01",
+    "fi_lookup_key": "ss01",
+    "instance": "ss01",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "Unknown"
+  },
+  "firstscotia__digitalonboarding": {
+    "fi_name": "firstscotia",
+    "fi_lookup_key": "firstscotia",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "firstfoundationinc__digitalonboarding": {
+    "fi_name": "firstfoundationinc",
+    "fi_lookup_key": "firstfoundationinc",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "thebankofprinceton__digitalonboarding": {
+    "fi_name": "thebankofprinceton",
+    "fi_lookup_key": "thebankofprinceton",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "usbank__customer-dev": {
+    "fi_name": "usbank",
+    "fi_lookup_key": "usbank",
+    "instance": "customer-dev",
+    "integration": "TEST",
+    "integration_type": "TEST",
+    "partner": "Unknown"
+  },
+  "academybank__digitalonboarding": {
+    "fi_name": "academybank",
+    "fi_lookup_key": "academybank",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "afbank__digitalonboarding": {
+    "fi_name": "afbank",
+    "fi_lookup_key": "afbank",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "fvsbank__digitalonboarding": {
+    "fi_name": "fvsbank",
+    "fi_lookup_key": "fvsbank",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "certifiedfed__digitalonboarding": {
+    "fi_name": "certifiedfed",
+    "fi_lookup_key": "certifiedfed",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "bogotabank__digitalonboarding": {
+    "fi_name": "bogotabank",
+    "fi_lookup_key": "bogotabank",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "jessefi__digitalonboarding": {
+    "fi_name": "jessefi",
+    "fi_lookup_key": "jessefi",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "memfirstcu__digitalonboarding": {
+    "fi_name": "memfirstcu",
+    "fi_lookup_key": "memfirstcu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "docfcu__digitalonboarding": {
+    "fi_name": "docfcu",
+    "fi_lookup_key": "docfcu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "bosfirecu__digitalonboarding": {
+    "fi_name": "bosfirecu",
+    "fi_lookup_key": "bosfirecu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "firstpremier__digitalonboarding": {
+    "fi_name": "firstpremier",
+    "fi_lookup_key": "firstpremier",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "pscu-testing__customer-dev": {
+    "fi_name": "pscu-testing",
+    "fi_lookup_key": "pscu-testing",
+    "instance": "customer-dev",
+    "integration": "TEST",
+    "integration_type": "TEST",
+    "partner": "Unknown"
+  },
+  "kpcu__digitalonboarding": {
+    "fi_name": "kpcu",
+    "fi_lookup_key": "kpcu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "middlefieldbank__digitalonboarding": {
+    "fi_name": "middlefieldbank",
+    "fi_lookup_key": "middlefieldbank",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "barclays__customer-dev": {
+    "fi_name": "barclays",
+    "fi_lookup_key": "barclays",
+    "instance": "customer-dev",
+    "integration": "TEST",
+    "integration_type": "TEST",
+    "partner": "Unknown"
+  },
+  "pscu__customer-dev": {
+    "fi_name": "pscu",
+    "fi_lookup_key": "pscu",
+    "instance": "customer-dev",
+    "integration": "TEST",
+    "integration_type": "TEST",
+    "partner": "Unknown"
+  },
+  "cmefcu__digitalonboarding": {
+    "fi_name": "cmefcu",
+    "fi_lookup_key": "cmefcu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "soundcu__digitalonboarding": {
+    "fi_name": "soundcu",
+    "fi_lookup_key": "soundcu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "fhfcu__digitalonboarding": {
+    "fi_name": "fhfcu",
+    "fi_lookup_key": "fhfcu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "brtelco__digitalonboarding": {
+    "fi_name": "brtelco",
+    "fi_lookup_key": "brtelco",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "shawn__digitalonboarding": {
+    "fi_name": "shawn",
+    "fi_lookup_key": "shawn",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "soundcutest__digitalonboarding": {
+    "fi_name": "soundcutest",
+    "fi_lookup_key": "soundcutest",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "secubank__customer-dev": {
+    "fi_name": "secubank",
+    "fi_lookup_key": "secubank",
+    "instance": "customer-dev",
+    "integration": "TEST",
+    "integration_type": "TEST",
+    "partner": "Unknown"
+  },
+  "myhocu__digitalonboarding": {
+    "fi_name": "myhocu",
+    "fi_lookup_key": "myhocu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "pctfcu__digitalonboarding": {
+    "fi_name": "pctfcu",
+    "fi_lookup_key": "pctfcu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "nccyou__digitalonboarding": {
+    "fi_name": "nccyou",
+    "fi_lookup_key": "nccyou",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "veritasfcu__digitalonboarding": {
+    "fi_name": "veritasfcu",
+    "fi_lookup_key": "veritasfcu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "timberlandbank__digitalonboarding": {
+    "fi_name": "timberlandbank",
+    "fi_lookup_key": "timberlandbank",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "amocofcu__digitalonboarding": {
+    "fi_name": "amocofcu",
+    "fi_lookup_key": "amocofcu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "oucu__digitalonboarding": {
+    "fi_name": "oucu",
+    "fi_lookup_key": "oucu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "landingscu__digitalonboarding": {
+    "fi_name": "landingscu",
+    "fi_lookup_key": "landingscu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "blupeak__digitalonboarding": {
+    "fi_name": "blupeak",
+    "fi_lookup_key": "blupeak",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "orbfcu__ss01": {
+    "fi_name": "orbfcu",
+    "fi_lookup_key": "orbfcu",
+    "instance": "ss01",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "Unknown"
+  },
+  "barclays-gateway-qa__customer-dev": {
+    "fi_name": "barclays-gateway-qa",
+    "fi_lookup_key": "barclays-gateway-qa",
+    "instance": "customer-dev",
+    "integration": "TEST",
+    "integration_type": "TEST",
+    "partner": "Unknown"
+  },
+  "servecu__digitalonboarding": {
+    "fi_name": "servecu",
+    "fi_lookup_key": "servecu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "gecu__digitalonboarding": {
+    "fi_name": "gecu",
+    "fi_lookup_key": "gecu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "unknown_fi__customer-dev": {
+    "fi_name": "unknown_fi",
+    "fi_lookup_key": "unknown_fi",
+    "instance": "customer-dev",
+    "integration": "TEST",
+    "integration_type": "TEST",
+    "partner": "Unknown"
+  },
+  "unknown_fi__digitalonboarding": {
+    "fi_name": "unknown_fi",
+    "fi_lookup_key": "unknown_fi",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "zynlo__digitalonboarding": {
+    "fi_name": "zynlo",
+    "fi_lookup_key": "zynlo",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "sierrapacificfcu__digitalonboarding": {
+    "fi_name": "sierrapacificfcu",
+    "fi_lookup_key": "sierrapacificfcu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "firsteaglefcu__digitalonboarding": {
+    "fi_name": "firsteaglefcu",
+    "fi_lookup_key": "firsteaglefcu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "msu__customer-dev": {
+    "fi_name": "msu",
+    "fi_lookup_key": "msu",
+    "instance": "customer-dev",
+    "integration": "TEST",
+    "integration_type": "TEST",
+    "partner": "Unknown"
+  },
+  "qcu__digitalonboarding": {
+    "fi_name": "qcu",
+    "fi_lookup_key": "qcu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "msu_dev__customer-dev": {
+    "fi_name": "msu_dev",
+    "fi_lookup_key": "msu_dev",
+    "instance": "customer-dev",
+    "integration": "TEST",
+    "integration_type": "TEST",
+    "partner": "Unknown"
+  },
+  "4frontcu__customer-dev": {
+    "fi_name": "4frontcu",
+    "fi_lookup_key": "4frontcu",
+    "instance": "customer-dev",
+    "integration": "TEST",
+    "integration_type": "TEST",
+    "partner": "Unknown"
+  },
+  "legacycreditunion__digitalonboarding": {
+    "fi_name": "legacycreditunion",
+    "fi_lookup_key": "legacycreditunion",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "rrcu__digitalonboarding": {
+    "fi_name": "rrcu",
+    "fi_lookup_key": "rrcu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "occu__digitalonboarding": {
+    "fi_name": "occu",
+    "fi_lookup_key": "occu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "pittsfordfcu__digitalonboarding": {
+    "fi_name": "pittsfordfcu",
+    "fi_lookup_key": "pittsfordfcu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "svcu__customer-dev": {
+    "fi_name": "svcu",
+    "fi_lookup_key": "svcu",
+    "instance": "customer-dev",
+    "integration": "TEST",
+    "integration_type": "TEST",
+    "partner": "Unknown"
+  },
+  "macu__digitalonboarding": {
+    "fi_name": "macu",
+    "fi_lookup_key": "macu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "bankatpeoples__digitalonboarding": {
+    "fi_name": "bankatpeoples",
+    "fi_lookup_key": "bankatpeoples",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "1489__customer-dev": {
+    "fi_name": "1489",
+    "fi_lookup_key": "1489",
+    "instance": "customer-dev",
+    "integration": "TEST",
+    "integration_type": "TEST",
+    "partner": "Unknown"
+  },
+  "orb_stage__customer-dev": {
+    "fi_name": "orb_stage",
+    "fi_lookup_key": "orb_stage",
+    "instance": "customer-dev",
+    "integration": "TEST",
+    "integration_type": "TEST",
+    "partner": "Unknown"
+  },
+  "ondot__ondot": {
+    "fi_name": "ondot",
+    "fi_lookup_key": "ondot",
+    "instance": "ondot",
+    "integration": "NON-SSO",
+    "integration_type": "cardsavr",
+    "partner": "Unknown",
+    "cardholder_total": null,
+    "cardholder_source": null,
+    "cardholder_as_of": null
+  },
+  "zag__customer-dev": {
+    "fi_name": "zag",
+    "fi_lookup_key": "zag",
+    "instance": "customer-dev",
+    "integration": "TEST",
+    "integration_type": "TEST",
+    "partner": "Unknown"
+  },
+  "penair__digitalonboarding": {
+    "fi_name": "penair",
+    "fi_lookup_key": "penair",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "gardensavingsfcu__digitalonboarding": {
+    "fi_name": "gardensavingsfcu",
+    "fi_lookup_key": "gardensavingsfcu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "demobankingapp__customer-dev": {
+    "fi_name": "demobankingapp",
+    "fi_lookup_key": "demobankingapp",
+    "instance": "customer-dev",
+    "integration": "TEST",
+    "integration_type": "TEST",
+    "partner": "Unknown"
+  },
+  "cuofamerica__digitalonboarding": {
+    "fi_name": "cuofamerica",
+    "fi_lookup_key": "cuofamerica",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "thecooperativebankofcapecod__digitalonboarding": {
+    "fi_name": "thecooperativebankofcapecod",
+    "fi_lookup_key": "thecooperativebankofcapecod",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "alkami_dev__customer-dev": {
+    "fi_name": "alkami_dev",
+    "fi_lookup_key": "alkami_dev",
+    "instance": "customer-dev",
+    "integration": "TEST",
+    "integration_type": "TEST",
+    "partner": "Unknown"
+  },
+  "mypcb__digitalonboarding": {
+    "fi_name": "mypcb",
+    "fi_lookup_key": "mypcb",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "mygecu__digitalonboarding": {
+    "fi_name": "mygecu",
+    "fi_lookup_key": "mygecu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "fsbtrust__digitalonboarding": {
+    "fi_name": "fsbtrust",
+    "fi_lookup_key": "fsbtrust",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "widgetfinancialcu__digitalonboarding": {
+    "fi_name": "widgetfinancialcu",
+    "fi_lookup_key": "widgetfinancialcu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "widgetfinancial__digitalonboarding": {
+    "fi_name": "widgetfinancial",
+    "fi_lookup_key": "widgetfinancial",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "navigantcu__digitalonboarding": {
+    "fi_name": "navigantcu",
+    "fi_lookup_key": "navigantcu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "secfed__digitalonboarding": {
+    "fi_name": "secfed",
+    "fi_lookup_key": "secfed",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "elgacu__digitalonboarding": {
+    "fi_name": "elgacu",
+    "fi_lookup_key": "elgacu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "msu__msu": {
+    "fi_name": "msu",
+    "fi_lookup_key": "msu",
+    "instance": "msu",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "Unknown"
+  },
+  "nyufcu__digitalonboarding": {
+    "fi_name": "nyufcu",
+    "fi_lookup_key": "nyufcu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "soarion__ss01": {
+    "fi_name": "soarion",
+    "fi_lookup_key": "soarion",
+    "instance": "ss01",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "Unknown"
+  },
+  "draft__msu": {
+    "fi_name": "draft",
+    "fi_lookup_key": "draft",
+    "instance": "msu",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "Unknown"
+  },
+  "pscunow__digitalonboarding": {
+    "fi_name": "pscunow",
+    "fi_lookup_key": "pscunow",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "non-sso",
+    "partner": "DigitalOnboarding",
+    "cardholder_total": null,
+    "cardholder_source": null,
+    "cardholder_as_of": null
+  },
+  "firstscotia__customer-dev": {
+    "fi_name": "firstscotia",
+    "fi_lookup_key": "firstscotia",
+    "instance": "customer-dev",
+    "integration": "TEST",
+    "integration_type": "TEST",
+    "partner": "Unknown"
+  },
+  "alkami__customer-dev": {
+    "fi_name": "alkami",
+    "fi_lookup_key": "alkami",
+    "instance": "customer-dev",
+    "integration": "TEST",
+    "integration_type": "TEST",
+    "partner": "Unknown"
+  },
+  "adventhealthcreditunion__digitalonboarding": {
+    "fi_name": "adventhealthcreditunion",
+    "fi_lookup_key": "adventhealthcreditunion",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "guardianscu__digitalonboarding": {
+    "fi_name": "guardianscu",
+    "fi_lookup_key": "guardianscu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "midsouthfcu__digitalonboarding": {
+    "fi_name": "midsouthfcu",
+    "fi_lookup_key": "midsouthfcu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "peoplesbanknc__digitalonboarding": {
+    "fi_name": "peoplesbanknc",
+    "fi_lookup_key": "peoplesbanknc",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "sonatabank__digitalonboarding": {
+    "fi_name": "sonatabank",
+    "fi_lookup_key": "sonatabank",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "bancfirst__digitalonboarding": {
+    "fi_name": "bancfirst",
+    "fi_lookup_key": "bancfirst",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "5555__customer-dev": {
+    "fi_name": "5555",
+    "fi_lookup_key": "5555",
+    "instance": "customer-dev",
+    "integration": "TEST",
+    "integration_type": "TEST",
+    "partner": "Unknown"
+  },
+  "portaldemo__pscu": {
+    "fi_name": "portaldemo",
+    "fi_lookup_key": "portaldemo",
+    "instance": "pscu",
+    "integration": "NON-SSO",
+    "integration_type": "test",
+    "partner": "Unknown",
+    "cardholder_total": null,
+    "cardholder_source": null,
+    "cardholder_as_of": null
+  },
+  "yampavalleybank__digitalonboarding": {
+    "fi_name": "yampavalleybank",
+    "fi_lookup_key": "yampavalleybank",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "unclecu__digitalonboarding": {
+    "fi_name": "unclecu",
+    "fi_lookup_key": "unclecu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "panaceafinancial__digitalonboarding": {
+    "fi_name": "panaceafinancial",
+    "fi_lookup_key": "panaceafinancial",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "pioneerfcu__digitalonboarding": {
+    "fi_name": "pioneerfcu",
+    "fi_lookup_key": "pioneerfcu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "ithinkfinancialcu__digitalonboarding": {
+    "fi_name": "ithinkfinancialcu",
+    "fi_lookup_key": "ithinkfinancialcu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "armstrong__digitalonboarding": {
+    "fi_name": "armstrong",
+    "fi_lookup_key": "armstrong",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "centurycu__digitalonboarding": {
+    "fi_name": "centurycu",
+    "fi_lookup_key": "centurycu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "bemycu__digitalonboarding": {
+    "fi_name": "bemycu",
+    "fi_lookup_key": "bemycu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "bluefoundrybank__digitalonboarding": {
+    "fi_name": "bluefoundrybank",
+    "fi_lookup_key": "bluefoundrybank",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "leaderscu__digitalonboarding": {
+    "fi_name": "leaderscu",
+    "fi_lookup_key": "leaderscu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "traxcu__digitalonboarding": {
+    "fi_name": "traxcu",
+    "fi_lookup_key": "traxcu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "scucu__digitalonboarding": {
+    "fi_name": "scucu",
+    "fi_lookup_key": "scucu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "1489__pscu": {
+    "fi_name": "1489",
+    "fi_lookup_key": "1489",
+    "instance": "pscu",
+    "integration": "NON-SSO",
+    "integration_type": "sso",
+    "partner": "Unknown",
+    "cardholder_total": null,
+    "cardholder_source": null,
+    "cardholder_as_of": null
+  },
+  "alkami-dev__customer-dev": {
+    "fi_name": "alkami-dev",
+    "fi_lookup_key": "alkami-dev",
+    "instance": "customer-dev",
+    "integration": "TEST",
+    "integration_type": "TEST",
+    "partner": "Unknown"
+  },
+  "manasquan__digitalonboarding": {
+    "fi_name": "manasquan",
+    "fi_lookup_key": "manasquan",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "firstlightcu__digitalonboarding": {
+    "fi_name": "firstlightcu",
+    "fi_lookup_key": "firstlightcu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "cuofga__digitalonboarding": {
+    "fi_name": "cuofga",
+    "fi_lookup_key": "cuofga",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "stratacu__digitalonboarding": {
+    "fi_name": "stratacu",
+    "fi_lookup_key": "stratacu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "ecsb__digitalonboarding": {
+    "fi_name": "ecsb",
+    "fi_lookup_key": "ecsb",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "accessbank__digitalonboarding": {
+    "fi_name": "accessbank",
+    "fi_lookup_key": "accessbank",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "wsb__digitalonboarding": {
+    "fi_name": "wsb",
+    "fi_lookup_key": "wsb",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "usffcu__digitalonboarding": {
+    "fi_name": "usffcu",
+    "fi_lookup_key": "usffcu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "elmonteccu__digitalonboarding": {
+    "fi_name": "elmonteccu",
+    "fi_lookup_key": "elmonteccu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "parkccu__digitalonboarding": {
+    "fi_name": "parkccu",
+    "fi_lookup_key": "parkccu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "gefcu__digitalonboarding": {
+    "fi_name": "gefcu",
+    "fi_lookup_key": "gefcu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "membersfirstnh__digitalonboarding": {
+    "fi_name": "membersfirstnh",
+    "fi_lookup_key": "membersfirstnh",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "marquis__marquis": {
+    "fi_name": "marquis",
+    "fi_lookup_key": "marquis",
+    "instance": "marquis",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "Unknown"
+  },
+  "csbank__digitalonboarding": {
+    "fi_name": "csbank",
+    "fi_lookup_key": "csbank",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "uwfsbankatpeoples__digitalonboarding": {
+    "fi_name": "uwfsbankatpeoples",
+    "fi_lookup_key": "uwfsbankatpeoples",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "cbtks__digitalonboarding": {
+    "fi_name": "cbtks",
+    "fi_lookup_key": "cbtks",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "ccfinancial__digitalonboarding": {
+    "fi_name": "ccfinancial",
+    "fi_lookup_key": "ccfinancial",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "bristolcountysavings__digitalonboarding": {
+    "fi_name": "bristolcountysavings",
+    "fi_lookup_key": "bristolcountysavings",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "adirondackbank__digitalonboarding": {
+    "fi_name": "adirondackbank",
+    "fi_lookup_key": "adirondackbank",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "firstreliance__digitalonboarding": {
+    "fi_name": "firstreliance",
+    "fi_lookup_key": "firstreliance",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "aaacu__digitalonboarding": {
+    "fi_name": "aaacu",
+    "fi_lookup_key": "aaacu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "harmonybank__digitalonboarding": {
+    "fi_name": "harmonybank",
+    "fi_lookup_key": "harmonybank",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "friendshipstatebank__digitalonboarding": {
+    "fi_name": "friendshipstatebank",
+    "fi_lookup_key": "friendshipstatebank",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "aexp__customer-dev": {
+    "fi_name": "aexp",
+    "fi_lookup_key": "aexp",
+    "instance": "customer-dev",
+    "integration": "TEST",
+    "integration_type": "TEST",
+    "partner": "Unknown"
+  },
+  "valorfi__digitalonboarding": {
+    "fi_name": "valorfi",
+    "fi_lookup_key": "valorfi",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "campus__marquis": {
+    "fi_name": "campus",
+    "fi_lookup_key": "campus",
+    "instance": "marquis",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "Unknown"
+  },
+  "swaystack__customer-dev": {
+    "fi_name": "swaystack",
+    "fi_lookup_key": "swaystack",
+    "instance": "customer-dev",
+    "integration": "TEST",
+    "integration_type": "TEST",
+    "partner": "Unknown"
+  },
+  "republicbanktrust__digitalonboarding": {
+    "fi_name": "republicbanktrust",
+    "fi_lookup_key": "republicbanktrust",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "centricfcu__digitalonboarding": {
+    "fi_name": "centricfcu",
+    "fi_lookup_key": "centricfcu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "wesbanco__digitalonboarding": {
+    "fi_name": "wesbanco",
+    "fi_lookup_key": "wesbanco",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "guardiancu__digitalonboarding": {
+    "fi_name": "guardiancu",
+    "fi_lookup_key": "guardiancu",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "wellsfargo__customer-dev": {
+    "fi_name": "wellsfargo",
+    "fi_lookup_key": "wellsfargo",
+    "instance": "customer-dev",
+    "integration": "TEST",
+    "integration_type": "TEST",
+    "partner": "Unknown"
+  },
+  "capeandcoast__digitalonboarding": {
+    "fi_name": "capeandcoast",
+    "fi_lookup_key": "capeandcoast",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "bankwithsouthern__digitalonboarding": {
+    "fi_name": "bankwithsouthern",
+    "fi_lookup_key": "bankwithsouthern",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "hustl__digitalonboarding": {
+    "fi_name": "hustl",
+    "fi_lookup_key": "hustl",
+    "instance": "digitalonboarding",
+    "integration": "NON-SSO",
+    "integration_type": "NON-SSO",
+    "partner": "DigitalOnboarding"
+  },
+  "cutestapp__customer-dev": {
+    "fi_name": "cutestapp",
+    "fi_lookup_key": "cutestapp",
+    "instance": "customer-dev",
+    "integration": "TEST",
+    "integration_type": "TEST",
+    "partner": "Unknown"
+  },
+  "cutestio__customer-dev": {
+    "fi_name": "cutestio",
+    "fi_lookup_key": "cutestio",
+    "instance": "customer-dev",
+    "integration": "TEST",
+    "integration_type": "TEST",
+    "partner": "Unknown"
   }
 }

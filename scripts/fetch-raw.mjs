@@ -13,6 +13,7 @@ import {
   rawExists,
   writeRaw,
   readRaw,
+  deleteRaw,
 } from "../src/lib/rawStorage.mjs";
 
 const SRC_DIR = path.resolve("src");
@@ -255,7 +256,8 @@ function logRefetch(date, type, reason, onStatus) {
   console.log(msg);
 }
 
-function shouldRefreshRaw(type, date) {
+function shouldRefreshRaw(type, date, force = false) {
+  if (force) return { refresh: true, reason: "forced refetch" };
   const raw = readRaw(type, date);
   if (!raw) {
     return { refresh: true, reason: "missing cache" };
@@ -284,7 +286,7 @@ function shouldRefreshRaw(type, date) {
   return { refresh: false, reason: null };
 }
 
-export async function fetchRawRange({ startDate, endDate, onStatus }) {
+export async function fetchRawRange({ startDate, endDate, onStatus, forceRaw }) {
   const instances = loadInstances(SRC_DIR);
   const sessionCache = new Map();
   const dates = enumerateDates(startDate, endDate);
@@ -297,11 +299,12 @@ export async function fetchRawRange({ startDate, endDate, onStatus }) {
 
     const hasGa = rawExists("ga", date);
     const { refresh: shouldRefreshGa, reason: gaReason } = hasGa
-      ? shouldRefreshRaw("ga", date)
+      ? shouldRefreshRaw("ga", date, forceRaw)
       : { refresh: true, reason: "missing cache" };
     if (shouldRefreshGa) {
       if (hasGa) {
         logRefetch(date, "GA", gaReason, onStatus);
+        if (forceRaw) deleteRaw("ga", date);
       }
       try {
         const payload = await fetchGaRaw(date);
@@ -325,11 +328,12 @@ export async function fetchRawRange({ startDate, endDate, onStatus }) {
 
     const hasSessions = rawExists("sessions", date);
     const { refresh: shouldRefreshSessions, reason: sessionsReason } = hasSessions
-      ? shouldRefreshRaw("sessions", date)
+      ? shouldRefreshRaw("sessions", date, forceRaw)
       : { refresh: true, reason: "missing cache" };
     if (shouldRefreshSessions) {
       if (hasSessions) {
         logRefetch(date, "Sessions", sessionsReason, onStatus);
+        if (forceRaw) deleteRaw("sessions", date);
       }
       try {
         const payload = await fetchSessionsRaw(date, instances, sessionCache);
@@ -358,11 +362,12 @@ export async function fetchRawRange({ startDate, endDate, onStatus }) {
     const hasPlacements = rawExists("placements", date);
     const { refresh: shouldRefreshPlacements, reason: placementsReason } =
       hasPlacements
-        ? shouldRefreshRaw("placements", date)
+        ? shouldRefreshRaw("placements", date, forceRaw)
         : { refresh: true, reason: "missing cache" };
     if (shouldRefreshPlacements) {
       if (hasPlacements) {
         logRefetch(date, "Placements", placementsReason, onStatus);
+        if (forceRaw) deleteRaw("placements", date);
       }
       try {
         const payload = await fetchPlacementsRaw(date, instances, sessionCache);
