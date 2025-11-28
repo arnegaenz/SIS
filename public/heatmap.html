@@ -4,9 +4,32 @@
   <meta charset="utf-8" />
   <title>Strivve • Merchant Site Heatmap</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="stylesheet" href="/sis-shared.css" />
+  <link rel="stylesheet" href="./sis-shared.css?v=navfix" />
+  <link rel="stylesheet" href="./assets/css/sis.css">
+  <script defer src="./assets/js/sis.js"></script>
+  <script defer src="./assets/js/filters.js?v=shared"></script>
+  <link rel="stylesheet" href="./assets/css/filters.css">
   <style>
     :root {
+      --bg: #f5f7fb;
+      --panel: #ffffff;
+      --ink: #0f172a;
+      --muted: #475569;
+      --grid-border: #d7deea;
+      --chip: #e2e8f0;
+      --chip-on: #dbeafe;
+      --chip-ring: #2563eb;
+      --accent: #2563eb;
+      --accent-2: #0ea5e9;
+      --warn: #f59e0b;
+      --bad: #ef4444;
+      --good: #22c55e;
+      --input-bg: #ffffff;
+      --input-border: #cbd5e1;
+      --tooltip-bg: #ffffff;
+      --grid-divider: rgba(15,23,42,0.06);
+    }
+    [data-theme="dark"] {
       --bg: #0b0d10;
       --panel: #12161c;
       --ink: #e7edf6;
@@ -20,70 +43,99 @@
       --warn: #ffb86c;
       --bad: #ff6b6b;
       --good: #3bd671;
+      --input-bg: #0f1319;
+      --input-border: rgba(148,163,184,0.35);
+      --tooltip-bg: #0f1319;
+      --grid-divider: rgba(255,255,255,0.08);
     }
     * { box-sizing: border-box; }
     html, body { height: 100%; }
     body {
       margin: 0;
-      padding: 16px 16px 60px;
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      padding: 0;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      font-size: 16px;
       background: var(--bg);
       color: var(--ink);
       --sis-panel-bg: var(--panel);
     }
-    h1 { font-size: 18px; font-weight: 700; margin: 0 0 14px; letter-spacing: .2px; }
     .filter-row {
       display: flex;
       flex-wrap: wrap;
-      gap: 14px;
+      gap: 10px;
       align-items: flex-end;
     }
-    .filter-field {
+    /* Scope toolbar filters so the shared filter bar keeps its own styles */
+    .toolbar .filter-field {
       display: flex;
       flex-direction: column;
       gap: 6px;
       min-width: 170px;
+      min-height: 0;
     }
-    .filter-field label {
+    .toolbar .filter-field label {
       display: block;
       font-size: 12px;
       color: var(--muted);
       margin-bottom: 0;
       letter-spacing: 0.08em;
       text-transform: uppercase;
+      padding-left: 2px;
     }
-    .filter-field input[type="date"] {
-      background: #0f1319;
-      border: 1px solid rgba(148,163,184,0.35);
+    .toolbar .filter-field select {
+      background: var(--input-bg);
+      border: 1px solid var(--input-border);
       color: var(--ink);
-      padding: 9px 12px;
+      padding: 10px 12px;
       border-radius: 10px;
       font-size: 14px;
+      height: 42px;
+      line-height: 22px;
+      box-sizing: border-box;
     }
-    .filter-field input[type="date"]:focus {
+    .toolbar .filter-field select:focus {
       outline: none;
       border-color: var(--accent);
-      box-shadow: 0 0 0 3px rgba(122,162,255,0.25);
+      box-shadow: 0 0 0 3px rgba(37,99,235,0.2);
+    }
+    .toolbar .filter-field input[type="date"] {
+      background: var(--input-bg);
+      border: 1px solid var(--input-border);
+      color: var(--ink);
+      padding: 10px 12px;
+      border-radius: 10px;
+      font-size: 14px;
+      height: 42px;
+      line-height: 22px;
+      box-sizing: border-box;
+    }
+    .toolbar .filter-field input[type="date"]:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(37,99,235,0.2);
     }
     .filter-actions {
       display: flex;
-      gap: 10px;
+      gap: 6px;
       align-items: center;
       flex-wrap: wrap;
+      margin-top: 2px;
     }
     .filter-btn {
       background: linear-gradient(120deg, var(--accent), var(--accent-2));
       border: none;
       border-radius: 999px;
-      color: #020617;
-      padding: 10px 22px;
+      color: #f8fafc;
+      padding: 10px 28px;
+      min-width: 170px;
       font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
+      letter-spacing: 0.2px;
       cursor: pointer;
       font-size: 0.9rem;
+      text-transform: none;
     }
-    .filter-btn:hover { filter: brightness(1.08); }
+    .filter-btn:hover { transform: translateY(-1px); filter: brightness(1.05); }
     .filter-toggle label.toggle {
       display: flex;
       align-items: center;
@@ -100,14 +152,14 @@
     .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
     label { font-size: 13px; color: var(--muted); }
     input[type="date"] {
-      background: #0f1319;
+      background: var(--input-bg);
       border: 1px solid var(--grid-border);
       color: var(--ink);
       padding: 8px 10px;
       border-radius: 8px;
       font-size: 13px;
     }
-    button, .chip {
+    .toolbar button.filter-btn, .chip {
       appearance: none;
       border: 1px solid var(--grid-border);
       background: var(--chip);
@@ -118,7 +170,7 @@
       font-size: 12px;
       cursor: pointer;
     }
-    button:hover, .chip:hover { filter: brightness(1.1); }
+    .toolbar button.filter-btn:hover, .chip:hover { filter: brightness(1.05); }
     .chip.on {
       background: var(--chip-on);
       outline: 2px solid var(--chip-ring);
@@ -148,7 +200,7 @@
     .grid-head .tick {
       width: 10px;
       height: 16px;
-      border-right: 1px solid rgba(255,255,255,0.04);
+      border-right: 1px solid var(--grid-divider);
     }
     .grid-left {
       border-right: 1px solid var(--grid-border);
@@ -164,7 +216,7 @@
       height: 12px; /* matches square size */
       padding: 0 10px;
       gap: 8px;
-      border-bottom: 1px solid rgba(255,255,255,0.06);
+      border-bottom: 1px solid var(--grid-divider);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -182,25 +234,25 @@
     .square {
       width: 12px;
       height: 12px;
-      border-right: 1px solid rgba(255,255,255,0.04);
-      border-bottom: 1px solid rgba(255,255,255,0.04);
+      border-right: 1px solid var(--grid-divider);
+      border-bottom: 1px solid var(--grid-divider);
     }
-    .square:hover { outline: 1px solid rgba(255,255,255,0.25); outline-offset: -1px; }
+    .square:hover { outline: 1px solid rgba(37,99,235,0.35); outline-offset: -1px; }
 
-    .toolbar { display: flex; align-items: center; gap: 8px; justify-content: space-between; }
-    .right { display: flex; gap: 8px; align-items: center; }
+    .toolbar { display: flex; align-items: flex-end; gap: 6px; justify-content: space-between; flex-wrap: wrap; }
+    .right { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
 
     .tip {
       position: fixed;
       pointer-events: none;
       z-index: 20;
-      background: #0f1319;
+      background: var(--tooltip-bg);
       color: var(--ink);
       border: 1px solid var(--grid-border);
       border-radius: 8px;
       font-size: 12px;
       padding: 10px 12px;
-      box-shadow: 0 6px 24px rgba(0,0,0,0.45);
+      box-shadow: 0 6px 24px rgba(0,0,0,0.18);
       display: block;
       max-width: 320px;
       line-height: 1.25;
@@ -221,63 +273,90 @@
     .muted { color: var(--muted); }
     .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; }
     .tiny { font-size: 11px; }
+    /* Tighten container padding so it matches other pages */
+    .heatmap-page .sis-content {
+      padding: 4px 16px 0;
+    }
+    .heatmap-page .sis-main {
+      padding: 0 16px;
+      margin: 16px 0 64px;
+    }
   </style>
 </head>
-<body>
+<body class="heatmap-page">
   <header class="sis-header">
-    <div class="sis-header__inner">
-      <div class="sis-brand">Strivve Insights Service (SIS)</div>
+    <div class="sis-topbar">
+      <div class="sis-title">Strivve Insights Service</div>
+
       <nav class="sis-nav">
-        <a class="sis-nav__item" href="/">Overview</a>
-        <a class="sis-nav__item" href="/funnel.html">FI Funnel</a>
-        <a class="sis-nav__item sis-nav__item--active" href="/heatmap.html">Merchant Heatmap</a>
-        <a class="sis-nav__item" href="/maintenance.html">Maintenance</a>
+        <a href="index.html">Overview</a>
+        <a href="funnel.html">FI Funnel</a>
+        <a href="heatmap.html">Merchant Heatmap</a>
+        <a href="troubleshoot.html">Troubleshooting</a>
+        <a href="maintenance.html">Maintenance</a>
       </nav>
     </div>
+
+    <h1 class="sis-page-name">Merchant Site Heatmap</h1>
+    <p class="sis-page-desc">Visualize merchant reliability day by day across production and test traffic. Switch modes to highlight traffic volume, health, conversion, or anomalies.</p>
   </header>
+  <div class="sis-content">
   <main class="sis-main">
     <section class="sis-panel heatmap-panel">
-      <h1 class="sis-panel-title">Merchant Site Heatmap</h1>
+      <div id="filter-bar"></div>
 
-      <div class="toolbar">
-        <div class="filter-row">
-          <div class="filter-field">
-            <label for="start">Start date</label>
-            <input id="start" type="date">
-          </div>
-          <div class="filter-field">
-            <label for="end">End date</label>
-            <input id="end" type="date">
-          </div>
-          <div class="filter-field">
-            <label>&nbsp;</label>
-            <div class="filter-actions">
-              <button id="apply" class="filter-btn" type="button">Apply filters</button>
-              <span class="muted tiny mono" id="count"></span>
-            </div>
-          </div>
-          <div class="filter-field filter-toggle">
-            <label>Traffic sources</label>
-            <label class="toggle">
-              <input type="checkbox" id="includeProdMerchants" checked />
-              Include production traffic
-            </label>
-            <label class="toggle">
-              <input type="checkbox" id="includeTestMerchants" />
-              Include traffic from test (customer-dev) FIs
-            </label>
+    <div class="toolbar">
+      <div class="filter-row">
+        <div class="filter-field">
+          <label for="datePreset">Range preset</label>
+          <select id="datePreset">
+            <option value="last7">Last 7 days</option>
+            <option value="last14">Last 14 days</option>
+            <option value="last30">Last 30 days</option>
+            <option value="last60">Last 60 days</option>
+            <option value="last90" selected>Last 90 days</option>
+            <option value="ytd">Year to date</option>
+            <option value="">Custom</option>
+          </select>
+        </div>
+        <div class="filter-field">
+          <label for="start">Start date</label>
+          <input id="start" type="date">
+        </div>
+        <div class="filter-field">
+          <label for="end">End date</label>
+          <input id="end" type="date">
+        </div>
+        <div class="filter-field">
+          <label for="apply">Actions</label>
+          <div class="filter-actions">
+            <button id="apply" class="filter-btn" type="button">Apply filters</button>
+            <span class="muted tiny mono" id="count"></span>
           </div>
         </div>
-        <div class="right">
-          <span class="muted tiny">Mode:</span>
-          <button class="chip on" data-mode="traffic" id="m-traffic">Traffic</button>
-          <button class="chip" data-mode="health" id="m-health">Health</button>
-          <button class="chip" data-mode="conversion" id="m-conv">Conversion</button>
-          <button class="chip" data-mode="anomaly" id="m-anom">Anomaly</button>
+        <div class="filter-field filter-toggle">
+          <label>Traffic sources</label>
+          <label class="toggle">
+            <input type="checkbox" id="includeProdMerchants" checked />
+            Include production traffic
+          </label>
+          <label class="toggle">
+            <input type="checkbox" id="includeTestMerchants" />
+            Include traffic from test (customer-dev) FIs
+          </label>
         </div>
       </div>
+      <div class="right">
+        <span class="muted tiny">Mode:</span>
+        <button class="chip on" data-mode="traffic" id="m-traffic">Traffic</button>
+        <button class="chip" data-mode="health" id="m-health">Health</button>
+        <button class="chip" data-mode="conversion" id="m-conv">Conversion</button>
+        <button class="chip" data-mode="anomaly" id="m-anom">Anomaly</button>
+        <button class="chip" data-mode="availability" id="m-availability">Availability</button>
+      </div>
+    </div>
 
-      <div style="height:10px"></div>
+      <div style="height:6px"></div>
 
       <div class="row">
         <div class="legend" id="legend"></div>
@@ -292,6 +371,7 @@
       </div>
     </section>
   </main>
+  </div>
 
   <div class="tip heatmap-tooltip" id="tip" hidden></div>
 
@@ -315,10 +395,28 @@
     }
 
     const urlParams = new URLSearchParams(location.search);
-    function isoToday() { return new Date().toISOString().slice(0,10); }
-    function isoDaysAgo(n) {
-      const d = new Date(); d.setUTCDate(d.getUTCDate() - n);
-      return d.toISOString().slice(0,10);
+    const dayMs = 86400000;
+    function isoLocalFromDate(d) {
+      const copy = new Date(d.getTime());
+      copy.setHours(0, 0, 0, 0);
+      const tzOffset = copy.getTimezoneOffset() * 60000;
+      return new Date(copy.getTime() - tzOffset).toISOString().slice(0, 10);
+    }
+    function isoYesterday() {
+      const d = new Date();
+      d.setDate(d.getDate() - 1);
+      return isoLocalFromDate(d);
+    }
+    function isoDaysAgo(n, refIso) {
+      if (refIso) {
+        const [y, m, dd] = refIso.split("-").map((v) => parseInt(v, 10));
+        const base = new Date(Date.UTC(y, (m || 1) - 1, dd || 1));
+        base.setUTCDate(base.getUTCDate() - n);
+        return isoLocalFromDate(base);
+      }
+      const d = new Date();
+      d.setDate(d.getDate() - n);
+      return isoLocalFromDate(d);
     }
     function enumerate(start, end) {
       const out = [];
@@ -464,9 +562,9 @@
       };
     }
 
-function transformMerchantRow(row, options, daysOrder) {
-  const includeProd = options?.includeProd ?? true;
-  const includeTests = options?.includeTest ?? false;
+    function transformMerchantRow(row, options, daysOrder) {
+      const includeProd = options?.includeProd ?? true;
+      const includeTests = options?.includeTest ?? false;
   const prodFallback = {
     total: row.prod_traffic ?? row.total ?? 0,
     billable: row.billable ?? 0,
@@ -515,11 +613,60 @@ function transformMerchantRow(row, options, daysOrder) {
       };
     }
 
+    function normalizeIntegration(value) {
+      if (!value) return "UNKNOWN";
+      const upper = value.toString().trim().toUpperCase();
+      if (upper === "SSO") return "SSO";
+      if (upper === "NON-SSO" || upper === "NON_SSO" || upper === "NONSSO") return "NON-SSO";
+      if (upper === "CARDSAVR" || upper === "CARD-SAVR") return "CARDSAVR";
+      if (upper === "TEST") return "TEST";
+      return upper || "UNKNOWN";
+    }
+
+    async function fetchRegistry() {
+      try {
+        const res = await fetch("/fi-registry");
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        registryEntries = Object.entries(data || {}).map(([key, entry]) => {
+          const instances = Array.isArray(entry.instances) && entry.instances.length
+            ? entry.instances
+            : entry.instance
+            ? [entry.instance]
+            : [];
+          return {
+            fi: entry.fi_name || key.split("__")[0] || key,
+            integration: normalizeIntegration(entry.integration_type),
+            partner: entry.partner || "Unknown",
+            instances,
+          };
+        });
+        registryInstanceMap = new Map();
+        registryEntries.forEach((entry) => {
+          const fiKey = normalizeFi(entry.fi);
+          if (!fiKey) return;
+          if (!registryInstanceMap.has(fiKey)) registryInstanceMap.set(fiKey, new Set());
+          entry.instances.forEach((inst) => {
+            const norm = normalizeInstance(inst);
+            if (norm) registryInstanceMap.get(fiKey).add(norm);
+          });
+        });
+      } catch (err) {
+        console.error("Failed to load fi_registry for filters", err);
+        registryEntries = [];
+        registryInstanceMap = new Map();
+      }
+    }
+
     // ===== State =====
-    let MODE = "traffic"; // traffic | health | conversion | anomaly
+    let MODE = "traffic"; // traffic | health | conversion | anomaly | availability
     const startEl = $("#start");
     const endEl = $("#end");
     const applyBtn = $("#apply");
+    const datePreset = $("#datePreset");
+    const instanceSelect = $("#instanceFilter");
+    const integrationSelect = $("#integrationFilter");
+    const partnerSelect = $("#partnerFilter");
     const headTicks = $("#headTicks");
     const leftCol = $("#leftCol");
     const rowsWrap = $("#rows");
@@ -528,39 +675,463 @@ function transformMerchantRow(row, options, daysOrder) {
     const countEl = $("#count");
     const includeProdToggle = document.getElementById("includeProdMerchants");
     const includeTestToggle = document.getElementById("includeTestMerchants");
+    const INSTANCE_ALL_VALUE = "__all_instances__";
+    const FI_ALL_VALUE = "__all__";
+    const PARTNER_ALL_VALUE = "__all_partners__";
     let latestMerchantPayload = null;
-    function rerenderIfLoaded() {
-      if (latestMerchantPayload) {
-        render(latestMerchantPayload);
-      }
+    let registryEntries = [];
+    let registryInstanceMap = new Map();
+    let latestRenderedData = null;
+
+    const normalizeFi = (val) => (val || "").toString().trim().toLowerCase();
+    const normalizeInstance = (val) =>
+      (val || "").toString().trim().toLowerCase();
+    function createEmptyStore() {
+      return { total: 0, billable: 0, siteFailures: 0, userFlowIssues: 0, daily: new Map() };
     }
-    includeTestToggle?.addEventListener("change", rerenderIfLoaded);
-    includeProdToggle?.addEventListener("change", rerenderIfLoaded);
-
-    // initial dates: from query or default last 90 days
-    const initStart = urlParams.get("start") || isoDaysAgo(89);
-    const initEnd   = urlParams.get("end")   || isoToday();
-    startEl.value = initStart;
-    endEl.value = initEnd;
-
-    // mode chips
-    for (const el of document.querySelectorAll(".chip[data-mode]")) {
-      el.addEventListener("click", () => {
-        for (const b of document.querySelectorAll(".chip[data-mode]")) b.classList.remove("on");
-        el.classList.add("on");
-        MODE = el.dataset.mode;
-        render(currentData);
+    function addStats(store, stats) {
+      if (!stats) return;
+      store.total += Number(stats.total || 0);
+      store.billable += Number(stats.billable || 0);
+      store.siteFailures += Number(stats.siteFailures || stats.siteFail || 0);
+      store.userFlowIssues += Number(stats.userFlowIssues || 0);
+      const daysArr = Array.isArray(stats.days) ? stats.days : [];
+      daysArr.forEach((d) => {
+        const dayKey = d.day || d.date;
+        if (!dayKey) return;
+        if (!store.daily.has(dayKey)) {
+          store.daily.set(dayKey, { total: 0, billable: 0, siteFailures: 0, userFlowIssues: 0 });
+        }
+        const cur = store.daily.get(dayKey);
+        cur.total += Number(d.total || 0);
+        cur.billable += Number(d.billable || 0);
+        cur.siteFailures += Number(d.siteFailures || d.siteFail || 0);
+        cur.userFlowIssues += Number(d.userFlowIssues || 0);
       });
     }
+    function finalizeStore(store, daysOrder) {
+      const dayCells = (daysOrder || []).map((day) => {
+        const cur = store.daily.get(day) || { total: 0, billable: 0, siteFailures: 0, userFlowIssues: 0 };
+        const denom = cur.billable + cur.siteFailures;
+        const pct = denom > 0 ? Number(((cur.billable / denom) * 100).toFixed(1)) : null;
+        return { day, total: cur.total, billable: cur.billable, siteFailures: cur.siteFailures, userFlowIssues: cur.userFlowIssues, pct };
+      });
+      const overallDenom = store.billable + store.siteFailures;
+      const overallHealthPct = overallDenom > 0 ? Number(((store.billable / overallDenom) * 100).toFixed(1)) : null;
+      return {
+        total: store.total,
+        billable: store.billable,
+        siteFailures: store.siteFailures,
+        userFlowIssues: store.userFlowIssues,
+        overallHealthPct,
+        days: dayCells,
+      };
+    }
+    function sliceMerchant(row, opts = {}, days) {
+      const includeProd = opts.includeProd ?? (includeProdToggle?.checked !== false);
+      const includeTests = opts.includeTests ?? (includeTestToggle?.checked ?? false);
+      const integrationFilter = opts.integration ?? integrationSelect?.value ?? "(all)";
+      const partnerFilter = opts.partner ?? partnerSelect?.value ?? PARTNER_ALL_VALUE;
+    const fiFilter = opts.fi ?? FI_ALL_VALUE;
+      const fiFilterSetRaw = opts.fiSet instanceof Set ? opts.fiSet : null;
+      if (fiFilterSetRaw && fiFilterSetRaw.size === 0) return null; // explicit empty = show nothing
+      const fiFilterSet =
+        fiFilterSetRaw && fiFilterSetRaw.size
+          ? new Set(Array.from(fiFilterSetRaw).map((fi) => normalizeFi(fi)))
+          : null;
+      const instanceFilter = opts.instance ?? instanceSelect?.value ?? INSTANCE_ALL_VALUE;
+      const instanceFilterNormalized =
+        instanceFilter && instanceFilter !== INSTANCE_ALL_VALUE ? normalizeInstance(instanceFilter) : null;
+      const fiFilterNormalized =
+        fiFilter && fiFilter !== FI_ALL_VALUE ? normalizeFi(fiFilter) : null;
 
-    applyBtn.addEventListener("click", () => {
+      const prodStore = createEmptyStore();
+      const testStore = createEmptyStore();
+      const fiSet = new Set();
+      const integrationSet = new Set();
+      const partnerSet = new Set();
+      const instanceSet = new Set();
+
+      // If the merchant can be mapped to FI(s) directly from row data, use that to short-circuit when a FI filter is active.
+      let rowFiSet = null;
+      if (fiFilterSet) {
+        const directList = Array.isArray(row.fi_list)
+          ? row.fi_list
+          : [];
+        const mapped = directList.length ? directList : mapFiForMerchant(row);
+        if (Array.isArray(mapped) && mapped.length) {
+          rowFiSet = new Set(mapped.map((v) => normalizeFi(v)).filter(Boolean));
+          const matchesRowFi = Array.from(rowFiSet).some((fi) => fiFilterSet.has(fi));
+          if (!matchesRowFi) return null;
+        }
+      }
+
+      const buckets = Array.isArray(row.buckets) ? row.buckets : [];
+      const rowIntegrationSet = new Set(
+        (row.integration_list || []).map((v) => normalizeIntegration(v))
+      );
+      const rowPartnerSet = new Set(
+        (row.partner_list || []).map((v) => (v || "Unknown"))
+      );
+      buckets.forEach((b) => {
+        const bucketIntegration = normalizeIntegration(b.integration);
+        if (b.is_test && !includeTests) return;
+        if (!b.is_test && !includeProd) return;
+        const filterIntegrationNorm = normalizeIntegration(integrationFilter);
+        const bucketPartner = b.partner || "Unknown";
+        if (
+          filterIntegrationNorm &&
+          filterIntegrationNorm !== "(ALL)" &&
+          bucketIntegration !== filterIntegrationNorm &&
+          !rowIntegrationSet.has(filterIntegrationNorm)
+        )
+          return;
+        if (
+          partnerFilter &&
+          partnerFilter !== PARTNER_ALL_VALUE &&
+          bucketPartner !== partnerFilter &&
+          !rowPartnerSet.has(partnerFilter)
+        )
+          return;
+        if (fiFilterSet && fiFilterSet.size) {
+          const normFi = normalizeFi(b.fi);
+          if (normFi) {
+            if (!fiFilterSet.has(normFi)) return;
+          } else if (!rowFiSet || !Array.from(rowFiSet).some((fi) => fiFilterSet.has(fi))) {
+            return;
+          }
+        } else if (fiFilterNormalized) {
+          if (normalizeFi(b.fi) !== fiFilterNormalized) return;
+        }
+        if (instanceFilterNormalized) {
+          const norm = normalizeInstance(b.instance);
+          if (norm !== instanceFilterNormalized) return;
+        }
+        const store = b.is_test ? testStore : prodStore;
+        addStats(store, b.stats);
+        if (b.fi) fiSet.add(b.fi);
+        if (bucketIntegration) integrationSet.add(bucketIntegration);
+        partnerSet.add(b.partner || "Unknown");
+        if (b.instance) instanceSet.add(b.instance);
+      });
+
+      // If nothing matched, skip merchant
+      if (prodStore.total === 0 && testStore.total === 0) return null;
+
+      return {
+        merchant: row.merchant,
+        prod_stats: finalizeStore(prodStore, days),
+        test_stats: finalizeStore(testStore, days),
+        prod_traffic: prodStore.total,
+        test_traffic: testStore.total,
+        has_prod_fi: prodStore.total > 0,
+        has_test_fi: testStore.total > 0,
+        instance_list: Array.from(instanceSet),
+        fi_list: Array.from(fiSet),
+        integration_list: Array.from(integrationSet),
+        partner_list: Array.from(partnerSet),
+      };
+    }
+
+    function currentFiSet() {
+      const shared = window.__FILTER_STATE;
+      const registry = window.__FILTER_REGISTRY || [];
+      if (!shared || shared.page !== "heatmap" || !registry.length) return null;
+      let eligible = registry.filter((entry) => {
+        if (shared.partner !== "All" && entry.partner !== shared.partner) return false;
+        if (shared.integration !== "All" && entry.integration !== shared.integration) return false;
+        if (shared.instance !== "All" && entry.instance !== shared.instance) return false;
+        return true;
+      });
+      if (shared.fis && shared.fis.size) {
+        eligible = eligible.filter((e) => shared.fis.has(e.fi_lookup_key));
+      }
+      return new Set(eligible.map((e) => e.fi_lookup_key));
+    }
+
+    function mapFiForMerchant(row) {
+      if (!row) return null;
+      const registry = window.__FILTER_REGISTRY || [];
+      const byName = new Map();
+      const byKey = new Map();
+      registry.forEach((entry) => {
+        const nameKey = normalizeFi(entry.fi_name);
+        const keyKey = normalizeFi(entry.fi_lookup_key);
+        if (nameKey) byName.set(nameKey, entry.fi_lookup_key);
+        if (keyKey) byKey.set(keyKey, entry.fi_lookup_key);
+      });
+
+      if (Array.isArray(row.fi_list) && row.fi_list.length) {
+        return row.fi_list
+          .map((val) => {
+            const norm = normalizeFi(val);
+            if (!norm) return null;
+            if (byKey.has(norm)) return byKey.get(norm);
+            if (byName.has(norm)) return byName.get(norm);
+            return norm;
+          })
+          .filter(Boolean);
+      }
+
+      if (!registry.length) return [];
+      const fiName = normalizeFi(row.fi || row.fi_name || row.name || "");
+      const inst = normalizeInstance(row.instance || row.instance_name || "");
+      if (!fiName) return [];
+      const matches = registry.filter((entry) => {
+        if (normalizeFi(entry.fi_lookup_key || entry.fi_name) !== fiName) return false;
+        if (inst && entry.instance && normalizeInstance(entry.instance) !== inst) return false;
+        return true;
+      });
+      return matches.map((m) => m.fi_lookup_key);
+    }
+
+    function aggregateSlicesToMerchants(slices = [], days = []) {
+      const dayIndex = new Map(days.map((d, idx) => [d, idx]));
+      const makeStore = () => ({
+        total: 0,
+        billable: 0,
+        siteFailures: 0,
+        userFlowIssues: 0,
+        days: Array.from({ length: days.length }, (_, i) => ({
+          day: days[i],
+          total: 0,
+          billable: 0,
+          siteFailures: 0,
+          userFlowIssues: 0,
+        })),
+      });
+      const merchants = new Map();
+      slices.forEach((s) => {
+        if (!s || !s.merchant) return;
+        if (!merchants.has(s.merchant)) {
+          merchants.set(s.merchant, {
+            prod: makeStore(),
+            test: makeStore(),
+            fiSet: new Set(),
+            instanceSet: new Set(),
+            integrationSet: new Set(),
+            partnerSet: new Set(),
+            testInstanceSet: new Set(),
+          });
+        }
+        const m = merchants.get(s.merchant);
+        const store = s.is_test ? m.test : m.prod;
+        const idx = dayIndex.has(s.day) ? dayIndex.get(s.day) : -1;
+        store.total += Number(s.total || 0);
+        store.billable += Number(s.billable || 0);
+        store.siteFailures += Number(s.siteFailures || 0);
+        store.userFlowIssues += Number(s.userFlowIssues || 0);
+        if (idx >= 0) {
+          const entry = store.days[idx];
+          entry.total += Number(s.total || 0);
+          entry.billable += Number(s.billable || 0);
+          entry.siteFailures += Number(s.siteFailures || 0);
+          entry.userFlowIssues += Number(s.userFlowIssues || 0);
+        }
+        if (s.fi) m.fiSet.add(s.fi);
+        if (s.instance) m.instanceSet.add(s.instance);
+        if (s.integration) m.integrationSet.add(s.integration);
+        if (s.partner) m.partnerSet.add(s.partner);
+        if (s.is_test && s.instance) m.testInstanceSet.add(s.instance);
+      });
+
+      const summarizeStore = (store) => {
+        const denom = store.billable + store.siteFailures;
+        const overallHealthPct = denom > 0 ? Number(((store.billable / denom) * 100).toFixed(1)) : null;
+        return { ...store, overallHealthPct };
+      };
+
+      const rows = Array.from(merchants.entries()).map(([merchant, stats]) => {
+        const prodStats = summarizeStore(stats.prod);
+        const testStats = summarizeStore(stats.test);
+        const fiList = Array.from(stats.fiSet);
+        const instanceList = Array.from(stats.instanceSet);
+        const integrationList = Array.from(stats.integrationSet);
+        const partnerList = Array.from(stats.partnerSet);
+        return {
+          merchant,
+          total: prodStats.total + testStats.total,
+          billable: prodStats.billable + testStats.billable,
+          siteFailures: prodStats.siteFailures + testStats.siteFailures,
+          userFlowIssues: prodStats.userFlowIssues + testStats.userFlowIssues,
+          overallHealthPct: prodStats.overallHealthPct,
+          days: prodStats.days, // prod days only for coloring; test shown via test_stats
+          prod_stats: prodStats,
+          test_stats: testStats,
+          prod_traffic: prodStats.total,
+          test_traffic: testStats.total,
+          has_test_fi: testStats.total > 0,
+          has_prod_fi: prodStats.total > 0,
+          fi_list: fiList,
+          instance_list: instanceList,
+          integration_list: integrationList,
+          partner_list: partnerList,
+          test_instances: Array.from(stats.testInstanceSet),
+        };
+      });
+
+      rows.sort((a, b) => (b.total || 0) - (a.total || 0));
+      return rows;
+    }
+    function applyFilters() {
+      if (!currentData) return;
+      const shared = window.__FILTER_STATE;
+      const useShared = shared && shared.page === "heatmap";
+      const sharedFisSet = useShared && shared?.fis ? new Set(shared.fis) : null;
+
+      let slices = currentData?.slices || [];
+      const days = currentData?.days || [];
+      if ((!slices || !slices.length) && currentData?.merchants) {
+        slices = slicesFromLegacy(currentData);
+      }
+
+      let effectiveFiSet = null;
+      if (sharedFisSet) {
+        effectiveFiSet = new Set(Array.from(sharedFisSet).map((fi) => normalizeFi(fi)).filter(Boolean));
+      }
+      if (!shared?.__fiTouched) {
+        effectiveFiSet = null;
+      }
+
+      const includeProd = includeProdToggle?.checked !== false;
+      const includeTests = includeTestToggle?.checked ?? false;
+
+      const filteredSlices = slices.filter((s) => {
+        if (effectiveFiSet) {
+          // Explicit empty set -> nothing matches
+          if (effectiveFiSet.size === 0) return false;
+          if (!effectiveFiSet.has(normalizeFi(s.fi))) return false;
+        }
+        if (!includeProd && !s.is_test) return false;
+        if (!includeTests && s.is_test) return false;
+        return true;
+      });
+
+      const merchants = aggregateSlicesToMerchants(filteredSlices, days);
+
+      populateFilterOptionsFromSlices(slices);
+
+      latestRenderedData = { days, merchants };
+      render(latestRenderedData);
+    }
+
+    includeTestToggle?.addEventListener("change", () => applyFilters());
+    instanceSelect?.addEventListener("change", () => applyFilters());
+    includeProdToggle?.addEventListener("change", () => applyFilters());
+    integrationSelect?.addEventListener("change", () => applyFilters());
+    partnerSelect?.addEventListener("change", () => applyFilters());
+
+    // initial dates: from query or default last 90 days
+    const initEndParam = urlParams.get("end");
+    const initEndRaw = initEndParam || isoYesterday();
+    const clampToYesterday = (iso) => (iso > isoYesterday() ? isoYesterday() : iso);
+    const partnerParam = urlParams.get("partner");
+    const integrationParam = urlParams.get("integration");
+    const instanceParam = urlParams.get("instance");
+    const fiParam = urlParams.get("fi");
+    const hasUrlFilters = Boolean(partnerParam || integrationParam || instanceParam || fiParam);
+
+    let initEnd = clampToYesterday(initEndRaw);
+    let initStart = urlParams.get("start") || isoDaysAgo(89, initEnd);
+    let initPreset = "";
+    if (!urlParams.has("start") && !urlParams.has("end")) {
+      initPreset = "last90";
+      initEnd = isoYesterday();
+      initStart = isoDaysAgo(89, initEnd);
+    }
+    startEl.value = initStart;
+    endEl.value = initEnd;
+    if (partnerSelect && partnerParam) partnerSelect.value = partnerParam;
+    if (integrationSelect && integrationParam) integrationSelect.value = integrationParam;
+    if (instanceSelect && instanceParam) instanceSelect.value = instanceParam;
+    if (datePreset && initPreset) datePreset.value = initPreset;
+
+      // mode chips
+      for (const el of document.querySelectorAll(".chip[data-mode]")) {
+        el.addEventListener("click", () => {
+          for (const b of document.querySelectorAll(".chip[data-mode]")) b.classList.remove("on");
+          el.classList.add("on");
+          MODE = el.dataset.mode;
+          // Availability uses both prod + test; lock toggles while active
+          if (MODE === "availability") {
+            if (includeProdToggle) {
+              includeProdToggle.checked = true;
+              includeProdToggle.disabled = true;
+            }
+            if (includeTestToggle) {
+              includeTestToggle.checked = true;
+              includeTestToggle.disabled = true;
+            }
+          } else {
+            if (includeProdToggle) includeProdToggle.disabled = false;
+            if (includeTestToggle) includeTestToggle.disabled = false;
+          }
+          applyFilters();
+        });
+      }
+
+    function applyCurrentRange() {
       const s = startEl.value;
       const e = endEl.value;
       const u = new URL(location.href);
       u.searchParams.set("start", s);
       u.searchParams.set("end", e);
       history.replaceState(null, "", u);
-      loadAndRender(s, e);
+      loadAndRender(s, e).then(() => applyFilters());
+    }
+
+    function applyPresetRange(preset) {
+      const base = isoYesterday();
+      let start = startEl.value || base;
+      let end = endEl.value || base;
+      if (end > base) {
+        end = base;
+      }
+      if (start > end) {
+        start = end;
+      }
+      const yearStart = `${new Date().getFullYear()}-01-01`;
+      switch (preset) {
+        case "last7":
+          start = isoDaysAgo(6, base);
+          end = base;
+          break;
+        case "last14":
+          start = isoDaysAgo(13, base);
+          end = base;
+          break;
+        case "last30":
+          start = isoDaysAgo(29, base);
+          end = base;
+          break;
+        case "last60":
+          start = isoDaysAgo(59, base);
+          end = base;
+          break;
+        case "last90":
+          start = isoDaysAgo(89, base);
+          end = base;
+          break;
+        case "ytd":
+          start = yearStart;
+          end = base;
+          break;
+        default:
+          return;
+      }
+      startEl.value = start;
+      endEl.value = end;
+      applyCurrentRange();
+    }
+
+    applyBtn.addEventListener("click", () => {
+      applyCurrentRange();
+    });
+
+    datePreset?.addEventListener("change", (ev) => {
+      const val = ev.target.value;
+      if (!val) return; // Custom
+      applyPresetRange(val);
     });
 
     // ===== Data shape expected from server =====
@@ -594,8 +1165,100 @@ function transformMerchantRow(row, options, daysOrder) {
       const json = await res.json();
       currentData = json;
       latestMerchantPayload = json;
-      render(json);
+      applyFilters();
       $("#grid").removeAttribute("aria-busy");
+    }
+
+    function populateFilterOptionsFromSlices(slices) {
+      if (!Array.isArray(slices)) return;
+      const fis = new Set([FI_ALL_VALUE]);
+      slices.forEach((s) => {
+        fis.add(s.fi || "unknown_fi");
+      });
+      // Only FI options matter; partner/integration/instance filters are ignored in this simplified model
+      if (integrationSelect) {
+        integrationSelect.innerHTML = `<option value="(all)">(all)</option>`;
+        integrationSelect.value = "(all)";
+      }
+      if (partnerSelect) {
+        partnerSelect.innerHTML = `<option value="${PARTNER_ALL_VALUE}">(all partners)</option>`;
+        partnerSelect.value = PARTNER_ALL_VALUE;
+      }
+      if (instanceSelect) {
+        instanceSelect.innerHTML = `<option value="${INSTANCE_ALL_VALUE}">(all instances)</option>`;
+        instanceSelect.value = INSTANCE_ALL_VALUE;
+      }
+    }
+
+    function slicesFromLegacy(payload) {
+      if (!payload || !Array.isArray(payload.merchants) || !Array.isArray(payload.days)) return [];
+      const out = [];
+      payload.merchants.forEach((m) => {
+        const merchant = m.merchant || m.name || "unknown";
+        const daysArr = Array.isArray(payload.days) ? payload.days : [];
+        const buckets = Array.isArray(m.buckets) ? m.buckets : [];
+        if (buckets.length === 0) {
+          // Fallback: use prod_stats/test_stats per day if buckets missing
+          const addFromStats = (stats = {}, is_test = false) => {
+            (stats.days || []).forEach((d) => {
+              out.push({
+                day: d.day,
+                merchant,
+                fi: "unknown_fi",
+                instance: "unknown",
+                integration: "UNKNOWN",
+                partner: "Unknown",
+                is_test,
+                total: Number(d.total || 0),
+                billable: Number(d.billable || 0),
+                siteFailures: Number(d.siteFailures || d.siteFail || 0),
+                userFlowIssues: Number(d.userFlowIssues || 0),
+              });
+            });
+          };
+          addFromStats(m.prod_stats, false);
+          addFromStats(m.test_stats, true);
+          return;
+        }
+        buckets.forEach((b) => {
+          const stats = b.stats || {};
+          const days = Array.isArray(stats.days) ? stats.days : [];
+          if (days.length) {
+            days.forEach((d) => {
+              out.push({
+                day: d.day,
+                merchant,
+                fi: b.fi || "unknown_fi",
+                instance: b.instance || "unknown",
+                integration: b.integration || "UNKNOWN",
+                partner: b.partner || "Unknown",
+                is_test: Boolean(b.is_test),
+                total: Number(d.total || 0),
+                billable: Number(d.billable || 0),
+                siteFailures: Number(d.siteFailures || d.siteFail || 0),
+                userFlowIssues: Number(d.userFlowIssues || 0),
+              });
+            });
+          } else {
+            // no per-day; spread total across payload days as a single entry for start day
+            const dayKey = daysArr[0] || "";
+            out.push({
+              day: dayKey,
+              merchant,
+              fi: b.fi || "unknown_fi",
+              instance: b.instance || "unknown",
+              integration: b.integration || "UNKNOWN",
+              partner: b.partner || "Unknown",
+              is_test: Boolean(b.is_test),
+              total: Number(stats.total || 0),
+              billable: Number(stats.billable || 0),
+              siteFailures: Number(stats.siteFailures || 0),
+              userFlowIssues: Number(stats.userFlowIssues || 0),
+            });
+          }
+        });
+      });
+      return out;
     }
 
     function render(json) {
@@ -606,7 +1269,7 @@ function transformMerchantRow(row, options, daysOrder) {
       hideTooltip();
       const days = json.days;
       const includeProd = includeProdToggle?.checked !== false;
-      const includeTests = includeTestToggle?.checked;
+      const includeTests = includeTestToggle?.checked ?? false;
       const transformed = (json.merchants || []).map((m) =>
         transformMerchantRow(
           m,
@@ -614,11 +1277,7 @@ function transformMerchantRow(row, options, daysOrder) {
           days
         )
       );
-      const merchants = transformed.filter((row) => {
-        const hasProd = includeProd && row.prod_traffic > 0;
-        const hasTest = includeTests && row.test_traffic > 0;
-        return hasProd || hasTest;
-      });
+      const merchants = transformed;
       countEl.textContent = `${merchants.length} merchants • ${days.length} days`;
 
       // header ticks (visual rhythm)
@@ -695,6 +1354,8 @@ function transformMerchantRow(row, options, daysOrder) {
             color = denom > 0 ? redScale(failRate ?? 0) : veryLight;
           } else if (MODE === "conversion") {
             color = convRate !== null ? greenScale(convRate) : veryLight;
+          } else if (MODE === "availability") {
+            color = tot > 0 ? greenScale(1) : redScale(1);
           } else if (MODE === "anomaly") {
             const intensity = anomalyInfo.intensity || 0;
             color = intensity > 0 ? purpleScale(intensity) : veryLight;
@@ -751,6 +1412,9 @@ function transformMerchantRow(row, options, daysOrder) {
         L.appendChild(make("Higher conversion", greenScale(1)));
         L.appendChild(make("Lower conversion", greenScale(0.2)));
         L.appendChild(make("No signal", veryLight));
+      } else if (mode === "availability") {
+        L.appendChild(make("Available (traffic seen)", greenScale(1)));
+        L.appendChild(make("No traffic (down)", redScale(1)));
       } else {
         L.appendChild(make("Stronger anomaly", purpleScale(1)));
         L.appendChild(make("Mild anomaly", purpleScale(0.25)));
@@ -915,7 +1579,45 @@ function transformMerchantRow(row, options, daysOrder) {
     }
 
     // Boot
-    loadAndRender(initStart, initEnd);
+    (async () => {
+      await fetchRegistry();
+      await loadAndRender(initStart, initEnd);
+      const mappingAvailable = (currentData?.merchants || []).some(
+        (m) => Array.isArray(m.fi_list) && m.fi_list.length
+      );
+      window.__DISABLE_FI_FILTERS_HEATMAP = !mappingAvailable;
+      (function ensureFilters(pageId){
+        const run = () => {
+          if (window.initFilters) {
+            console.log("[filters] invoking initFilters for", pageId);
+            window.initFilters(pageId);
+          }
+        };
+        if (window.initFilters) return run();
+        const candidates = [
+          "/assets/js/filters.js?v=shared-fallback",
+          "/public/assets/js/filters.js?v=shared-fallback",
+        ];
+        const loadNext = (idx) => {
+          if (idx >= candidates.length) {
+            console.error("[filters] unable to load shared filters script");
+            return;
+          }
+          const s = document.createElement("script");
+          s.src = candidates[idx] + "&ts=" + Date.now();
+          s.onload = () => {
+            console.log("[filters] loaded fallback script", candidates[idx]);
+            run();
+          };
+          s.onerror = () => {
+            console.warn("[filters] failed to load", candidates[idx]);
+            loadNext(idx + 1);
+          };
+          document.head.appendChild(s);
+        };
+        loadNext(0);
+      })("heatmap");
+    })();
   </script>
 </body>
 </html>

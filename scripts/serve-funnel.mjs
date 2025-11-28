@@ -20,7 +20,14 @@ const DAILY_DIR = path.join(DATA_DIR, "daily");
 const RAW_DIR = path.join(ROOT, "raw");
 const RAW_PLACEMENTS_DIR = path.join(RAW_DIR, "placements");
 const FI_REGISTRY_FILE = path.join(ROOT, "fi_registry.json");
+const INSTANCES_FILES = [
+  path.join(ROOT, "src", "instances.json"),
+  path.join(ROOT, "instances.json"),
+];
 const PORT = 8787;
+const FI_ALL_VALUE = "__all__";
+const PARTNER_ALL_VALUE = "__all_partners__";
+const INSTANCE_ALL_VALUE = "__all_instances__";
 
 const updateClients = new Set();
 
@@ -32,6 +39,7 @@ let currentUpdateJob = {
   endDate: null,
   lastMessage: null,
   error: null,
+  forceRaw: false,
 };
 
 function todayIsoDate() {
@@ -43,6 +51,38 @@ function isoAddDays(isoDate, deltaDays) {
   if (Number.isNaN(d)) return isoDate;
   d.setUTCDate(d.getUTCDate() + deltaDays);
   return d.toISOString().slice(0, 10);
+}
+
+function defaultUpdateRange() {
+  const endDate = todayIsoDate();
+  const startDate = isoAddDays(endDate, -29);
+  return { startDate, endDate };
+}
+
+function currentUpdateSnapshot() {
+  const defaults = defaultUpdateRange();
+  return {
+    running: currentUpdateJob.running,
+    startedAt: currentUpdateJob.startedAt,
+    finishedAt: currentUpdateJob.finishedAt,
+    startDate: currentUpdateJob.startDate || defaults.startDate,
+    endDate: currentUpdateJob.endDate || defaults.endDate,
+    lastMessage: currentUpdateJob.lastMessage,
+    error: currentUpdateJob.error,
+    forceRaw: currentUpdateJob.forceRaw || false,
+    defaultRange: defaults,
+  };
+}
+
+function normalizeUpdateRange(startDate, endDate) {
+  const isIso = (value) => typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value);
+  const validEnd = isIso(endDate) ? endDate : todayIsoDate();
+  let validStart = isIso(startDate) ? startDate : isoAddDays(validEnd, -29);
+  // ensure start <= end
+  if (new Date(`${validStart}T00:00:00Z`) > new Date(`${validEnd}T00:00:00Z`)) {
+    validStart = isoAddDays(validEnd, -29);
+  }
+  return { startDate: validStart, endDate: validEnd };
 }
 
 function sseSend(res, event, data) {
@@ -60,13 +100,15 @@ function broadcastUpdate(event, data) {
   }
 }
 
-async function startUpdateJobIfNeeded() {
+async function startUpdateJobIfNeeded(range = {}) {
   if (currentUpdateJob.running) {
     return;
   }
 
-  const endDate = todayIsoDate();
-  const startDate = isoAddDays(endDate, -29);
+  const { startDate, endDate } = normalizeUpdateRange(
+    range.startDate,
+    range.endDate
+  );
 
   currentUpdateJob = {
     running: true,
@@ -76,6 +118,7 @@ async function startUpdateJobIfNeeded() {
     endDate,
     lastMessage: `Starting update for ${startDate} → ${endDate}`,
     error: null,
+    forceRaw: Boolean(range.forceRaw),
   };
 
   broadcastUpdate("init", {
@@ -88,7 +131,7 @@ async function startUpdateJobIfNeeded() {
   try {
     broadcastUpdate("progress", {
       phase: "raw",
-      message: `Fetching raw for ${startDate} → ${endDate}...`,
+      message: `Fetching raw for ${startDate} → ${endDate}${range.forceRaw ? " (forced refetch)" : ""}...`,
     });
 
     await fetchRawRange({
@@ -96,6 +139,7 @@ async function startUpdateJobIfNeeded() {
       endDate,
       onStatus: (message) =>
         broadcastUpdate("progress", { phase: "raw", message }),
+      forceRaw: Boolean(range.forceRaw),
     });
 
     broadcastUpdate("progress", {
@@ -180,7 +224,14 @@ async function fileExists(fp) {
 async function serveFile(res, fp) {
   try {
     const buf = await fs.readFile(fp);
-    send(res, 200, buf, mime(path.extname(fp)));
+    res.writeHead(200, {
+      "Content-Type": mime(path.extname(fp)),
+      "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+      Pragma: "no-cache",
+      Expires: "0",
+      "Surrogate-Control": "no-store",
+    });
+    res.end(buf);
   } catch (e) {
     send(res, 500, { error: e.message, file: fp });
   }
@@ -238,6 +289,41 @@ function colorFromHealth(pct) {
   if (pct >= 50) return "#f59e0b"; // amber-500
   return "#ef4444"; // red-500
 }
+
+async function loadInstanceMetaMap() {
+  const map = new Map();
+  try {
+    const raw = await fs.readFile(FI_REGISTRY_FILE, "utf8");
+    const json = JSON.parse(raw);
+    const normalizeIntegration = (value) => {
+      if (!value) return "UNKNOWN";
+      const upper = value.toString().trim().toUpperCase();
+      if (upper === "SSO") return "SSO";
+      if (upper === "NON-SSO") return "NON-SSO";
+      if (upper === "CARDSAVR" || upper === "CARD-SAVR") return "CardSavr";
+      if (upper === "TEST") return "TEST";
+      return "UNKNOWN";
+    };
+    for (const [key, entry] of Object.entries(json || {})) {
+      const fiName = entry.fi_name || key.split("__")[0] || key;
+      const integration = normalizeIntegration(entry.integration_type);
+      const partner = entry.partner || "Unknown";
+      const instances = Array.isArray(entry.instances) ? entry.instances : [];
+      const instValue = entry.instance || null;
+      const candidates = instValue ? [instValue, ...instances] : instances;
+      candidates
+        .filter(Boolean)
+        .map((v) => v.toString().trim().toLowerCase())
+        .forEach((inst) => {
+          if (!inst) return;
+          map.set(inst, { fi: fiName, integration, partner });
+        });
+    }
+  } catch {
+    // if registry missing, fall back to unknown metadata
+  }
+  return map;
+}
 // Extract a best-effort placement date for day-bucketing:
 function placementDay(p) {
   const keys = [
@@ -257,6 +343,70 @@ function placementDay(p) {
   return null;
 }
 
+async function readInstancesFile() {
+  for (const candidate of INSTANCES_FILES) {
+    try {
+      const raw = await fs.readFile(candidate, "utf8");
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) {
+        throw Object.assign(new Error("instances.json must be an array"), {
+          status: 400,
+        });
+      }
+      return { entries: parsed, path: candidate };
+    } catch (err) {
+      if (err.code === "ENOENT") {
+        // try next candidate
+        continue;
+      }
+      throw err;
+    }
+  }
+  return { entries: [], path: INSTANCES_FILES[0] };
+}
+
+const normalizeInstanceEntry = (entry = {}) => {
+  const cleaned = (value) =>
+    value === null || value === undefined ? "" : value.toString().trim();
+  const next = {
+    name: cleaned(entry.name),
+    CARDSAVR_INSTANCE: cleaned(entry.CARDSAVR_INSTANCE),
+    USERNAME: cleaned(entry.USERNAME),
+    PASSWORD: cleaned(entry.PASSWORD),
+    API_KEY: cleaned(entry.API_KEY),
+    APP_NAME: cleaned(entry.APP_NAME),
+  };
+  if (!next.name) {
+    throw Object.assign(new Error("Instance name is required"), {
+      status: 400,
+    });
+  }
+  if (!next.CARDSAVR_INSTANCE) {
+    throw Object.assign(new Error("CARDSAVR_INSTANCE is required"), {
+      status: 400,
+    });
+  }
+  return next;
+};
+
+async function writeInstancesFile(entries) {
+  const sorted = [...entries].sort((a, b) =>
+    (a?.name || "").localeCompare(b?.name || "")
+  );
+  let target = INSTANCES_FILES[0];
+  for (const candidate of INSTANCES_FILES) {
+    try {
+      await fs.access(candidate);
+      target = candidate;
+      break;
+    } catch {
+      // missing, keep searching
+    }
+  }
+  await fs.writeFile(target, JSON.stringify(sorted, null, 2) + "\n", "utf8");
+  return { entries: sorted, path: target };
+}
+
 async function readPlacementDay(day) {
   try {
     const fp = path.join(RAW_PLACEMENTS_DIR, `${day}.json`);
@@ -265,6 +415,345 @@ async function readPlacementDay(day) {
   } catch {
     return null;
   }
+}
+
+async function readSessionDay(day) {
+  try {
+    const fp = path.join(RAW_DIR, "sessions", `${day}.json`);
+    const raw = await fs.readFile(fp, "utf8");
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+async function listRawDays(type = "sessions") {
+  const dir = path.join(RAW_DIR, type);
+  try {
+    const files = await fs.readdir(dir);
+    return files
+      .filter((f) => /^\d{4}-\d{2}-\d{2}\.json$/.test(f))
+      .map((f) => f.replace(/\.json$/, ""))
+      .sort();
+  } catch {
+    return [];
+  }
+}
+
+function normalizeFiKey(value) {
+  return value ? value.toString().trim().toLowerCase() : "";
+}
+
+function normalizeIntegration(value) {
+  if (!value) return "UNKNOWN";
+  const upper = value.toString().trim().toUpperCase();
+  if (upper === "NON-SSO" || upper === "NON_SSO" || upper.includes("NONSSO")) return "NON-SSO";
+  if (upper.includes("SSO")) return "SSO";
+  if (upper.includes("CARDSAVR") || upper.includes("CARD-SAVR")) return "CardSavr";
+  if (upper === "TEST") return "TEST";
+  return "UNKNOWN";
+}
+
+function canonicalInstance(value) {
+  if (!value) return "";
+  return value.toString().trim().toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+function formatInstanceDisplay(value) {
+  if (!value) return "unknown";
+  const base = value
+    .toString()
+    .trim()
+    .toLowerCase()
+    .replace(/[\s_]+/g, "-");
+  return base || "unknown";
+}
+
+async function loadFiRegistrySafe() {
+  try {
+    const raw = await fs.readFile(FI_REGISTRY_FILE, "utf8");
+    return JSON.parse(raw);
+  } catch {
+    return {};
+  }
+}
+
+function buildFiMetaMap(fiRegistry = {}) {
+  const map = new Map();
+  for (const entry of Object.values(fiRegistry)) {
+    if (!entry || typeof entry !== "object") continue;
+    const fiKey = normalizeFiKey(entry.fi_lookup_key || entry.fi_name);
+    if (!fiKey) continue;
+    const integration = normalizeIntegration(entry.integration_type);
+    const partner = entry.partner || "Unknown";
+    map.set(fiKey, {
+      fi: entry.fi_name || fiKey,
+      integration,
+      partner,
+    });
+  }
+  return map;
+}
+
+function mapPlacementToJob(placement, fiFallback, instanceFallback) {
+  const termination = (placement?.termination_type || placement?.termination || placement?.status || "UNKNOWN")
+    .toString()
+    .trim()
+    .toUpperCase() || "UNKNOWN";
+  const terminationRule = TERMINATION_RULES[termination] || TERMINATION_RULES.UNKNOWN;
+  const created = placement.job_created_on || placement.created_on || null;
+  const completed =
+    placement.completed_on ||
+    placement.account_linked_on ||
+    placement.last_updated_on ||
+    null;
+  let durationMs = null;
+  if (created && completed) {
+    const start = new Date(created);
+    const end = new Date(completed);
+    if (!Number.isNaN(start) && !Number.isNaN(end)) {
+      durationMs = end - start;
+    }
+  }
+  const instance =
+    placement._instance ||
+    placement.instance ||
+    placement.instance_name ||
+    placement.org_name ||
+    instanceFallback ||
+    "";
+  const fi = normalizeFiKey(
+    placement.fi_lookup_key ||
+      placement.financial_institution_lookup_key ||
+      placement.fi_name ||
+      fiFallback
+  );
+  const jobId =
+    placement.id ||
+    placement.result_id ||
+    placement.place_card_on_single_site_job_id ||
+    placement.job_id ||
+    null;
+  const merchant =
+    placement.merchant_site_hostname ||
+    (placement.merchant_site_id
+      ? `merchant_${placement.merchant_site_id}`
+      : "unknown");
+  return {
+    id: jobId,
+    merchant,
+    termination,
+    termination_label: terminationRule?.label || termination,
+    severity: terminationRule?.severity || "unknown",
+    status: placement.status || "",
+    status_message: placement.status_message || "",
+    created_on: created || null,
+    ready_on: placement.job_ready_on || null,
+    completed_on: completed,
+    duration_ms: durationMs,
+    instance: formatInstanceDisplay(instance),
+    fi_key: fi || fiFallback || "",
+    source_integration: placement.source?.integration || null,
+    is_success:
+      termination === "BILLABLE" ||
+      (placement.status || "").toString().toUpperCase() === "SUCCESSFUL",
+  };
+}
+
+function mapSessionToTroubleshootEntry(session, placementMap, fiMeta, instanceMeta) {
+  const agentId =
+    session.agent_session_id ||
+    session.session_id ||
+    session.id ||
+    session.cuid ||
+    null;
+  const instanceRaw =
+    session._instance || session.instance || session.instance_name || session.org_name || "";
+  const instanceDisplay = formatInstanceDisplay(instanceRaw || "unknown");
+  const normalizedInstance = canonicalInstance(instanceDisplay);
+  const instanceLookup = instanceMeta.get(instanceDisplay.toLowerCase());
+  const fiFromInstance = instanceLookup?.fi || null;
+  const fiLookupRaw =
+    session.financial_institution_lookup_key ||
+    session.fi_lookup_key ||
+    session.fi_name ||
+    null;
+  const fiKey = normalizeFiKey(
+    fiLookupRaw || fiFromInstance || session.fi_name || null
+  );
+  const fiEntry = fiMeta.get(fiKey);
+  const partner = instanceLookup?.partner || fiEntry?.partner || "Unknown";
+  const placementsRaw = agentId ? placementMap.get(agentId) || [] : [];
+  const jobs = placementsRaw
+    .map((pl) => mapPlacementToJob(pl, fiKey, instanceDisplay))
+    .sort((a, b) => {
+      if (!a.created_on || !b.created_on) return 0;
+      return a.created_on.localeCompare(b.created_on);
+    });
+  const jobIntegrationRaw = jobs.find((j) => j.source_integration)?.source_integration || null;
+  const jobIntegrationNormalized = normalizeIntegration(jobIntegrationRaw);
+  const sourceIntegrationRaw = session.source?.integration || null;
+  const sourceIntegrationNormalized = normalizeIntegration(sourceIntegrationRaw);
+  let integrationNormalized = sourceIntegrationNormalized;
+  let integrationRaw = sourceIntegrationRaw;
+  if (integrationNormalized === "UNKNOWN" && jobIntegrationRaw) {
+    integrationNormalized = jobIntegrationNormalized;
+    integrationRaw = jobIntegrationRaw;
+  }
+  if (integrationNormalized === "UNKNOWN" && fiEntry?.integration) {
+    integrationNormalized = normalizeIntegration(fiEntry.integration);
+    if (!integrationRaw) integrationRaw = fiEntry.integration;
+  }
+  const displayIntegration =
+    integrationNormalized !== "UNKNOWN"
+      ? integrationNormalized
+      : integrationRaw
+      ? integrationRaw.toString()
+      : "UNKNOWN";
+  const totalJobs = session.total_jobs ?? jobs.length;
+  const successfulJobs = session.successful_jobs ?? jobs.filter((j) => j.is_success).length;
+  const failedJobs =
+    session.failed_jobs ??
+    (Number.isFinite(totalJobs) ? Math.max(0, totalJobs - successfulJobs) : jobs.length - successfulJobs);
+
+  return {
+    id: session.id || session.session_id || agentId || session.cuid || null,
+    cuid: session.cuid || null,
+    agent_session_id: agentId,
+    fi_key: fiKey || fiFromInstance || "unknown_fi",
+    fi_lookup_key: fiLookupRaw || null,
+    fi_name: fiEntry?.fi || session.fi_name || fiKey || "Unknown FI",
+    partner,
+    integration: integrationNormalized,
+    integration_raw: integrationRaw || null,
+    integration_display: displayIntegration || integrationNormalized || "UNKNOWN",
+    instance: instanceDisplay,
+    is_test: isTestInstanceName(instanceDisplay),
+    created_on: session.created_on || null,
+    closed_on: session.closed_on || null,
+    total_jobs: totalJobs,
+    successful_jobs: successfulJobs,
+    failed_jobs: failedJobs,
+    clickstream: Array.isArray(session.clickstream)
+      ? session.clickstream.map((step) => ({
+          url: step.url || "",
+          page_title: step.page_title || "",
+          at: step.timestamp || step.time || null,
+        }))
+      : [],
+    jobs,
+    source: {
+      integration: session.source?.integration || null,
+      device: session.source?.device || null,
+    },
+    placements_raw: placementsRaw,
+  };
+}
+
+function buildTroubleshootPayload(date, sessionsRaw, placementsRaw, fiMeta, instanceMeta) {
+  const placementMap = new Map();
+  const placements = Array.isArray(placementsRaw?.placements) ? placementsRaw.placements : [];
+  for (const pl of placements) {
+    const key =
+      pl.agent_session_id ||
+      pl.session_id ||
+      pl.cardholder_session_id ||
+      pl.cuid ||
+      null;
+    if (!key) continue;
+    const list = placementMap.get(key) || [];
+    list.push(pl);
+    placementMap.set(key, list);
+  }
+
+  const sessions = Array.isArray(sessionsRaw?.sessions) ? sessionsRaw.sessions : [];
+  const rows = sessions.map((s) =>
+    mapSessionToTroubleshootEntry(s, placementMap, fiMeta, instanceMeta)
+  );
+
+  const totals = summarizeTroubleshootSessions(rows);
+
+  return {
+    date,
+    totals,
+    sessions: rows,
+    placements: placements.length,
+  };
+}
+
+function summarizeTroubleshootSessions(rows = []) {
+  return rows.reduce(
+    (acc, row) => {
+      acc.sessions += 1;
+      const jobCount = Array.isArray(row.jobs) ? row.jobs.length : 0;
+      if (jobCount > 0) acc.sessions_with_jobs += 1;
+      const successes = row.jobs.filter((j) => j.is_success).length;
+      if (successes > 0) acc.sessions_with_success += 1;
+      acc.jobs += jobCount;
+      acc.jobs_success += successes;
+      acc.jobs_failure += Math.max(0, jobCount - successes);
+      for (const job of row.jobs) {
+        const term = job.termination || "UNKNOWN";
+        acc.by_termination[term] = (acc.by_termination[term] || 0) + 1;
+      }
+      return acc;
+    },
+    {
+      sessions: 0,
+      sessions_with_jobs: 0,
+      sessions_with_success: 0,
+      jobs: 0,
+      jobs_success: 0,
+      jobs_failure: 0,
+      by_termination: {},
+    }
+  );
+}
+
+async function loadTroubleshootRange(startDate, endDate) {
+  const days = daysBetween(startDate, endDate);
+  const sessions = [];
+  const placements = [];
+  for (const day of days) {
+    const s = await readSessionDay(day);
+    if (s?.sessions) sessions.push(...s.sessions);
+    const p = await readPlacementDay(day);
+    if (p?.placements) placements.push(...p.placements);
+  }
+  return { sessions, placements };
+}
+
+async function buildTroubleshootOptions() {
+  const [days, fiRegistry] = await Promise.all([
+    listRawDays("sessions"),
+    loadFiRegistrySafe(),
+  ]);
+  const fiMeta = buildFiMetaMap(fiRegistry);
+  const fiOptions = Array.from(fiMeta.entries()).map(([key, entry]) => ({
+    key,
+    label: entry.fi || key,
+    partner: entry.partner || "Unknown",
+    integration: entry.integration || "UNKNOWN",
+  }));
+  const partnerSet = new Set(fiOptions.map((fi) => fi.partner || "Unknown"));
+  const integrationSet = new Set(fiOptions.map((fi) => fi.integration || "UNKNOWN"));
+  const instanceSet = new Set();
+  for (const entry of Object.values(fiRegistry)) {
+    const primary = entry.instance ? formatInstanceDisplay(entry.instance) : null;
+    const list = Array.isArray(entry.instances) ? entry.instances : [];
+    if (primary) instanceSet.add(primary);
+    list.forEach((inst) => instanceSet.add(formatInstanceDisplay(inst)));
+  }
+  return {
+    days,
+    defaultDate: days[days.length - 1] || todayIsoDate(),
+    fi: fiOptions.sort((a, b) => a.label.localeCompare(b.label)),
+    partners: Array.from(partnerSet).sort(),
+    integrations: Array.from(integrationSet)
+      .filter(Boolean)
+      .sort((a, b) => a.localeCompare(b)),
+    instances: Array.from(instanceSet).sort(),
+  };
 }
 
 function createPlacementStore() {
@@ -334,15 +823,14 @@ function summarizeStore(store, days) {
 async function buildGlobalMerchantHeatmap(startIso, endIso) {
   // Build day list
   const days = daysBetween(startIso, endIso);
-  // merchant => { totals, daily: dayKey => {billable, siteFail, total} }
-  const merchants = Object.create(null);
+  const slices = [];
+  const instanceMeta = await loadInstanceMetaMap();
 
   for (const day of days) {
     const raw = await readPlacementDay(day);
     if (!raw || raw.error || !Array.isArray(raw.placements)) continue;
 
     for (const pl of raw.placements) {
-      // Identify merchant
       const merchant =
         pl.merchant_site_hostname ||
         (pl.merchant_site_id ? `merchant_${pl.merchant_site_id}` : "UNKNOWN");
@@ -353,22 +841,11 @@ async function buildGlobalMerchantHeatmap(startIso, endIso) {
         pl.org_name ||
         "";
       const isTestInstance = isTestInstanceName(instanceName);
-      if (!merchants[merchant]) {
-        merchants[merchant] = {
-          prod: createPlacementStore(),
-          test: createPlacementStore(),
-          testInstanceSet: new Set(),
-        };
-      }
-      const bucket = merchants[merchant];
-      const targetStore = isTestInstance ? bucket.test : bucket.prod;
-      if (isTestInstance) {
-        if (instanceName) {
-          bucket.testInstanceSet.add(instanceName);
-        }
-      }
+      const meta = instanceMeta.get(instanceName?.toLowerCase?.() || "");
+      const fiKey = normalizeFiKey(
+        pl.fi_lookup_key || pl.fi_name || meta?.fi || "unknown_fi"
+      );
 
-      // Determine termination class
       const term = (pl.termination_type || "").toString().toUpperCase();
       const status = (pl.status || "").toString().toUpperCase();
       const rule =
@@ -376,62 +853,34 @@ async function buildGlobalMerchantHeatmap(startIso, endIso) {
         TERMINATION_RULES[status] ||
         TERMINATION_RULES.UNKNOWN;
 
-      targetStore.total += 1;
-
-      // Day attribution (prefer actual placement timestamps; fallback = file day)
       const dKey = placementDay(pl) || day;
-      const d = ensureDailyEntry(targetStore, dKey);
-      d.total += 1;
 
+      const slice = {
+        day: dKey,
+        merchant,
+        fi: fiKey || "unknown_fi",
+        is_test: isTestInstance,
+        total: 1,
+        billable: 0,
+        siteFailures: 0,
+        userFlowIssues: 0,
+      };
       if (rule.includeInHealth) {
         if (rule.severity === "success") {
-          targetStore.billable += 1;
-          d.billable += 1;
+          slice.billable = 1;
         } else {
-          targetStore.siteFailures += 1;
-          d.siteFailures += 1;
+          slice.siteFailures = 1;
         }
       } else if (rule.includeInUx) {
-        targetStore.userFlowIssues += 1;
-        d.userFlowIssues += 1;
+        slice.userFlowIssues = 1;
       } else {
-        // treat unknown as site failure for conservative health
-        targetStore.siteFailures += 1;
-        d.siteFailures += 1;
+        slice.siteFailures = 1;
       }
+      slices.push(slice);
     }
   }
 
-  const rows = [];
-  for (const [merchant, stats] of Object.entries(merchants)) {
-    const prodStats = summarizeStore(stats.prod, days);
-    const testStats = summarizeStore(stats.test, days);
-    const testInstances = Array.from(stats.testInstanceSet || []);
-    const hasTestTraffic = testStats.total > 0;
-
-    rows.push({
-      merchant,
-      total: prodStats.total,
-      billable: prodStats.billable,
-      siteFailures: prodStats.siteFailures,
-      userFlowIssues: prodStats.userFlowIssues,
-      overallHealthPct: prodStats.overallHealthPct,
-      days: prodStats.days,
-      prod_stats: prodStats,
-      test_stats: testStats,
-      is_test: hasTestTraffic,
-      has_test_fi: hasTestTraffic,
-      has_prod_fi: prodStats.total > 0,
-      test_traffic: testStats.total,
-      prod_traffic: prodStats.total,
-      test_instances: testInstances,
-    });
-  }
-
-  // Sort by total volume desc
-  rows.sort((a, b) => (b.total || 0) - (a.total || 0));
-
-  return { start: startIso, end: endIso, days, merchants: rows };
+  return { start: startIso, end: endIso, days, slices };
 }
 
 const server = http.createServer(async (req, res) => {
@@ -439,6 +888,10 @@ const server = http.createServer(async (req, res) => {
   const pathname = decodeURIComponent(parsedUrl.pathname);
   const search = parsedUrl.search;
   const queryParams = new URLSearchParams(search || "");
+
+  if (pathname === "/run-update/status") {
+    return send(res, 200, currentUpdateSnapshot());
+  }
 
   if (pathname === "/run-update/stream") {
     res.writeHead(200, {
@@ -450,18 +903,13 @@ const server = http.createServer(async (req, res) => {
 
     updateClients.add(res);
 
-    sseSend(res, "snapshot", {
-      running: currentUpdateJob.running,
-      startedAt: currentUpdateJob.startedAt,
-      finishedAt: currentUpdateJob.finishedAt,
-      startDate: currentUpdateJob.startDate,
-      endDate: currentUpdateJob.endDate,
-      lastMessage: currentUpdateJob.lastMessage,
-      error: currentUpdateJob.error,
-    });
+    sseSend(res, "snapshot", currentUpdateSnapshot());
 
     if (!currentUpdateJob.running) {
-      startUpdateJobIfNeeded().catch((err) => {
+      const qsStart = queryParams.get("start") || queryParams.get("startDate");
+      const qsEnd = queryParams.get("end") || queryParams.get("endDate");
+      const forceRaw = queryParams.get("forceRaw") === "true";
+      startUpdateJobIfNeeded({ startDate: qsStart, endDate: qsEnd, forceRaw }).catch((err) => {
         console.error("Update job failed:", err);
       });
     }
@@ -498,6 +946,38 @@ const server = http.createServer(async (req, res) => {
   if (pathname === "/list-daily") {
     const days = await listDaily();
     return send(res, 200, { files: days, days });
+  }
+  if (pathname === "/data-freshness") {
+    try {
+      const [rawSessionDays, rawPlacementDays, dailyDays] = await Promise.all([
+        listRawDays("sessions"),
+        listRawDays("placements"),
+        listDaily(),
+      ]);
+      const latest = (arr = []) => (arr.length ? arr[arr.length - 1] : null);
+      const rawLatest = latest(
+        rawSessionDays.length && rawPlacementDays.length
+          ? rawSessionDays.filter((d) => rawPlacementDays.includes(d))
+          : rawSessionDays.length
+          ? rawSessionDays
+          : rawPlacementDays
+      );
+      const dailyLatest = latest(dailyDays);
+      const today = todayIsoDate();
+      const age = (iso) => {
+        if (!iso) return null;
+        const ms = new Date(`${today}T00:00:00Z`) - new Date(`${iso}T00:00:00Z`);
+        return Math.floor(ms / 86400000);
+      };
+      return send(res, 200, {
+        rawLatest,
+        rawAgeDays: age(rawLatest),
+        dailyLatest,
+        dailyAgeDays: age(dailyLatest),
+      });
+    } catch (err) {
+      return send(res, 500, { error: err?.message || "Unable to load freshness" });
+    }
   }
   if (pathname === "/fi-registry") {
     try {
@@ -565,6 +1045,23 @@ const server = http.createServer(async (req, res) => {
         if (!value) return null;
         return value.toString().trim();
       };
+      const normalizeFiName = (value) => {
+        if (value === undefined) return undefined;
+        const str = value === null ? "" : value.toString().trim();
+        if (!str) {
+          throw Object.assign(new Error("fi_name is required"), { status: 400 });
+        }
+        return str;
+      };
+      const normalizeFiLookupKey = (value, fallback) => {
+        const raw = value === undefined ? fallback : value;
+        if (raw === undefined) return undefined;
+        const str = raw === null ? "" : raw.toString().trim();
+        if (!str) {
+          throw Object.assign(new Error("fi_lookup_key is required"), { status: 400 });
+        }
+        return str;
+      };
       const normalizePartner = (value) => {
         if (!value) return null;
         const rawVal = value.toString().trim().toLowerCase();
@@ -584,10 +1081,22 @@ const server = http.createServer(async (req, res) => {
         return canonical
           .replace(/(^|\s|-)([a-z])/g, (m, p1, p2) => p1 + p2.toUpperCase());
       };
+      const canonicalLookupKey = (value) =>
+        value ? value.toString().trim().toLowerCase() : "";
+      const canonicalInstance = (value) =>
+        value ? value.toString().trim().toLowerCase() : "";
 
       const next = { ...registry[key] };
       if ("integration_type" in updates) {
         next.integration_type = normalizeIntegration(updates.integration_type);
+      }
+      if ("fi_name" in updates) {
+        const fiName = normalizeFiName(updates.fi_name);
+        if (fiName !== undefined) next.fi_name = fiName;
+      }
+      if ("fi_lookup_key" in updates) {
+        const fiLookup = normalizeFiLookupKey(updates.fi_lookup_key, next.fi_lookup_key);
+        if (fiLookup !== undefined) next.fi_lookup_key = fiLookup;
       }
       if ("partner" in updates) {
         next.partner = normalizePartner(updates.partner);
@@ -602,6 +1111,40 @@ const server = http.createServer(async (req, res) => {
         next.cardholder_as_of = normalizeAsOf(updates.cardholder_as_of);
       }
 
+      const targetLookup = canonicalLookupKey(next.fi_lookup_key || next.fi_name || key);
+      const targetInstance = canonicalInstance(
+        next.instance || (Array.isArray(next.instances) ? next.instances[0] : "")
+      );
+      for (const [otherKey, otherEntry] of Object.entries(registry)) {
+        if (otherKey === key) continue;
+        const otherLookup = canonicalLookupKey(
+          otherEntry?.fi_lookup_key || otherEntry?.fi_name || otherKey
+        );
+        const otherInstance = canonicalInstance(
+          otherEntry?.instance ||
+            (Array.isArray(otherEntry?.instances) ? otherEntry.instances[0] : "")
+        );
+        if (
+          targetLookup &&
+          otherLookup &&
+          targetInstance &&
+          otherInstance &&
+          targetLookup === otherLookup &&
+          targetInstance === otherInstance
+        ) {
+          return send(res, 409, {
+            error: "Duplicate fi_lookup_key for this instance.",
+            conflict: {
+              key: otherKey,
+              fi_lookup_key: otherEntry?.fi_lookup_key || null,
+              instance:
+                otherEntry?.instance ||
+                (Array.isArray(otherEntry?.instances) ? otherEntry.instances[0] : null),
+            },
+          });
+        }
+      }
+
       registry[key] = next;
       await fs.writeFile(
         FI_REGISTRY_FILE,
@@ -612,6 +1155,190 @@ const server = http.createServer(async (req, res) => {
     } catch (err) {
       const status = err?.status || 500;
       return send(res, status, { error: err.message || "Unable to update registry" });
+    }
+  }
+  if (pathname === "/fi-registry/delete" && req.method === "POST") {
+    try {
+      const rawBody = await readRequestBody(req);
+      const payload = JSON.parse(rawBody || "{}");
+      const key = payload?.key;
+      if (!key) {
+        return send(res, 400, { error: "Missing key" });
+      }
+      const raw = await fs.readFile(FI_REGISTRY_FILE, "utf8").catch((err) => {
+        if (err.code === "ENOENT") {
+          throw Object.assign(new Error("fi_registry.json not found"), { status: 404 });
+        }
+        throw err;
+      });
+      const registry = JSON.parse(raw);
+      if (!registry[key]) {
+        return send(res, 404, { error: "Registry entry not found", key });
+      }
+      delete registry[key];
+      await fs.writeFile(
+        FI_REGISTRY_FILE,
+        JSON.stringify(registry, null, 2) + "\n",
+        "utf8"
+      );
+      return send(res, 200, { deleted: key, registrySize: Object.keys(registry).length });
+    } catch (err) {
+      const status = err?.status || 500;
+      return send(res, status, { error: err.message || "Unable to delete registry entry" });
+    }
+  }
+  if (pathname === "/troubleshoot/options") {
+    try {
+      const opts = await buildTroubleshootOptions();
+      return send(res, 200, opts);
+    } catch (err) {
+      const status = err?.status || 500;
+      return send(res, status, { error: err?.message || "Unable to load options" });
+    }
+  }
+  if (pathname === "/troubleshoot/day") {
+    const startParam =
+      queryParams.get("start") ||
+      queryParams.get("startDate") ||
+      queryParams.get("date") ||
+      queryParams.get("day");
+    const endParam = queryParams.get("end") || queryParams.get("endDate") || startParam;
+    const isoRe = /^\d{4}-\d{2}-\d{2}$/;
+    if (!startParam || !isoRe.test(startParam)) {
+      return send(res, 400, { error: "start date query param must be YYYY-MM-DD" });
+    }
+    if (!endParam || !isoRe.test(endParam)) {
+      return send(res, 400, { error: "end date query param must be YYYY-MM-DD" });
+    }
+    const startDate = startParam;
+    const endDate = endParam;
+    if (new Date(`${startDate}T00:00:00Z`) > new Date(`${endDate}T00:00:00Z`)) {
+      return send(res, 400, { error: "start date must be on or before end date" });
+    }
+    const includeTests = queryParams.get("includeTests") === "true";
+    const fiFilter = queryParams.get("fi") || FI_ALL_VALUE;
+    const partnerFilter = queryParams.get("partner") || PARTNER_ALL_VALUE;
+    const instanceFilter = queryParams.get("instance") || INSTANCE_ALL_VALUE;
+    const rawIntegrationFilter = queryParams.get("integration") || "(all)";
+    const integrationFilter =
+      rawIntegrationFilter === "(all)" ? "(all)" : normalizeIntegration(rawIntegrationFilter);
+    try {
+      const [rangeData, fiRegistry, instanceMeta] = await Promise.all([
+        loadTroubleshootRange(startDate, endDate),
+        loadFiRegistrySafe(),
+        loadInstanceMetaMap(),
+      ]);
+      if (!rangeData.sessions.length && !rangeData.placements.length) {
+        return send(res, 404, { error: "No raw data found for date range", startDate, endDate });
+      }
+      const fiMeta = buildFiMetaMap(fiRegistry);
+      const payload = buildTroubleshootPayload(
+        `${startDate} → ${endDate}`,
+        { sessions: rangeData.sessions },
+        { placements: rangeData.placements },
+        fiMeta,
+        instanceMeta
+      );
+      const filteredSessions = payload.sessions.filter((row) => {
+        if (!includeTests && row.is_test) return false;
+        if (fiFilter && fiFilter !== FI_ALL_VALUE) {
+          if (normalizeFiKey(row.fi_key) !== normalizeFiKey(fiFilter)) return false;
+        }
+        if (integrationFilter !== "(all)" && row.integration !== integrationFilter) {
+          return false;
+        }
+        if (partnerFilter && partnerFilter !== PARTNER_ALL_VALUE) {
+          if ((row.partner || "Unknown") !== partnerFilter) return false;
+        }
+        if (instanceFilter && instanceFilter !== INSTANCE_ALL_VALUE) {
+          if (canonicalInstance(row.instance) !== canonicalInstance(instanceFilter)) return false;
+        }
+        return true;
+      });
+      const totals = summarizeTroubleshootSessions(filteredSessions);
+      return send(res, 200, {
+        date: payload.date,
+        startDate,
+        endDate,
+        totals,
+        sessions: filteredSessions,
+        placements: payload.placements,
+        filters: {
+          fi: fiFilter,
+          integration: rawIntegrationFilter,
+          partner: partnerFilter,
+          instance: instanceFilter,
+          includeTests,
+        },
+      });
+    } catch (err) {
+      const status = err?.status || 500;
+      return send(res, status, { error: err?.message || "Unable to load troubleshooting data" });
+    }
+  }
+  if (pathname === "/instances") {
+    try {
+      const { entries, path: foundAt } = await readInstancesFile();
+      return send(res, 200, { instances: entries, path: foundAt });
+    } catch (err) {
+      console.error("instances load failed", err);
+      const status = err?.status || 500;
+      return send(res, status, { error: err.message || "Unable to read instances" });
+    }
+  }
+  if (pathname === "/instances/save" && req.method === "POST") {
+    try {
+      const rawBody = await readRequestBody(req);
+      const payload = JSON.parse(rawBody || "{}");
+      if (!payload || typeof payload !== "object") {
+        return send(res, 400, { error: "Invalid payload" });
+      }
+      const { entry, originalName } = payload;
+      if (!entry || typeof entry !== "object") {
+        return send(res, 400, { error: "Missing entry" });
+      }
+      const normalized = normalizeInstanceEntry(entry);
+      const { entries: current } = await readInstancesFile();
+      const targetName = originalName || normalized.name;
+      const existingIdx = current.findIndex((inst) => inst?.name === targetName);
+      const conflict = current.findIndex(
+        (inst, idx) => inst?.name === normalized.name && idx !== existingIdx
+      );
+      if (conflict >= 0) {
+        return send(res, 409, { error: "An instance with that name already exists." });
+      }
+
+      if (existingIdx >= 0) {
+        current[existingIdx] = normalized;
+      } else {
+        current.push(normalized);
+      }
+
+      const { entries: saved, path: savedPath } = await writeInstancesFile(current);
+      return send(res, 200, { entry: normalized, instances: saved, path: savedPath });
+    } catch (err) {
+      const status = err?.status || 500;
+      return send(res, status, { error: err.message || "Unable to save instance" });
+    }
+  }
+  if (pathname === "/instances/delete" && req.method === "POST") {
+    try {
+      const rawBody = await readRequestBody(req);
+      const payload = JSON.parse(rawBody || "{}");
+      if (!payload || typeof payload !== "object" || !payload.name) {
+        return send(res, 400, { error: "Missing instance name" });
+      }
+      const { entries: current } = await readInstancesFile();
+      const idx = current.findIndex((inst) => inst?.name === payload.name);
+      if (idx === -1) {
+        return send(res, 404, { error: "Instance not found" });
+      }
+      current.splice(idx, 1);
+      const { entries: saved, path: savedPath } = await writeInstancesFile(current);
+      return send(res, 200, { deleted: payload.name, instances: saved, path: savedPath });
+    } catch (err) {
+      const status = err?.status || 500;
+      return send(res, status, { error: err.message || "Unable to delete instance" });
     }
   }
   if (pathname === "/daily") {
@@ -637,7 +1364,7 @@ const server = http.createServer(async (req, res) => {
 
   /**
    * GET /merchant-heatmap?start=YYYY-MM-DD&end=YYYY-MM-DD
-   * Returns { start, end, days: [iso...], merchants: [{ merchant, total, ..., days:[{day,color,pct,...}]}] }
+  * Returns { start, end, days: [iso...], slices: [{ day, merchant, fi, is_test, total, billable, siteFailures, userFlowIssues }] }
    */
   if (req.method === "GET" && pathname === "/merchant-heatmap") {
     const query = Object.fromEntries(queryParams.entries());
@@ -677,17 +1404,26 @@ const server = http.createServer(async (req, res) => {
     if (await fileExists(fp)) return serveFile(res, fp);
   }
 
+  if (pathname === "/troubleshoot" || pathname === "/troubleshoot.html") {
+    const fp = path.join(PUBLIC_DIR, "troubleshoot.html");
+    if (await fileExists(fp)) return serveFile(res, fp);
+  }
+
   if (pathname === "/maintenance" || pathname === "/maintenance.html") {
     const fp = path.join(PUBLIC_DIR, "maintenance.html");
     if (await fileExists(fp)) return serveFile(res, fp);
   }
 
-  // Serve anything under /public/*
-  if (pathname.startsWith("/public/")) {
-    const rel = pathname.slice("/public/".length);
-    const fp = path.join(PUBLIC_DIR, rel);
-    if (await fileExists(fp)) return serveFile(res, fp);
-    return send(res, 404, { error: "asset not found", path: fp });
+  // Serve static assets from public (CSS/JS/data/etc)
+  const relPath = pathname.replace(/^\/+/, "");
+  const staticCandidates = [path.join(PUBLIC_DIR, relPath)];
+  if (relPath.startsWith("public/")) {
+    staticCandidates.push(path.join(PUBLIC_DIR, relPath.slice("public/".length)));
+  }
+  for (const staticPath of staticCandidates) {
+    if (staticPath.startsWith(PUBLIC_DIR) && (await fileExists(staticPath))) {
+      return serveFile(res, staticPath);
+    }
   }
 
   // UI entry (SPA fallback): "/" and any unknown path -> heatmap.html or funnel.html

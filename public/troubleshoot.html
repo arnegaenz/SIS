@@ -1,0 +1,963 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Troubleshooting</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="/sis-shared.css?v=navfix" />
+  <link rel="stylesheet" href="assets/css/sis.css">
+  <script defer src="assets/js/sis.js"></script>
+  <style>
+    :root {
+      --bg: #f6f8fb;
+      --panel: #ffffff;
+      --panel-light: #f1f5f9;
+      --text: #0f172a;
+      --muted: #475569;
+      --accent: #2563eb;
+      --accent-2: #0ea5e9;
+      --border: #d7deea;
+      --input-bg: #ffffff;
+      --input-border: #cbd5e1;
+      --table-border: #d7deea;
+      --chip-bg: #e0f2fe;
+      --chip-text: #0ea5e9;
+      --badge-success: #16a34a;
+      --badge-fail: #dc2626;
+      --badge-warn: #f59e0b;
+    }
+    [data-theme="dark"] {
+      --bg: #0f172a;
+      --panel: #111827;
+      --panel-light: #1f2937;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent-2: #6366f1;
+      --border: rgba(148, 163, 184, 0.35);
+      --input-bg: #0b1120;
+      --input-border: rgba(148,163,184,0.3);
+      --table-border: #1f2937;
+      --chip-bg: rgba(56,189,248,0.12);
+      --chip-text: #7dd3fc;
+      --badge-success: #22c55e;
+      --badge-fail: #f97316;
+      --badge-warn: #facc15;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 16px 16px 64px;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 16px;
+      --sis-panel-bg: var(--panel);
+    }
+    .trouble-header {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 18px;
+    }
+    .trouble-header h1 {
+      margin: 0;
+      font-size: 1.4rem;
+    }
+    .trouble-header p {
+      margin: 0;
+      color: var(--muted);
+      max-width: 860px;
+    }
+    .filter-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 10px;
+      align-items: end;
+      margin-bottom: 12px;
+    }
+    .form-field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .form-field label {
+      font-size: 0.85rem;
+      color: var(--muted);
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      padding-left: 2px;
+    }
+    .form-select,
+    .form-input {
+      background: var(--input-bg);
+      border: 1px solid var(--input-border);
+      border-radius: 10px;
+      color: var(--text);
+      padding: 10px 12px;
+      font-size: 0.92rem;
+      height: 42px;
+      line-height: 22px;
+    }
+    .form-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .btn {
+      background: linear-gradient(120deg, var(--accent), var(--accent-2));
+      border: none;
+      border-radius: 999px;
+      padding: 12px 26px;
+      font-size: 1rem;
+      cursor: pointer;
+      color: #f8fafc;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+    }
+    .btn.secondary {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--border);
+    }
+    .status-line {
+      font-size: 0.9rem;
+      color: var(--muted);
+      min-height: 20px;
+      margin: 4px 0 10px;
+    }
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 10px;
+      margin: 10px 0 18px;
+    }
+    .summary-card {
+      background: var(--panel-light);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 14px;
+    }
+    .summary-card .label {
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+    .summary-card .value {
+      font-size: 1.3rem;
+      font-weight: 700;
+    }
+    .session-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .session-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px;
+      box-shadow: 0 16px 40px rgba(15, 23, 42, 0.10);
+    }
+    .session-top {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--chip-bg);
+      color: var(--chip-text);
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .chip.muted {
+      background: var(--panel-light);
+      color: var(--muted);
+    }
+    .chip.test {
+      background: rgba(220, 38, 38, 0.12);
+      color: #dc2626;
+    }
+    [data-theme="dark"] .chip.test {
+      background: rgba(249, 115, 22, 0.18);
+      color: #fb923c;
+    }
+    .session-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      color: var(--muted);
+      font-size: 0.88rem;
+    }
+    .session-meta strong {
+      color: var(--text);
+    }
+    .clickstream {
+      margin: 10px 0;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .click-pill {
+      background: var(--panel-light);
+      border: 1px dashed var(--border);
+      border-radius: 8px;
+      padding: 6px 8px;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+    .jobs {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .job {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 12px;
+      background: var(--panel-light);
+    }
+    .job-header {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border-radius: 999px;
+      padding: 4px 9px;
+      font-size: 0.78rem;
+      letter-spacing: 0.02em;
+    }
+    .badge.success { background: rgba(22,163,74,0.12); color: var(--badge-success); }
+    .badge.fail { background: rgba(220,38,38,0.12); color: var(--badge-fail); }
+    .badge.warn { background: rgba(245,158,11,0.15); color: var(--badge-warn); }
+    .badge.neutral { background: var(--panel); color: var(--muted); border: 1px solid var(--border); }
+    .job-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+    .raw-details {
+      margin-top: 10px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--panel-light);
+    }
+    .raw-details summary {
+      cursor: pointer;
+      padding: 10px 12px;
+      font-weight: 600;
+      color: var(--muted);
+      list-style: none;
+    }
+    .raw-details summary::-webkit-details-marker { display: none; }
+    .raw-details summary::before {
+      content: "▸";
+      display: inline-block;
+      margin-right: 6px;
+      transform: translateY(-1px);
+    }
+    .raw-details[open] summary::before { content: "▾"; }
+    .raw-block {
+      padding: 0 12px 12px;
+      overflow: auto;
+      max-height: 360px;
+      font-family: ui-monospace, SFMono-Regular, SFMono, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 0.85rem;
+      color: var(--muted);
+      white-space: pre;
+    }
+    .empty-state {
+      padding: 16px;
+      border: 1px dashed var(--border);
+      border-radius: 12px;
+      background: var(--panel-light);
+      color: var(--muted);
+    }
+    .job.outcome-ux .badge { background: rgba(59,130,246,0.08); color: var(--accent); }
+    @media (max-width: 720px) {
+      .filter-grid { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+      .session-meta { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <header class="sis-header">
+    <div class="sis-topbar">
+      <div class="sis-title">Strivve Insights Service</div>
+
+      <nav class="sis-nav">
+        <a href="index.html">Overview</a>
+        <a href="funnel.html">FI Funnel</a>
+        <a href="heatmap.html">Merchant Heatmap</a>
+        <a href="troubleshoot.html">Troubleshooting</a>
+        <a href="maintenance.html">Maintenance</a>
+      </nav>
+    </div>
+
+    <h1 class="sis-page-name">Troubleshooting</h1>
+    <p class="sis-page-desc">Mirror the FI Funnel filters, then drill into every session and card placement for a single day. Spot bad terminations, job timing, and click patterns without leaving the browser.</p>
+  </header>
+  <div class="sis-content">
+  <main class="sis-main">
+    <section class="sis-panel">
+      <div class="trouble-header">
+      <div class="filter-grid">
+        <div class="form-field">
+          <label for="datePreset">Range preset</label>
+          <select id="datePreset" class="form-select">
+            <option value="last1" selected>Last day</option>
+            <option value="last3">Last 3 days</option>
+            <option value="last7">Last 7 days</option>
+            <option value="last14">Last 14 days</option>
+            <option value="last30">Last 30 days</option>
+            <option value="last60">Last 60 days</option>
+            <option value="last90">Last 90 days</option>
+            <option value="ytd">Year to date</option>
+            <option value="">Custom</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label for="fiFilter">Filter FI</label>
+          <select id="fiFilter" class="form-select">
+            <option value="__all__">(all FIs)</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label for="integrationFilter">Integration</label>
+          <select id="integrationFilter" class="form-select">
+            <option value="(all)">(all)</option>
+            <option value="SSO">SSO</option>
+            <option value="NON-SSO">NON-SSO</option>
+            <option value="CardSavr">CardSavr</option>
+            <option value="TEST">TEST</option>
+            <option value="UNKNOWN">UNKNOWN</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label for="partnerFilter">Partner</label>
+          <select id="partnerFilter" class="form-select">
+            <option value="__all_partners__">(all partners)</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label for="instanceFilter">Instances</label>
+          <select id="instanceFilter" class="form-select">
+            <option value="__all_instances__">(all instances)</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label for="startDate">Start date</label>
+          <input id="startDate" type="date" class="form-input" />
+        </div>
+        <div class="form-field">
+          <label for="endDate">End date</label>
+          <input id="endDate" type="date" class="form-input" />
+        </div>
+        <div class="form-field" style="min-width: 200px">
+          <label>&nbsp;</label>
+          <div class="form-actions">
+            <button class="btn" id="applyBtn" type="button">Load range</button>
+          </div>
+        </div>
+      </div>
+      <div class="status-line" id="statusLine">Waiting for input…</div>
+      <div class="summary-grid" id="summaryGrid" style="display: none;"></div>
+      <div class="session-list" id="sessionList"></div>
+      <div class="empty-state" id="emptyState" style="display: none;">No sessions found for the selected filters.</div>
+    </section>
+  </main>
+  </div>
+
+  <script src="/public/theme-toggle.js"></script>
+  <script>
+    (() => {
+      const FI_ALL_VALUE = "__all__";
+      const PARTNER_ALL_VALUE = "__all_partners__";
+      const INSTANCE_ALL_VALUE = "__all_instances__";
+      const els = {
+        fi: document.getElementById("fiFilter"),
+        integration: document.getElementById("integrationFilter"),
+        partner: document.getElementById("partnerFilter"),
+        instance: document.getElementById("instanceFilter"),
+        preset: document.getElementById("datePreset"),
+        startDate: document.getElementById("startDate"),
+        endDate: document.getElementById("endDate"),
+        applyBtn: document.getElementById("applyBtn"),
+        status: document.getElementById("statusLine"),
+        summary: document.getElementById("summaryGrid"),
+        sessions: document.getElementById("sessionList"),
+        empty: document.getElementById("emptyState"),
+      };
+
+      const state = {
+        options: null,
+        data: null,
+        loading: false,
+      };
+
+      const normalizeInstanceKey = (value) =>
+        (value || "").toString().trim().toLowerCase().replace(/[^a-z0-9]/g, "");
+      const normalizeFiKey = (value) => (value || "").toString().trim().toLowerCase();
+      const normalizeIntegrationLabel = (value) => {
+        if (!value) return "UNKNOWN";
+        const upper = value.toString().trim().toUpperCase();
+        if (upper === "NON-SSO" || upper === "NON_SSO" || upper.includes("NONSSO")) return "NON-SSO";
+        if (upper.includes("SSO")) return "SSO";
+        if (upper.includes("CARDSAVR") || upper.includes("CARD-SAVR")) return "CardSavr";
+        if (upper === "TEST") return "TEST";
+        return "UNKNOWN";
+      };
+
+      function escapeHtml(str) {
+        return (str || "").toString()
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;");
+      }
+
+      function formatDateTime(value) {
+        if (!value) return "";
+        const d = new Date(value);
+        if (Number.isNaN(d)) return value;
+        return d.toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+      }
+
+      function formatDuration(ms) {
+        if (!Number.isFinite(ms) || ms < 0) return "";
+        if (ms < 1000) return ms + " ms";
+        const seconds = Math.round(ms / 1000);
+        if (seconds < 90) return seconds + "s";
+        const minutes = Math.floor(seconds / 60);
+        const rem = seconds % 60;
+        return rem ? `${minutes}m ${rem}s` : `${minutes}m`;
+      }
+
+      function setStatus(text, tone = "muted") {
+        els.status.textContent = text || "";
+        els.status.style.color = tone === "error" ? "var(--badge-fail)" : "var(--muted)";
+      }
+
+      function optionRows() {
+        if (Array.isArray(state.data?.sessions) && state.data.sessions.length) {
+          return state.data.sessions.map((row) => ({
+            fi_key: normalizeFiKey(row.fi_key || row.fi_name || row.fi),
+            fi_label: row.fi_name || row.fi_key || row.fi || "Unknown FI",
+            partner: row.partner || "Unknown",
+            integration: normalizeIntegrationLabel(row.integration || row.integration_type),
+            instance: row.instance || "",
+            is_test: !!row.is_test,
+          }));
+        }
+        if (Array.isArray(state.options?.fi)) {
+          return state.options.fi.map((entry) => ({
+            fi_key: normalizeFiKey(entry.key),
+            fi_label: entry.label || entry.key,
+            partner: entry.partner || "Unknown",
+            integration: normalizeIntegrationLabel(entry.integration),
+            instance: "",
+            is_test: false,
+          }));
+        }
+        return [];
+      }
+
+      function updateIntegrationOptions(rows) {
+        const partnerValue = els.partner.value || PARTNER_ALL_VALUE;
+        const fiValue = els.fi.value || FI_ALL_VALUE;
+        const instanceValue = els.instance.value || INSTANCE_ALL_VALUE;
+        const instanceNorm =
+          instanceValue && instanceValue !== INSTANCE_ALL_VALUE
+            ? normalizeInstanceKey(instanceValue)
+            : null;
+        const fiNorm =
+          fiValue && fiValue !== FI_ALL_VALUE ? normalizeFiKey(fiValue) : null;
+        const integrations = Array.from(
+          new Set(
+            rows
+              .filter((row) => !row.is_test)
+              .filter((row) =>
+                partnerValue === PARTNER_ALL_VALUE
+                  ? true
+                  : (row.partner || "Unknown") === partnerValue
+              )
+              .filter((row) => (fiNorm ? normalizeFiKey(row.fi_key) === fiNorm : true))
+              .filter((row) =>
+                instanceNorm
+                  ? normalizeInstanceKey(row.instance) === instanceNorm
+                  : true
+              )
+              .map((row) => normalizeIntegrationLabel(row.integration))
+          )
+        ).sort((a, b) => a.localeCompare(b));
+        const keep = els.integration.value || "(all)";
+        els.integration.innerHTML = "";
+        const add = (value, label) => {
+          const opt = document.createElement("option");
+          opt.value = value;
+          opt.textContent = label;
+          els.integration.appendChild(opt);
+        };
+        add("(all)", "(all)");
+        integrations.forEach((val) => add(val, val));
+        els.integration.value = integrations.includes(keep) ? keep : "(all)";
+      }
+
+      function updatePartnerOptions(rows) {
+        const integrationValue = els.integration.value || "(all)";
+        const partners = Array.from(
+          new Set(
+            rows
+              .filter((row) => !row.is_test)
+              .filter((row) =>
+                integrationValue === "(all)"
+                  ? true
+                  : normalizeIntegrationLabel(row.integration) === integrationValue
+              )
+              .map((row) => row.partner || "Unknown")
+          )
+        ).sort((a, b) => a.localeCompare(b));
+        const keep = els.partner.value || PARTNER_ALL_VALUE;
+        els.partner.innerHTML = "";
+        const add = (value, label) => {
+          const opt = document.createElement("option");
+          opt.value = value;
+          opt.textContent = label;
+          els.partner.appendChild(opt);
+        };
+        add(PARTNER_ALL_VALUE, "(all partners)");
+        partners.forEach((p) => add(p, p));
+        els.partner.value =
+          keep && partners.includes(keep) ? keep : PARTNER_ALL_VALUE;
+      }
+
+      function updateFiOptions(rows) {
+        const integrationValue = els.integration.value || "(all)";
+        const partnerValue = els.partner.value || PARTNER_ALL_VALUE;
+        const instanceValue = els.instance.value || INSTANCE_ALL_VALUE;
+        const instanceNorm =
+          instanceValue && instanceValue !== INSTANCE_ALL_VALUE
+            ? normalizeInstanceKey(instanceValue)
+            : null;
+        const eligible = Array.from(
+          new Map(
+            rows
+              .filter((row) => !row.is_test)
+              .filter((row) =>
+                integrationValue === "(all)"
+                  ? true
+                  : normalizeIntegrationLabel(row.integration) === integrationValue
+              )
+              .filter((row) =>
+                partnerValue === PARTNER_ALL_VALUE
+                  ? true
+                  : (row.partner || "Unknown") === partnerValue
+              )
+              .filter((row) =>
+                instanceNorm
+                  ? normalizeInstanceKey(row.instance) === instanceNorm
+                  : true
+              )
+              .map((row) => {
+                const key = normalizeFiKey(row.fi_key || row.fi_label);
+                return [key, { key, label: row.fi_label || key }];
+              })
+          ).values()
+        ).sort((a, b) => a.label.localeCompare(b.label));
+
+        const keep = els.fi.value || FI_ALL_VALUE;
+        els.fi.innerHTML = "";
+        const add = (value, label) => {
+          const opt = document.createElement("option");
+          opt.value = value;
+          opt.textContent = label;
+          els.fi.appendChild(opt);
+        };
+        add(FI_ALL_VALUE, "(all FIs)");
+        eligible.forEach((fi) => add(fi.key, fi.label));
+        if (keep && keep !== FI_ALL_VALUE && eligible.some((fi) => fi.key === keep)) {
+          els.fi.value = keep;
+        } else {
+          els.fi.value = FI_ALL_VALUE;
+        }
+      }
+
+      function updateInstanceOptions(rows) {
+        const integrationValue = els.integration.value || "(all)";
+        const partnerValue = els.partner.value || PARTNER_ALL_VALUE;
+        const fiValue = els.fi.value || FI_ALL_VALUE;
+        const fiNorm =
+          fiValue && fiValue !== FI_ALL_VALUE ? normalizeFiKey(fiValue) : null;
+
+        const eligible = Array.from(
+          new Set(
+            rows
+              .filter((row) => !row.is_test)
+              .filter((row) =>
+                integrationValue === "(all)"
+                  ? true
+                  : normalizeIntegrationLabel(row.integration) === integrationValue
+              )
+              .filter((row) =>
+                partnerValue === PARTNER_ALL_VALUE
+                  ? true
+                  : (row.partner || "Unknown") === partnerValue
+              )
+              .filter((row) =>
+                fiNorm ? normalizeFiKey(row.fi_key || row.fi_label) === fiNorm : true
+              )
+              .map((row) => row.instance || "")
+              .map((inst) => inst || "")
+              .filter(Boolean)
+          )
+        ).sort((a, b) => a.localeCompare(b));
+
+        const keep = els.instance.value || INSTANCE_ALL_VALUE;
+        els.instance.innerHTML = "";
+        const add = (value, label) => {
+          const opt = document.createElement("option");
+          opt.value = value;
+          opt.textContent = label;
+          els.instance.appendChild(opt);
+        };
+        add(INSTANCE_ALL_VALUE, "(all instances)");
+        eligible.forEach((inst) => add(inst, inst));
+        els.instance.value =
+          keep && eligible.includes(keep) ? keep : INSTANCE_ALL_VALUE;
+      }
+
+      function refreshFilterOptions() {
+        const rows = optionRows();
+        updateIntegrationOptions(rows);
+        updatePartnerOptions(rows);
+        updateFiOptions(rows);
+        updateInstanceOptions(rows);
+      }
+
+      function populateSelect(selectEl, options, allValue) {
+        const current = selectEl.value;
+        selectEl.innerHTML = "";
+        options.forEach(({ value, label }) => {
+          const opt = document.createElement("option");
+          opt.value = value;
+          opt.textContent = label;
+          selectEl.appendChild(opt);
+        });
+        if (current) {
+          selectEl.value = current;
+        }
+        if (!selectEl.value && allValue !== undefined) {
+          selectEl.value = allValue;
+        }
+      }
+
+      async function loadOptions() {
+        setStatus("Loading filter options…");
+        try {
+          const res = await fetch("/troubleshoot/options");
+          if (!res.ok) throw new Error("Options request failed");
+          const data = await res.json();
+          state.options = data;
+          const fiOptions = [
+            { value: FI_ALL_VALUE, label: "(all FIs)" },
+            ...data.fi.map((entry) => ({ value: entry.key, label: entry.label || entry.key })),
+          ];
+          const partnerOptions = [
+            { value: PARTNER_ALL_VALUE, label: "(all partners)" },
+            ...data.partners.map((p) => ({ value: p, label: p })),
+          ];
+          const instanceOptions = [
+            { value: INSTANCE_ALL_VALUE, label: "(all instances)" },
+            ...data.instances.map((inst) => ({ value: inst, label: inst })),
+          ];
+          populateSelect(els.fi, fiOptions, FI_ALL_VALUE);
+          populateSelect(els.partner, partnerOptions, PARTNER_ALL_VALUE);
+          populateSelect(els.instance, instanceOptions, INSTANCE_ALL_VALUE);
+
+          const defaultDay = data.defaultDate || "";
+          if (data.days && data.days.length) {
+            els.startDate.min = data.days[0];
+            els.startDate.max = data.days[data.days.length - 1];
+            els.endDate.min = data.days[0];
+            els.endDate.max = data.days[data.days.length - 1];
+          }
+          applyPreset("last1");
+          refreshFilterOptions();
+          setStatus("Pick a date range and load sessions.");
+        } catch (err) {
+          console.error(err);
+          setStatus("Unable to load options.", "error");
+        }
+      }
+
+      function buildQuery() {
+        const params = new URLSearchParams();
+        if (els.startDate.value) params.set("start", els.startDate.value);
+        if (els.endDate.value) params.set("end", els.endDate.value);
+        params.set("fi", els.fi.value || FI_ALL_VALUE);
+        params.set("integration", els.integration.value || "(all)");
+        params.set("partner", els.partner.value || PARTNER_ALL_VALUE);
+        params.set("instance", els.instance.value || INSTANCE_ALL_VALUE);
+        return params.toString();
+      }
+
+      function renderSummary(totals) {
+        if (!totals) {
+          els.summary.style.display = "none";
+          return;
+        }
+        els.summary.style.display = "grid";
+        const cards = [
+          { label: "Sessions", value: totals.sessions },
+          { label: "Sessions with jobs", value: totals.sessions_with_jobs },
+          { label: "Sessions with success", value: totals.sessions_with_success },
+          { label: "Jobs", value: totals.jobs },
+          { label: "Job success", value: totals.jobs_success },
+          { label: "Job failures", value: totals.jobs_failure },
+        ];
+        els.summary.innerHTML = cards
+          .map(
+            (c) => `
+            <div class="summary-card">
+              <div class="label">${escapeHtml(c.label)}</div>
+              <div class="value">${c.value ?? 0}</div>
+            </div>`
+          )
+          .join("");
+      }
+
+      function jobBadgeClass(job) {
+        if (job.is_success) return "success";
+        if (job.severity === "ux") return "warn";
+        if (job.severity === "site-failure") return "fail";
+        return "neutral";
+      }
+
+      function renderJobs(jobs = []) {
+        if (!jobs.length) {
+          return '<div class="job"><div class="job-meta">No placements/jobs recorded in this session.</div></div>';
+        }
+        return jobs
+          .map((job) => {
+            const badgeClass = jobBadgeClass(job);
+            return `
+              <div class="job">
+                <div class="job-header">
+                  <div class="badge ${badgeClass}">${escapeHtml(job.termination_label || job.termination)}</div>
+                  <div class="chip muted">${escapeHtml(job.merchant || "merchant")}</div>
+                  ${job.status ? `<div class="chip muted">${escapeHtml(job.status)}</div>` : ""}
+                </div>
+                <div class="job-meta">
+                  ${job.created_on ? `<span>Created ${escapeHtml(formatDateTime(job.created_on))}</span>` : ""}
+                  ${job.completed_on ? `<span>Completed ${escapeHtml(formatDateTime(job.completed_on))}</span>` : ""}
+                  ${job.duration_ms ? `<span>Duration ${escapeHtml(formatDuration(job.duration_ms))}</span>` : ""}
+                  ${job.instance ? `<span>Instance ${escapeHtml(job.instance)}</span>` : ""}
+                </div>
+                ${job.status_message ? `<div class="job-meta">${escapeHtml(job.status_message)}</div>` : ""}
+              </div>
+            `;
+          })
+          .join("");
+      }
+
+      function renderClickstream(steps = []) {
+        if (!steps.length) return "";
+        const items = steps
+          .map((step) => `<span class="click-pill">${escapeHtml(step.url || step.page_title || "step")}</span>`)
+          .join("");
+        return `<div class="clickstream">${items}</div>`;
+      }
+
+      function renderSessions(sessions = []) {
+        if (!sessions.length) {
+          els.sessions.innerHTML = "";
+          els.empty.style.display = "block";
+          return;
+        }
+        els.empty.style.display = "none";
+        els.sessions.innerHTML = sessions
+          .map((session) => {
+            const jobCount = Array.isArray(session.jobs) ? session.jobs.length : 0;
+            const jobSuccess = session.jobs?.filter((j) => j.is_success).length || 0;
+            const jobFailure = Math.max(0, jobCount - jobSuccess);
+            const integrationLabel =
+              session.integration && session.integration !== "UNKNOWN"
+                ? session.integration
+                : session.integration_display && session.integration_display !== "UNKNOWN"
+                ? session.integration_display
+                : "Unknown integration";
+            return `
+              <div class="session-card">
+                <div class="session-top">
+                  <div class="chip">${escapeHtml(session.fi_name)}</div>
+                  <div class="chip muted">${escapeHtml(session.instance)}</div>
+                  <div class="chip muted">${escapeHtml(integrationLabel)}</div>
+                  <div class="chip muted">${escapeHtml(session.partner || "Unknown")}</div>
+                  ${session.is_test ? '<div class="chip test">Test instance</div>' : ""}
+                </div>
+                <div class="session-meta">
+                  ${session.created_on ? `<span><strong>Opened</strong> ${escapeHtml(formatDateTime(session.created_on))}</span>` : ""}
+                  ${session.closed_on ? `<span><strong>Closed</strong> ${escapeHtml(formatDateTime(session.closed_on))}</span>` : ""}
+                  <span><strong>Jobs</strong> ${jobCount} (success ${jobSuccess} / fail ${jobFailure})</span>
+                  ${session.source?.integration ? `<span><strong>Source</strong> ${escapeHtml(session.source.integration)}</span>` : ""}
+                  ${session.fi_lookup_key ? `<span><strong>FI lookup key</strong> ${escapeHtml(session.fi_lookup_key)}</span>` : ""}
+                  ${session.cuid ? `<span><strong>CUID</strong> ${escapeHtml(session.cuid)}</span>` : ""}
+                </div>
+                ${renderClickstream(session.clickstream)}
+                <div class="jobs">
+                  ${renderJobs(session.jobs)}
+                </div>
+                <details class="raw-details">
+                  <summary>Raw session payload</summary>
+                  <pre class="raw-block">${escapeHtml(JSON.stringify(session, null, 2))}</pre>
+                </details>
+                ${
+                  session.placements_raw?.length
+                    ? `<details class="raw-details">
+                        <summary>Raw placement payloads (${session.placements_raw.length})</summary>
+                        <pre class="raw-block">${escapeHtml(JSON.stringify(session.placements_raw, null, 2))}</pre>
+                      </details>`
+                    : ""
+                }
+              </div>
+            `;
+          })
+          .join("");
+      }
+
+      async function loadDay() {
+        const start = els.startDate.value;
+        const end = els.endDate.value || start;
+        if (!start) {
+          setStatus("Pick a start date to inspect.", "error");
+          return;
+        }
+        if (end && new Date(`${start}T00:00:00Z`) > new Date(`${end}T00:00:00Z`)) {
+          setStatus("Start date must be on or before end date.", "error");
+          return;
+        }
+        state.loading = true;
+        els.applyBtn.disabled = true;
+        setStatus("Loading sessions…");
+        try {
+          const res = await fetch(`/troubleshoot/day?${buildQuery()}`);
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.error || "Request failed");
+          }
+          const data = await res.json();
+          state.data = data;
+          refreshFilterOptions();
+          setStatus(
+            `Loaded ${data.sessions?.length || 0} sessions for ${data.startDate || start} → ${data.endDate || end}.`
+          );
+          renderSummary(data.totals);
+          renderSessions(data.sessions || []);
+        } catch (err) {
+          console.error(err);
+          setStatus(err.message || "Unable to load data", "error");
+          renderSummary(null);
+          renderSessions([]);
+        } finally {
+          els.applyBtn.disabled = false;
+          state.loading = false;
+        }
+      }
+
+      function anchorDate() {
+        const anchorIso =
+          state.options?.defaultDate ||
+          (els.endDate.max ? els.endDate.max : null) ||
+          (els.startDate.max ? els.startDate.max : null);
+        if (anchorIso) {
+          const parsed = new Date(`${anchorIso}T00:00:00Z`);
+          if (!Number.isNaN(parsed)) return parsed;
+        }
+        return new Date();
+      }
+
+      function applyPreset(value) {
+        const anchor = anchorDate();
+        const iso = (d) => d.toISOString().slice(0, 10);
+        const dayMs = 86400000;
+        const daysAgo = (n) => iso(new Date(anchor.getTime() - n * dayMs));
+        const startOfYear = `${anchor.getFullYear()}-01-01`;
+        let start = daysAgo(2);
+        let end = iso(anchor);
+        switch (value) {
+          case "last1":
+            start = iso(anchor);
+            end = iso(anchor);
+            break;
+          case "last3":
+            start = daysAgo(2);
+            break;
+          case "last7":
+            start = daysAgo(6);
+            break;
+          case "last14":
+            start = daysAgo(13);
+            break;
+          case "last60":
+            start = daysAgo(59);
+            break;
+          case "last90":
+            start = daysAgo(89);
+            break;
+          case "ytd":
+            start = startOfYear;
+            end = iso(now);
+            break;
+          default:
+            start = daysAgo(29);
+            end = iso(now);
+        }
+        els.startDate.value = start;
+        els.endDate.value = end;
+      }
+
+      els.applyBtn.addEventListener("click", loadDay);
+      els.integration.addEventListener("change", () => {
+        refreshFilterOptions();
+      });
+      els.partner.addEventListener("change", () => {
+        refreshFilterOptions();
+      });
+      els.fi.addEventListener("change", () => {
+        refreshFilterOptions();
+      });
+      els.instance.addEventListener("change", () => {
+        refreshFilterOptions();
+      });
+      const presetSelect = document.getElementById("datePreset");
+      if (presetSelect) {
+        presetSelect.addEventListener("change", () => {
+          applyPreset(presetSelect.value || "last30");
+        });
+      }
+      loadOptions();
+    })();
+  </script>
+</body>
+</html>

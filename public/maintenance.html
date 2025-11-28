@@ -4,9 +4,31 @@
   <meta charset="utf-8" />
   <title>SIS Maintenance</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="stylesheet" href="/sis-shared.css" />
+  <link rel="stylesheet" href="/sis-shared.css?v=navfix" />
+  <link rel="stylesheet" href="assets/css/sis.css">
+  <script defer src="assets/js/sis.js"></script>
   <style>
     :root {
+      --bg: #f5f7fb;
+      --accent: #2563eb;
+      --accent-2: #0ea5e9;
+      --border: #d7deea;
+      --panel-bg: #ffffff;
+      --panel-border: #d7deea;
+      --panel-title: #0f172a;
+      --muted: #475569;
+      --surface: #f8fafc;
+      --success: #16a34a;
+      --danger: #dc2626;
+      --log-bg: #f8fafc;
+      --input-bg: #ffffff;
+      --input-border: #cbd5e1;
+    }
+    [data-theme="dark"] {
+      --bg: #04070d;
+      --accent: #5e8bff;
+      --accent-2: #a679ff;
+      --border: rgba(255, 255, 255, 0.08);
       --panel-bg: #0d1421;
       --panel-border: rgba(255, 255, 255, 0.08);
       --panel-title: #e0e7ff;
@@ -14,31 +36,38 @@
       --surface: rgba(13, 20, 33, 0.55);
       --success: #22c55e;
       --danger: #f97316;
+      --log-bg: #030712;
+      --input-bg: rgba(0, 0, 0, 0.35);
+      --input-border: var(--panel-border);
     }
+    * { box-sizing: border-box; }
     body {
-      background: #04070d;
-      color: #f4f6fb;
+      background: var(--bg);
+      color: var(--panel-title);
       font-family: "Inter", "Segoe UI", ui-sans-serif, system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+      --sis-panel-bg: var(--panel-bg);
+      margin: 0;
+      padding: 16px 16px 64px;
     }
     .maintenance-main {
-      padding: 42px 32px 0 42px;
+      padding: 0;
     }
     .maintenance-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      grid-template-columns: repeat(2, minmax(520px, 1fr));
       gap: 24px;
       margin-top: 28px;
     }
     .maint-card {
-      background: rgba(30, 45, 74, 0.8);
-      border: 1px solid rgba(148, 163, 184, 0.32);
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
       border-radius: 18px;
       padding: 26px;
       display: flex;
       flex-direction: column;
       gap: 16px;
       min-height: 320px;
-      box-shadow: 0 18px 45px rgba(3, 7, 18, 0.45);
+      box-shadow: 0 18px 45px rgba(15, 23, 42, 0.12);
     }
     
     .maint-card p.description {
@@ -48,13 +77,13 @@
       font-size: 14px;
     }
     .refresh-status {
-      background: #030712;
+      background: var(--log-bg);
       border-radius: 10px;
-      border: 1px solid rgba(148, 163, 184, 0.25);
+      border: 1px solid var(--panel-border);
       padding: 12px;
       min-height: 120px;
       font-size: 13px;
-      color: #e2e8f0;
+      color: var(--panel-title);
       font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
     }
     .refresh-status p {
@@ -68,27 +97,102 @@
       max-height: 200px;
       overflow-y: auto;
     }
+    .refresh-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: flex-end;
+    }
+    .refresh-controls label {
+      display: flex;
+      flex-direction: column;
+      font-size: 12px;
+      text-transform: uppercase;
+      color: var(--muted);
+      gap: 4px;
+      flex: 0 0 200px;
+      max-width: 200px;
+    }
+    .refresh-controls input {
+      width: 100%;
+      border-radius: 8px;
+      border: 1px solid var(--panel-border);
+      background: var(--input-bg);
+      color: var(--panel-title);
+      padding: 8px 10px;
+      font-size: 14px;
+      height: 40px;
+      line-height: 22px;
+    }
+    .refresh-controls select {
+      width: 100%;
+      border-radius: 8px;
+      border: 1px solid var(--panel-border);
+      background: var(--input-bg);
+      color: var(--panel-title);
+      padding: 8px 10px;
+      font-size: 14px;
+      height: 40px;
+      line-height: 22px;
+    }
+    .refresh-controls .checkbox {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      text-transform: none;
+      color: var(--muted);
+      height: 40px;
+      padding: 0;
+      flex: 0 0 190px;
+      min-width: 190px;
+      white-space: nowrap;
+    }
+    .refresh-controls .checkbox input {
+      width: auto;
+      min-width: 0;
+      height: 16px;
+    }
+    .refresh-controls .btn {
+      height: 40px;
+      padding: 0 18px;
+      margin-left: 4px;
+    }
+    .refresh-button-wrap {
+      display: flex;
+      align-items: flex-end;
+      padding-top: 16px;
+    }
     .btn {
       display: inline-flex;
       justify-content: center;
       align-items: center;
       text-decoration: none;
+      font-family: "Inter", "Segoe UI", ui-sans-serif, system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
       color: #f8fafc;
       border-radius: 999px;
-      padding: 10px 26px;
-      min-width: 160px;
+      padding: 10px 28px;
+      min-width: 170px;
       font-weight: 600;
-      letter-spacing: 0.03em;
+      letter-spacing: 0.2px;
       border: none;
-      background: linear-gradient(120deg, #5e8bff, #a879ff);
+      background: linear-gradient(120deg, var(--accent), var(--accent-2));
       transition: transform 0.15s ease, filter 0.15s ease;
       cursor: pointer;
       appearance: none;
     }
     .btn.secondary {
       background: transparent;
-      border: 1px solid var(--panel-border);
+      border: 1px solid var(--border);
       color: var(--muted);
+    }
+    .btn.danger {
+      background: var(--danger);
+      color: #fff;
+    }
+    .btn.secondary.danger {
+      color: var(--danger);
+      border-color: var(--danger);
     }
     .btn:hover {
       transform: translateY(-1px);
@@ -114,13 +218,22 @@
     }
     .registry-controls input,
     .registry-controls select {
-      min-width: 180px;
+      width: 100%;
+      min-width: 170px;
+      max-width: 220px;
       border-radius: 8px;
       border: 1px solid var(--panel-border);
-      background: rgba(0, 0, 0, 0.35);
-      color: #f8fafc;
+      background: var(--input-bg);
+      color: var(--panel-title);
       padding: 8px 10px;
       font-size: 14px;
+      height: 40px;
+      line-height: 22px;
+    }
+    .registry-controls .btn {
+      height: 40px;
+      padding: 0 20px;
+      align-self: flex-end;
     }
     .registry-body {
       display: grid;
@@ -142,7 +255,7 @@
       font-size: 13px;
     }
     .registry-table-wrapper thead {
-      background: rgba(255,255,255,0.04);
+      background: var(--surface);
       position: sticky;
       top: 0;
       z-index: 2;
@@ -150,7 +263,7 @@
     .registry-table-wrapper th,
     .registry-table-wrapper td {
       padding: 8px 10px;
-      border-bottom: 1px solid rgba(255,255,255,0.06);
+      border-bottom: 1px solid var(--panel-border);
       text-align: left;
     }
     .registry-table-wrapper tbody {
@@ -165,17 +278,17 @@
       table-layout: fixed;
     }
     .registry-table-wrapper tbody tr.selected {
-      background: rgba(94, 139, 255, 0.15);
+      background: rgba(37, 99, 235, 0.14);
     }
     .registry-table-wrapper tbody tr:hover {
-      background: rgba(94, 139, 255, 0.12);
+      background: rgba(37, 99, 235, 0.1);
       cursor: pointer;
     }
     .registry-editor {
       border: 1px solid var(--panel-border);
       border-radius: 12px;
       padding: 16px;
-      background: rgba(255, 255, 255, 0.02);
+      background: var(--surface);
       display: flex;
       flex-direction: column;
       gap: 12px;
@@ -200,8 +313,8 @@
     .registry-editor select {
       border-radius: 8px;
       border: 1px solid var(--panel-border);
-      background: rgba(0, 0, 0, 0.35);
-      color: #f8fafc;
+      background: var(--input-bg);
+      color: var(--panel-title);
       padding: 8px 10px;
       font-size: 14px;
     }
@@ -216,6 +329,131 @@
       font-size: 12px;
       color: var(--muted);
     }
+    .refresh-card {
+      grid-column: 1 / -1;
+    }
+    .instances-body {
+      display: grid;
+      grid-template-columns: minmax(260px, 1fr) minmax(320px, 1.1fr);
+      gap: 16px;
+      align-items: start;
+    }
+    .instances-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: flex-end;
+    }
+    .instances-controls label {
+      display: flex;
+      flex-direction: column;
+      font-size: 12px;
+      text-transform: uppercase;
+      color: var(--muted);
+      gap: 4px;
+    }
+    .instances-controls input {
+      min-width: 200px;
+      border-radius: 8px;
+      border: 1px solid var(--panel-border);
+      background: var(--input-bg);
+      color: var(--panel-title);
+      padding: 8px 10px;
+      font-size: 14px;
+    }
+    .instances-controls .instance-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .instances-table-wrapper {
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+      overflow: hidden;
+      max-height: 520px;
+      display: flex;
+      flex-direction: column;
+      background: var(--surface);
+    }
+    .instances-table-wrapper table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .instances-table-wrapper thead {
+      background: var(--surface);
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+    .instances-table-wrapper th,
+    .instances-table-wrapper td {
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--panel-border);
+      text-align: left;
+    }
+    .instances-table-wrapper tbody {
+      display: block;
+      overflow-y: auto;
+      max-height: 460px;
+    }
+    .instances-table-wrapper thead,
+    .instances-table-wrapper tbody tr {
+      display: table;
+      width: 100%;
+      table-layout: fixed;
+    }
+    .instances-table-wrapper tbody tr.selected {
+      background: rgba(37, 99, 235, 0.14);
+    }
+    .instances-table-wrapper tbody tr:hover {
+      background: rgba(37, 99, 235, 0.1);
+      cursor: pointer;
+    }
+    .instances-editor {
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+      padding: 16px;
+      background: var(--surface);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .instances-editor fieldset {
+      border: none;
+      padding: 0;
+      margin: 0;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+    }
+    .instances-editor label {
+      display: flex;
+      flex-direction: column;
+      font-size: 12px;
+      text-transform: uppercase;
+      color: var(--muted);
+      gap: 4px;
+    }
+    .instances-editor input,
+    .instances-editor textarea {
+      border-radius: 8px;
+      border: 1px solid var(--panel-border);
+      background: var(--input-bg);
+      color: var(--panel-title);
+      padding: 8px 10px;
+      font-size: 14px;
+    }
+    .instances-editor textarea {
+      min-height: 70px;
+      resize: vertical;
+      font-family: "Inter", "Segoe UI", ui-sans-serif, system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+    .instances-meta {
+      font-size: 12px;
+      color: var(--muted);
+    }
     .status-line {
       font-size: 13px;
       min-height: 20px;
@@ -226,36 +464,52 @@
       .registry-body {
         grid-template-columns: 1fr;
       }
+      .instances-body {
+        grid-template-columns: 1fr;
+      }
+      .refresh-card {
+        grid-column: auto;
+      }
       .registry-table-wrapper,
-      .registry-table-wrapper tbody {
+      .registry-table-wrapper tbody,
+      .instances-table-wrapper,
+      .instances-table-wrapper tbody {
         max-height: 320px;
+      }
+    }
+    @media (max-width: 1180px) {
+      .maintenance-grid {
+        grid-template-columns: 1fr;
+      }
+      .refresh-card {
+        grid-column: auto;
       }
     }
   </style>
 </head>
 <body>
   <header class="sis-header">
-    <div class="sis-header__inner">
-      <div class="sis-brand">Strivve Insights Service (SIS)</div>
+    <div class="sis-topbar">
+      <div class="sis-title">Strivve Insights Service</div>
+
       <nav class="sis-nav">
-        <a class="sis-nav__item" href="/">Overview</a>
-        <a class="sis-nav__item" href="/funnel.html">FI Funnel</a>
-        <a class="sis-nav__item" href="/heatmap.html">Merchant Heatmap</a>
-        <a class="sis-nav__item sis-nav__item--active" href="/maintenance.html">Maintenance</a>
+        <a href="index.html">Overview</a>
+        <a href="funnel.html">FI Funnel</a>
+        <a href="heatmap.html">Merchant Heatmap</a>
+        <a href="troubleshoot.html">Troubleshooting</a>
+        <a href="maintenance.html">Maintenance</a>
       </nav>
     </div>
+
+    <h1 class="sis-page-name">Maintenance &amp; Registry</h1>
+    <p class="sis-page-desc">Run SIS refresh jobs and curate FI registry metadata without leaving your browser. The registry editor honors overrides (cardholder totals, sources, dates) and pushes changes back to fi_registry.json.</p>
   </header>
+  <div class="sis-content">
   <main class="sis-main maintenance-main">
     <section class="sis-panel">
-      <h1 class="sis-panel-title">Maintenance &amp; Registry</h1>
-      <p class="sis-panel-subtitle">
-        Run SIS refresh jobs and curate FI registry metadata without leaving your browser.
-        The registry editor honors overrides (cardholder totals, sources, dates) and pushes
-        changes back to <code>fi_registry.json</code>.
-      </p>
 
       <div class="maintenance-grid" style="padding-right: 10px;">
-        <article class="maint-card" id="refreshCard">
+        <article class="maint-card refresh-card" id="refreshCard">
           <div>
             <h2>Data Refresh (GA + SIS)</h2>
             <p class="description">
@@ -263,7 +517,36 @@
               page open to watch progress or leave it running in the background.
             </p>
           </div>
-          <button class="btn" id="refreshBtn" type="button">Start Refresh</button>
+          <div class="refresh-controls">
+            <label>
+              Range Preset
+              <select id="refreshPreset">
+                <option value="last30" selected>Last 30 days</option>
+                <option value="last7">Last 7 days</option>
+                <option value="last14">Last 14 days</option>
+                <option value="last60">Last 60 days</option>
+                <option value="last90">Last 90 days</option>
+                <option value="ytd">Year to date</option>
+                <option value="">Custom</option>
+              </select>
+            </label>
+            <label>
+              Start Date
+              <input type="date" id="refreshStartDate" />
+            </label>
+            <label>
+              End Date
+              <input type="date" id="refreshEndDate" />
+            </label>
+            <div class="refresh-button-wrap">
+              <button class="btn" id="refreshBtn" type="button">Start Refresh</button>
+            </div>
+            <label class="checkbox">
+              <input type="checkbox" id="refreshForceRaw" />
+              Force refetch raw data
+            </label>
+          </div>
+          <div class="refresh-freshness" id="dataFreshness" aria-live="polite"></div>
           <div class="refresh-status" aria-live="polite">
             <p id="refreshStatus">Idle.</p>
             <pre id="refreshLog" class="refresh-log"></pre>
@@ -317,7 +600,11 @@
                 <fieldset>
                   <label>
                     FI Name
-                    <input type="text" id="editorFiName" disabled />
+                    <input type="text" id="editorFiName" required />
+                  </label>
+                  <label>
+                    FI Lookup Key
+                    <input type="text" id="editorFiLookup" required />
                   </label>
                   <label>
                     Instance
@@ -368,6 +655,80 @@
                 <div class="editor-actions">
                   <button class="btn" type="submit" id="editorSaveBtn" disabled>Save Changes</button>
                   <button class="btn secondary" type="button" id="editorResetBtn" disabled>Reset</button>
+                  <button class="btn danger" type="button" id="editorDeleteBtn" disabled>Delete</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </article>
+
+        <article class="maint-card instances-card">
+          <div>
+            <h2>Instance Credentials</h2>
+            <p class="description">
+              Manage Cardsavr endpoints and credentials stored in <code>src/instances.json</code>.
+              Add new instances, update existing entries, or delete ones you no longer use.
+            </p>
+          </div>
+          <div class="instances-controls">
+            <label>
+              Search
+              <input type="text" id="instancesSearch" placeholder="Instance name, app, or URL" />
+            </label>
+            <div class="instance-actions">
+              <button class="btn secondary" id="instancesReloadBtn" type="button">Reload</button>
+              <button class="btn" id="instancesNewBtn" type="button">New Instance</button>
+            </div>
+          </div>
+          <div class="instances-body">
+            <div class="instances-table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>App</th>
+                    <th>Endpoint</th>
+                  </tr>
+                </thead>
+                <tbody id="instancesTableBody">
+                  <tr><td colspan="3">Loading…</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="instances-editor" id="instancesEditor">
+              <div class="status-line" id="instancesStatus">Select an instance to view credentials or create a new one.</div>
+              <form id="instancesForm">
+                <fieldset>
+                  <label>
+                    Name
+                    <input type="text" id="instanceName" required placeholder="e.g. advancial-prod" />
+                  </label>
+                  <label>
+                    App Name
+                    <input type="text" id="instanceApp" placeholder="e.g. SIS_Insights" />
+                  </label>
+                  <label>
+                    Cardsavr Endpoint
+                    <input type="text" id="instanceUrl" required placeholder="https://api.example.cardsavr.io" />
+                  </label>
+                  <label>
+                    Username
+                    <input type="text" id="instanceUsername" required />
+                  </label>
+                  <label>
+                    Password
+                    <input type="text" id="instancePassword" required />
+                  </label>
+                  <label>
+                    API Key
+                    <textarea id="instanceApiKey" required></textarea>
+                  </label>
+                </fieldset>
+                <div class="instances-meta" id="instancesMeta"></div>
+                <div class="editor-actions">
+                  <button class="btn" type="submit" id="instanceSaveBtn" disabled>Save Instance</button>
+                  <button class="btn secondary" type="button" id="instanceResetBtn" disabled>Reset</button>
+                  <button class="btn danger" type="button" id="instanceDeleteBtn" disabled>Delete</button>
                 </div>
               </form>
             </div>
@@ -376,40 +737,162 @@
       </div>
     </section>
   </main>
+  </div>
 
+  <script src="/public/theme-toggle.js"></script>
   <script>
     (function setupRefreshPanel() {
       const button = document.getElementById("refreshBtn");
       const statusEl = document.getElementById("refreshStatus");
       const logEl = document.getElementById("refreshLog");
+      const startInput = document.getElementById("refreshStartDate");
+      const endInput = document.getElementById("refreshEndDate");
+      const presetSelect = document.getElementById("refreshPreset");
+      const forceCheckbox = document.getElementById("refreshForceRaw");
+      const freshnessEl = document.getElementById("dataFreshness");
       let source = null;
+
+      const iso = (d) => d.toISOString().slice(0, 10);
 
       function setStatus(text) {
         statusEl.textContent = text || "";
+      }
+      function labelFromFreshness(data) {
+        if (!data) return "";
+        const parts = [];
+        if (data.rawLatest) {
+          const age = data.rawAgeDays ?? null;
+          parts.push(
+            `Raw: ${data.rawLatest}${
+              Number.isFinite(age) ? ` (${age} day${age === 1 ? "" : "s"} old)` : ""
+            }`
+          );
+        }
+        if (data.dailyLatest) {
+          const age = data.dailyAgeDays ?? null;
+          parts.push(
+            `Daily: ${data.dailyLatest}${
+              Number.isFinite(age) ? ` (${age} day${age === 1 ? "" : "s"} old)` : ""
+            }`
+          );
+        }
+        return parts.join(" • ");
+      }
+      async function loadFreshness() {
+        if (!freshnessEl) return;
+        freshnessEl.textContent = "Checking data freshness…";
+        try {
+          const res = await fetch("/data-freshness");
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const data = await res.json();
+          const label = labelFromFreshness(data);
+          freshnessEl.textContent = label
+            ? `Latest data — ${label}`
+            : "Latest data not available.";
+        } catch (err) {
+          console.error("freshness load failed", err);
+          freshnessEl.textContent = "Unable to determine data freshness.";
+        }
       }
 
       function appendLogLine(text) {
         if (!text) return;
         const ts = new Date().toLocaleTimeString();
-        logEl.textContent += `[${ts}] ${text}\\n`;
+        const normalized = text.replace(/\r\n?/g, "\n");
+        logEl.textContent += `[${ts}] ${normalized}\n`;
         logEl.scrollTop = logEl.scrollHeight;
       }
 
-      button?.addEventListener("click", () => {
+      function applyPreset(value) {
+        const today = new Date();
+        const todayIso = iso(today);
+        const startOfYear = `${today.getFullYear()}-01-01`;
+        const dayMs = 86400000;
+        const daysAgo = (n) => iso(new Date(today.getTime() - n * dayMs));
+        let start = daysAgo(29);
+        let end = todayIso;
+        switch (value) {
+          case "last7":
+            start = daysAgo(6);
+            break;
+          case "last14":
+            start = daysAgo(13);
+            break;
+          case "last60":
+            start = daysAgo(59);
+            break;
+          case "last90":
+            start = daysAgo(89);
+            break;
+          case "ytd":
+            start = startOfYear;
+            break;
+          case "last30":
+          default:
+            start = daysAgo(29);
+            break;
+        }
+        startInput.value = start;
+        endInput.value = end;
+      }
+
+      function validRangeOrFallback(fallback) {
+        const endVal = endInput.value || "";
+        const startVal = startInput.value || "";
+        const todayStr = iso(new Date());
+        const end = /^\d{4}-\d{2}-\d{2}$/.test(endVal)
+          ? endVal
+          : fallback?.end || todayStr;
+        const start = /^\d{4}-\d{2}-\d{2}$/.test(startVal)
+          ? startVal
+          : fallback?.start || iso(new Date(new Date(end).getTime() - 29 * 86400000));
+        if (new Date(`${start}T00:00:00Z`) > new Date(`${end}T00:00:00Z`)) {
+          return null;
+        }
+        return { start, end };
+      }
+
+      function setDefaultRange() {
+        applyPreset("last30");
+        if (presetSelect) presetSelect.value = "last30";
+        if (forceCheckbox) forceCheckbox.checked = false;
+      }
+
+      function openStream(range) {
         if (!button) return;
         if (source) {
           source.close();
           source = null;
         }
+        const resolvedRange = validRangeOrFallback(range);
+        if (!resolvedRange) {
+          setStatus("Start date must be on or before end date.");
+          return;
+        }
+        startInput.value = resolvedRange.start;
+        endInput.value = resolvedRange.end;
+        const forceRaw = forceCheckbox?.checked ? "true" : "false";
         logEl.textContent = "";
-        setStatus("Starting refresh…");
-        source = new EventSource("/run-update/stream");
+        setStatus(
+          `Running refresh for ${resolvedRange.start} → ${resolvedRange.end}${
+            forceRaw === "true" ? " (force refetch raw)" : ""
+          }…`
+        );
+        const params = new URLSearchParams({
+          start: resolvedRange.start,
+          end: resolvedRange.end,
+          forceRaw,
+        });
+        source = new EventSource(`/run-update/stream?${params.toString()}`);
 
         source.addEventListener("open", () => appendLogLine("Connected to update stream."));
 
         source.addEventListener("snapshot", (ev) => {
           try {
             const data = JSON.parse(ev.data || "{}");
+            if (data.startDate) startInput.value = data.startDate;
+            if (data.endDate) endInput.value = data.endDate;
+            if (forceCheckbox) forceCheckbox.checked = Boolean(data.forceRaw);
             if (data.running) {
               setStatus(`Update already running for ${data.startDate} → ${data.endDate}…`);
               appendLogLine(data.lastMessage || "Resumed existing job.");
@@ -427,6 +910,9 @@
         source.addEventListener("init", (ev) => {
           try {
             const data = JSON.parse(ev.data || "{}");
+            if (data.startDate) startInput.value = data.startDate;
+            if (data.endDate) endInput.value = data.endDate;
+            if (forceCheckbox) forceCheckbox.checked = Boolean(data.forceRaw);
             setStatus(`Running: ${data.startDate} → ${data.endDate}`);
             appendLogLine(data.message || "Update started.");
           } catch (err) {
@@ -461,7 +947,61 @@
           source?.close();
           source = null;
         });
+      }
+
+      button?.addEventListener("click", () => openStream());
+      if (presetSelect) {
+        presetSelect.addEventListener("change", () => {
+          applyPreset(presetSelect.value || "last30");
+        });
+      }
+      startInput?.addEventListener("input", () => {
+        if (presetSelect) presetSelect.value = "";
       });
+      endInput?.addEventListener("input", () => {
+        if (presetSelect) presetSelect.value = "";
+      });
+      forceCheckbox?.addEventListener("change", () => {
+        if (forceCheckbox.checked) {
+          appendLogLine("Force refetch raw is enabled. Existing raw caches in range will be replaced.");
+        }
+      });
+
+      async function hydrateStatus() {
+        setDefaultRange();
+        loadFreshness();
+        try {
+          const res = await fetch("/run-update/status");
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const data = await res.json();
+          if (data.defaultRange) {
+            const dr = data.defaultRange;
+            startInput.value = dr.startDate || dr.start || startInput.value;
+            endInput.value = dr.endDate || dr.end || endInput.value;
+            if (presetSelect) {
+              presetSelect.value = "last30";
+            }
+          }
+          if (data.startDate) startInput.value = data.startDate;
+          if (data.endDate) endInput.value = data.endDate;
+          if (forceCheckbox) forceCheckbox.checked = Boolean(data.forceRaw);
+          if (data.lastMessage) appendLogLine(data.lastMessage);
+          if (data.running) {
+            setStatus(`Update already running for ${data.startDate} → ${data.endDate}…`);
+            openStream({ start: data.startDate, end: data.endDate });
+          } else if (data.finishedAt) {
+            setStatus(`Last update completed for ${data.startDate} → ${data.endDate}.`, "success");
+          } else {
+            setStatus("Ready to start update…");
+          }
+        } catch (err) {
+          console.error("status hydrate failed", err);
+          // Keep defaults and show ready state even if status fetch fails
+          setStatus("Ready to start update…");
+        }
+      }
+
+      hydrateStatus();
     })();
 
     (function setupRegistryEditor() {
@@ -474,8 +1014,10 @@
       const form = document.getElementById("registryForm");
       const saveBtn = document.getElementById("editorSaveBtn");
       const resetBtn = document.getElementById("editorResetBtn");
+      const deleteBtn = document.getElementById("editorDeleteBtn");
       const inputs = {
         fi: document.getElementById("editorFiName"),
+        fiLookup: document.getElementById("editorFiLookup"),
         instance: document.getElementById("editorInstance"),
         integration: document.getElementById("editorIntegration"),
         partner: document.getElementById("editorPartner"),
@@ -572,6 +1114,7 @@
       function populateForm(entry) {
         if (!entry) {
           inputs.fi.value = "";
+          inputs.fiLookup.value = "";
           inputs.instance.value = "";
           inputs.integration.value = "NON-SSO";
           inputs.partner.value = "";
@@ -581,9 +1124,11 @@
           metaLine.textContent = "";
           saveBtn.disabled = true;
           resetBtn.disabled = true;
+          deleteBtn.disabled = true;
           return;
         }
         inputs.fi.value = entry.fi_name;
+        inputs.fiLookup.value = entry.fi_lookup_key || entry.fi_name || "";
         inputs.instance.value = entry.instance;
         inputs.integration.value = entry.integration_type || "NON-SSO";
         inputs.partner.value = entry.partner || "";
@@ -603,6 +1148,7 @@
         metaLine.textContent = `First seen: ${entry.first_seen || "—"} • Last seen: ${entry.last_seen || "—"}`;
         saveBtn.disabled = false;
         resetBtn.disabled = false;
+        deleteBtn.disabled = false;
       }
 
       function getEntryByKey(key) {
@@ -638,12 +1184,16 @@
 
       function gatherFormUpdates() {
         const updates = {
+          fi_name: inputs.fi.value.trim(),
+          fi_lookup_key: inputs.fiLookup.value.trim(),
           integration_type: inputs.integration.value,
           partner: inputs.partner.value.trim(),
           cardholder_total: inputs.cardholders.value.trim(),
           cardholder_source: inputs.source.value.trim(),
           cardholder_as_of: inputs.asOf.value || "",
         };
+        if (!updates.fi_name) throw new Error("FI Name is required");
+        if (!updates.fi_lookup_key) throw new Error("FI Lookup Key is required");
         updates.partner = updates.partner === "" ? null : updates.partner;
         updates.cardholder_total = updates.cardholder_total === "" ? null : updates.cardholder_total;
         updates.cardholder_source = updates.cardholder_source === "" ? null : updates.cardholder_source;
@@ -655,6 +1205,7 @@
         if (!selectedKey || saving) return;
         saving = true;
         saveBtn.disabled = true;
+        deleteBtn.disabled = true;
         setStatus("Saving changes…");
         try {
           const payload = {
@@ -680,10 +1231,49 @@
           setStatus("Registry updated.", "success");
         } catch (err) {
           console.error("save failed", err);
-          setStatus("Failed to save changes.", "error");
+          setStatus(err?.message || "Failed to save changes.", "error");
         } finally {
           saving = false;
           saveBtn.disabled = !selectedKey;
+          deleteBtn.disabled = !selectedKey;
+        }
+      }
+
+      async function deleteEntry() {
+        if (!selectedKey || saving) return;
+        const entry = getEntryByKey(selectedKey);
+        const label = entry ? `${entry.fi_name} (${entry.instance})` : selectedKey;
+        if (!window.confirm(`Delete ${label}? This cannot be undone.`)) {
+          return;
+        }
+        saving = true;
+        saveBtn.disabled = true;
+        resetBtn.disabled = true;
+        deleteBtn.disabled = true;
+        setStatus("Deleting entry…");
+        try {
+          const res = await fetch("/fi-registry/delete", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ key: selectedKey }),
+          });
+          if (!res.ok) {
+            const errText = await res.text();
+            throw new Error(errText || `HTTP ${res.status}`);
+          }
+          entries = entries.filter((e) => e.key !== selectedKey);
+          selectedKey = null;
+          populateForm(null);
+          renderTable();
+          setStatus("Registry entry deleted.", "success");
+        } catch (err) {
+          console.error("delete failed", err);
+          setStatus(err?.message || "Failed to delete entry.", "error");
+        } finally {
+          saving = false;
+          saveBtn.disabled = !selectedKey;
+          resetBtn.disabled = !selectedKey;
+          deleteBtn.disabled = !selectedKey;
         }
       }
 
@@ -707,8 +1297,289 @@
         populateForm(getEntryByKey(selectedKey));
         setStatus("Values reset.", "");
       });
+      deleteBtn.addEventListener("click", deleteEntry);
 
       loadRegistry();
+    })();
+
+    (function setupInstancesManager() {
+      const tableBody = document.getElementById("instancesTableBody");
+      const searchInput = document.getElementById("instancesSearch");
+      const reloadBtn = document.getElementById("instancesReloadBtn");
+      const newBtn = document.getElementById("instancesNewBtn");
+      const statusLine = document.getElementById("instancesStatus");
+      const metaLine = document.getElementById("instancesMeta");
+      const form = document.getElementById("instancesForm");
+      const saveBtn = document.getElementById("instanceSaveBtn");
+      const resetBtn = document.getElementById("instanceResetBtn");
+      const deleteBtn = document.getElementById("instanceDeleteBtn");
+      const inputs = {
+        name: document.getElementById("instanceName"),
+        app: document.getElementById("instanceApp"),
+        url: document.getElementById("instanceUrl"),
+        username: document.getElementById("instanceUsername"),
+        password: document.getElementById("instancePassword"),
+        apiKey: document.getElementById("instanceApiKey"),
+      };
+
+      let instances = [];
+      let selectedName = null;
+      let saving = false;
+
+      const normalize = (entry = {}) => ({
+        name: entry.name?.trim() || "",
+        APP_NAME: entry.APP_NAME?.trim() || "",
+        CARDSAVR_INSTANCE: entry.CARDSAVR_INSTANCE?.trim() || "",
+        USERNAME: entry.USERNAME?.trim() || "",
+        PASSWORD: entry.PASSWORD?.trim() || "",
+        API_KEY: entry.API_KEY?.trim() || "",
+      });
+
+      function setStatus(message, kind = "") {
+        statusLine.textContent = message || "";
+        statusLine.className = "status-line " + kind;
+      }
+
+      function getEntry(name) {
+        return instances.find((inst) => inst.name === name) || null;
+      }
+
+      function renderTable() {
+        const search = (searchInput.value || "").toLowerCase().trim();
+        const filtered = instances
+          .filter((inst) => {
+            if (!search) return true;
+            const haystack = `${inst.name} ${inst.APP_NAME} ${inst.CARDSAVR_INSTANCE} ${inst.USERNAME}`
+              .toLowerCase();
+            return haystack.includes(search);
+          })
+          .sort((a, b) => a.name.localeCompare(b.name));
+
+        tableBody.innerHTML = "";
+        if (!filtered.length) {
+          const tr = document.createElement("tr");
+          const td = document.createElement("td");
+          td.colSpan = 3;
+          td.textContent = "No instances match the current filters.";
+          tr.appendChild(td);
+          tableBody.appendChild(tr);
+          return;
+        }
+
+        filtered.forEach((inst) => {
+          const tr = document.createElement("tr");
+          tr.dataset.name = inst.name;
+          if (inst.name === selectedName) tr.classList.add("selected");
+          tr.innerHTML = `
+            <td>${inst.name || "—"}</td>
+            <td>${inst.APP_NAME || "—"}</td>
+            <td>${inst.CARDSAVR_INSTANCE || "—"}</td>
+          `;
+          tableBody.appendChild(tr);
+        });
+      }
+
+      function populateForm(entry) {
+        if (!entry) {
+          inputs.name.value = "";
+          inputs.app.value = "";
+          inputs.url.value = "";
+          inputs.username.value = "";
+          inputs.password.value = "";
+          inputs.apiKey.value = "";
+          metaLine.textContent = "";
+          resetBtn.disabled = true;
+          deleteBtn.disabled = true;
+          updateSaveState();
+          return;
+        }
+        inputs.name.value = entry.name;
+        inputs.app.value = entry.APP_NAME || "";
+        inputs.url.value = entry.CARDSAVR_INSTANCE || "";
+        inputs.username.value = entry.USERNAME || "";
+        inputs.password.value = entry.PASSWORD || "";
+        inputs.apiKey.value = entry.API_KEY || "";
+        metaLine.textContent = entry.CARDSAVR_INSTANCE
+          ? `Endpoint: ${entry.CARDSAVR_INSTANCE}`
+          : "";
+        resetBtn.disabled = false;
+        deleteBtn.disabled = false;
+        updateSaveState();
+      }
+
+      function updateSaveState() {
+        const required =
+          inputs.name.value.trim() &&
+          inputs.url.value.trim() &&
+          inputs.username.value.trim() &&
+          inputs.password.value.trim() &&
+          inputs.apiKey.value.trim();
+        saveBtn.disabled = saving || !required;
+        deleteBtn.disabled = saving || !selectedName;
+      }
+
+      function gatherFormEntry() {
+        return normalize({
+          name: inputs.name.value,
+          APP_NAME: inputs.app.value,
+          CARDSAVR_INSTANCE: inputs.url.value,
+          USERNAME: inputs.username.value,
+          PASSWORD: inputs.password.value,
+          API_KEY: inputs.apiKey.value,
+        });
+      }
+
+      async function loadInstances() {
+        setStatus("Loading instances…");
+        tableBody.innerHTML = "<tr><td colspan='3'>Loading…</td></tr>";
+        try {
+          const res = await fetch("/instances");
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const payload = await res.json();
+          const list = Array.isArray(payload?.instances) ? payload.instances : payload;
+          instances = Array.isArray(list) ? list.map(normalize) : [];
+          if (selectedName && !instances.some((i) => i.name === selectedName)) {
+            selectedName = null;
+          }
+          populateForm(selectedName ? getEntry(selectedName) : null);
+          renderTable();
+          const pathLabel = payload?.path ? ` (${payload.path})` : "";
+          metaLine.textContent = instances.length
+            ? `${instances.length} instance${instances.length === 1 ? "" : "s"} stored in instances.json${pathLabel}`
+            : `No instances defined yet${pathLabel}.`;
+          setStatus("Instances loaded.", "success");
+        } catch (err) {
+          console.error("instances load failed", err);
+          setStatus("Failed to load instances. Ensure the dev server is running and instances.json is present.", "error");
+          tableBody.innerHTML = "<tr><td colspan='3'>Unable to load instances.</td></tr>";
+          metaLine.textContent = "";
+        }
+      }
+
+      function selectInstance(name) {
+        selectedName = name;
+        populateForm(name ? getEntry(name) : null);
+        setStatus(name ? `Editing ${name}` : "Select an instance to view details.");
+        renderTable();
+      }
+
+      function startNewInstance() {
+        selectedName = null;
+        populateForm({
+          name: "",
+          APP_NAME: "",
+          CARDSAVR_INSTANCE: "",
+          USERNAME: "",
+          PASSWORD: "",
+          API_KEY: "",
+        });
+        setStatus("Creating a new instance entry.");
+        renderTable();
+      }
+
+      async function saveInstance() {
+        if (saving) return;
+        if (form.reportValidity && !form.reportValidity()) return;
+        saving = true;
+        updateSaveState();
+        const isNew = !selectedName;
+        setStatus(isNew ? "Creating instance…" : "Saving changes…");
+
+        try {
+          const payload = {
+            originalName: selectedName,
+            entry: gatherFormEntry(),
+          };
+          const res = await fetch("/instances/save", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          if (!res.ok) {
+            const errText = await res.text();
+            throw new Error(errText || `HTTP ${res.status}`);
+          }
+          const data = await res.json();
+          if (Array.isArray(data.instances)) {
+            instances = data.instances.map(normalize);
+          } else {
+            const updated = normalize(data.entry || payload.entry);
+            const idx = instances.findIndex((i) => i.name === updated.name);
+            if (idx >= 0) instances[idx] = updated;
+            else instances.push(updated);
+          }
+          selectedName = (data.entry && data.entry.name) || payload.entry.name;
+          populateForm(getEntry(selectedName));
+          renderTable();
+          setStatus(isNew ? "Instance created." : "Instance updated.", "success");
+        } catch (err) {
+          console.error("save instance failed", err);
+          setStatus(err.message || "Failed to save instance.", "error");
+        } finally {
+          saving = false;
+          updateSaveState();
+        }
+      }
+
+      async function deleteInstance() {
+        if (!selectedName || saving) return;
+        const confirmDelete = window.confirm(
+          `Delete instance "${selectedName}" from instances.json?`
+        );
+        if (!confirmDelete) return;
+        saving = true;
+        updateSaveState();
+        setStatus(`Deleting ${selectedName}…`);
+        try {
+          const res = await fetch("/instances/delete", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name: selectedName }),
+          });
+          if (!res.ok) {
+            const errText = await res.text();
+            throw new Error(errText || `HTTP ${res.status}`);
+          }
+          const data = await res.json();
+          if (Array.isArray(data.instances)) {
+            instances = data.instances.map(normalize);
+          } else {
+            instances = instances.filter((inst) => inst.name !== selectedName);
+          }
+          selectedName = null;
+          populateForm(null);
+          renderTable();
+          setStatus("Instance deleted.", "success");
+        } catch (err) {
+          console.error("delete instance failed", err);
+          setStatus(err.message || "Failed to delete instance.", "error");
+        } finally {
+          saving = false;
+          updateSaveState();
+        }
+      }
+
+      tableBody.addEventListener("click", (event) => {
+        const tr = event.target.closest("tr[data-name]");
+        if (!tr) return;
+        selectInstance(tr.dataset.name);
+      });
+      searchInput.addEventListener("input", renderTable);
+      reloadBtn.addEventListener("click", loadInstances);
+      newBtn.addEventListener("click", startNewInstance);
+      form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        saveInstance();
+      });
+      form.addEventListener("input", updateSaveState);
+      resetBtn.addEventListener("click", () => {
+        if (!selectedName) return;
+        populateForm(getEntry(selectedName));
+        setStatus("Values reset.", "");
+      });
+      deleteBtn.addEventListener("click", deleteInstance);
+
+      loadInstances();
     })();
   </script>
 </body>

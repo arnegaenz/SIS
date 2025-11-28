@@ -4,15 +4,39 @@
     <meta charset="utf-8" />
     <title>GA + SIS CardUpdatr Funnel</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="stylesheet" href="/sis-shared.css" />
+    <link rel="stylesheet" href="/sis-shared.css?v=navfix" />
+    <link rel="stylesheet" href="assets/css/sis.css">
+    <script defer src="assets/js/sis.js"></script>
     <style>
       :root {
+        --bg: #f6f8fb;
+        --panel: #ffffff;
+        --panel-light: #f1f5f9;
+        --text: #0f172a;
+        --muted: #475569;
+        --accent: #2563eb;
+        --accent-2: #0ea5e9;
+        --border: #d7deea;
+        --input-bg: #ffffff;
+        --input-border: #cbd5e1;
+        --table-border: #d7deea;
+        --table-header: #e2e8f0;
+        --table-alt: #f8fafc;
+      }
+      [data-theme="dark"] {
         --bg: #0f172a;
         --panel: #111827;
         --panel-light: #1f2937;
         --text: #e2e8f0;
         --muted: #94a3b8;
         --accent: #38bdf8;
+        --accent-2: #6366f1;
+        --border: rgba(148, 163, 184, 0.3);
+        --input-bg: #0b1120;
+        --input-border: rgba(148,163,184,0.3);
+        --table-border: #1f2937;
+        --table-header: #020617;
+        --table-alt: rgba(2,6,23,0.65);
       }
       * {
         box-sizing: border-box;
@@ -24,7 +48,7 @@
         background: var(--bg);
         color: var(--text);
         font-size: 16px;
-        --sis-panel-bg: #020617;
+        --sis-panel-bg: var(--panel);
       }
       .sis-panel-title {
         font-size: 1.2rem;
@@ -33,7 +57,7 @@
       .form-grid {
         display: flex;
         flex-wrap: wrap;
-        gap: 14px;
+        gap: 6px;
         align-items: flex-end;
       }
       .form-field {
@@ -41,32 +65,37 @@
         flex-direction: column;
         gap: 6px;
         min-width: 160px;
+        min-height: 54px;
       }
       .form-field label {
         font-size: 0.85rem;
         color: var(--muted);
         letter-spacing: 0.03em;
         text-transform: uppercase;
+        padding-left: 2px;
       }
       .form-input,
       .form-select {
-        background: #0b1120;
-        border: 1px solid rgba(148,163,184,0.3);
+        background: var(--input-bg);
+        border: 1px solid var(--input-border);
         border-radius: 10px;
         color: var(--text);
-        padding: 9px 12px;
+        padding: 10px 12px;
         font-size: 0.92rem;
         min-width: 160px;
+        height: 42px;
+        line-height: 22px;
+        box-sizing: border-box;
       }
       .form-input:focus,
       .form-select:focus {
         outline: none;
         border-color: var(--accent);
-        box-shadow: 0 0 0 3px rgba(56,189,248,0.25);
+        box-shadow: 0 0 0 3px rgba(37,99,235,0.2);
       }
       .form-actions {
         display: flex;
-        gap: 10px;
+        gap: 8px;
         flex-wrap: wrap;
         align-items: center;
       }
@@ -85,20 +114,21 @@
         accent-color: var(--accent);
       }
       .form-button {
-        background: var(--accent);
+        background: linear-gradient(120deg, var(--accent), var(--accent-2));
         border: none;
         border-radius: 999px;
-        padding: 10px 20px;
+        padding: 10px 28px;
+        min-width: 170px;
         font-size: 0.9rem;
         cursor: pointer;
-        color: #020617;
+        color: #f8fafc;
         font-weight: 600;
-        letter-spacing: 0.04em;
+        letter-spacing: 0.2px;
       }
       .form-button.secondary {
         background: transparent;
-        border: 1px solid rgba(148,163,184,0.4);
-        color: var(--text);
+        border: 1px solid var(--border);
+        color: var(--muted);
       }
       .group-header {
         margin-top: 16px;
@@ -119,12 +149,12 @@
       }
       th,
       td {
-        border: 1px solid #1f2937;
+        border: 1px solid var(--table-border);
         padding: 5px 7px;
         text-align: left;
       }
       th {
-        background: #020617;
+        background: var(--table-header);
         position: sticky;
         top: 0;
         z-index: 2;
@@ -137,12 +167,12 @@
       }
       .highlights-table th,
       .highlights-table td {
-        border: 1px solid #1f2937;
+        border: 1px solid var(--table-border);
         padding: 5px 7px;
         text-align: left;
       }
       .highlights-table th {
-        background: #020617;
+        background: var(--table-header);
       }
       .highlights-table th:first-child,
       .highlights-table td:first-child {
@@ -159,7 +189,7 @@
       }
       .tab-button {
         background: transparent;
-        border: 1px solid rgba(255,255,255,0.12);
+        border: 1px solid var(--border);
         color: var(--muted);
         border-radius: 999px;
         padding: 6px 14px;
@@ -190,32 +220,42 @@
       }
       .totals-row td {
         font-weight: 600;
-        border-top: 2px solid rgba(148,163,184,0.4);
-        background: rgba(2,6,23,0.65);
+        border-top: 2px solid var(--table-border);
+        background: var(--table-alt);
       }
       .sources-missing {
         font-size: 0.72rem;
         color: #f97316;
       }
       .funnel-header {
-        margin-bottom: 12px;
+        margin-bottom: 8px;
+      }
+      .form-actions {
+        margin-top: 0;
       }
       .funnel-body {
-        padding-top: 20px;
+        padding-top: 4px;
       }
       .funnel-body .group-header:first-of-type {
         margin-top: 0;
       }
       .date-window {
-        margin-left: auto;
-        align-self: center;
+        display: inline-flex;
+        align-items: center;
+        height: 28px;
+        padding: 0 8px;
+        margin-left: 8px;
+        font-size: 0.9rem;
+        background: var(--panel-light);
+        border-radius: 12px;
+        border: 1px solid var(--border);
       }
       .partner-summary {
         margin-top: 16px;
         padding: 16px;
         border-radius: 14px;
-        border: 1px solid rgba(148, 163, 184, 0.35);
-        background: rgba(15, 23, 42, 0.65);
+        border: 1px solid var(--table-border);
+        background: var(--panel-light);
       }
       .partner-summary h3 {
         margin: 0 0 8px;
@@ -235,13 +275,13 @@
       }
       .partner-summary__table th,
       .partner-summary__table td {
-        border: 1px solid rgba(148, 163, 184, 0.25);
+        border: 1px solid var(--table-border);
         padding: 6px 8px;
         text-align: left;
         font-size: 0.78rem;
       }
       .partner-summary__table th {
-        background: rgba(15, 23, 42, 0.55);
+        background: var(--table-header);
         position: static;
       }
       .partner-summary__table tfoot td {
@@ -251,20 +291,25 @@
   </head>
   <body>
     <header class="sis-header">
-      <div class="sis-header__inner">
-        <div class="sis-brand">Strivve Insights Service (SIS)</div>
+      <div class="sis-topbar">
+        <div class="sis-title">Strivve Insights Service</div>
+
         <nav class="sis-nav">
-          <a class="sis-nav__item" href="/">Overview</a>
-          <a class="sis-nav__item sis-nav__item--active" href="/funnel.html">FI Funnel</a>
-          <a class="sis-nav__item" href="/heatmap.html">Merchant Heatmap</a>
-          <a class="sis-nav__item" href="/maintenance.html">Maintenance</a>
+          <a href="index.html">Overview</a>
+          <a href="funnel.html">FI Funnel</a>
+          <a href="heatmap.html">Merchant Heatmap</a>
+          <a href="troubleshoot.html">Troubleshooting</a>
+          <a href="maintenance.html">Maintenance</a>
         </nav>
       </div>
+
+      <h1 class="sis-page-name">GA + SIS CardUpdatr Funnel</h1>
+      <p class="sis-page-desc">Inspect daily rollups and conversion steps from GA through SIS sessions to placements. Slice by integration type, partner, or instances to spot deltas fast.</p>
     </header>
+    <div class="sis-content">
     <main class="sis-main">
       <section class="sis-panel">
         <div class="funnel-header">
-          <h1 class="sis-panel-title">GA + SIS CardUpdatr Funnel</h1>
           <div class="form-grid">
             <div class="form-field">
               <label for="fiFilter">Filter FI</label>
@@ -291,8 +336,20 @@
             </div>
             <div class="form-field">
               <label for="instanceFilter">Instances</label>
-              <select id="instanceFilter" class="form-select" multiple size="4">
+              <select id="instanceFilter" class="form-select">
                 <option value="__all_instances__" selected>(all instances)</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label for="datePreset">Range preset</label>
+              <select id="datePreset" class="form-select">
+                <option value="last30" selected>Last 30 days</option>
+                <option value="last7">Last 7 days</option>
+                <option value="last14">Last 14 days</option>
+                <option value="last60">Last 60 days</option>
+                <option value="last90">Last 90 days</option>
+                <option value="ytd">Year to date</option>
+                <option value="">Custom</option>
               </select>
             </div>
             <div class="form-field">
@@ -303,30 +360,23 @@
               <label for="endDate">End date</label>
               <input id="endDate" type="date" class="form-input" />
             </div>
-            <div class="form-field" style="min-width: 240px">
-              <label for="cardholderCounts">Cardholders (selected FI only)</label>
-              <input id="cardholderCounts" type="text" class="form-input" placeholder="e.g. 120000" disabled />
-            </div>
             <div class="form-field" style="min-width: 200px">
               <label>&nbsp;</label>
               <div class="form-actions">
                 <button id="applyBtn" class="form-button">Apply filters</button>
                 <button id="exportCsvBtn" class="form-button secondary">Export CSV</button>
+                <label class="form-checkbox" style="margin: 0">
+                  <input type="checkbox" id="includeTestDataCheckbox" />
+                  Include test data
+                </label>
               </div>
             </div>
-            <div class="form-field form-checkbox" style="min-width: 200px">
-              <label>
-                <input type="checkbox" id="includeTestDataCheckbox" />
-                Include test data
-              </label>
-            </div>
-            <div class="muted date-window" id="dateWindowLabel"></div>
           </div>
         </div>
 
     <div class="funnel-body">
-      <div class="group-header">Highlights</div>
-      <div id="bestWindows" style="margin-bottom: 24px;"></div>
+      <div class="group-header">Highlights <span class="muted date-window" id="dateWindowLabel"></span></div>
+      <div id="bestWindows" style="margin-bottom: 8px;"></div>
       <div id="totalsBar" class="group-header" style="display: none;"></div>
       <div id="partnerSummary" class="partner-summary" style="display: none;"></div>
 
@@ -473,10 +523,12 @@
       </div>
 
       <div id="singleFiView" style="display:none;"></div>
-    </div>
+      </div>
     </section>
   </main>
+  </div>
 
+    <script src="/public/theme-toggle.js"></script>
     <script>
       const startDateInput = document.getElementById("startDate");
       const endDateInput = document.getElementById("endDate");
@@ -484,7 +536,6 @@
       const integrationSelect = document.getElementById("integrationFilter");
       const partnerSelect = document.getElementById("partnerFilter");
       const instanceSelect = document.getElementById("instanceFilter");
-      const cardholderInput = document.getElementById("cardholderCounts");
       const includeTestCheckbox = document.getElementById("includeTestDataCheckbox");
       const applyBtn = document.getElementById("applyBtn");
       const exportCsvBtn = document.getElementById("exportCsvBtn");
@@ -525,23 +576,50 @@
 
       const today = new Date();
       const todayStr = today.toISOString().slice(0, 10);
-      const prevMonthStart = new Date(
-        Date.UTC(today.getUTCFullYear(), today.getUTCMonth() - 1, 1)
-      );
-      const prevMonthEnd = new Date(
-        Date.UTC(prevMonthStart.getUTCFullYear(), prevMonthStart.getUTCMonth() + 1, 0)
-      );
-      const defaultStartDateStr = prevMonthStart.toISOString().slice(0, 10);
-      const defaultEndDateStr = prevMonthEnd.toISOString().slice(0, 10);
+      const isoDaysAgo = (n) => {
+        const d = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() - n));
+        return d.toISOString().slice(0, 10);
+      };
+      const defaultStartDateStr = isoDaysAgo(29);
+      const defaultEndDateStr = todayStr;
+
+      function applyPresetRange(value) {
+        const dayMs = 86400000;
+        const now = new Date();
+        const iso = (d) => d.toISOString().slice(0, 10);
+        const daysAgo = (n) => iso(new Date(now.getTime() - n * dayMs));
+        const startOfYear = `${now.getFullYear()}-01-01`;
+        let start = daysAgo(29);
+        let end = iso(now);
+        switch (value) {
+          case "last7":
+            start = daysAgo(6);
+            break;
+          case "last14":
+            start = daysAgo(13);
+            break;
+          case "last60":
+            start = daysAgo(59);
+            break;
+          case "last90":
+            start = daysAgo(89);
+            break;
+          case "ytd":
+            start = startOfYear;
+            break;
+          default:
+            start = daysAgo(29);
+            end = iso(now);
+        }
+        startDateInput.value = start;
+        endDateInput.value = end;
+      }
 
       function applyDefaultDateRange(force = false) {
-        if (force || !startDateInput.value) {
-          startDateInput.value = defaultStartDateStr;
-          startDateInput.valueAsDate = new Date(`${defaultStartDateStr}T00:00:00`);
-        }
-        if (force || !endDateInput.value) {
-          endDateInput.value = defaultEndDateStr;
-          endDateInput.valueAsDate = new Date(`${defaultEndDateStr}T00:00:00`);
+        if (force || !startDateInput.value || !endDateInput.value) {
+          applyPresetRange("last30");
+          const preset = document.getElementById("datePreset");
+          if (preset) preset.value = "last30";
         }
       }
 
@@ -885,19 +963,8 @@ function applyColumnTitles(root = document) {
       }
 
       function getCardholderMap() {
-        const selected = fiFilterSelect.value;
-        if (!selected || selected === FI_ALL_VALUE) return {};
-        const num = Number(cardholderInput.value.trim());
-        if (Number.isNaN(num) || num <= 0) return {};
-        return { [normalizeFiKey(selected)]: num };
-      }
-
-      function syncCardholderInputState() {
-        const hasSpecific = fiFilterSelect.value && fiFilterSelect.value !== FI_ALL_VALUE;
-        cardholderInput.disabled = !hasSpecific;
-        if (!hasSpecific) {
-          cardholderInput.value = "";
-        }
+        // Cardholders come from fi_registry metadata only now.
+        return {};
       }
 
       function updateInstanceOptions(perFi) {
@@ -907,7 +974,7 @@ function applyColumnTitles(root = document) {
         const includeTests = includeTestCheckbox?.checked;
         const filterFi = fiFilterSelect.value;
         const partnerValue = partnerSelect?.value || PARTNER_ALL_VALUE;
-        let eligible = Array.from(
+        const eligible = Array.from(
           new Set(
             Object.values(perFi)
               .filter((row) => (includeTests || !row.is_test))
@@ -929,36 +996,11 @@ function applyColumnTitles(root = document) {
               )
               .map((value) => formatInstanceDisplay(value))
           )
-        ).sort((a, b) => a.localeCompare(b));
-        if (!eligible.length) {
-          eligible = Array.from(
-            new Set(
-              Object.values(perFi)
-                .filter((row) => includeTests || !row.is_test)
-                .filter((row) =>
-                  integrationValue === "(all)" ? true : row.integration_type === integrationValue
-                )
-                .filter((row) =>
-                  !filterFi || filterFi === FI_ALL_VALUE ? true : row.fi === filterFi
-                )
-                .filter((row) =>
-                  partnerValue === PARTNER_ALL_VALUE ? true : (row.partner || "Unknown") === partnerValue
-                )
-                .map((row) =>
-                  row.instance
-                    ? formatInstanceDisplay(row.instance)
-                    : Array.isArray(row.instances) && row.instances.length
-                    ? formatInstanceDisplay(row.instances[0])
-                    : "unknown"
-                )
-            )
-          ).sort((a, b) => a.localeCompare(b));
-        }
+        )
+          .filter(Boolean)
+          .sort((a, b) => a.localeCompare(b));
 
-        const previouslySelected = new Set(
-          Array.from(instanceSelect.selectedOptions).map((opt) => opt.value)
-        );
-        const hadSelection = previouslySelected.size > 0;
+        const existingValue = instanceSelect.value || INSTANCE_ALL_VALUE;
         instanceSelect.innerHTML = "";
 
         const addOption = (value, label, selected = false) => {
@@ -971,22 +1013,13 @@ function applyColumnTitles(root = document) {
           instanceSelect.appendChild(opt);
         };
 
-        addOption(
-          INSTANCE_ALL_VALUE,
-          "(all instances)",
-          !hadSelection || previouslySelected.has(INSTANCE_ALL_VALUE)
-        );
+        addOption(INSTANCE_ALL_VALUE, "(all instances)", existingValue === INSTANCE_ALL_VALUE);
         eligible.forEach((instance) => {
-          addOption(instance, instance, previouslySelected.has(instance));
+          addOption(instance, instance, existingValue === instance);
         });
 
-        // ensure at least one option is selected
-        const selectedCount = Array.from(instanceSelect.selectedOptions).length;
-        if (selectedCount === 0) {
-          const allOption = instanceSelect.querySelector(
-            `option[value="${INSTANCE_ALL_VALUE}"]`
-          );
-          if (allOption) allOption.selected = true;
+        if (!instanceSelect.value) {
+          instanceSelect.value = INSTANCE_ALL_VALUE;
         }
       }
 
@@ -1028,16 +1061,14 @@ function applyColumnTitles(root = document) {
           fiFilterSelect.value = FI_ALL_VALUE;
         }
 
-        syncCardholderInputState();
         updateInstanceOptions(perFi);
       }
 
       function getSelectedInstances() {
         if (!instanceSelect) return [];
-        const values = Array.from(instanceSelect.selectedOptions)
-          .map((opt) => opt.value)
-          .filter((value) => value !== INSTANCE_ALL_VALUE);
-        return values.map((value) => normalizeInstanceKey(value));
+        const value = instanceSelect.value;
+        if (!value || value === INSTANCE_ALL_VALUE) return [];
+        return [normalizeInstanceKey(value)];
       }
 
       function getVisibleRows(perFi) {
@@ -2934,7 +2965,6 @@ function applyColumnTitles(root = document) {
           fi: fiFilterSelect.value,
           integration: integrationSelect.value,
           partner: partnerSelect?.value || PARTNER_ALL_VALUE,
-          cardholders: cardholderInput.value,
           includeTest: includeTestCheckbox.checked,
         };
       }
@@ -2946,7 +2976,6 @@ function applyColumnTitles(root = document) {
           lastFilterSnapshot.fi !== fiFilterSelect.value ||
           lastFilterSnapshot.integration !== integrationSelect.value ||
           lastFilterSnapshot.partner !== (partnerSelect?.value || PARTNER_ALL_VALUE) ||
-          lastFilterSnapshot.cardholders !== cardholderInput.value ||
           lastFilterSnapshot.includeTest !== includeTestCheckbox.checked;
         if (snapshotChanged) {
           applyFilters();
@@ -3028,7 +3057,6 @@ function applyColumnTitles(root = document) {
       });
 
       fiFilterSelect.addEventListener("change", () => {
-        syncCardholderInputState();
         if (lastAggregated) {
           updateInstanceOptions(lastAggregated);
           rerenderFromCache();
@@ -3041,7 +3069,6 @@ function applyColumnTitles(root = document) {
           updateFiOptions(lastAggregated);
         } else {
           fiFilterSelect.value = FI_ALL_VALUE;
-          syncCardholderInputState();
         }
         rerenderFromCache();
       });
@@ -3051,7 +3078,6 @@ function applyColumnTitles(root = document) {
           updateFiOptions(lastAggregated);
         } else {
           fiFilterSelect.value = FI_ALL_VALUE;
-          syncCardholderInputState();
         }
         rerenderFromCache();
       });
@@ -3084,7 +3110,17 @@ function applyColumnTitles(root = document) {
         console.error("Init failed", err);
       });
 
-      syncCardholderInputState();
+      const presetSelect = document.getElementById("datePreset");
+      if (presetSelect) {
+        presetSelect.addEventListener("change", () => {
+          const val = presetSelect.value || "last30";
+          if (val) {
+            applyPresetRange(val);
+          }
+        });
+      }
+
+      applyDefaultDateRange(true);
       applyColumnTitles();
     </script>
   </body>
