@@ -638,7 +638,7 @@
                       <option value="Marquis"></option>
                       <option value="MSU"></option>
                       <option value="CardSavr"></option>
-                      <option value="Direct"></option>
+                      <option value="Direct ss01"></option>
                       <option value="Advancial"></option>
                     </datalist>
                   </label>
@@ -1074,7 +1074,7 @@
 
       function normalizeEntry(key, entry = {}) {
         const fiName = entry.fi_name || key.split("__")[0] || key;
-        const instance = entry.instance || (Array.isArray(entry.instances) ? entry.instances[0] : "unknown");
+        const instance = entry.instance || "unknown";
         return {
           key,
           fi_name: fiName,

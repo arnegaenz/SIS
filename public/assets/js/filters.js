@@ -27,6 +27,12 @@
     if (!entry) return null;
     const fi = (entry.fi_lookup_key || entry.fi_name || "").toString().trim();
     if (!fi) return null;
+    const normalizePartner = (val) => {
+      const s = (val || "").toString().trim();
+      if (!s) return "Unknown";
+      if (s.toLowerCase() === "direct" || s.toLowerCase() === "direct ss01") return "Direct ss01";
+      return s;
+    };
     const normalizeIntegration = (val, instanceRaw) => {
       const upperInst = (instanceRaw || "").toString().trim().toLowerCase();
       if (upperInst.includes("pscu")) return "SSO";
@@ -41,7 +47,7 @@
     return {
       fi_lookup_key: fi,
       fi_name: entry.fi_name || fi,
-      partner: entry.partner || "Unknown",
+      partner: normalizePartner(entry.partner),
       integration: normalizeIntegration(entry.integration || entry.integration_type, entry.instance),
       instance: entry.instance || "unknown",
     };
@@ -172,9 +178,7 @@
     const matchesInstance = (entry) => {
       if (state.instance === ALL) return true;
       const target = normalizeInstanceKey(state.instance);
-      const list = []
-        .concat(entry.instance || [])
-        .concat(Array.isArray(entry.instances) ? entry.instances : []);
+      const list = [].concat(entry.instance || []);
       if (!list.length) return false;
       return list.map(normalizeInstanceKey).includes(target);
     };
@@ -185,8 +189,9 @@
       instancesOut = instancesOut.filter((inst) => allowedInstances.has(normalizeInstanceKey(inst)));
     }
     if (!instancesOut.includes("customer-dev")) instancesOut.push("customer-dev");
+    const partners = unique(currentSlice.map((r) => r.partner)).filter((p) => p !== "Unknown");
     return {
-      partners: unique(registry.map((r) => r.partner)),
+      partners,
       integrations: unique(byInstance.map((r) => r.integration)),
       fis: unique(byInstance.map((r) => r.fi_lookup_key)),
       instances: instancesOut,

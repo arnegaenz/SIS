@@ -112,5 +112,5 @@ The CardUpdatr funnel view (and its CSV export) combines GA4 traffic with SIS se
 
 - Backend now returns per‑slice records for each day/merchant/FI: `{ day, merchant, fi, is_test, total, billable, siteFailures, userFlowIssues }`. The client filters slices by the checked FI list and prod/test toggles, then aggregates to render the grid.
 - Availability mode highlights simple reachability: green when any traffic is seen that day, red when there is no traffic (likely down), gray when no signal.
-- FI filtering is deterministic: only checked FIs are included; an empty selection shows no data. Partner/integration/instance no longer filter data.
+- FI filtering is deterministic: only checked FIs are included; an empty selection shows no data. Partner/integration/instance no longer filter data; they only scope the FI list (partner options come from the current instance slice).
 - Date preset “Last 90 days” anchors to yesterday and 89 days prior; start/end inputs reflect the preset on load.

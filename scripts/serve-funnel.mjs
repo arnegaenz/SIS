@@ -308,16 +308,11 @@ async function loadInstanceMetaMap() {
       const fiName = entry.fi_name || key.split("__")[0] || key;
       const integration = normalizeIntegration(entry.integration_type);
       const partner = entry.partner || "Unknown";
-      const instances = Array.isArray(entry.instances) ? entry.instances : [];
       const instValue = entry.instance || null;
-      const candidates = instValue ? [instValue, ...instances] : instances;
-      candidates
-        .filter(Boolean)
-        .map((v) => v.toString().trim().toLowerCase())
-        .forEach((inst) => {
-          if (!inst) return;
-          map.set(inst, { fi: fiName, integration, partner });
-        });
+      if (!instValue) continue;
+      const inst = instValue.toString().trim().toLowerCase();
+      if (!inst) continue;
+      map.set(inst, { fi: fiName, integration, partner });
     }
   } catch {
     // if registry missing, fall back to unknown metadata
@@ -740,9 +735,7 @@ async function buildTroubleshootOptions() {
   const instanceSet = new Set();
   for (const entry of Object.values(fiRegistry)) {
     const primary = entry.instance ? formatInstanceDisplay(entry.instance) : null;
-    const list = Array.isArray(entry.instances) ? entry.instances : [];
     if (primary) instanceSet.add(primary);
-    list.forEach((inst) => instanceSet.add(formatInstanceDisplay(inst)));
   }
   return {
     days,

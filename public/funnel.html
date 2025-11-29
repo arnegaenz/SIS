@@ -796,7 +796,7 @@ function updateRegistryLookups(registryData = {}) {
   Object.values(registryData || {}).forEach((entry) => {
     if (!entry || typeof entry !== "object") return;
     const fiKey = normalizeFiKey(entry.fi_lookup_key || entry.fi_name);
-    const instanceValue = entry.instance || (Array.isArray(entry.instances) ? entry.instances[0] : null);
+    const instanceValue = entry.instance || null;
     const comboKey = buildRegistryLookupKey(fiKey, instanceValue);
     if (comboKey && !registryInfoMap.has(comboKey)) {
       registryInfoMap.set(comboKey, entry);
@@ -1660,14 +1660,7 @@ function applyColumnTitles(root = document) {
       }
 
       function highlightEntryToRow(entry = {}) {
-        const instances =
-          Array.isArray(entry.instances) && entry.instances.length
-            ? entry.instances
-            : entry.instances && typeof entry.instances === "string"
-            ? entry.instances.split(",").map((value) => value.trim()).filter(Boolean)
-            : entry.instance
-            ? [entry.instance]
-            : [];
+        const instances = entry.instance ? [entry.instance] : [];
         return {
           fi: entry.fi || "",
           partner: entry.partner || "",
@@ -2772,7 +2765,7 @@ function applyColumnTitles(root = document) {
             tr.innerHTML = `
               <td${columnAttr("highlight")}>${entry.label}</td>
               <td${columnAttr("fi")}>${entry.fi}</td>
-              <td${columnAttr("instances")}>${entry.instance || entry.instances || ""}</td>
+              <td${columnAttr("instances")}>${entry.instance || ""}</td>
               <td${columnAttr("integration")}>${entry.integration || ""}</td>
               <td${columnAttr("dates")}>${dateRange}</td>
               <td${columnAttr("ga_select")}>${entry.sel}</td>

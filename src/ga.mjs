@@ -173,11 +173,7 @@ export function aggregateGAFunnelByFI(gaRows, fiRegistry = {}) {
     const keySource = fiObj.fi_lookup_key || fiObj.fi_name || "";
     if (!keySource) continue;
     const normalizedKey = keySource.toString().toLowerCase();
-    const instanceName = (
-      fiObj.instance ||
-      fiObj.instances?.[0] ||
-      UNKNOWN_INSTANCE
-    )
+    const instanceName = (fiObj.instance || UNKNOWN_INSTANCE)
       .toString()
       .toLowerCase();
     const integration =

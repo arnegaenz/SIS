@@ -147,27 +147,18 @@ function toDateOnly(value) {
 }
 
 function determineIntegrationType(entry, ssoLookupSet) {
-  const instances = Array.isArray(entry.instances) ? entry.instances : [];
-  const normalizedInstances = instances
-    .map((inst) => (inst ? inst.toString().toLowerCase() : ""))
-    .filter(Boolean);
-  const primaryInstance = entry.instance
-    ? entry.instance.toString()
-    : instances[0] || null;
+  const primaryInstance = entry.instance ? entry.instance.toString() : null;
   const primaryInstanceNorm = normalizeInstance(primaryInstance);
 
   if (
     primaryInstanceNorm === "ondot" ||
-    normalizedInstances.includes("ondot")
   ) {
     return "cardsavr";
   }
 
   if (
     primaryInstanceNorm === "pscu" ||
-    normalizedInstances.includes("pscu") ||
-    ALWAYS_SSO_INSTANCES.has(primaryInstanceNorm) ||
-    normalizedInstances.some((inst) => ALWAYS_SSO_INSTANCES.has(inst))
+    ALWAYS_SSO_INSTANCES.has(primaryInstanceNorm)
   ) {
     return "sso";
   }
@@ -204,7 +195,6 @@ function upsertFi(registry, payload, ssoLookupSet) {
       fi_name: fiName,
       fi_lookup_key: payload.fi_lookup_key || null,
       instance: instanceValue,
-      instances: instanceValue ? [instanceValue] : [],
       sources: [],
       integration_type: "non-sso",
       first_seen: null,
@@ -218,7 +208,6 @@ function upsertFi(registry, payload, ssoLookupSet) {
   }
 
   entry.instance = instanceValue || entry.instance || null;
-  entry.instances = entry.instance ? [entry.instance] : [];
   entry.sources = Array.isArray(entry.sources) ? entry.sources : [];
 
   if (payload.source && SOURCE_TYPES.has(payload.source)) {
@@ -248,8 +237,7 @@ function upsertFi(registry, payload, ssoLookupSet) {
 }
 
 function normalizeEntryForOutput(nameKey, entry, ssoLookupSet) {
-  const instanceValue = entry.instance || (Array.isArray(entry.instances) ? entry.instances[0] : null);
-  const instances = instanceValue ? [instanceValue] : [];
+  const instanceValue = entry.instance || null;
   const sources = Array.isArray(entry.sources) ? entry.sources.slice() : [];
   sources.sort((a, b) => a.localeCompare(b));
   const uniqueSources = [...new Set(sources)].filter((src) => SOURCE_TYPES.has(src));
@@ -258,13 +246,11 @@ function normalizeEntryForOutput(nameKey, entry, ssoLookupSet) {
     fi_name: entry.fi_name || nameKey,
     fi_lookup_key: entry.fi_lookup_key || null,
     instance: instanceValue || null,
-    instances,
     sources: uniqueSources,
     integration_type: determineIntegrationType(
       {
         ...entry,
         fi_lookup_key: entry.fi_lookup_key || null,
-        instances,
         instance: instanceValue || null,
       },
       ssoLookupSet
@@ -280,8 +266,8 @@ function sortRegistryForOutput(registryEntries) {
   return registryEntries.sort((a, b) => {
     const [nameA, dataA] = a;
     const [nameB, dataB] = b;
-    const firstInstA = dataA.instance || dataA.instances?.[0] || "";
-    const firstInstB = dataB.instance || dataB.instances?.[0] || "";
+    const firstInstA = dataA.instance || "";
+    const firstInstB = dataB.instance || "";
     if (firstInstA < firstInstB) return -1;
     if (firstInstA > firstInstB) return 1;
     const nameCompare = (dataA.fi_name || nameA).localeCompare(

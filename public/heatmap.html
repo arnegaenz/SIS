@@ -629,27 +629,22 @@
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
         registryEntries = Object.entries(data || {}).map(([key, entry]) => {
-          const instances = Array.isArray(entry.instances) && entry.instances.length
-            ? entry.instances
-            : entry.instance
-            ? [entry.instance]
-            : [];
+          const inst = entry.instance || key.split("__")[1] || null;
           return {
             fi: entry.fi_name || key.split("__")[0] || key,
             integration: normalizeIntegration(entry.integration_type),
             partner: entry.partner || "Unknown",
-            instances,
+            instance: inst,
           };
         });
         registryInstanceMap = new Map();
         registryEntries.forEach((entry) => {
           const fiKey = normalizeFi(entry.fi);
           if (!fiKey) return;
+          const instNorm = normalizeInstance(entry.instance);
+          if (!instNorm) return;
           if (!registryInstanceMap.has(fiKey)) registryInstanceMap.set(fiKey, new Set());
-          entry.instances.forEach((inst) => {
-            const norm = normalizeInstance(inst);
-            if (norm) registryInstanceMap.get(fiKey).add(norm);
-          });
+          registryInstanceMap.get(fiKey).add(instNorm);
         });
       } catch (err) {
         console.error("Failed to load fi_registry for filters", err);
@@ -978,6 +973,10 @@
       const shared = window.__FILTER_STATE;
       const useShared = shared && shared.page === "heatmap";
       const sharedFisSet = useShared && shared?.fis ? new Set(shared.fis) : null;
+      const fiFilterSet =
+        useShared && sharedFisSet
+          ? new Set(Array.from(sharedFisSet).map((fi) => normalizeFi(fi)).filter(Boolean))
+          : null;
 
       let slices = currentData?.slices || [];
       const days = currentData?.days || [];
@@ -985,22 +984,13 @@
         slices = slicesFromLegacy(currentData);
       }
 
-      let effectiveFiSet = null;
-      if (sharedFisSet) {
-        effectiveFiSet = new Set(Array.from(sharedFisSet).map((fi) => normalizeFi(fi)).filter(Boolean));
-      }
-      if (!shared?.__fiTouched) {
-        effectiveFiSet = null;
-      }
-
       const includeProd = includeProdToggle?.checked !== false;
       const includeTests = includeTestToggle?.checked ?? false;
 
       const filteredSlices = slices.filter((s) => {
-        if (effectiveFiSet) {
-          // Explicit empty set -> nothing matches
-          if (effectiveFiSet.size === 0) return false;
-          if (!effectiveFiSet.has(normalizeFi(s.fi))) return false;
+        if (fiFilterSet) {
+          if (fiFilterSet.size === 0) return false; // explicit none selected
+          if (!fiFilterSet.has(normalizeFi(s.fi))) return false;
         }
         if (!includeProd && !s.is_test) return false;
         if (!includeTests && s.is_test) return false;
