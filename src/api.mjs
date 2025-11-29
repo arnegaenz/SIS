@@ -104,3 +104,16 @@ export async function getCardPlacementPage(
   );
   return resp;
 }
+
+// -------------------------
+// GET MERCHANT SITES (one page)
+// -------------------------
+export async function getMerchantSitesPage(session, pagingHeader = {}) {
+  const safePagingHeader =
+    pagingHeader && typeof pagingHeader === "object" ? pagingHeader : {};
+
+  // Note: merchant site metadata is identical across instances; callers should
+  // pass an ss01 session.
+  const resp = await session.get("merchant_sites", {}, safePagingHeader);
+  return resp;
+}

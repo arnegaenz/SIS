@@ -1,0 +1,685 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Strivve • FI Alerts Watchlist</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="./sis-shared.css?v=navfix" />
+  <link rel="stylesheet" href="./assets/css/sis.css">
+  <script defer src="./assets/js/sis.js"></script>
+  <style>
+    .watchlist-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      max-width: 1100px;
+      margin: 0 auto;
+      width: 100%;
+    }
+    .card {
+      border: 1px solid var(--border, #d7deea);
+      border-radius: 16px;
+      padding: 22px;
+      background: var(--card, #fff);
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      box-shadow: var(--shadow, 0 10px 30px rgba(0,0,0,0.06));
+    }
+    .card h2 {
+      margin: 0;
+      font-size: 20px;
+      letter-spacing: 0.2px;
+      color: var(--ink);
+    }
+    .card .subhead {
+      margin: -6px 0 4px 0;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.5;
+    }
+    .card-body {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    /* Funnel-style tables (copied) */
+    .watch-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 8px;
+      font-size: 1.25rem;
+    }
+    .watch-table th,
+    .watch-table td {
+      border: 1px solid var(--table-border, #d7deea);
+      text-align: left;
+    }
+    .watch-table th {
+      background: var(--table-header, #e2e8f0);
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      padding: 8px 8px;
+      font-size: 1.25rem;
+    }
+    .watch-table tbody td {
+      padding: 14px 10px;
+      font-size: 1.25rem;
+    }
+    .watch-table td.num {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+    .watch-table th:first-child,
+    .watch-table td:first-child { width: 32%; white-space: nowrap; }
+    .watch-table th:nth-child(2),
+    .watch-table td:nth-child(2),
+    .watch-table th:nth-child(3),
+    .watch-table td:nth-child(3),
+    .watch-table th:nth-child(4),
+    .watch-table td:nth-child(4),
+    .watch-table th:nth-child(5),
+    .watch-table td:nth-child(5),
+    .watch-table th:nth-child(6),
+    .watch-table td:nth-child(6) { width: 11%; text-align: right; }
+    .delta-bad { color: #b91c1c; }
+    .delta-good { color: #15803d; }
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.4px;
+      text-transform: uppercase;
+      border: 1px solid transparent;
+      margin-left: 6px;
+      white-space: nowrap;
+      background: linear-gradient(135deg, rgba(255,255,255,0.7), rgba(255,255,255,0.2));
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+    .status-pill::before {
+      content: "";
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,0.08);
+    }
+    .status-pill.up {
+      color: #0f5132;
+      border-color: rgba(34, 197, 94, 0.4);
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.16), rgba(16, 185, 129, 0.04));
+    }
+    .status-pill.up::before { background: #22c55e; }
+    .status-pill.down {
+      color: #7f1d1d;
+      border-color: rgba(220, 38, 38, 0.45);
+      background: linear-gradient(135deg, rgba(248, 113, 113, 0.2), rgba(248, 113, 113, 0.06));
+    }
+    .status-pill.down::before { background: #ef4444; }
+    .status-pill.limited {
+      color: #854d0e;
+      border-color: rgba(234, 179, 8, 0.5);
+      background: linear-gradient(135deg, rgba(234, 179, 8, 0.2), rgba(234, 179, 8, 0.06));
+    }
+    .status-pill.limited::before { background: #f59e0b; }
+    .status-pill.unknown {
+      color: #334155;
+      border-color: rgba(100, 116, 139, 0.5);
+      background: linear-gradient(135deg, rgba(148, 163, 184, 0.2), rgba(148, 163, 184, 0.06));
+    }
+    .status-pill.unknown::before { background: #94a3b8; }
+  </style>
+</head>
+<body class="heatmap-page watchlist-page">
+  <header class="sis-header">
+    <div class="sis-topbar">
+      <div class="sis-title">Strivve Insights Service</div>
+
+      <nav class="sis-nav">
+        <a href="index.html">Overview</a>
+        <a href="funnel.html">FI Funnel</a>
+        <a href="heatmap.html">Merchant Heatmap</a>
+        <a href="watchlist.html" class="active">Alerts</a>
+        <a href="troubleshoot.html">Troubleshooting</a>
+        <a href="maintenance.html">Maintenance</a>
+      </nav>
+    </div>
+
+    <h1 class="sis-page-name">FI Alerts Watchlist</h1>
+    <p class="sis-page-desc">Surface biggest week-over-week shifts in traffic and reliability using existing funnel/heatmap data.</p>
+  </header>
+  <div class="sis-content">
+  <main class="sis-main">
+    <section class="sis-panel">
+      <div class="muted" id="status">Loading…</div>
+      <div style="margin-top:12px;">
+        <div class="muted tiny" id="windowLabel"></div>
+      </div>
+      <div class="watchlist-grid" id="cards" style="margin-top:12px;"></div>
+    </section>
+  </main>
+  </div>
+
+  <script>
+    const dayMs = 86400000;
+    const isoYesterday = () => {
+      const d = new Date();
+      d.setDate(d.getDate() - 1);
+      d.setHours(0,0,0,0);
+      return d.toISOString().slice(0,10);
+    };
+    const isoDaysAgo = (n, refIso) => {
+      const [y,m,dd] = refIso.split("-").map((v)=>parseInt(v,10));
+      const d = new Date(Date.UTC(y,(m||1)-1,dd||1));
+      d.setUTCDate(d.getUTCDate()-n);
+      return d.toISOString().slice(0,10);
+    };
+
+    const statusEl = document.getElementById("status");
+    const cardsEl = document.getElementById("cards");
+    let fiInstanceDefaults = new Map();
+    let merchantStatusMap = new Map();
+
+    async function loadFiRegistryDefaults() {
+      try {
+        const res = await fetch("/fi-registry");
+        if (!res.ok) return;
+        const json = await res.json();
+        const map = new Map();
+        Object.values(json || {}).forEach((entry) => {
+          if (!entry || typeof entry !== "object") return;
+          const fiKey = (entry.fi_lookup_key || entry.fi_name || "").toString().toLowerCase();
+          if (!fiKey) return;
+          const inst = entry.instance || "";
+          if (!map.has(fiKey)) map.set(fiKey, new Set());
+          if (inst) map.get(fiKey).add(inst.toString());
+        });
+        fiInstanceDefaults = map;
+      } catch {
+        // ignore registry load failures
+      }
+    }
+
+    function classifyStatus(tags = []) {
+      const lower = tags.map((t) => t.toString().toLowerCase());
+      if (lower.some((t) => t.includes("down") || t.includes("disabled"))) {
+        return { label: "Down", css: "down" };
+      }
+      if (lower.some((t) => t.includes("limited") || t.includes("beta") || t.includes("degraded"))) {
+        return { label: "Limited", css: "limited" };
+      }
+      if (lower.some((t) => t.includes("unrestricted") || t === "prod")) {
+        return { label: "Up", css: "up" };
+      }
+      return { label: "Unknown", css: "unknown" };
+    }
+
+    async function loadMerchantStatuses() {
+      try {
+        const res = await fetch("/merchant-sites", { cache: "no-store" });
+        if (!res.ok) return;
+        const data = await res.json();
+        const map = new Map();
+        const sites = Array.isArray(data?.sites) ? data.sites : [];
+        sites.forEach((s) => {
+          const host = (s.host || s.hostname || "").toString().toLowerCase();
+          if (!host) return;
+          const tags = Array.isArray(s.tags) ? s.tags : [];
+          const status = classifyStatus(tags);
+          map.set(host, { ...status, tags });
+        });
+        merchantStatusMap = map;
+      } catch {
+        // silently ignore
+      }
+    }
+
+    function hasBadTag(tags = [], key) {
+      const lower = (tags || []).map((t) => t && t.toString().toLowerCase());
+      return lower.some((t) => key && t.includes(key));
+    }
+
+    function isSynthetic(merchantName) {
+      const host = (merchantName || "").toString().toLowerCase();
+      const meta = merchantStatusMap.get(host);
+      if (meta && Array.isArray(meta.tags)) {
+        if (meta.tags.some((t) => t && t.toString().toLowerCase().includes("synthetic"))) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    function isTestAutomation(merchantName) {
+      const host = (merchantName || "").toString().toLowerCase();
+      const meta = merchantStatusMap.get(host);
+      if (meta && Array.isArray(meta.tags)) {
+        if (meta.tags.some((t) => t && t.toString().toLowerCase().includes("test-automation"))) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    function aggregateSlicesToMerchants(slices = [], days = []) {
+      const dayIndex = new Map(days.map((d, idx) => [d, idx]));
+      const makeStore = () => ({
+        total: 0,
+        billable: 0,
+        siteFailures: 0,
+        userFlowIssues: 0,
+        days: Array.from({ length: days.length }, (_, i) => ({
+          day: days[i],
+          total: 0,
+          billable: 0,
+          siteFailures: 0,
+          userFlowIssues: 0,
+        })),
+      });
+      const merchants = new Map();
+      slices.forEach((s) => {
+        if (!s || !s.merchant) return;
+        if (!merchants.has(s.merchant)) {
+          merchants.set(s.merchant, makeStore());
+        }
+        const store = merchants.get(s.merchant);
+        const idx = dayIndex.has(s.day) ? dayIndex.get(s.day) : -1;
+        const tot = Number(s.total || 0);
+        const bill = Number(s.billable || 0);
+        const sf = Number(s.siteFailures || 0);
+        const ux = Number(s.userFlowIssues || 0);
+        store.total += tot;
+        store.billable += bill;
+        store.siteFailures += sf;
+        store.userFlowIssues += ux;
+        if (idx >= 0) {
+          const entry = store.days[idx];
+          entry.total += tot;
+          entry.billable += bill;
+          entry.siteFailures += sf;
+          entry.userFlowIssues += ux;
+        }
+      });
+      return Array.from(merchants.entries()).map(([merchant, stats]) => ({
+        merchant,
+        total: stats.total,
+        billable: stats.billable,
+        siteFailures: stats.siteFailures,
+        userFlowIssues: stats.userFlowIssues,
+        days: stats.days,
+      }));
+    }
+
+    function aggregateSlicesToFis(slices = [], days = [], fiInstanceDefaults = new Map()) {
+      const dayIndex = new Map(days.map((d, idx) => [d, idx]));
+      const makeStore = () => ({
+        total: 0,
+        billable: 0,
+        siteFailures: 0,
+        userFlowIssues: 0,
+        days: Array.from({ length: days.length }, (_, i) => ({
+          day: days[i],
+          total: 0,
+          billable: 0,
+          siteFailures: 0,
+          userFlowIssues: 0,
+        })),
+      });
+      const fis = new Map();
+      slices.forEach((s) => {
+        if (!s || !s.fi) return;
+        const fiNorm = (s.fi || "unknown_fi").toString().toLowerCase();
+        let inst = s.instance || s.instance_name || s.org_name || "";
+        if (!inst) {
+          const defInst = fiInstanceDefaults.get(fiNorm);
+          if (defInst && defInst.size === 1) {
+            inst = Array.from(defInst)[0];
+          }
+        }
+        const fiKey = `${s.fi || "unknown_fi"}:${inst || "unknown"}`;
+        if (!fis.has(fiKey)) {
+          fis.set(fiKey, { ...makeStore(), fiName: s.fi || "unknown_fi", instance: inst || "unknown" });
+        }
+        const store = fis.get(fiKey);
+        const idx = dayIndex.has(s.day) ? dayIndex.get(s.day) : -1;
+        const tot = Number(s.total || 0);
+        const bill = Number(s.billable || 0);
+        const sf = Number(s.siteFailures || 0);
+        const ux = Number(s.userFlowIssues || 0);
+        store.total += tot;
+        store.billable += bill;
+        store.siteFailures += sf;
+        store.userFlowIssues += ux;
+        if (idx >= 0) {
+          const entry = store.days[idx];
+          entry.total += tot;
+          entry.billable += bill;
+          entry.siteFailures += sf;
+          entry.userFlowIssues += ux;
+        }
+      });
+      return Array.from(fis.entries()).map(([fi, stats]) => ({
+        fi,
+        fiName: stats.fiName || fi.split(":")[0],
+        instance: stats.instance || fi.split(":")[1] || "unknown",
+        total: stats.total,
+        billable: stats.billable,
+        siteFailures: stats.siteFailures,
+        userFlowIssues: stats.userFlowIssues,
+        days: stats.days,
+      }));
+    }
+
+    function summarizeMerchant(merchant, daysArr) {
+      const dayIndex = new Map(daysArr.map((d,i)=>[d,i]));
+      const daily = (merchant.days || []).map((d)=>({ day:d.day||d.date, total:Number(d.total||0), billable:Number(d.billable||0), siteFailures:Number(d.siteFailures||d.siteFail||0), userFlowIssues:Number(d.userFlowIssues||0) }));
+      const byDay = new Map();
+      daily.forEach((d)=>{ if(!d.day) return; byDay.set(d.day,d); });
+      const last7 = daysArr.slice(-7);
+      const prev7 = daysArr.slice(-14,-7);
+      const last90 = daysArr.slice(-90);
+      const sumBlock = (block) => block.reduce((acc,day)=>{
+        const v = byDay.get(day) || {total:0,billable:0,siteFailures:0,userFlowIssues:0};
+        acc.total += v.total; acc.billable += v.billable; acc.siteFailures += v.siteFailures; acc.userFlowIssues += v.userFlowIssues; return acc;
+      },{total:0,billable:0,siteFailures:0,userFlowIssues:0});
+      const last = sumBlock(last7);
+      const prev = sumBlock(prev7);
+      const baseline90 = sumBlock(last90);
+      const health = (()=>{ const denom = last.billable+last.siteFailures; return denom>0 ? (last.billable/denom)*100 : null;})();
+      const healthPrev = (()=>{ const denom = prev.billable+prev.siteFailures; return denom>0 ? (prev.billable/denom)*100 : null;})();
+      const ux = last.total>0 ? (last.userFlowIssues/last.total)*100 : null;
+      const uxPrev = prev.total>0 ? (prev.userFlowIssues/prev.total)*100 : null;
+      const siteFailShare = (()=>{ const denom = last.billable+last.siteFailures; return denom>0 ? (last.siteFailures/denom)*100 : null;})();
+      const siteFailPrev = (()=>{ const denom = prev.billable+prev.siteFailures; return denom>0 ? (prev.siteFailures/denom)*100 : null;})();
+      const deltaPct = (cur, prevVal) => {
+        if (!Number.isFinite(cur) || !Number.isFinite(prevVal)) return null;
+        if (prevVal === 0) return null;
+        return ((cur - prevVal) / prevVal) * 100;
+      };
+      return {
+        name: merchant.merchant || merchant.name || "unknown",
+        total: last.total,
+        prevTotal: prev.total,
+        health,
+        healthPrev,
+        ux,
+        uxPrev,
+        avgWeekly: last90.length ? (baseline90.total / (last90.length || 1)) * 7 : null,
+        totalDelta: deltaPct(last.total, prev.total),
+        healthDelta: deltaPct(health, healthPrev),
+        uxDelta: deltaPct(ux, uxPrev),
+        siteFailShare,
+        siteFailPrev,
+        siteFailDelta: deltaPct(siteFailShare, siteFailPrev),
+        missingDays: Math.max(0, daysArr.length - byDay.size),
+      };
+    }
+
+    function summarizeFi(fiRow, daysArr) {
+      const daily = (fiRow.days || []).map((d)=>({ day:d.day||d.date, total:Number(d.total||0), billable:Number(d.billable||0), siteFailures:Number(d.siteFailures||d.siteFail||0), userFlowIssues:Number(d.userFlowIssues||0) }));
+      const byDay = new Map();
+      daily.forEach((d)=>{ if(!d.day) return; byDay.set(d.day,d); });
+      const last7 = daysArr.slice(-7);
+      const prev7 = daysArr.slice(-14,-7);
+      const sumBlock = (block) => block.reduce((acc,day)=>{
+        const v = byDay.get(day) || {total:0,billable:0,siteFailures:0,userFlowIssues:0};
+        acc.total += v.total; acc.billable += v.billable; acc.siteFailures += v.siteFailures; acc.userFlowIssues += v.userFlowIssues; return acc;
+      },{total:0,billable:0,siteFailures:0,userFlowIssues:0});
+      const last = sumBlock(last7);
+      const prev = sumBlock(prev7);
+      const health = (()=>{ const denom = last.billable+last.siteFailures; return denom>0 ? (last.billable/denom)*100 : null;})();
+      const healthPrev = (()=>{ const denom = prev.billable+prev.siteFailures; return denom>0 ? (prev.billable/denom)*100 : null;})();
+      const ux = last.total>0 ? (last.userFlowIssues/last.total)*100 : null;
+      const uxPrev = prev.total>0 ? (prev.userFlowIssues/prev.total)*100 : null;
+      const siteFailShare = (()=>{ const denom = last.billable+last.siteFailures; return denom>0 ? (last.siteFailures/denom)*100 : null;})();
+      const siteFailPrev = (()=>{ const denom = prev.billable+prev.siteFailures; return denom>0 ? (prev.siteFailures/denom)*100 : null;})();
+      const deltaPct = (cur, prevVal) => {
+        if (!Number.isFinite(cur) || !Number.isFinite(prevVal)) return null;
+        if (prevVal === 0) return null;
+        return ((cur - prevVal) / prevVal) * 100;
+      };
+      return {
+        name: `${fiRow.fiName || fiRow.fi || "unknown_fi"}:${fiRow.instance || "unknown"}`,
+        total: last.total,
+        prevTotal: prev.total,
+        health,
+        healthPrev,
+        ux,
+        uxPrev,
+        totalDelta: deltaPct(last.total, prev.total),
+        healthDelta: deltaPct(health, healthPrev),
+        uxDelta: deltaPct(ux, uxPrev),
+        siteFailShare,
+        siteFailPrev,
+        siteFailDelta: deltaPct(siteFailShare, siteFailPrev),
+        missingDays: Math.max(0, daysArr.length - byDay.size),
+      };
+    }
+
+    function fmtDelta(val) {
+      if (!Number.isFinite(val)) return "—";
+      const sign = val > 0 ? "+" : "";
+      return `${sign}${val.toFixed(1)}%`;
+    }
+    function fmtPctVal(val) {
+      if (!Number.isFinite(val)) return "—";
+      return `${val.toFixed(1)}%`;
+    }
+    function fmtNum(val) {
+      if (!Number.isFinite(val)) return "—";
+      return val.toLocaleString();
+    }
+    function fmtAvg(val) {
+      if (!Number.isFinite(val)) return "—";
+      return val.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+    }
+
+    function statusBadge(name) {
+      if (!name) return "";
+      const host = name.toString().toLowerCase();
+      const status = merchantStatusMap.get(host);
+      if (!status) return "";
+      return `<span class="status-pill ${status.css}">${status.label}</span>`;
+    }
+
+    function buildCard(title, rows, deltaKey, reverse=false) {
+      const isReliability = deltaKey === "siteFailDelta";
+      const isTraffic = title.toLowerCase().includes("traffic");
+      const subtitle = (() => {
+        if (title.includes("traffic drops")) return "Lowest recent 7-day traffic vs previous 7 days; highlights potential outages or pullbacks.";
+        if (title.includes("traffic spikes")) return "Highest recent 7-day traffic vs previous 7 days; highlights surges that may need capacity checks.";
+        if (title.includes("Reliability drops")) return "Site-fail share increased vs prior 7 days; track rising failure rates.";
+        if (title.includes("Reliability improvements")) return "Site-fail share decreased vs prior 7 days; reliability getting better.";
+        if (title.includes("Data gaps")) return "Merchants missing daily data within the window.";
+        if (title.startsWith("FI:")) return "Aggregated at FI level using placement slices.";
+        return "";
+      })();
+      const body = rows.map((r)=> {
+        const deltaClass = r[deltaKey]!==null && ((r[deltaKey]>0&&!reverse)||(r[deltaKey]<0&&reverse)) ? 'delta-bad' : 'delta-good';
+        if (isReliability) {
+          const reliabClass = r[deltaKey] > 0 ? "delta-bad" : "delta-good";
+          return `<tr>
+            <td>${r.name}${statusBadge(r.name)}</td>
+            <td class="num">${fmtNum(r.total)}</td>
+            <td class="num">${fmtNum(r.prevTotal)}</td>
+            <td class="num">${fmtPctVal(r.siteFailShare)}</td>
+            <td class="num ${reliabClass}">${fmtDelta(r.siteFailDelta)}</td>
+            <td class="num">${fmtDelta(r.healthDelta)}</td>
+            <td class="num">${fmtDelta(r.uxDelta)}</td>
+          </tr>`;
+        }
+        if (isTraffic) {
+          const deltaClass = Number(r[deltaKey]) < 0 ? "delta-bad" : "delta-good";
+          return `<tr>
+            <td>${r.name}${statusBadge(r.name)}</td>
+            <td class="num">${fmtNum(r.total)}</td>
+            <td class="num">${fmtNum(r.prevTotal)}</td>
+            <td class="num ${deltaClass}">${fmtDelta(r[deltaKey])}</td>
+            <td class="num">${fmtAvg(r.avgWeekly)}</td>
+          </tr>`;
+        }
+        return `<tr>
+          <td>${r.name}${statusBadge(r.name)}</td>
+          <td class="num">${fmtNum(r.total)}</td>
+          <td class="num">${fmtNum(r.prevTotal)}</td>
+          <td class="num ${deltaClass}">${fmtDelta(r[deltaKey])}</td>
+          <td class="num">${fmtDelta(r.healthDelta)}</td>
+          <td class="num">${fmtDelta(r.uxDelta)}</td>
+        </tr>`;
+      }).join("");
+      return `
+        <div class="card">
+          <h2>${title}</h2>
+          ${subtitle ? `<div class="subhead">${subtitle}</div>` : ""}
+          <div class="card-body">
+            <table class="watch-table">
+              <thead>
+                ${isReliability
+                  ? `<tr><th>Merchant</th><th class="num">Last 7d</th><th class="num">Prev 7d</th><th class="num">Site-fail%</th><th class="num">Site-fail Δ</th><th class="num">Health Δ</th><th class="num">UX Δ</th></tr>`
+                  : isTraffic
+                  ? `<tr><th>Merchant</th><th class="num">Last 7d</th><th class="num">Prev 7d</th><th class="num">Traffic Δ</th><th class="num">Avg/wk (90d)</th></tr>`
+                  : `<tr><th>Merchant</th><th class="num">Last 7d</th><th class="num">Prev 7d</th><th class="num">Traffic Δ</th><th class="num">Health Δ</th><th class="num">UX Δ</th></tr>`}
+              </thead>
+              <tbody>${body}</tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    async function loadWatchlist() {
+      await loadFiRegistryDefaults();
+      await loadMerchantStatuses();
+      const end = isoYesterday();
+      const start = isoDaysAgo(29,end);
+      statusEl.textContent = `Loading ${start} → ${end}…`;
+      const res = await fetch(`/merchant-heatmap?start=${start}&end=${end}`);
+      if (!res.ok) {
+        statusEl.textContent = `Failed to load data (${res.status})`;
+        return;
+      }
+      const data = await res.json();
+      const days = Array.isArray(data.days) ? data.days : [];
+      let merchants = Array.isArray(data.merchants) ? data.merchants : [];
+      let slices = Array.isArray(data.slices) ? data.slices : [];
+      if ((!merchants || merchants.length === 0) && Array.isArray(data.slices)) {
+        merchants = aggregateSlicesToMerchants(data.slices, days);
+      }
+      if (!slices.length && Array.isArray(data.merchants)) {
+        // no slices in payload; derive minimal slices from merchants if present
+        slices = (data.merchants || []).flatMap((m) => {
+          const dArr = Array.isArray(m.days) ? m.days : [];
+          return dArr.map((d) => ({
+            day: d.day || d.date,
+            fi: "unknown_fi",
+            total: Number(d.total || 0),
+            billable: Number(d.billable || 0),
+            siteFailures: Number(d.siteFailures || d.siteFail || 0),
+            userFlowIssues: Number(d.userFlowIssues || 0),
+          }));
+        });
+      }
+      const last7 = days.slice(-7);
+      const prev7 = days.slice(-14, -7);
+      const summaries = merchants
+        .filter((m)=>!hasBadTag(m.tags, "synthetic"))
+        .filter((m)=>!hasBadTag(m.tags, "test-automation"))
+        .map((m)=>summarizeMerchant(m, days))
+        .filter((m)=> (m.total>0 || m.prevTotal>0))
+        .filter((m)=>!isSynthetic(m.name))
+        .filter((m)=>!isTestAutomation(m.name));
+      const fiSummaries = aggregateSlicesToFis(slices, days, fiInstanceDefaults)
+        .filter((fi)=> {
+          const name = (fi.fiName || fi.fi || "").toString().toLowerCase();
+          const inst = (fi.instance || "").toString().toLowerCase();
+          if (name === "default") return false;
+          if (name.includes("test-automation")) return false;
+          if (inst.includes("customer-dev")) return false;
+          return true;
+        })
+        .map((fi)=>summarizeFi(fi, days))
+        .filter((f)=>f.total>0 || f.prevTotal>0);
+      const byTrafficDrop = [...summaries]
+        .filter((s)=>Number.isFinite(s.totalDelta) && s.totalDelta < 0) // drop only, ignore 0%
+        .sort((a,b)=> (a.total || 0) - (b.total || 0)) // lowest recent traffic first
+        .slice(0,10);
+      const byTrafficRise = [...summaries]
+        .filter((s)=>Number.isFinite(s.totalDelta) && s.totalDelta > 0) // rise only, ignore 0%
+        .sort((a,b)=> (b.total || 0) - (a.total || 0)) // highest recent traffic first
+        .slice(0,10);
+      const byReliabilityDrop = [...summaries]
+        .filter((s)=>Number.isFinite(s.siteFailDelta))
+        .sort((a,b)=> (b.siteFailDelta || 0) - (a.siteFailDelta || 0))
+        .slice(0,10);
+      const byReliabilityImprove = [...summaries]
+        .filter((s)=>Number.isFinite(s.siteFailDelta))
+        .sort((a,b)=> (a.siteFailDelta || 0) - (b.siteFailDelta || 0))
+        .slice(0,10);
+      const withMissing = summaries
+        .filter((s)=>s.missingDays > 0)
+        .sort((a,b)=> (b.missingDays||0) - (a.missingDays||0))
+        .slice(0,10);
+
+      const cards = [];
+      const windowLabel = document.getElementById("windowLabel");
+      if (windowLabel) {
+        const lastStart = last7.length ? last7[0] : start;
+        const lastEnd = last7.length ? last7[last7.length - 1] : end;
+        const prevStart = prev7.length ? prev7[0] : start;
+        const prevEnd = prev7.length ? prev7[prev7.length - 1] : lastStart;
+        windowLabel.textContent = `Last 7 days: ${lastStart} → ${lastEnd}, Prev 7: ${prevStart} → ${prevEnd}`;
+      }
+      cards.push(buildCard("Biggest traffic drops (7d vs prior 7d)", byTrafficDrop, "totalDelta", true));
+      cards.push(buildCard("Biggest traffic spikes (7d vs prior 7d)", byTrafficRise, "totalDelta", false));
+      cards.push(buildCard("Reliability drops (site-fail share ↑)", byReliabilityDrop, "siteFailDelta", true));
+      cards.push(buildCard("Reliability improvements (site-fail share ↓)", byReliabilityImprove, "siteFailDelta", false));
+      if (withMissing.length) {
+        const body = withMissing.map((r)=>`<tr>
+          <td>${r.name}</td>
+          <td class="num">${fmtNum(r.total)}</td>
+          <td class="num">${r.missingDays}</td>
+        </tr>`).join("");
+        cards.push(`
+          <div class="watch-card">
+            <h3>Data gaps (missing days in window)</h3>
+            <table class="watch-table" style="font-size:12px;">
+              <thead><tr><th>Merchant</th><th class="num">Last 7d</th><th class="num">Missing days</th></tr></thead>
+              <tbody>${body}</tbody>
+            </table>
+          </div>
+        `);
+      }
+      // FI-level cards
+      const fiByTrafficDrop = [...fiSummaries]
+        .filter((s)=>Number.isFinite(s.totalDelta))
+        .sort((a,b)=> (a.total || 0) - (b.total || 0))
+        .slice(0,10);
+      const fiByTrafficRise = [...fiSummaries]
+        .filter((s)=>Number.isFinite(s.totalDelta))
+        .sort((a,b)=> (b.total || 0) - (a.total || 0))
+        .slice(0,10);
+      const fiReliabilityDrop = [...fiSummaries]
+        .filter((s)=>Number.isFinite(s.siteFailDelta))
+        .sort((a,b)=> (b.siteFailDelta || 0) - (a.siteFailDelta || 0))
+        .slice(0,10);
+      cards.push(buildCard("FI: traffic drops (sessions/placements)", fiByTrafficDrop, "totalDelta", true));
+      cards.push(buildCard("FI: traffic spikes (sessions/placements)", fiByTrafficRise, "totalDelta", false));
+      cards.push(buildCard("FI: reliability drops (site-fail share ↑)", fiReliabilityDrop, "siteFailDelta", true));
+      cardsEl.innerHTML = cards.join("");
+      statusEl.textContent = `Signals computed for ${summaries.length} merchants over ${days.length} days`;
+    }
+
+    loadWatchlist().catch((err)=>{
+      console.error(err);
+      statusEl.textContent = "Failed to load alerts";
+    });
+  </script>
+</body>
+</html>

@@ -114,3 +114,18 @@ The CardUpdatr funnel view (and its CSV export) combines GA4 traffic with SIS se
 - Availability mode highlights simple reachability: green when any traffic is seen that day, red when there is no traffic (likely down), gray when no signal.
 - FI filtering is deterministic: only checked FIs are included; an empty selection shows no data. Partner/integration/instance no longer filter data; they only scope the FI list (partner options come from the current instance slice).
 - Date preset “Last 90 days” anchors to yesterday and 89 days prior; start/end inputs reflect the preset on load.
+
+## Alerts / Watchlist (merchant & FI anomalies)
+
+- Alerts page (`/watchlist.html`) now surfaces biggest week-over-week traffic drops/spikes, reliability drops/improvements, data gaps, plus FI-level traffic/reliability. Traffic cards exclude 0% deltas; reliability cards color deltas directionally.
+- Merchant rows display live site status badges (Up/Limited/Down/Unknown) derived from `merchant_sites` tags.
+- Synthetic and test-automation merchants are filtered out. FI cards also drop `default` and `customer-dev`/test-automation entries.
+
+## Maintenance page updates
+
+- Added a live Merchant Sites card (ss01) that pulls `merchant_sites` via the local server: shows name/host/status/tags/tier, supports tag filtering with multi-select dropdown, sorting, CSV export, and a cached offline fallback (`public/merchant-sites-cache.json`).
+- All maintenance cards are full-width for clarity; FI Registry now includes a “Find Duplicates” action, and the Instances editor remains unchanged.
+
+## New helper endpoint
+
+- `/merchant-sites` — served by `scripts/serve-funnel.mjs`, logs into ss01 and returns `{ count, sites }` with tags and tier. The Maintenance page and Alerts badges rely on this endpoint; restart the local server after pulling updates.

@@ -7,6 +7,7 @@ import { TERMINATION_RULES } from "../src/config/terminationMap.mjs";
 import { isTestInstanceName } from "../src/config/testInstances.mjs";
 import { fetchRawRange } from "./fetch-raw.mjs";
 import { buildDailyFromRawRange } from "./build-daily-from-raw.mjs";
+import { loginWithSdk, getMerchantSitesPage } from "../src/api.mjs";
 const { URLSearchParams } = url;
 
 const __filename = fileURLToPath(import.meta.url);
@@ -400,6 +401,73 @@ async function writeInstancesFile(entries) {
   }
   await fs.writeFile(target, JSON.stringify(sorted, null, 2) + "\n", "utf8");
   return { entries: sorted, path: target };
+}
+
+function pickSs01Instance(instances = []) {
+  const lowerName = (v) => (v || "").toString().trim().toLowerCase();
+  const match = instances.find(
+    (entry) =>
+      lowerName(entry?.name) === "ss01" ||
+      lowerName(entry?.CARDSAVR_INSTANCE || "").includes("ss01")
+  );
+  return match || instances[0] || null;
+}
+
+async function fetchMerchantSitesFromSs01() {
+  const { entries } = await readInstancesFile();
+  const ss01 = pickSs01Instance(entries);
+  if (!ss01) {
+    throw new Error("No ss01 instance credentials found.");
+  }
+
+  const { session } = await loginWithSdk(ss01);
+  const sites = [];
+  let pagingMeta = null;
+  let guard = 0;
+  while (guard < 200) {
+    const headers = pagingMeta
+      ? { "x-cardsavr-paging": JSON.stringify(pagingMeta) }
+      : {};
+    const resp = await getMerchantSitesPage(session, headers);
+    const rows =
+      Array.isArray(resp?.body) ||
+      Array.isArray(resp?.merchant_sites) ||
+      Array.isArray(resp?.items)
+        ? resp.body || resp.merchant_sites || resp.items
+        : Array.isArray(resp)
+        ? resp
+        : [];
+    sites.push(
+      ...rows.map((r) => ({
+        id: r.id,
+        name: r.name || r.display_name || "",
+        host: r.host || r.hostname || "",
+        tags: Array.isArray(r.tags) ? r.tags : [],
+        tier: r.tier ?? null,
+      }))
+    );
+
+    const pagingHeader = resp?.headers?.get
+      ? resp.headers.get("x-cardsavr-paging")
+      : resp?.headers?.["x-cardsavr-paging"];
+
+    if (!pagingHeader) break;
+    try {
+      pagingMeta = JSON.parse(pagingHeader);
+    } catch {
+      break;
+    }
+    const total = Number(pagingMeta.total_results) || rows.length;
+    const pageLen = Number(pagingMeta.page_length) || rows.length || 25;
+    const totalPages = pageLen > 0 ? Math.ceil(total / pageLen) : 1;
+    const nextPage = (Number(pagingMeta.page) || pagingMeta.page || 1) + 1;
+    if (nextPage > totalPages) break;
+    pagingMeta.page = nextPage;
+    if (!pagingMeta.page_length) pagingMeta.page_length = pageLen;
+    guard += 1;
+  }
+
+  return sites;
 }
 
 async function readPlacementDay(day) {
@@ -970,6 +1038,16 @@ const server = http.createServer(async (req, res) => {
       });
     } catch (err) {
       return send(res, 500, { error: err?.message || "Unable to load freshness" });
+    }
+  }
+  if (pathname === "/merchant-sites") {
+    try {
+      const sites = await fetchMerchantSitesFromSs01();
+      return send(res, 200, { count: sites.length, sites });
+    } catch (err) {
+      const message = err?.message || "Unable to load merchant sites";
+      console.error("merchant-sites fetch failed", err);
+      return send(res, 500, { error: message });
     }
   }
   if (pathname === "/fi-registry") {

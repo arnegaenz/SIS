@@ -17,7 +17,7 @@ const FI_REGISTRY_PATH = path.resolve("fi_registry.json");
 const CARDUPDATR_SUFFIX = ".cardupdatr.app";
 const UNKNOWN_INSTANCE = "unknown";
 const INSTANCE_DISPLAY_OVERRIDES = new Map([
-  ["digital-onboarding", "digitalonboarding"],
+  ["digitalonboarding", "digital-onboarding"],
 ]);
 
 function normalizeFiKey(value) {

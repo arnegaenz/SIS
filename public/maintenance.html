@@ -52,7 +52,7 @@
     }
     .maintenance-grid {
       display: grid;
-      grid-template-columns: repeat(2, minmax(360px, 1fr));
+      grid-template-columns: 1fr;
       gap: 24px;
       margin-top: 24px;
       width: 100%;
@@ -200,6 +200,102 @@
     .maint-card button,
     .maint-card .btn {
       align-self: flex-start;
+    }
+    .merchant-sites-card {
+      grid-column: 1 / -1;
+    }
+    .merchant-sites-table-wrapper {
+      border: 1px solid var(--panel-border);
+      border-radius: 10px;
+      overflow: auto;
+      max-height: 420px;
+      background: var(--surface);
+    }
+    .merchant-sites-card table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+      min-width: 640px;
+      position: relative;
+    }
+    .merchant-sites-card th,
+    .merchant-sites-card td {
+      padding: 10px 12px;
+      text-align: left;
+      border-bottom: 1px solid var(--panel-border);
+    }
+    .merchant-sites-card th {
+      background: rgba(37, 99, 235, 0.06);
+      color: var(--panel-title);
+      font-weight: 700;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      backdrop-filter: blur(2px);
+      cursor: pointer;
+    }
+    .merchant-sites-card tbody tr:last-child td {
+      border-bottom: none;
+    }
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-weight: 600;
+      font-size: 12px;
+      letter-spacing: 0.2px;
+      border: 1px solid transparent;
+    }
+    .status-pill.up {
+      background: rgba(34, 197, 94, 0.12);
+      color: #0f5132;
+      border-color: rgba(34, 197, 94, 0.35);
+    }
+    .status-pill.down {
+      background: rgba(220, 38, 38, 0.12);
+      color: #7f1d1d;
+      border-color: rgba(220, 38, 38, 0.35);
+    }
+    .status-pill.limited {
+      background: rgba(234, 179, 8, 0.16);
+      color: #854d0e;
+      border-color: rgba(234, 179, 8, 0.35);
+    }
+    .status-pill.unknown {
+      background: rgba(100, 116, 139, 0.16);
+      color: #334155;
+      border-color: rgba(100, 116, 139, 0.35);
+    }
+    .tag-filter {
+      position: relative;
+    }
+    .tag-filter-menu {
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 0;
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+      padding: 10px 12px;
+      box-shadow: 0 12px 30px rgba(15, 23, 42, 0.2);
+      max-height: 260px;
+      overflow: auto;
+      min-width: 220px;
+      z-index: 5;
+    }
+    .tag-filter-menu label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--panel-title);
+      padding: 4px 0;
+      cursor: pointer;
+    }
+    .tag-filter-menu input {
+      width: 16px;
+      height: 16px;
     }
     .registry-controls {
       display: flex;
@@ -494,6 +590,7 @@
         <a href="index.html">Overview</a>
         <a href="funnel.html">FI Funnel</a>
         <a href="heatmap.html">Merchant Heatmap</a>
+        <a href="watchlist.html">Alerts</a>
         <a href="troubleshoot.html">Troubleshooting</a>
         <a href="maintenance.html">Maintenance</a>
       </nav>
@@ -555,6 +652,39 @@
           </div>
         </article>
 
+        <article class="maint-card merchant-sites-card" id="merchantSitesCard">
+          <div>
+            <h2>Merchant Sites (ss01)</h2>
+            <p class="description">
+              Live snapshot from the ss01 instance. Tags map to an at-a-glance status badge so you can spot sites that are down or limited.
+            </p>
+            <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+              <p class="description" id="merchantSitesMeta" style="flex:1 1 auto;">Loading…</p>
+              <div class="tag-filter">
+                <button type="button" id="merchantSitesTagToggle" class="btn secondary" style="min-width: 160px;">Filter tags</button>
+                <div id="merchantSitesTagFilter" class="tag-filter-menu" hidden></div>
+              </div>
+              <button class="btn secondary" id="merchantSitesCsvBtn" type="button" disabled>Download CSV</button>
+            </div>
+          </div>
+          <div class="merchant-sites-table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width: 28%;" data-column="name">Name</th>
+                  <th style="width: 26%;" data-column="host">Host</th>
+                  <th style="width: 14%;" data-column="status">Status</th>
+                  <th style="width: 22%;" data-column="tags">Tags</th>
+                  <th style="width: 10%;" data-column="tier">Tier</th>
+                </tr>
+              </thead>
+              <tbody id="merchantSitesBody">
+                <tr><td colspan="5">Loading…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </article>
+
         <article class="maint-card registry-card">
           <div>
             <h2>FI Registry Editor</h2>
@@ -586,6 +716,7 @@
               </select>
             </label>
             <button class="btn secondary" id="registryReloadBtn" type="button">Reload Registry</button>
+            <button class="btn secondary" id="registryFindDupes" type="button">Find Duplicates</button>
           </div>
           <div class="registry-body">
             <div class="registry-table-wrapper">
@@ -1034,6 +1165,7 @@
       const integrationFilter = document.getElementById("registryIntegrationFilter");
       const instanceFilter = document.getElementById("registryInstanceFilter");
       const reloadBtn = document.getElementById("registryReloadBtn");
+      const dupesBtn = document.getElementById("registryFindDupes");
       const tableBody = document.getElementById("registryTableBody");
       const statusLine = document.getElementById("editorStatus");
       const metaLine = document.getElementById("editorMeta");
@@ -1056,6 +1188,7 @@
       let filteredEntries = [];
       let selectedKey = null;
       let saving = false;
+      let showingDupes = false;
 
       function normalizeIntegration(value) {
         if (!value) return "NON-SSO";
@@ -1095,12 +1228,13 @@
         statusLine.className = "status-line " + kind;
       }
 
-      function renderTable() {
+      function renderTable(rowsOverride) {
         const search = (searchInput.value || "").trim().toLowerCase();
         const integrationValue = integrationFilter.value;
         const instanceValue = instanceFilter.value;
-        // rebuild instance options from current entries
-        const instances = Array.from(new Set(entries.map((e) => e.instance || "unknown"))).sort((a, b) =>
+        const source = Array.isArray(rowsOverride) ? rowsOverride : entries;
+        // rebuild instance options from current rows
+        const instances = Array.from(new Set(source.map((e) => e.instance || "unknown"))).sort((a, b) =>
           a.localeCompare(b)
         );
         const keepInstance = instanceFilter.value || "";
@@ -1110,7 +1244,7 @@
         if (instances.includes(keepInstance)) {
           instanceFilter.value = keepInstance;
         }
-        filteredEntries = entries
+        const next = source
           .filter((entry) => {
             if (search) {
               const haystack = `${entry.fi_name} ${entry.instance} ${entry.fi_lookup_key || ""} ${entry.partner || ""} ${entry.cardholder_source || ""}`.toLowerCase();
@@ -1124,10 +1258,18 @@
             }
             return true;
           })
-          .sort((a, b) => a.fi_name.localeCompare(b.fi_name));
+          .sort((a, b) => {
+            const aKey = (a.fi_lookup_key || "").toString().toLowerCase();
+            const bKey = (b.fi_lookup_key || "").toString().toLowerCase();
+            if (aKey !== bKey) return aKey.localeCompare(bKey);
+            const aInst = (a.instance || "").toString().toLowerCase();
+            const bInst = (b.instance || "").toString().toLowerCase();
+            return aInst.localeCompare(bInst);
+          });
+        if (!rowsOverride) filteredEntries = next;
 
         tableBody.innerHTML = "";
-        if (!filteredEntries.length) {
+        if (!next.length) {
           const tr = document.createElement("tr");
           const td = document.createElement("td");
           td.colSpan = 3;
@@ -1137,7 +1279,7 @@
           return;
         }
 
-        filteredEntries.forEach((entry) => {
+        next.forEach((entry) => {
           const tr = document.createElement("tr");
           tr.dataset.key = entry.key;
           if (entry.key === selectedKey) {
@@ -1437,6 +1579,35 @@
       integrationFilter.addEventListener("change", renderTable);
       instanceFilter.addEventListener("change", renderTable);
       reloadBtn.addEventListener("click", reloadRegistryFromData);
+      dupesBtn?.addEventListener("click", () => {
+        if (!entries.length) {
+          setStatus("Load the registry first.");
+          return;
+        }
+        if (showingDupes) {
+          showingDupes = false;
+          setStatus("Showing filtered registry.");
+          renderTable();
+          return;
+        }
+        const map = new Map();
+        entries.forEach((entry) => {
+          const fiKey = (entry.fi_lookup_key || "").toString().trim().toLowerCase();
+          if (!fiKey) return;
+          const inst = (entry.instance || "unknown").toString().trim().toLowerCase();
+          const combo = `${fiKey}__${inst}`;
+          if (!map.has(combo)) map.set(combo, []);
+          map.get(combo).push(entry);
+        });
+        const dupes = Array.from(map.values()).filter((list) => list.length > 1).flat();
+        if (!dupes.length) {
+          setStatus("No duplicate FI+instance entries found.");
+          return;
+        }
+        showingDupes = true;
+        setStatus(`Showing ${dupes.length} duplicate entries (same FI+instance).`);
+        renderTable(dupes);
+      });
 
       form.addEventListener("submit", (event) => {
         event.preventDefault();
@@ -1731,6 +1902,277 @@
       deleteBtn.addEventListener("click", deleteInstance);
 
       loadInstances();
+    })();
+
+    (function setupMerchantSitesCard() {
+      const tbody = document.getElementById("merchantSitesBody");
+      const meta = document.getElementById("merchantSitesMeta");
+      const csvBtn = document.getElementById("merchantSitesCsvBtn");
+      const tagFilterMenu = document.getElementById("merchantSitesTagFilter");
+      const tagToggle = document.getElementById("merchantSitesTagToggle");
+      if (!tbody || !meta || !csvBtn || !tagFilterMenu || !tagToggle) return;
+
+      let sortState = { column: "status", direction: "asc" };
+      const statusOrder = { up: 0, limited: 1, unknown: 2, down: 3 };
+      const apiBase =
+        window.location.origin.includes("8787")
+          ? window.location.origin
+          : "http://localhost:8787";
+
+      async function loadCachedSites() {
+        try {
+          const res = await fetch("./merchant-sites-cache.json", { cache: "no-store" });
+          if (!res.ok) return null;
+          const data = await res.json();
+          return Array.isArray(data?.sites) ? data.sites : null;
+        } catch {
+          return null;
+        }
+      }
+
+      const classifyStatus = (tags = []) => {
+        const lower = tags.map((t) => t.toString().toLowerCase());
+        if (lower.some((t) => t.includes("down") || t.includes("disabled"))) {
+          return { label: "Down", css: "down" };
+        }
+        if (lower.some((t) => t.includes("limited") || t.includes("beta") || t.includes("degraded"))) {
+          return { label: "Limited", css: "limited" };
+        }
+        if (lower.some((t) => t.includes("unrestricted") || t === "prod")) {
+          return { label: "Up", css: "up" };
+        }
+        return { label: "Unknown", css: "unknown" };
+      };
+
+      let lastSites = [];
+      let filteredSites = [];
+
+      function updateTagOptions(sites = []) {
+        const existingSelection = new Set(
+          Array.from(tagFilterMenu.querySelectorAll("input[type=checkbox]:checked")).map(
+            (c) => c.value
+          )
+        );
+        const tagSet = new Set();
+        for (const site of sites) {
+          for (const t of Array.isArray(site.tags) ? site.tags : []) {
+            if (t) tagSet.add(t);
+          }
+        }
+        const tags = Array.from(tagSet).sort((a, b) => a.localeCompare(b));
+        const allChecked =
+          tags.length > 0 && tags.every((t) => existingSelection.has(t));
+        const noneChecked = tags.length > 0 && tags.every((t) => !existingSelection.has(t));
+        const header = `
+          <div style="display:flex;gap:8px;padding:4px 0 8px 0;border-bottom:1px solid var(--panel-border);margin-bottom:6px;">
+            <button type="button" id="tagCheckAll" class="btn secondary" style="padding:6px 10px;min-width:100px;">Check all</button>
+            <button type="button" id="tagUncheckAll" class="btn secondary" style="padding:6px 10px;min-width:100px;">Uncheck all</button>
+          </div>
+        `;
+        const options = tags
+          .map(
+            (t) => `
+              <label>
+                <input type="checkbox" value="${t}" ${existingSelection.has(t) ? "checked" : ""}/>
+                <span>${t}</span>
+              </label>
+            `
+          )
+          .join("");
+        tagFilterMenu.innerHTML = header + options;
+        // wire up check/uncheck all
+        const checkAllBtn = document.getElementById("tagCheckAll");
+        const uncheckAllBtn = document.getElementById("tagUncheckAll");
+        if (checkAllBtn) {
+          checkAllBtn.onclick = () => {
+            tagFilterMenu.querySelectorAll("input[type=checkbox]").forEach((c) => {
+              c.checked = true;
+            });
+            render(lastSites);
+          };
+        }
+        if (uncheckAllBtn) {
+          uncheckAllBtn.onclick = () => {
+            tagFilterMenu.querySelectorAll("input[type=checkbox]").forEach((c) => {
+              c.checked = false;
+            });
+            render(lastSites);
+          };
+        }
+      }
+
+      const render = (sites = []) => {
+        lastSites = Array.isArray(sites) ? sites : [];
+        csvBtn.disabled = !lastSites.length;
+        if (!sites.length) {
+          tbody.innerHTML = `<tr><td colspan="5">No merchant sites returned.</td></tr>`;
+          meta.textContent = "No sites found.";
+          return;
+        }
+
+        const selectedTags = Array.from(
+          tagFilterMenu.querySelectorAll("input[type=checkbox]:checked")
+        ).map((c) => c.value);
+        const hasTagFilter = selectedTags.length > 0;
+        const filtered = hasTagFilter
+          ? sites.filter((s) => {
+              const tgs = Array.isArray(s.tags) ? s.tags : [];
+              return selectedTags.every((t) => tgs.includes(t));
+            })
+          : sites;
+        filteredSites = filtered;
+
+        const sorted = [...filtered].sort((a, b) => {
+          const dir = sortState.direction === "desc" ? -1 : 1;
+          switch (sortState.column) {
+            case "name":
+              return dir * (a.name || "").localeCompare(b.name || "");
+            case "host":
+              return dir * (a.host || "").localeCompare(b.host || "");
+            case "tier":
+              return dir * ((Number(a.tier) || 0) - (Number(b.tier) || 0));
+            case "status":
+            default: {
+              const aStatus = classifyStatus(a.tags).css;
+              const bStatus = classifyStatus(b.tags).css;
+              if (aStatus !== bStatus) {
+                return dir * ((statusOrder[aStatus] ?? 99) - (statusOrder[bStatus] ?? 99));
+              }
+              return dir * (a.host || "").localeCompare(b.host || "");
+            }
+            case "tags": {
+              const aTags = Array.isArray(a.tags) ? a.tags.join(", ") : "";
+              const bTags = Array.isArray(b.tags) ? b.tags.join(", ") : "";
+              return dir * aTags.localeCompare(bTags);
+            }
+          }
+        });
+
+        tbody.innerHTML = sorted
+          .map((site) => {
+            const status = classifyStatus(site.tags);
+            const tags = Array.isArray(site.tags) ? site.tags.join(", ") : "";
+            const tier = site.tier === null || site.tier === undefined ? "—" : site.tier;
+            return `
+              <tr>
+                <td>${site.name || "—"}</td>
+                <td><code>${site.host || "—"}</code></td>
+                <td><span class="status-pill ${status.css}">${status.label}</span></td>
+                <td>${tags || "—"}</td>
+                <td>${tier}</td>
+              </tr>
+            `;
+          })
+          .join("");
+
+        const filteredLabel = hasTagFilter
+          ? `Filtered to ${filtered.length} site(s); ${sites.length} total.`
+          : `Showing ${sites.length} site(s).`;
+        meta.textContent = `${filteredLabel} Status is derived from tags (down/disabled, limited/beta, unrestricted/prod).`;
+      };
+
+      async function loadSites() {
+        meta.textContent = "Loading merchant sites…";
+        tbody.innerHTML = `<tr><td colspan="5">Loading…</td></tr>`;
+        try {
+          const res = await fetch(`${apiBase}/merchant-sites`, { cache: "no-store" });
+          const text = await res.text();
+          if (!res.ok) {
+            throw new Error(`HTTP ${res.status}: ${text.slice(0, 120)}`);
+          }
+          let data;
+          try {
+            data = JSON.parse(text);
+          } catch (parseErr) {
+            throw new Error("Non-JSON response (is the SIS server running?): " + text.slice(0, 120));
+          }
+          const sites = Array.isArray(data?.sites) ? data.sites : [];
+          updateTagOptions(sites);
+          render(sites);
+        } catch (err) {
+          console.error("merchant sites load failed", err);
+          const cached = await loadCachedSites();
+          if (cached) {
+            meta.textContent = "Live fetch failed; showing cached merchant site list.";
+            updateTagOptions(cached);
+            render(cached);
+            return;
+          }
+          meta.textContent = err?.message || "Failed to load merchant sites. Is the SIS server running on port 8787?";
+          tbody.innerHTML = `<tr><td colspan="5">Failed to load merchant sites.</td></tr>`;
+        }
+      }
+
+      function applySort(column) {
+        if (sortState.column === column) {
+          sortState = {
+            column,
+            direction: sortState.direction === "asc" ? "desc" : "asc",
+          };
+        } else {
+          sortState = { column, direction: "asc" };
+        }
+      }
+
+      const headers = document.querySelectorAll("#merchantSitesCard thead th");
+      headers.forEach((th) => {
+        th.addEventListener("click", () => {
+          const col = th.dataset.column;
+          if (!col) return;
+          applySort(col);
+          render(lastSites);
+        });
+      });
+      document.addEventListener("click", (evt) => {
+        if (evt.target === tagToggle) {
+          tagFilterMenu.hidden = !tagFilterMenu.hidden;
+          return;
+        }
+        if (!tagFilterMenu.hidden) {
+          const within = tagFilterMenu.contains(evt.target);
+          if (!within) tagFilterMenu.hidden = true;
+        }
+      });
+      tagFilterMenu.addEventListener("change", () => {
+        render(lastSites);
+      });
+
+      function escapeCsv(value) {
+        const str = value == null ? "" : String(value);
+        return /[",\n]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str;
+      }
+
+      function buildCsv() {
+        const rows = [["Name", "Host", "Status", "Tags", "Tier"]];
+        for (const site of filteredSites) {
+          const status = classifyStatus(site.tags);
+          const tags = Array.isArray(site.tags) ? site.tags.join("|") : "";
+          rows.push([
+            escapeCsv(site.name || ""),
+            escapeCsv(site.host || ""),
+            escapeCsv(status.label),
+            escapeCsv(tags),
+            escapeCsv(site.tier ?? ""),
+          ]);
+        }
+        return rows.map((r) => r.join(",")).join("\n");
+      }
+
+      csvBtn.addEventListener("click", () => {
+        if (!lastSites.length) return;
+        const csv = buildCsv();
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "merchant-sites-ss01.csv";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+      });
+
+      loadSites();
     })();
   </script>
 </body>
