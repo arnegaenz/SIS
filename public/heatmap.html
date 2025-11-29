@@ -369,6 +369,14 @@
           <div id="rows"></div>
         </div>
       </div>
+      <div class="sis-panel" id="healthSummaryPanel" style="margin-top:16px; padding:12px 16px;">
+        <h3 style="margin:0 0 8px 0; font-size:16px;">Merchant health snapshot</h3>
+        <div id="healthSummary" class="muted tiny">Loading…</div>
+        <div class="muted tiny" style="margin-top:8px; line-height:1.4;">
+          Legend: 🟢 health ≥80%, 🟠 50–79%, 🔴 <50%; UX 🟢 <25%, 🟡 25–49%, 🔴 ≥50%.
+          Arrows: ↑/↓ latest day ≥10pp vs prior 6-day avg; ↗/↘ between 2–10pp; → within ±2pp.
+        </div>
+      </div>
     </section>
   </main>
   </div>
@@ -668,6 +676,7 @@
     const legendEl = $("#legend");
     const tip = $("#tip");
     const countEl = $("#count");
+    const healthSummaryEl = $("#healthSummary");
     const includeProdToggle = document.getElementById("includeProdMerchants");
     const includeTestToggle = document.getElementById("includeTestMerchants");
     const INSTANCE_ALL_VALUE = "__all_instances__";
@@ -1379,6 +1388,7 @@
 
       // legend
       renderLegend(MODE);
+      renderHealthSummary(sorted);
     }
 
     function renderLegend(mode) {
@@ -1545,6 +1555,127 @@
           <div class="tt-title">${merchantLabel} • ${dateLabel}</div>
           <div class="tt-mode">${safeModeLine}</div>
           ${anomalySection}
+        </div>
+      `;
+    }
+
+    function formatPct(value) {
+      if (value === null || value === undefined || Number.isNaN(value)) return "—";
+      return `${value.toFixed(1)}%`;
+    }
+
+    function computeTrendArrow(dailyStats = {}, selector) {
+      if (typeof selector !== "function") return "";
+      const values = Object.entries(dailyStats)
+        .map(([day, stats]) => ({ day, value: selector(stats || {}) }))
+        .filter(({ value }) => Number.isFinite(value))
+        .sort((a, b) => (a.day < b.day ? -1 : a.day > b.day ? 1 : 0));
+
+      if (values.length < 7) return "";
+
+      const recent = values[values.length - 1].value;
+      const baselineValues = [];
+      for (let i = values.length - 2; i >= 0 && baselineValues.length < 6; i -= 1) {
+        baselineValues.push(values[i].value);
+      }
+      if (baselineValues.length < 6) return "";
+
+      const baseline =
+        baselineValues.reduce((sum, val) => sum + val, 0) / baselineValues.length;
+
+      if (!Number.isFinite(recent) || !Number.isFinite(baseline)) return "";
+
+      const delta = recent - baseline;
+      const absDelta = Math.abs(delta);
+      if (absDelta < 2) return "→";
+      if (delta >= 10) return "↑";
+      if (delta <= -10) return "↓";
+      if (delta >= 2) return "↗";
+      if (delta <= -2) return "↘";
+      return "→";
+    }
+
+    function summarizeMerchantHealth(merchantRow = {}) {
+      const total = Number(merchantRow.total || 0);
+      const billable = Number(merchantRow.billable || 0);
+      const siteFailures = Number(merchantRow.siteFailures ?? merchantRow.siteFail ?? 0);
+      const userFlowIssues = Number(merchantRow.userFlowIssues || 0);
+      const healthDenom = billable + siteFailures;
+      const healthPct = healthDenom > 0 ? (billable / healthDenom) * 100 : null;
+      const uxPct = total > 0 ? (userFlowIssues / total) * 100 : null;
+
+      const perDay = Array.isArray(merchantRow.days) ? merchantRow.days : [];
+      const dailyMap = {};
+      perDay.forEach((d) => {
+        const dayKey = d.day || d.date;
+        if (!dayKey) return;
+        dailyMap[dayKey] = {
+          total: Number(d.total || 0),
+          billable: Number(d.billable || 0),
+          siteFailures: Number(d.siteFailures ?? d.siteFail ?? 0),
+          userFlowIssues: Number(d.userFlowIssues || 0),
+        };
+      });
+
+      const healthArrow = computeTrendArrow(dailyMap, (dayStats) => {
+        const denom = Number(dayStats.billable || 0) + Number(dayStats.siteFailures || 0);
+        if (denom === 0) return null;
+        return (Number(dayStats.billable || 0) / denom) * 100;
+      });
+
+      const uxArrow = computeTrendArrow(dailyMap, (dayStats) => {
+        const tot = Number(dayStats.total || 0);
+        if (tot === 0) return null;
+        return (Number(dayStats.userFlowIssues || 0) / tot) * 100;
+      });
+
+      return {
+        merchant: merchantRow.merchant || merchantRow.name || "unknown",
+        total,
+        billable,
+        siteFailures,
+        userFlowIssues,
+        healthPct,
+        uxPct,
+        healthArrow,
+        uxArrow,
+        severeUx: uxPct !== null && uxPct >= 80,
+      };
+    }
+
+    function renderHealthSummary(merchants = []) {
+      if (!healthSummaryEl) return;
+      if (!Array.isArray(merchants) || merchants.length === 0) {
+        healthSummaryEl.innerHTML = '<div class="muted tiny">No data.</div>';
+        return;
+      }
+      const MIN_ATTEMPTS = 5;
+      const summaries = merchants.map((m) => summarizeMerchantHealth(m));
+      summaries.sort((a, b) => (b.total || 0) - (a.total || 0));
+      const main = summaries.filter((s) => (s.total || 0) >= MIN_ATTEMPTS);
+      const lowVol = summaries.length - main.length;
+      const linesHtml = main
+        .map((s) => {
+          const name = s.merchant.padEnd(22, " ");
+          let healthEmoji = s.healthPct === null ? "⚪️" : s.healthPct >= 80 ? "🟢" : s.healthPct >= 50 ? "🟠" : "🔴";
+          if (s.severeUx && healthEmoji === "🟢") healthEmoji = "🔴";
+          const uxEmoji = s.uxPct === null ? "⚪️" : s.uxPct < 25 ? "🟢" : s.uxPct < 50 ? "🟡" : "🔴";
+          const warningIcon = s.severeUx ? "⚠️" : "";
+          const totalText = (s.total || 0).toString().padEnd(4);
+          const billableText = (s.billable || 0).toString().padEnd(4);
+          const billablePct = s.total > 0 ? ((s.billable / s.total) * 100).toFixed(1).padStart(6) + "%" : "   —  ";
+          const healthText = formatPct(s.healthPct).padStart(7);
+          const uxText = formatPct(s.uxPct).padStart(7);
+          const healthArrow = s.healthArrow || " ";
+          const uxArrow = s.uxArrow || " ";
+          const warnSpan = `<span style="display:inline-block; min-width:18px; text-align:center;">${warningIcon}</span>`;
+          return `<div class="mono" style="white-space:pre;">${healthEmoji} ${healthArrow} ${name} | total ${totalText} | billable ${billableText} (${billablePct}) | health ${healthText} | UX ${warnSpan}${uxEmoji} ${uxArrow} ${uxText}</div>`;
+        })
+        .join("");
+      healthSummaryEl.innerHTML = `
+        <div style="font-size:12px; line-height:1.4;">${linesHtml}</div>
+        <div class="muted tiny" style="margin-top:6px;">
+          Sorted by total attempts; rows with &lt; ${MIN_ATTEMPTS} attempts (${lowVol} merchants) omitted. Arrows compare the latest day vs prior 6-day average.
         </div>
       `;
     }

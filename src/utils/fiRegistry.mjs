@@ -150,9 +150,7 @@ function determineIntegrationType(entry, ssoLookupSet) {
   const primaryInstance = entry.instance ? entry.instance.toString() : null;
   const primaryInstanceNorm = normalizeInstance(primaryInstance);
 
-  if (
-    primaryInstanceNorm === "ondot" ||
-  ) {
+  if (primaryInstanceNorm === "ondot") {
     return "cardsavr";
   }
 

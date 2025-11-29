@@ -282,6 +282,8 @@ async function main() {
   const today = todayIsoDate();
   const cliStart = parseDateArg(process.argv[2], today);
   const cliEnd = parseDateArg(process.argv[3], cliStart);
+  const useCacheOnly =
+    process.env.CACHE_ONLY === "true" || process.argv.includes("--cache-only");
   if (cliStart > cliEnd) {
     throw new Error(`Start date ${cliStart} must be <= end date ${cliEnd}.`);
   }
@@ -289,10 +291,16 @@ async function main() {
   const endDate = cliEnd;
   const dates = enumerateDates(startDate, endDate);
 
-  console.log(`Preparing raw + daily cache for ${startDate} → ${endDate}...`);
-  await fetchRawRange({ startDate, endDate });
-  await buildDailyFromRawRange({ startDate, endDate });
-  console.log(`Daily rollup ready at data/daily/${startDate}.json ... ${endDate}.json`);
+  if (useCacheOnly) {
+    console.log(
+      `Cache-only mode: reusing existing raw/daily files for ${startDate} → ${endDate} (no logins or fetches).`
+    );
+  } else {
+    console.log(`Preparing raw + daily cache for ${startDate} → ${endDate}...`);
+    await fetchRawRange({ startDate, endDate });
+    await buildDailyFromRawRange({ startDate, endDate });
+    console.log(`Daily rollup ready at data/daily/${startDate}.json ... ${endDate}.json`);
+  }
 
   const SSO_SET = loadSsoFis(__dirname);
   const allSessionsCombined = dates
