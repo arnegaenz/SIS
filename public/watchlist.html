@@ -8,6 +8,45 @@
   <link rel="stylesheet" href="./assets/css/sis.css">
   <script defer src="./assets/js/sis.js"></script>
   <style>
+    :root {
+      --panel: #ffffff;
+      --card: #ffffff;
+      --border: #d7deea;
+      --ink: #0f172a;
+      --muted: #475569;
+      --table-border: #d7deea;
+      --table-header: #e2e8f0;
+      --bg: #f6f8fb;
+    }
+    [data-theme="dark"] {
+      --panel: #0f172a;
+      --card: #0f172a;
+      --border: rgba(255,255,255,0.12);
+      --ink: #e5edff;
+      --muted: #a8b3cf;
+      --table-border: rgba(255,255,255,0.12);
+      --table-header: rgba(255,255,255,0.06);
+      --bg: #0b0d10;
+    }
+    body {
+      font-family: "Inter", "Segoe UI", ui-sans-serif, system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: radial-gradient(circle at top, rgba(37,99,235,.08), transparent 42%) var(--bg);
+      color: var(--ink);
+    }
+    [data-theme="dark"] body {
+      background: radial-gradient(circle at top, rgba(90,115,255,.18), transparent 42%) var(--bg);
+      color: var(--ink);
+    }
+    .sis-panel {
+      background: var(--panel);
+    }
+    .sis-header {
+      background: var(--panel);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+    }
     .watchlist-grid {
       display: flex;
       flex-direction: column;
@@ -49,7 +88,7 @@
       width: 100%;
       border-collapse: collapse;
       margin-top: 8px;
-      font-size: 1.25rem;
+      font-size: 0.92rem;
     }
     .watch-table th,
     .watch-table td {
@@ -62,11 +101,19 @@
       top: 0;
       z-index: 1;
       padding: 8px 8px;
-      font-size: 1.25rem;
+      font-size: 0.92rem;
+    }
+    [data-theme="dark"] .watch-table th {
+      background: rgba(255,255,255,0.05);
+      color: var(--ink, #e5edff);
+    }
+    [data-theme="dark"] .watch-table td {
+      color: var(--ink, #e5edff);
+      border-color: rgba(255,255,255,0.12);
     }
     .watch-table tbody td {
-      padding: 14px 10px;
-      font-size: 1.25rem;
+      padding: 10px 8px;
+      font-size: 0.92rem;
     }
     .watch-table td.num {
       text-align: right;
@@ -74,7 +121,7 @@
       white-space: nowrap;
     }
     .watch-table th:first-child,
-    .watch-table td:first-child { width: 32%; white-space: nowrap; }
+    .watch-table td:first-child { width: 26%; white-space: nowrap; }
     .watch-table th:nth-child(2),
     .watch-table td:nth-child(2),
     .watch-table th:nth-child(3),
@@ -84,7 +131,7 @@
     .watch-table th:nth-child(5),
     .watch-table td:nth-child(5),
     .watch-table th:nth-child(6),
-    .watch-table td:nth-child(6) { width: 11%; text-align: right; }
+    .watch-table td:nth-child(6) { width: 13%; text-align: right; }
     .delta-bad { color: #b91c1c; }
     .delta-good { color: #15803d; }
     .status-pill {
@@ -135,6 +182,54 @@
       background: linear-gradient(135deg, rgba(148, 163, 184, 0.2), rgba(148, 163, 184, 0.06));
     }
     .status-pill.unknown::before { background: #94a3b8; }
+    .watchlist-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(520px, 1fr));
+      max-width: 1200px;
+      margin: 12px auto 0;
+      gap: 14px;
+    }
+    .watch-card {
+      padding: 14px;
+      overflow: auto;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      box-shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
+    }
+    [data-theme="dark"] .watch-card {
+      box-shadow: 0 20px 50px rgba(0,0,0,0.35);
+    }
+    .watch-card h3 {
+      font-size: 0.9rem;
+      margin-bottom: 6px;
+      color: var(--text, #0f172a);
+    }
+    .loading-banner {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border: 1px solid #f59e0b;
+      border-radius: 12px;
+      background: rgba(245, 158, 11, 0.12);
+      box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+      color: #92400e;
+      font-size: 13px;
+      margin-bottom: 10px;
+    }
+    .loading-banner .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid #f59e0b;
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      flex-shrink: 0;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
   </style>
 </head>
 <body class="heatmap-page watchlist-page">
@@ -152,13 +247,17 @@
       </nav>
     </div>
 
-    <h1 class="sis-page-name">FI Alerts Watchlist</h1>
-    <p class="sis-page-desc">Surface biggest week-over-week shifts in traffic and reliability using existing funnel/heatmap data.</p>
+    <h1 class="sis-page-name">Reliability &amp; Anomaly Watch</h1>
+    <p class="sis-page-desc">Highlight week-over-week anomalies and failure trends to catch system-level or cardholder pain early.</p>
   </header>
   <div class="sis-content">
   <main class="sis-main">
     <section class="sis-panel">
-      <div class="muted" id="status">Loading…</div>
+      <div id="pageLoader" class="loading-banner" hidden>
+        <div class="spinner" aria-hidden="true"></div>
+        <div class="loading-text">Loading alerts…</div>
+      </div>
+      <div class="muted" id="status"></div>
       <div style="margin-top:12px;">
         <div class="muted tiny" id="windowLabel"></div>
       </div>
@@ -181,8 +280,35 @@
       d.setUTCDate(d.getUTCDate()-n);
       return d.toISOString().slice(0,10);
     };
+    async function fetchDaily(date) {
+      try {
+        const res = await fetch(`/daily?date=${date}`);
+        if (!res.ok) return null;
+        const data = await res.json();
+        return data?.error ? null : data;
+      } catch {
+        return null;
+      }
+    }
 
     const statusEl = document.getElementById("status");
+    const loaderEl = document.getElementById("pageLoader");
+    const loaderTextEl = loaderEl?.querySelector(".loading-text");
+    const setLoaderText = (msg) => {
+      if (loaderTextEl && msg) loaderTextEl.textContent = msg;
+    };
+    function startLoading(message = "Loading alerts…") {
+      if (!loaderEl) return;
+      loaderEl.hidden = false;
+      loaderEl.style.display = "flex";
+      setLoaderText(message);
+    }
+    function stopLoading() {
+      if (!loaderEl) return;
+      loaderEl.hidden = true;
+      loaderEl.style.display = "none";
+      setLoaderText("");
+    }
     const cardsEl = document.getElementById("cards");
     let fiInstanceDefaults = new Map();
     let merchantStatusMap = new Map();
@@ -205,6 +331,93 @@
       } catch {
         // ignore registry load failures
       }
+    }
+
+    function aggregateMerchantsToFis(merchants = [], days = []) {
+      const dayIndex = new Map(days.map((d, idx) => [d, idx]));
+      const makeStore = () => ({
+        total: 0,
+        billable: 0,
+        siteFailures: 0,
+        userFlowIssues: 0,
+        days: Array.from({ length: days.length }, (_, i) => ({
+          day: days[i],
+          total: 0,
+          billable: 0,
+          siteFailures: 0,
+          userFlowIssues: 0,
+        })),
+      });
+      const fis = new Map();
+      merchants.forEach((m) => {
+        const fiList = Array.isArray(m.fi_list) && m.fi_list.length ? m.fi_list : ["unknown_fi"];
+        const perDay = Array.isArray(m.days) ? m.days : [];
+        fiList.forEach((fiName) => {
+          const key = `${fiName}:unknown`;
+          if (!fis.has(key)) {
+            fis.set(key, { ...makeStore(), fiName, instance: "unknown" });
+          }
+          const store = fis.get(key);
+          perDay.forEach((d) => {
+            const idx = dayIndex.has(d.day) ? dayIndex.get(d.day) : -1;
+            const tot = Number(d.total || 0);
+            const bill = Number(d.billable || 0);
+            const sf = Number(d.siteFailures || d.siteFail || 0);
+            const ux = Number(d.userFlowIssues || 0);
+            store.total += tot;
+            store.billable += bill;
+            store.siteFailures += sf;
+            store.userFlowIssues += ux;
+            if (idx >= 0) {
+              const entry = store.days[idx];
+              entry.total += tot;
+              entry.billable += bill;
+              entry.siteFailures += sf;
+              entry.userFlowIssues += ux;
+            }
+          });
+        });
+      });
+      return Array.from(fis.entries()).map(([fi, stats]) => ({
+        fi,
+        fiName: stats.fiName,
+        instance: stats.instance,
+        total: stats.total,
+        billable: stats.billable,
+        siteFailures: stats.siteFailures,
+        userFlowIssues: stats.userFlowIssues,
+        days: stats.days,
+      }));
+    }
+
+    async function aggregateDailyFiTotals(lastDays = [], prevDays = []) {
+      const combined = Array.from(new Set([...lastDays, ...prevDays]));
+      if (!combined.length) return [];
+      const fiMap = new Map();
+      for (let i = 0; i < combined.length; i++) {
+        const day = combined[i];
+        setLoaderText(`Loading FI daily data… ${i + 1}/${combined.length}`);
+        const daily = await fetchDaily(day);
+        if (!daily || !daily.fi) continue;
+        const fiInstances = daily.fi_instances || {};
+        for (const [fiName, entry] of Object.entries(daily.fi)) {
+          const instArr = Array.isArray(fiInstances[fiName]) ? fiInstances[fiName] : [];
+          const inst = instArr[0] || "unknown";
+          const key = `${fiName}:${inst}`;
+          if (!fiMap.has(key)) {
+            fiMap.set(key, {
+              fiName,
+              instance: inst,
+              days: [],
+            });
+          }
+          const store = fiMap.get(key);
+          const sessions = entry.sessions || {};
+          const total = Number(sessions.total || 0);
+          store.days.push({ day, total, billable: total, siteFailures: 0, userFlowIssues: 0 });
+        }
+      }
+      return Array.from(fiMap.values());
     }
 
     function classifyStatus(tags = []) {
@@ -377,14 +590,17 @@
       }));
     }
 
-    function summarizeMerchant(merchant, daysArr) {
+    function summarizeMerchant(merchant, daysArr, endDateOverride = null) {
       const dayIndex = new Map(daysArr.map((d,i)=>[d,i]));
       const daily = (merchant.days || []).map((d)=>({ day:d.day||d.date, total:Number(d.total||0), billable:Number(d.billable||0), siteFailures:Number(d.siteFailures||d.siteFail||0), userFlowIssues:Number(d.userFlowIssues||0) }));
       const byDay = new Map();
       daily.forEach((d)=>{ if(!d.day) return; byDay.set(d.day,d); });
-      const last7 = daysArr.slice(-7);
-      const prev7 = daysArr.slice(-14,-7);
-      const last90 = daysArr.slice(-90);
+      const effectiveDays = endDateOverride
+        ? daysArr.filter((d) => d <= endDateOverride)
+        : daysArr;
+      const last7 = effectiveDays.slice(-7);
+      const prev7 = effectiveDays.slice(-14,-7);
+      const last90 = effectiveDays.slice(-90);
       const sumBlock = (block) => block.reduce((acc,day)=>{
         const v = byDay.get(day) || {total:0,billable:0,siteFailures:0,userFlowIssues:0};
         acc.total += v.total; acc.billable += v.billable; acc.siteFailures += v.siteFailures; acc.userFlowIssues += v.userFlowIssues; return acc;
@@ -422,18 +638,23 @@
       };
     }
 
-    function summarizeFi(fiRow, daysArr) {
+    function summarizeFi(fiRow, daysArr, endDateOverride = null) {
       const daily = (fiRow.days || []).map((d)=>({ day:d.day||d.date, total:Number(d.total||0), billable:Number(d.billable||0), siteFailures:Number(d.siteFailures||d.siteFail||0), userFlowIssues:Number(d.userFlowIssues||0) }));
       const byDay = new Map();
       daily.forEach((d)=>{ if(!d.day) return; byDay.set(d.day,d); });
-      const last7 = daysArr.slice(-7);
-      const prev7 = daysArr.slice(-14,-7);
+      const effectiveDays = endDateOverride
+        ? daysArr.filter((d) => d <= endDateOverride)
+        : daysArr;
+      const last7 = effectiveDays.slice(-7);
+      const prev7 = effectiveDays.slice(-14,-7);
+      const last90 = effectiveDays.slice(-90);
       const sumBlock = (block) => block.reduce((acc,day)=>{
         const v = byDay.get(day) || {total:0,billable:0,siteFailures:0,userFlowIssues:0};
         acc.total += v.total; acc.billable += v.billable; acc.siteFailures += v.siteFailures; acc.userFlowIssues += v.userFlowIssues; return acc;
       },{total:0,billable:0,siteFailures:0,userFlowIssues:0});
       const last = sumBlock(last7);
       const prev = sumBlock(prev7);
+      const baseline90 = sumBlock(last90);
       const health = (()=>{ const denom = last.billable+last.siteFailures; return denom>0 ? (last.billable/denom)*100 : null;})();
       const healthPrev = (()=>{ const denom = prev.billable+prev.siteFailures; return denom>0 ? (prev.billable/denom)*100 : null;})();
       const ux = last.total>0 ? (last.userFlowIssues/last.total)*100 : null;
@@ -449,6 +670,7 @@
         name: `${fiRow.fiName || fiRow.fi || "unknown_fi"}:${fiRow.instance || "unknown"}`,
         total: last.total,
         prevTotal: prev.total,
+        avgWeekly: last90.length ? (baseline90.total / (last90.length || 1)) * 7 : null,
         health,
         healthPrev,
         ux,
@@ -492,12 +714,14 @@
     function buildCard(title, rows, deltaKey, reverse=false) {
       const isReliability = deltaKey === "siteFailDelta";
       const isTraffic = title.toLowerCase().includes("traffic");
+      const isFiLevel = title.startsWith("FI:");
       const subtitle = (() => {
-        if (title.includes("traffic drops")) return "Lowest recent 7-day traffic vs previous 7 days; highlights potential outages or pullbacks.";
-        if (title.includes("traffic spikes")) return "Highest recent 7-day traffic vs previous 7 days; highlights surges that may need capacity checks.";
-        if (title.includes("Reliability drops")) return "Site-fail share increased vs prior 7 days; track rising failure rates.";
-        if (title.includes("Reliability improvements")) return "Site-fail share decreased vs prior 7 days; reliability getting better.";
-        if (title.includes("Data gaps")) return "Merchants missing daily data within the window.";
+        if (title.toLowerCase().includes("drops • merchants")) return "Lowest recent 7-day traffic vs prior week; watch for outages or pullbacks.";
+        if (title.toLowerCase().includes("spikes • merchants")) return "Highest recent 7-day traffic vs prior week; watch capacity and fraud signals.";
+        if (title.toLowerCase().includes("reliability drops")) return "Site-fail share increased vs prior 7 days; rising failure rates.";
+        if (title.toLowerCase().includes("reliability gains")) return "Site-fail share decreased vs prior 7 days; improving reliability.";
+        if (title.toLowerCase().includes("ux spikes")) return "Largest week-over-week jump in UX issues; triage UI/flow problems.";
+        if (title.toLowerCase().includes("data gaps")) return "Missing daily data within the window.";
         if (title.startsWith("FI:")) return "Aggregated at FI level using placement slices.";
         return "";
       })();
@@ -512,7 +736,6 @@
             <td class="num">${fmtPctVal(r.siteFailShare)}</td>
             <td class="num ${reliabClass}">${fmtDelta(r.siteFailDelta)}</td>
             <td class="num">${fmtDelta(r.healthDelta)}</td>
-            <td class="num">${fmtDelta(r.uxDelta)}</td>
           </tr>`;
         }
         if (isTraffic) {
@@ -542,10 +765,10 @@
             <table class="watch-table">
               <thead>
                 ${isReliability
-                  ? `<tr><th>Merchant</th><th class="num">Last 7d</th><th class="num">Prev 7d</th><th class="num">Site-fail%</th><th class="num">Site-fail Δ</th><th class="num">Health Δ</th><th class="num">UX Δ</th></tr>`
+                  ? `<tr><th>${isFiLevel ? "FI" : "Merchant"}</th><th class="num">Last 7d</th><th class="num">Prev 7d</th><th class="num">Site-fail%</th><th class="num">Site-fail Δ</th><th class="num">Health Δ</th></tr>`
                   : isTraffic
-                  ? `<tr><th>Merchant</th><th class="num">Last 7d</th><th class="num">Prev 7d</th><th class="num">Traffic Δ</th><th class="num">Avg/wk (90d)</th></tr>`
-                  : `<tr><th>Merchant</th><th class="num">Last 7d</th><th class="num">Prev 7d</th><th class="num">Traffic Δ</th><th class="num">Health Δ</th><th class="num">UX Δ</th></tr>`}
+                  ? `<tr><th>${isFiLevel ? "FI" : "Merchant"}</th><th class="num">Last 7d</th><th class="num">Prev 7d</th><th class="num">Traffic Δ</th><th class="num">Avg/wk (90d)</th></tr>`
+                  : `<tr><th>${isFiLevel ? "FI" : "Merchant"}</th><th class="num">Last 7d</th><th class="num">Prev 7d</th><th class="num">Traffic Δ</th><th class="num">Health Δ</th><th class="num">UX Δ</th></tr>`}
               </thead>
               <tbody>${body}</tbody>
             </table>
@@ -555,77 +778,111 @@
     }
 
     async function loadWatchlist() {
-      await loadFiRegistryDefaults();
-      await loadMerchantStatuses();
-      const end = isoYesterday();
-      const start = isoDaysAgo(29,end);
-      statusEl.textContent = `Loading ${start} → ${end}…`;
-      const res = await fetch(`/merchant-heatmap?start=${start}&end=${end}`);
-      if (!res.ok) {
-        statusEl.textContent = `Failed to load data (${res.status})`;
-        return;
-      }
-      const data = await res.json();
-      const days = Array.isArray(data.days) ? data.days : [];
-      let merchants = Array.isArray(data.merchants) ? data.merchants : [];
-      let slices = Array.isArray(data.slices) ? data.slices : [];
-      if ((!merchants || merchants.length === 0) && Array.isArray(data.slices)) {
-        merchants = aggregateSlicesToMerchants(data.slices, days);
-      }
-      if (!slices.length && Array.isArray(data.merchants)) {
-        // no slices in payload; derive minimal slices from merchants if present
-        slices = (data.merchants || []).flatMap((m) => {
-          const dArr = Array.isArray(m.days) ? m.days : [];
-          return dArr.map((d) => ({
-            day: d.day || d.date,
-            fi: "unknown_fi",
-            total: Number(d.total || 0),
-            billable: Number(d.billable || 0),
-            siteFailures: Number(d.siteFailures || d.siteFail || 0),
-            userFlowIssues: Number(d.userFlowIssues || 0),
-          }));
-        });
-      }
-      const last7 = days.slice(-7);
-      const prev7 = days.slice(-14, -7);
-      const summaries = merchants
-        .filter((m)=>!hasBadTag(m.tags, "synthetic"))
-        .filter((m)=>!hasBadTag(m.tags, "test-automation"))
-        .map((m)=>summarizeMerchant(m, days))
-        .filter((m)=> (m.total>0 || m.prevTotal>0))
-        .filter((m)=>!isSynthetic(m.name))
-        .filter((m)=>!isTestAutomation(m.name));
-      const fiSummaries = aggregateSlicesToFis(slices, days, fiInstanceDefaults)
-        .filter((fi)=> {
-          const name = (fi.fiName || fi.fi || "").toString().toLowerCase();
-          const inst = (fi.instance || "").toString().toLowerCase();
-          if (name === "default") return false;
-          if (name.includes("test-automation")) return false;
-          if (inst.includes("customer-dev")) return false;
-          return true;
-        })
-        .map((fi)=>summarizeFi(fi, days))
-        .filter((f)=>f.total>0 || f.prevTotal>0);
-      const byTrafficDrop = [...summaries]
-        .filter((s)=>Number.isFinite(s.totalDelta) && s.totalDelta < 0) // drop only, ignore 0%
-        .sort((a,b)=> (a.total || 0) - (b.total || 0)) // lowest recent traffic first
-        .slice(0,10);
-      const byTrafficRise = [...summaries]
-        .filter((s)=>Number.isFinite(s.totalDelta) && s.totalDelta > 0) // rise only, ignore 0%
-        .sort((a,b)=> (b.total || 0) - (a.total || 0)) // highest recent traffic first
-        .slice(0,10);
-      const byReliabilityDrop = [...summaries]
-        .filter((s)=>Number.isFinite(s.siteFailDelta))
-        .sort((a,b)=> (b.siteFailDelta || 0) - (a.siteFailDelta || 0))
-        .slice(0,10);
-      const byReliabilityImprove = [...summaries]
-        .filter((s)=>Number.isFinite(s.siteFailDelta))
-        .sort((a,b)=> (a.siteFailDelta || 0) - (b.siteFailDelta || 0))
-        .slice(0,10);
-      const withMissing = summaries
-        .filter((s)=>s.missingDays > 0)
-        .sort((a,b)=> (b.missingDays||0) - (a.missingDays||0))
-        .slice(0,10);
+      startLoading("Loading alerts…");
+      try {
+        await loadFiRegistryDefaults();
+        await loadMerchantStatuses();
+        const end = isoYesterday();
+        const start = isoDaysAgo(29,end);
+        statusEl.textContent = `Loading ${start} → ${end}…`;
+        const res = await fetch(`/merchant-heatmap?start=${start}&end=${end}`);
+        if (!res.ok) {
+          statusEl.textContent = `Failed to load data (${res.status})`;
+          return;
+        }
+        const data = await res.json();
+        const days = Array.isArray(data.days) ? data.days : [];
+        let merchants = Array.isArray(data.merchants) ? data.merchants : [];
+        let slices = Array.isArray(data.slices) ? data.slices : [];
+        if ((!merchants || merchants.length === 0) && Array.isArray(data.slices)) {
+          merchants = aggregateSlicesToMerchants(data.slices, days);
+        }
+        if (!slices.length && Array.isArray(data.merchants)) {
+          // no slices in payload; derive minimal slices from merchants if present
+          slices = (data.merchants || []).flatMap((m) => {
+            const dArr = Array.isArray(m.days) ? m.days : [];
+            return dArr.map((d) => ({
+              day: d.day || d.date,
+              fi: "unknown_fi",
+              total: Number(d.total || 0),
+              billable: Number(d.billable || 0),
+              siteFailures: Number(d.siteFailures || d.siteFail || 0),
+              userFlowIssues: Number(d.userFlowIssues || 0),
+            }));
+          });
+        }
+        const last7 = days.slice(-7);
+        const prev7 = days.slice(-14, -7);
+        const totalMerchants = merchants.length;
+        let processed = 0;
+        const summaries = [];
+        for (const m of merchants) {
+          processed += 1;
+          if (processed === 1 || processed % 200 === 0 || processed === totalMerchants) {
+            setLoaderText(`Processing merchants… ${processed}/${totalMerchants}`);
+          }
+          if (hasBadTag(m.tags, "synthetic")) continue;
+          if (hasBadTag(m.tags, "test-automation")) continue;
+          const summed = summarizeMerchant(m, days, end);
+          if (!(summed.total > 0 || summed.prevTotal > 0)) continue;
+          if (isSynthetic(summed.name) || isTestAutomation(summed.name)) continue;
+          summaries.push(summed);
+        }
+        let fiSummaries = aggregateSlicesToFis(slices, days, fiInstanceDefaults)
+          .filter((fi)=> {
+            const name = (fi.fiName || fi.fi || "").toString().toLowerCase();
+            const inst = (fi.instance || "").toString().toLowerCase();
+            if (name === "default") return false;
+            if (name.includes("test-automation")) return false;
+            if (inst.includes("customer-dev")) return false;
+            return true;
+          })
+          .map((fi)=>summarizeFi(fi, days, end))
+          .filter((f)=>f.total>0 || f.prevTotal>0);
+        if (!fiSummaries.length) {
+          fiSummaries = aggregateMerchantsToFis(merchants, days)
+            .map((fi)=>summarizeFi(fi, days, end))
+            .filter((f)=>f.total>0 || f.prevTotal>0);
+        }
+        if (!fiSummaries.length) {
+          const last7 = days.slice(-7);
+          const prev7 = days.slice(-14, -7);
+          const dailyFi = await aggregateDailyFiTotals(last7, prev7);
+          const derivedDays =
+            days.length > 0
+              ? days
+              : Array.from(
+                  new Set(
+                    dailyFi.flatMap((fi) =>
+                      Array.isArray(fi.days) ? fi.days.map((d) => d.day).filter(Boolean) : []
+                    )
+                  )
+                ).sort();
+          fiSummaries = dailyFi
+            .map((fi)=>summarizeFi(fi, derivedDays))
+            .filter((f)=>f.total>0 || f.prevTotal>0);
+        }
+        setLoaderText("Building watchlist…");
+        const byTrafficDrop = [...summaries]
+          .filter((s)=>Number.isFinite(s.totalDelta) && s.totalDelta < 0) // drop only, ignore 0%
+          .sort((a,b)=> (a.total || 0) - (b.total || 0)) // lowest recent traffic first
+          .slice(0,10);
+        const byTrafficRise = [...summaries]
+          .filter((s)=>Number.isFinite(s.totalDelta) && s.totalDelta > 0) // rise only, ignore 0%
+          .sort((a,b)=> (b.total || 0) - (a.total || 0)) // highest recent traffic first
+          .slice(0,10);
+        const byReliabilityDrop = [...summaries]
+          .filter((s)=>Number.isFinite(s.siteFailDelta))
+          .sort((a,b)=> (b.siteFailDelta || 0) - (a.siteFailDelta || 0))
+          .slice(0,10);
+        const byReliabilityImprove = [...summaries]
+          .filter((s)=>Number.isFinite(s.siteFailDelta))
+          .sort((a,b)=> (a.siteFailDelta || 0) - (b.siteFailDelta || 0))
+          .slice(0,10);
+        const withMissing = summaries
+          .filter((s)=>s.missingDays > 0)
+          .sort((a,b)=> (b.missingDays||0) - (a.missingDays||0))
+          .slice(0,10);
 
       const cards = [];
       const windowLabel = document.getElementById("windowLabel");
@@ -636,10 +893,10 @@
         const prevEnd = prev7.length ? prev7[prev7.length - 1] : lastStart;
         windowLabel.textContent = `Last 7 days: ${lastStart} → ${lastEnd}, Prev 7: ${prevStart} → ${prevEnd}`;
       }
-      cards.push(buildCard("Biggest traffic drops (7d vs prior 7d)", byTrafficDrop, "totalDelta", true));
-      cards.push(buildCard("Biggest traffic spikes (7d vs prior 7d)", byTrafficRise, "totalDelta", false));
-      cards.push(buildCard("Reliability drops (site-fail share ↑)", byReliabilityDrop, "siteFailDelta", true));
-      cards.push(buildCard("Reliability improvements (site-fail share ↓)", byReliabilityImprove, "siteFailDelta", false));
+      cards.push(buildCard("Traffic drops • Merchants", byTrafficDrop, "totalDelta", true));
+      cards.push(buildCard("Traffic spikes • Merchants", byTrafficRise, "totalDelta", false));
+      cards.push(buildCard("Reliability drops • Merchants", byReliabilityDrop, "siteFailDelta", true));
+      cards.push(buildCard("Reliability gains • Merchants", byReliabilityImprove, "siteFailDelta", false));
       if (withMissing.length) {
         const body = withMissing.map((r)=>`<tr>
           <td>${r.name}</td>
@@ -657,28 +914,45 @@
         `);
       }
       // FI-level cards
-      const fiByTrafficDrop = [...fiSummaries]
-        .filter((s)=>Number.isFinite(s.totalDelta))
-        .sort((a,b)=> (a.total || 0) - (b.total || 0))
-        .slice(0,10);
-      const fiByTrafficRise = [...fiSummaries]
-        .filter((s)=>Number.isFinite(s.totalDelta))
-        .sort((a,b)=> (b.total || 0) - (a.total || 0))
-        .slice(0,10);
-      const fiReliabilityDrop = [...fiSummaries]
-        .filter((s)=>Number.isFinite(s.siteFailDelta))
-        .sort((a,b)=> (b.siteFailDelta || 0) - (a.siteFailDelta || 0))
-        .slice(0,10);
-      cards.push(buildCard("FI: traffic drops (sessions/placements)", fiByTrafficDrop, "totalDelta", true));
-      cards.push(buildCard("FI: traffic spikes (sessions/placements)", fiByTrafficRise, "totalDelta", false));
-      cards.push(buildCard("FI: reliability drops (site-fail share ↑)", fiReliabilityDrop, "siteFailDelta", true));
+      const fiHasData = fiSummaries.some((f)=> (f.total||0)>0 || (f.prevTotal||0)>0);
+      if (fiHasData) {
+        const fiByTrafficDrop = [...fiSummaries]
+          .filter((s)=>Number.isFinite(s.totalDelta))
+          .sort((a,b)=> (a.total || 0) - (b.total || 0))
+          .slice(0,10);
+        const fiByTrafficRise = [...fiSummaries]
+          .filter((s)=>Number.isFinite(s.totalDelta))
+          .sort((a,b)=> (b.total || 0) - (a.total || 0))
+          .slice(0,10);
+        const fiReliabilityDrop = [...fiSummaries]
+          .filter((s)=>Number.isFinite(s.siteFailDelta))
+          .sort((a,b)=> (b.siteFailDelta || 0) - (a.siteFailDelta || 0))
+          .slice(0,10);
+        cards.push(buildCard("Traffic drops • FIs", fiByTrafficDrop, "totalDelta", true));
+        cards.push(buildCard("Traffic spikes • FIs", fiByTrafficRise, "totalDelta", false));
+        cards.push(buildCard("Reliability drops • FIs", fiReliabilityDrop, "siteFailDelta", true));
+      } else {
+        cards.push(`
+          <div class="watch-card">
+            <h3>FI-level signals</h3>
+            <p class="muted">FI-level traffic/reliability signals were unavailable for this window.</p>
+          </div>
+        `);
+      }
       cardsEl.innerHTML = cards.join("");
       statusEl.textContent = `Signals computed for ${summaries.length} merchants over ${days.length} days`;
+      } catch (err) {
+        console.error("watchlist load failed", err);
+        statusEl.textContent = "Failed to load alerts.";
+      } finally {
+        stopLoading();
+      }
     }
 
     loadWatchlist().catch((err)=>{
       console.error(err);
-      statusEl.textContent = "Failed to load alerts";
+      statusEl.textContent = "Failed to load alerts.";
+      stopLoading();
     });
   </script>
 </body>

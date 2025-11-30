@@ -55,6 +55,9 @@
       grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
       gap: 24px;
       align-items: start;
+      width: 100%;
+      max-width: 1100px; /* cap at ~3 cards wide */
+      margin: 0 auto;
     }
     .card {
       border: 1px solid var(--border);
@@ -144,7 +147,7 @@
     </div>
 
     <h1 class="sis-page-name">Strivve Insights Service</h1>
-    <p class="sis-page-desc">Operational intelligence for Strivve partners. Jump into the live funnel diagnostics or explore the global merchant-site health heatmap built from recent SIS traffic.</p>
+    <p class="sis-page-desc">For issuers and partners: refresh GA + SIS data, monitor merchant availability, and maintain FI registry/credentials alongside funnel and heatmap views.</p>
   </header>
   <div class="sis-content">
     <main class="sis-main">
@@ -153,45 +156,60 @@
     <div class="grid">
       <article class="card">
         <div class="card-body">
-          <h2>FI Funnel &amp; GA Alignment</h2>
-          <p>
-            Inspect daily rollups, compare SIS sessions to GA CardUpdatr funnel events,
-            and slice performance by SSO, CardSavr, or Non-SSO integrations.
-          </p>
+          <h2>Card Placement Funnel</h2>
+          <p>Track Google Analytics events through sessions and placement data; spot where cardholders are gained or lost.</p>
         </div>
         <div class="card-footer">
           <div class="actions">
-            <a class="btn" href="/funnel.html">Open Funnel</a>
+            <a class="btn" href="/funnel.html">Funnel</a>
           </div>
         </div>
       </article>
 
       <article class="card">
         <div class="card-body">
-          <h2>Merchant Site Heatmap</h2>
-          <p>
-            Visualize merchant reliability trends in a touching-square heatmap.
-            Toggle between traffic, site health, conversion, or anomaly highlighting.
-          </p>
+          <h2>Merchant Reach &amp; Reliability</h2>
+          <p>Track where cardholders succeed and struggle: traffic, health, and anomalies across your merchant footprint.</p>
         </div>
         <div class="card-footer">
           <div class="actions">
-            <a class="btn" href="/heatmap.html">Open Heatmap</a>
+            <a class="btn" href="/heatmap.html">Heatmap</a>
           </div>
         </div>
       </article>
 
       <article class="card">
         <div class="card-body">
-          <h2>Maintenance &amp; Registry</h2>
-          <p>
-            Launch the admin workspace to run GA/SIS refreshes, edit FI registry metadata,
-            and review operational tasks in one place.
-          </p>
+          <h2>Reliability &amp; Anomaly Watch</h2>
+          <p>Highlight week-over-week anomalies and failure trends to catch system-level or cardholder pain early.</p>
         </div>
         <div class="card-footer">
           <div class="actions">
-            <a class="btn" href="/maintenance.html">Open Maintenance</a>
+            <a class="btn" href="/watchlist.html">Watchlist</a>
+          </div>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="card-body">
+          <h2>Troubleshooting</h2>
+          <p>Mirror funnel filters, then drill into every session and card placement for a single day to spot bad terminations, timing, and click patterns.</p>
+        </div>
+        <div class="card-footer">
+          <div class="actions">
+            <a class="btn" href="/troubleshoot.html">Troubleshoot</a>
+          </div>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="card-body">
+          <h2>Issuer Ops &amp; Data Health</h2>
+          <p>Refresh GA/placements/sessions, review merchant sites (status, tier, tags), and edit FI registry + credentials without tickets.</p>
+        </div>
+        <div class="card-footer">
+          <div class="actions">
+            <a class="btn" href="/maintenance.html">Ops</a>
           </div>
         </div>
       </article>

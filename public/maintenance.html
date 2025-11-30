@@ -207,16 +207,23 @@
     .merchant-sites-table-wrapper {
       border: 1px solid var(--panel-border);
       border-radius: 10px;
-      overflow: auto;
+      overflow: hidden;
       max-height: 420px;
       background: var(--surface);
+      display: flex;
+      flex-direction: column;
     }
     .merchant-sites-card table {
       width: 100%;
       border-collapse: collapse;
       font-size: 14px;
       min-width: 640px;
-      position: relative;
+    }
+    .merchant-sites-card thead {
+      background: var(--surface);
+      position: sticky;
+      top: 0;
+      z-index: 2;
     }
     .merchant-sites-card th,
     .merchant-sites-card td {
@@ -224,15 +231,33 @@
       text-align: left;
       border-bottom: 1px solid var(--panel-border);
     }
+    .merchant-sites-card th:nth-child(1),
+    .merchant-sites-card td:nth-child(1) { width: 28%; }
+    .merchant-sites-card th:nth-child(2),
+    .merchant-sites-card td:nth-child(2) { width: 26%; }
+    .merchant-sites-card th:nth-child(3),
+    .merchant-sites-card td:nth-child(3) { width: 14%; }
+    .merchant-sites-card th:nth-child(4),
+    .merchant-sites-card td:nth-child(4) { width: 22%; }
+    .merchant-sites-card th:nth-child(5),
+    .merchant-sites-card td:nth-child(5) { width: 10%; }
     .merchant-sites-card th {
       background: rgba(37, 99, 235, 0.06);
       color: var(--panel-title);
       font-weight: 700;
-      position: sticky;
-      top: 0;
-      z-index: 2;
       backdrop-filter: blur(2px);
       cursor: pointer;
+    }
+    .merchant-sites-card tbody {
+      display: block;
+      overflow-y: auto;
+      max-height: 360px;
+    }
+    .merchant-sites-card thead,
+    .merchant-sites-card tbody tr {
+      display: table;
+      width: 100%;
+      table-layout: fixed;
     }
     .merchant-sites-card tbody tr:last-child td {
       border-bottom: none;
@@ -240,35 +265,81 @@
     .status-pill {
       display: inline-flex;
       align-items: center;
+      gap: 6px;
       padding: 4px 10px;
-      border-radius: 999px;
-      font-weight: 600;
+      border-radius: 12px;
+      font-weight: 700;
       font-size: 12px;
       letter-spacing: 0.2px;
       border: 1px solid transparent;
+      background: linear-gradient(135deg, rgba(255,255,255,0.7), rgba(255,255,255,0.2));
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
     }
     .status-pill.up {
-      background: rgba(34, 197, 94, 0.12);
       color: #0f5132;
       border-color: rgba(34, 197, 94, 0.35);
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.16), rgba(16, 185, 129, 0.04));
     }
     .status-pill.down {
-      background: rgba(220, 38, 38, 0.12);
       color: #7f1d1d;
       border-color: rgba(220, 38, 38, 0.35);
+      background: linear-gradient(135deg, rgba(248, 113, 113, 0.2), rgba(248, 113, 113, 0.06));
     }
     .status-pill.limited {
-      background: rgba(234, 179, 8, 0.16);
       color: #854d0e;
       border-color: rgba(234, 179, 8, 0.35);
+      background: linear-gradient(135deg, rgba(234, 179, 8, 0.2), rgba(234, 179, 8, 0.06));
     }
     .status-pill.unknown {
-      background: rgba(100, 116, 139, 0.16);
       color: #334155;
       border-color: rgba(100, 116, 139, 0.35);
+      background: linear-gradient(135deg, rgba(148, 163, 184, 0.2), rgba(148, 163, 184, 0.06));
     }
     .tag-filter {
       position: relative;
+    }
+    .th-inner {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 8px;
+    }
+    .th-sort-controls {
+      display: inline-flex;
+      align-items: center;
+      font-size: 12px;
+    }
+    .sort-pill {
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+      background: rgba(15, 23, 42, 0.04);
+      overflow: hidden;
+    }
+    .sort-segment {
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      padding: 2px 8px;
+      cursor: pointer;
+      font-weight: 700;
+      min-width: 34px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+    }
+    .sort-segment + .sort-segment {
+      border-left: 1px solid var(--panel-border);
+    }
+    .sort-segment.active {
+      background: rgba(37, 99, 235, 0.14);
+      color: var(--accent);
+    }
+    .sort-segment:focus {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
     }
     .tag-filter-menu {
       position: absolute;
@@ -567,6 +638,8 @@
       }
       .registry-table-wrapper,
       .registry-table-wrapper tbody,
+      .merchant-sites-table-wrapper,
+      .merchant-sites-card tbody,
       .instances-table-wrapper,
       .instances-table-wrapper tbody {
         max-height: 320px;
@@ -596,9 +669,9 @@
       </nav>
     </div>
 
-    <h1 class="sis-page-name">Maintenance &amp; Registry</h1>
+    <h1 class="sis-page-name">Issuer Ops &amp; Data Health</h1>
     <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-      <p class="sis-page-desc" style="flex:1 1 auto;">Run SIS refresh jobs and curate FI registry metadata without leaving your browser. The registry editor honors overrides (cardholder totals, sources, dates) and pushes changes back to fi_registry.json.</p>
+      <p class="sis-page-desc" style="flex:1 1 auto;">Keep your issuer portfolio healthy: refresh data, confirm merchant availability, and edit FI metadata/credentials without tickets.</p>
       <button class="theme-toggle" type="button" aria-pressed="false" style="flex:0 0 auto;">Light mode</button>
     </div>
   </header>
@@ -609,10 +682,9 @@
       <div class="maintenance-grid" style="padding-right: 10px;">
         <article class="maint-card refresh-card" id="refreshCard">
           <div>
-            <h2>Data Refresh (GA + SIS)</h2>
+            <h2>Data Refresh</h2>
             <p class="description">
-              Launch the 30-day raw ingest plus daily rebuild pipeline. You can keep this
-              page open to watch progress or leave it running in the background.
+              Refresh GA, card placement results, and cardholder sessions so funnels, health views, and exports stay current.
             </p>
           </div>
           <div class="refresh-controls">
@@ -654,10 +726,8 @@
 
         <article class="maint-card merchant-sites-card" id="merchantSitesCard">
           <div>
-            <h2>Merchant Sites (ss01)</h2>
-            <p class="description">
-              Live snapshot from the ss01 instance. Tags map to an at-a-glance status badge so you can spot sites that are down or limited.
-            </p>
+            <h2>Merchant Sites</h2>
+            <p class="description">Review merchant names, hosts, tiers, and status tags to pick campaign targets, enable top sites, or exclude risky ones.</p>
             <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
               <p class="description" id="merchantSitesMeta" style="flex:1 1 auto;">Loading…</p>
               <div class="tag-filter">
@@ -671,11 +741,61 @@
             <table>
               <thead>
                 <tr>
-                  <th style="width: 28%;" data-column="name">Name</th>
-                  <th style="width: 26%;" data-column="host">Host</th>
-                  <th style="width: 14%;" data-column="status">Status</th>
-                  <th style="width: 22%;" data-column="tags">Tags</th>
-                  <th style="width: 10%;" data-column="tier">Tier</th>
+                  <th style="width: 28%;" data-column="name">
+                    <span class="th-inner">
+                      <span class="th-label">Name</span>
+                      <span class="th-sort-controls">
+                        <span class="sort-pill">
+                          <button type="button" class="sort-segment" data-sort-role="primary" data-column="name" aria-label="Primary sort by Name">↕</button>
+                          <button type="button" class="sort-segment" data-sort-role="secondary" data-column="name" aria-label="Secondary sort by Name">↕</button>
+                        </span>
+                      </span>
+                    </span>
+                  </th>
+                  <th style="width: 26%;" data-column="host">
+                    <span class="th-inner">
+                      <span class="th-label">Host</span>
+                      <span class="th-sort-controls">
+                        <span class="sort-pill">
+                          <button type="button" class="sort-segment" data-sort-role="primary" data-column="host" aria-label="Primary sort by Host">↕</button>
+                          <button type="button" class="sort-segment" data-sort-role="secondary" data-column="host" aria-label="Secondary sort by Host">↕</button>
+                        </span>
+                      </span>
+                    </span>
+                  </th>
+                  <th style="width: 14%;" data-column="status">
+                    <span class="th-inner">
+                      <span class="th-label">Status</span>
+                      <span class="th-sort-controls">
+                        <span class="sort-pill">
+                          <button type="button" class="sort-segment" data-sort-role="primary" data-column="status" aria-label="Primary sort by Status">↕</button>
+                          <button type="button" class="sort-segment" data-sort-role="secondary" data-column="status" aria-label="Secondary sort by Status">↕</button>
+                        </span>
+                      </span>
+                    </span>
+                  </th>
+                  <th style="width: 22%;" data-column="tags">
+                    <span class="th-inner">
+                      <span class="th-label">Tags</span>
+                      <span class="th-sort-controls">
+                        <span class="sort-pill">
+                          <button type="button" class="sort-segment" data-sort-role="primary" data-column="tags" aria-label="Primary sort by Tags">↕</button>
+                          <button type="button" class="sort-segment" data-sort-role="secondary" data-column="tags" aria-label="Secondary sort by Tags">↕</button>
+                        </span>
+                      </span>
+                    </span>
+                  </th>
+                  <th style="width: 10%;" data-column="tier">
+                    <span class="th-inner">
+                      <span class="th-label">Tier</span>
+                      <span class="th-sort-controls">
+                        <span class="sort-pill">
+                          <button type="button" class="sort-segment" data-sort-role="primary" data-column="tier" aria-label="Primary sort by Tier">↕</button>
+                          <button type="button" class="sort-segment" data-sort-role="secondary" data-column="tier" aria-label="Secondary sort by Tier">↕</button>
+                        </span>
+                      </span>
+                    </span>
+                  </th>
                 </tr>
               </thead>
               <tbody id="merchantSitesBody">
@@ -688,10 +808,7 @@
         <article class="maint-card registry-card">
           <div>
             <h2>FI Registry Editor</h2>
-            <p class="description">
-              Search, filter, and update integration metadata plus cardholder totals. Select a row
-              to enable editing; changes are written back to <code>fi_registry.json</code>.
-            </p>
+            <p class="description">Curate issuer metadata—names, lookup keys, integration type, partner, and cardholder counts—without redeploys.</p>
           </div>
           <div class="registry-controls">
             <label>
@@ -804,10 +921,7 @@
         <article class="maint-card instances-card">
           <div>
             <h2>Instance Credentials</h2>
-            <p class="description">
-              Manage Cardsavr endpoints and credentials stored in <code>src/instances.json</code>.
-              Add new instances, update existing entries, or delete ones you no longer use.
-            </p>
+            <p class="description">Manage the endpoints and keys that power real-time access to your data; rotate or update safely.</p>
           </div>
           <div class="instances-controls">
             <label>
@@ -1910,9 +2024,15 @@
       const csvBtn = document.getElementById("merchantSitesCsvBtn");
       const tagFilterMenu = document.getElementById("merchantSitesTagFilter");
       const tagToggle = document.getElementById("merchantSitesTagToggle");
+      const sortButtons = document.querySelectorAll(
+        "#merchantSitesCard [data-sort-role][data-column]"
+      );
       if (!tbody || !meta || !csvBtn || !tagFilterMenu || !tagToggle) return;
 
-      let sortState = { column: "status", direction: "asc" };
+      let sortState = {
+        primary: { column: "tier", direction: "asc" },
+        secondary: { column: "name", direction: "asc" },
+      };
       const statusOrder = { up: 0, limited: 1, unknown: 2, down: 3 };
       const apiBase =
         window.location.origin.includes("8787")
@@ -2022,30 +2142,42 @@
           : sites;
         filteredSites = filtered;
 
-        const sorted = [...filtered].sort((a, b) => {
-          const dir = sortState.direction === "desc" ? -1 : 1;
-          switch (sortState.column) {
+        const compare = (col, dir, a, b) => {
+          const direction = dir === "desc" ? -1 : 1;
+          switch (col) {
             case "name":
-              return dir * (a.name || "").localeCompare(b.name || "");
+              return direction * (a.name || "").localeCompare(b.name || "");
             case "host":
-              return dir * (a.host || "").localeCompare(b.host || "");
+              return direction * (a.host || "").localeCompare(b.host || "");
             case "tier":
-              return dir * ((Number(a.tier) || 0) - (Number(b.tier) || 0));
+              return direction * ((Number(a.tier) || 0) - (Number(b.tier) || 0));
+            case "tags": {
+              const aTags = Array.isArray(a.tags) ? a.tags.join(", ") : "";
+              const bTags = Array.isArray(b.tags) ? b.tags.join(", ") : "";
+              return direction * aTags.localeCompare(bTags);
+            }
             case "status":
             default: {
               const aStatus = classifyStatus(a.tags).css;
               const bStatus = classifyStatus(b.tags).css;
               if (aStatus !== bStatus) {
-                return dir * ((statusOrder[aStatus] ?? 99) - (statusOrder[bStatus] ?? 99));
+                return direction * ((statusOrder[aStatus] ?? 99) - (statusOrder[bStatus] ?? 99));
               }
-              return dir * (a.host || "").localeCompare(b.host || "");
-            }
-            case "tags": {
-              const aTags = Array.isArray(a.tags) ? a.tags.join(", ") : "";
-              const bTags = Array.isArray(b.tags) ? b.tags.join(", ") : "";
-              return dir * aTags.localeCompare(bTags);
+              // Leave tie-breaking to the secondary sort (avoid host fallback here)
+              return 0;
             }
           }
+        };
+
+        const sorted = [...filtered].sort((a, b) => {
+          const primaryResult = compare(
+            sortState.primary.column,
+            sortState.primary.direction,
+            a,
+            b
+          );
+          if (primaryResult !== 0) return primaryResult;
+          return compare(sortState.secondary.column, sortState.secondary.direction, a, b);
         });
 
         tbody.innerHTML = sorted
@@ -2069,6 +2201,7 @@
           ? `Filtered to ${filtered.length} site(s); ${sites.length} total.`
           : `Showing ${sites.length} site(s).`;
         meta.textContent = `${filteredLabel} Status is derived from tags (down/disabled, limited/beta, unrestricted/prod).`;
+        updateSortButtons();
       };
 
       async function loadSites() {
@@ -2103,23 +2236,113 @@
         }
       }
 
-      function applySort(column) {
-        if (sortState.column === column) {
+      function setPrimary(column) {
+        const normalized = column || "status";
+        if (sortState.primary.column === normalized) {
           sortState = {
-            column,
-            direction: sortState.direction === "asc" ? "desc" : "asc",
+            primary: {
+              column: normalized,
+              direction: sortState.primary.direction === "asc" ? "desc" : "asc",
+            },
+            secondary: sortState.secondary,
           };
-        } else {
-          sortState = { column, direction: "asc" };
+          return;
         }
+        if (sortState.secondary.column === normalized) {
+          // Swap roles, keep directions
+          sortState = {
+            primary: { ...sortState.secondary },
+            secondary: { ...sortState.primary },
+          };
+          return;
+        }
+        sortState = {
+          primary: { column: normalized, direction: "asc" },
+          secondary: { ...sortState.primary },
+        };
+      }
+
+      function setSecondary(column) {
+        const normalized = column || "status";
+        if (sortState.secondary.column === normalized) {
+          sortState = {
+            primary: sortState.primary,
+            secondary: {
+              column: normalized,
+              direction: sortState.secondary.direction === "asc" ? "desc" : "asc",
+            },
+          };
+          return;
+        }
+        if (sortState.primary.column === normalized) {
+          // Swap roles, keep directions
+          sortState = {
+            primary: { ...sortState.secondary },
+            secondary: { ...sortState.primary },
+          };
+          return;
+        }
+        sortState = {
+          primary: sortState.primary,
+          secondary: { column: normalized, direction: "asc" },
+        };
       }
 
       const headers = document.querySelectorAll("#merchantSitesCard thead th");
+      const headerMap = {};
       headers.forEach((th) => {
-        th.addEventListener("click", () => {
+        const col = th.dataset.column;
+        if (col) headerMap[col] = th;
+      });
+      headers.forEach((th) => {
+        th.addEventListener("click", (evt) => {
+          // Avoid double-handling when clicking the buttons
+          if (evt.target.closest(".sort-segment")) return;
           const col = th.dataset.column;
           if (!col) return;
-          applySort(col);
+          setPrimary(col);
+          render(lastSites);
+        });
+      });
+      const dirLabel = (dir) => (dir === "desc" ? "▼" : "▲");
+      function updateSortButtons() {
+        sortButtons.forEach((btn) => {
+          const role = btn.dataset.sortRole;
+          const col = btn.dataset.column;
+          const isPrimary = role === "primary";
+          const active =
+            (isPrimary && sortState.primary.column === col) ||
+            (!isPrimary && sortState.secondary.column === col);
+          btn.classList.toggle("active", active);
+          const dir =
+            isPrimary && sortState.primary.column === col
+              ? sortState.primary.direction
+              : !isPrimary && sortState.secondary.column === col
+              ? sortState.secondary.direction
+              : null;
+          btn.textContent = dir ? dirLabel(dir) : "↕";
+          btn.setAttribute("aria-pressed", active ? "true" : "false");
+          btn.setAttribute(
+            "aria-label",
+            active
+              ? `${role === "primary" ? "Primary" : "Secondary"} sort ${
+                  dir === "asc" ? "ascending" : "descending"
+                } by ${col}`
+              : `Set ${role === "primary" ? "primary" : "secondary"} sort to ${col}`
+          );
+        });
+      }
+      sortButtons.forEach((btn) => {
+        btn.addEventListener("click", (evt) => {
+          evt.stopPropagation();
+          const role = btn.dataset.sortRole;
+          const col = btn.dataset.column;
+          if (!role || !col) return;
+          if (role === "primary") {
+            setPrimary(col);
+          } else {
+            setSecondary(col);
+          }
           render(lastSites);
         });
       });
@@ -2136,6 +2359,7 @@
       tagFilterMenu.addEventListener("change", () => {
         render(lastSites);
       });
+      updateSortButtons();
 
       function escapeCsv(value) {
         const str = value == null ? "" : String(value);

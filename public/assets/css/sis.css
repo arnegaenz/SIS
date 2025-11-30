@@ -37,6 +37,19 @@
   background: var(--brand-ghost);
   border-color: var(--hair);
 }
+[data-theme="dark"] .sis-nav a{
+  color: rgba(229, 237, 255, 0.75);
+  border-color: rgba(255,255,255,0.06);
+}
+[data-theme="dark"] .sis-nav a:hover{
+  background: rgba(255,255,255,0.08);
+  color:#f8fafc;
+}
+[data-theme="dark"] .sis-nav a.active{
+  color:#0a1020;
+  background:#e5edff;
+  border-color: rgba(255,255,255,0.25);
+}
 
 /* Page name and description (subtle) */
 .sis-page-name{

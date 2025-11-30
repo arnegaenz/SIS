@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
   <meta charset="utf-8" />
-  <title>GA + SIS CardUpdatr Funnel</title>
+  <title>Card Placement Funnel</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="./sis-shared.css?v=navfix" />
   <link rel="stylesheet" href="./assets/css/sis.css">
@@ -46,7 +46,7 @@
       body {
         margin: 0;
         padding: 0;
-        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        font-family: "Inter", "Segoe UI", ui-sans-serif, system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
         background: var(--bg);
         color: var(--text);
         font-size: 16px;
@@ -328,6 +328,37 @@
         color: inherit;
         text-decoration: underline;
       }
+      .loading-banner {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 12px;
+        border: 1px solid #f59e0b;
+        border-radius: 12px;
+        background: rgba(245, 158, 11, 0.12);
+        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+        color: #92400e;
+        font-size: 13px;
+        margin-bottom: 10px;
+        visibility: hidden;
+        position: sticky;
+        top: 0;
+        z-index: 5;
+        width: 100%;
+        box-sizing: border-box;
+      }
+      .loading-banner .spinner {
+        width: 16px;
+        height: 16px;
+        border: 2px solid #f59e0b;
+        border-top-color: var(--accent);
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+        flex-shrink: 0;
+      }
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
     </style>
   </head>
   <body>
@@ -345,12 +376,16 @@
         </nav>
       </div>
 
-    <h1 class="sis-page-name">GA + SIS CardUpdatr Funnel</h1>
-    <p class="sis-page-desc">Inspect daily rollups and conversion steps from GA through SIS sessions to placements. Slice by integration type, partner, or instances to spot deltas fast.</p>
+    <h1 class="sis-page-name">Card Placement Funnel</h1>
+    <p class="sis-page-desc">Track Google Analytics events through sessions and placement data; spot where cardholders are gained or lost.</p>
   </header>
   <div class="sis-content">
   <main class="sis-main">
       <section class="sis-panel">
+        <div id="pageLoader" class="loading-banner">
+          <div class="spinner" aria-hidden="true"></div>
+          <div class="loading-text">Loading data…</div>
+        </div>
         <div id="filter-bar"></div>
         <div class="funnel-header">
           <div class="form-grid form-grid--dates">
@@ -395,7 +430,6 @@
       <div id="bestWindows" style="margin-bottom: 8px;"></div>
       <div id="totalsBar" class="group-header" style="display: none;"></div>
       <div id="partnerSummary" class="partner-summary" style="display: none;"></div>
-      <div id="funnelLoading" class="loading-status" aria-live="polite">Loading…</div>
 
       <div id="multiFiView">
       <div class="group-block" data-group="SSO">
@@ -556,6 +590,8 @@
       const includeTestCheckbox = document.getElementById("includeTestDataCheckbox");
       const applyBtn = document.getElementById("applyBtn");
       const exportCsvBtn = document.getElementById("exportCsvBtn");
+      const loaderEl = document.getElementById("pageLoader");
+      const loaderTextEl = loaderEl?.querySelector(".loading-text");
       const dateWindowLabel = document.getElementById("dateWindowLabel");
       const bestWindowsDiv = document.getElementById("bestWindows");
       const totalsBar = document.getElementById("totalsBar");
@@ -568,8 +604,6 @@
       }
       const multiFiView = document.getElementById("multiFiView");
       const singleFiView = document.getElementById("singleFiView");
-      const loadingEl = document.getElementById("funnelLoading");
-      let loadingInterval = null;
       if (includeTestCheckbox) includeTestCheckbox.checked = false;
       let latestDailyDate = null;
       let earliestDailyDate = null;
@@ -601,6 +635,8 @@
         TEST: "TEST",
         UNKNOWN: "UNKNOWN",
       };
+      // Defer heavy work until after paint so the loader can render
+      const nextFrame = () => new Promise((resolve) => requestAnimationFrame(resolve));
 
       const dayMs = 86400000;
       const today = new Date();
@@ -743,11 +779,11 @@
         }
       }
 
-      function safeApplyFilters() {
+      async function safeApplyFilters() {
         ensureDateDefaults();
         enforceEndDateBounds();
         renderDateWarning();
-        applyFilters();
+        await applyFilters();
       }
 
       function updatePartnerOptions(perFi) {
@@ -2270,24 +2306,40 @@ function applyColumnTitles(root = document) {
           .filter(Boolean);
       }
 
-      function startLoading() {
-        if (!loadingEl) return;
-        let dots = 0;
-        loadingEl.style.display = "block";
-        loadingEl.textContent = "Loading";
-        clearInterval(loadingInterval);
-        loadingInterval = setInterval(() => {
-          dots = (dots + 1) % 6;
-          loadingEl.textContent = "Loading" + ".".repeat(dots || 1);
-        }, 400);
+      let loaderTimer = null;
+      let loaderStartedAt = 0;
+      const MIN_LOADER_MS = 350;
+      const setLoaderMessage = (msg) => {
+        if (loaderTextEl && msg) loaderTextEl.textContent = msg;
+      };
+
+      function startLoading(message = "Loading data…") {
+        if (!loaderEl) return;
+        if (loaderTimer) {
+          clearTimeout(loaderTimer);
+          loaderTimer = null;
+        }
+        loaderStartedAt = Date.now();
+        loaderEl.style.display = "flex";
+        loaderEl.style.visibility = "visible";
+        loaderEl.style.opacity = "1";
+        setLoaderMessage(message);
+        if (bestWindowsDiv) bestWindowsDiv.style.opacity = "0.15";
       }
 
       function stopLoading() {
-        if (!loadingEl) return;
-        clearInterval(loadingInterval);
-        loadingInterval = null;
-        loadingEl.textContent = "";
-        loadingEl.style.display = "none";
+        if (!loaderEl) return;
+        const elapsed = Date.now() - loaderStartedAt;
+        if (elapsed < MIN_LOADER_MS) {
+          loaderTimer = setTimeout(stopLoading, MIN_LOADER_MS - elapsed);
+          return;
+        }
+        loaderTimer = null;
+        loaderEl.style.display = "none";
+        loaderEl.style.visibility = "hidden";
+        loaderEl.style.opacity = "0";
+        if (loaderTextEl) loaderTextEl.textContent = "";
+        if (bestWindowsDiv) bestWindowsDiv.style.opacity = "1";
       }
 
       function inRange(date, start, end) {
@@ -3206,7 +3258,6 @@ function applyColumnTitles(root = document) {
       }
 
       function renderTables(visibleRows, startDate, endDate, daySpan) {
-        startLoading();
         latestVisibleRows = visibleRows.slice();
         const monthlyFactor = 30 / Math.max(daySpan || 1, 1);
         visibleRows.forEach((row) => {
@@ -3433,48 +3484,43 @@ function applyColumnTitles(root = document) {
         } else {
           totalsBar.style.display = "none";
         }
-        stopLoading();
       }
 
       async function applyFilters() {
-        startLoading();
-        try {
-          const startDate = startDateInput.value || defaultStartDateStr;
-          const endDate = endDateInput.value || defaultEndDateStr;
-          const startDt = new Date(`${startDate}T00:00:00Z`);
-          const endDt = new Date(`${endDate}T00:00:00Z`);
-          const daySpan = Math.max(1, Math.floor((endDt - startDt) / (1000 * 60 * 60 * 24)) + 1);
-          const monthlyFactor = 30 / daySpan;
-          const cardholderMap = getCardholderMap();
-          const perFi = aggregateData(startDate, endDate, cardholderMap);
-          lastAggregated = perFi;
-          updatePartnerOptions(perFi);
-          updateFiOptions(perFi);
-          const visibleRows = getVisibleRows(perFi);
-          const singleFiMode = isSingleFiSelected();
-          const best = computeBestWindows(startDate, endDate, perFi, visibleRows, monthlyFactor, {
-            allowLowVolume: singleFiMode,
-          });
-          latestHighlights = best;
-          renderBestWindows(best, visibleRows);
-          renderTables(visibleRows, startDate, endDate, daySpan);
+        await nextFrame(); // allow loader to render before heavy work
+        const startDate = startDateInput.value || defaultStartDateStr;
+        const endDate = endDateInput.value || defaultEndDateStr;
+        const startDt = new Date(`${startDate}T00:00:00Z`);
+        const endDt = new Date(`${endDate}T00:00:00Z`);
+        const daySpan = Math.max(1, Math.floor((endDt - startDt) / (1000 * 60 * 60 * 24)) + 1);
+        const monthlyFactor = 30 / daySpan;
+        const cardholderMap = getCardholderMap();
+        const perFi = aggregateData(startDate, endDate, cardholderMap);
+        lastAggregated = perFi;
+        updatePartnerOptions(perFi);
+        updateFiOptions(perFi);
+        const visibleRows = getVisibleRows(perFi);
+        const singleFiMode = isSingleFiSelected();
+        const best = computeBestWindows(startDate, endDate, perFi, visibleRows, monthlyFactor, {
+          allowLowVolume: singleFiMode,
+        });
+        latestHighlights = best;
+        renderBestWindows(best, visibleRows);
+        renderTables(visibleRows, startDate, endDate, daySpan);
 
-          lastRenderContext = {
-            perFi,
-            startDate,
-            endDate,
-            daySpan,
-            best,
-          };
-          lastFilterSnapshot = {
-            fi: fiFilterSelect?.value || FI_ALL_VALUE,
-            integration: integrationSelect?.value || "(all)",
-            partner: partnerSelect?.value || PARTNER_ALL_VALUE,
-            includeTest: includeTestCheckbox?.checked,
-          };
-        } finally {
-          stopLoading();
-        }
+        lastRenderContext = {
+          perFi,
+          startDate,
+          endDate,
+          daySpan,
+          best,
+        };
+        lastFilterSnapshot = {
+          fi: fiFilterSelect?.value || FI_ALL_VALUE,
+          integration: integrationSelect?.value || "(all)",
+          partner: partnerSelect?.value || PARTNER_ALL_VALUE,
+          includeTest: includeTestCheckbox?.checked,
+        };
       }
 
       function rerenderFromCache() {
@@ -3486,7 +3532,8 @@ function applyColumnTitles(root = document) {
           lastFilterSnapshot.partner !== (partnerSelect?.value || PARTNER_ALL_VALUE) ||
           lastFilterSnapshot.includeTest !== includeTestCheckbox.checked;
         if (snapshotChanged) {
-          applyFilters();
+          startLoading("Loading data…");
+          applyFilters().finally(() => stopLoading());
           return;
         }
 
@@ -3498,6 +3545,7 @@ function applyColumnTitles(root = document) {
 
       async function init() {
         try {
+          startLoading("Loading funnel data…");
           try {
             registryMap = await fetchRegistry();
             updateRegistryLookups(registryMap);
@@ -3525,20 +3573,29 @@ function applyColumnTitles(root = document) {
               }
               renderDateWarning();
             }
+            const totalDays = dailyFiles.length;
+            let loadedDays = 0;
             for (const file of dailyFiles) {
               const date = file.replace(".json", "");
+              setLoaderMessage(`Loading daily data… ${loadedDays}/${totalDays}`);
               const data = await fetchDaily(date);
               if (data) {
                 dailyData[date] = data;
               }
+              loadedDays += 1;
+            }
+            if (totalDays) {
+              setLoaderMessage(`Loading daily data… ${totalDays}/${totalDays}`);
             }
           } catch (err) {
             console.error("Failed to load daily data:", err);
           }
 
-          safeApplyFilters();
+          await safeApplyFilters();
         } catch (err) {
           console.error("Init failed", err);
+          stopLoading();
+        } finally {
           stopLoading();
         }
       }
@@ -3547,14 +3604,18 @@ function applyColumnTitles(root = document) {
         // Force a full recompute for new date ranges
         lastRenderContext = null;
         lastFilterSnapshot = null;
-        safeApplyFilters();
+        startLoading("Loading data…");
+        safeApplyFilters().catch((err) => {
+          console.error("apply filters failed", err);
+        }).finally(() => stopLoading());
       });
 
       endDateInput?.addEventListener("change", renderDateWarning);
       startDateInput?.addEventListener("change", renderDateWarning);
 
       includeTestCheckbox.addEventListener("change", () => {
-        applyFilters();
+        startLoading("Loading data…");
+        applyFilters().finally(() => stopLoading());
       });
 
       exportCsvBtn.addEventListener("click", () => {
@@ -3650,6 +3711,7 @@ function applyColumnTitles(root = document) {
 
       init().catch((err) => {
         console.error("Init failed", err);
+        stopLoading();
       });
 
       const presetSelect = document.getElementById("datePreset");

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Strivve • Merchant Site Heatmap</title>
+  <title>Strivve • Merchant Reach &amp; Reliability</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="./sis-shared.css?v=navfix" />
   <link rel="stylesheet" href="./assets/css/sis.css">
@@ -54,7 +54,7 @@
       margin: 0;
       padding: 0;
       min-height: 100vh;
-      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      font-family: "Inter", "Segoe UI", ui-sans-serif, system-ui, -apple-system, Roboto, "Helvetica Neue", Arial;
       font-size: 16px;
       background: var(--bg);
       color: var(--ink);
@@ -122,6 +122,9 @@
       flex-wrap: wrap;
       margin-top: 2px;
     }
+    .mode-row {
+      margin-top: 10px;
+    }
     .filter-btn {
       background: linear-gradient(120deg, var(--accent), var(--accent-2));
       border: none;
@@ -178,6 +181,94 @@
 
     .legend { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); }
     .swatch { width: 14px; height: 14px; border-radius: 3px; border: 1px solid var(--grid-border); }
+    .heatmap-tiles {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      margin-top: 12px;
+    }
+    .heatmap-tile {
+      background: var(--panel);
+      border: 1px solid var(--grid-border);
+      border-radius: 14px;
+      padding: 14px;
+      box-shadow: 0 16px 40px rgba(15, 23, 42, 0.06);
+    }
+    .loading-banner {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border: 1px solid #f59e0b;
+      border-radius: 12px;
+      background: rgba(245, 158, 11, 0.12);
+      box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+      color: #92400e;
+      font-size: 13px;
+      margin-bottom: 10px;
+    }
+    .loading-banner .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid var(--grid-border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      flex-shrink: 0;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .heatmap-tile h3 {
+      margin: 0 0 8px 0;
+      font-size: 16px;
+      letter-spacing: 0.2px;
+    }
+    .heatmap-tile .tile-subtext {
+      margin: 0 0 10px 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1px 5px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 9px;
+      letter-spacing: 0.2px;
+      border: 1px solid transparent;
+      min-width: 22px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      cursor: default;
+    }
+    .status-pill.up {
+      color: #0f5132;
+      border-color: rgba(34, 197, 94, 0.35);
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.16), rgba(16, 185, 129, 0.04));
+    }
+    .status-pill.down {
+      color: #7f1d1d;
+      border-color: rgba(220, 38, 38, 0.35);
+      background: linear-gradient(135deg, rgba(248, 113, 113, 0.2), rgba(248, 113, 113, 0.06));
+    }
+    .status-pill.limited {
+      color: #854d0e;
+      border-color: rgba(234, 179, 8, 0.35);
+      background: linear-gradient(135deg, rgba(234, 179, 8, 0.2), rgba(234, 179, 8, 0.06));
+    }
+    .status-pill.unknown {
+      color: #334155;
+      border-color: rgba(100, 116, 139, 0.35);
+      background: linear-gradient(135deg, rgba(148, 163, 184, 0.2), rgba(148, 163, 184, 0.06));
+    }
+    @media (max-width: 1100px) {
+      .heatmap-tiles {
+        grid-template-columns: 1fr;
+      }
+    }
 
     .grid {
       display: grid;
@@ -224,6 +315,18 @@
       line-height: 12px;
       color: var(--muted);
     }
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      border: 1px solid var(--grid-border);
+      flex-shrink: 0;
+      display: inline-block;
+    }
+    .status-dot.up { background: var(--good); }
+    .status-dot.limited { background: var(--warn); }
+    .status-dot.down { background: var(--bad); }
+    .status-dot.unknown { background: var(--chip); }
     .grid-right { position: relative; }
     .day-row {
       display: grid;
@@ -298,13 +401,21 @@
       </nav>
     </div>
 
-    <h1 class="sis-page-name">Merchant Site Heatmap</h1>
-    <p class="sis-page-desc">Visualize merchant reliability day by day across production and test traffic. Switch modes to highlight traffic volume, health, conversion, or anomalies.</p>
+    <h1 class="sis-page-name">Merchant Reach &amp; Reliability</h1>
+    <p class="sis-page-desc">Track where cardholders succeed and struggle: traffic, health, and anomalies across your merchant footprint.</p>
   </header>
   <div class="sis-content">
   <main class="sis-main">
     <section class="sis-panel heatmap-panel">
-      <div id="filter-bar"></div>
+
+    <div class="muted" style="font-size:13px; margin:0 0 10px 2px;">
+      Filters and date range apply to both tiles (heatmap + health snapshot). Traffic source toggles include/exclude production and test merchant traffic.
+    </div>
+      <div id="pageLoader" class="loading-banner" hidden>
+        <div class="spinner" aria-hidden="true"></div>
+        <div class="loading-text">Loading merchant data…</div>
+      </div>
+      <div id="filter-bar" style="margin-bottom: 8px;"></div>
 
     <div class="toolbar">
       <div class="filter-row">
@@ -347,7 +458,7 @@
           </label>
         </div>
       </div>
-      <div class="right">
+      <div class="right mode-row">
         <span class="muted tiny">Mode:</span>
         <button class="chip on" data-mode="traffic" id="m-traffic">Traffic</button>
         <button class="chip" data-mode="health" id="m-health">Health</button>
@@ -356,26 +467,33 @@
         <button class="chip" data-mode="availability" id="m-availability">Availability</button>
       </div>
     </div>
-
       <div style="height:6px"></div>
+      <div class="muted tiny" style="margin:4px 0 6px 2px;">Filters and date range apply to both tiles.</div>
 
-      <div class="row">
-        <div class="legend" id="legend"></div>
-      </div>
-
-      <div class="grid" id="grid" aria-busy="true">
-        <div class="grid-left" id="leftCol"></div>
-        <div class="grid-right">
-          <div class="grid-head" id="headTicks"></div>
-          <div id="rows"></div>
+      <div class="heatmap-tiles">
+        <div class="heatmap-tile">
+          <h3>Daily Merchant Footprint</h3>
+          <p class="tile-subtext">Day-by-day view of traffic, health, conversion, anomalies, or availability across your merchant list—filtered to your issuers and date window.</p>
+          <div class="row" style="margin-bottom:8px;">
+            <div class="legend" id="legend"></div>
+          </div>
+          <div class="grid" id="grid" aria-busy="true">
+            <div class="grid-left" id="leftCol"></div>
+            <div class="grid-right">
+              <div class="grid-head" id="headTicks"></div>
+              <div id="rows"></div>
+            </div>
+          </div>
         </div>
-      </div>
-      <div class="sis-panel" id="healthSummaryPanel" style="margin-top:16px; padding:12px 16px;">
-        <h3 style="margin:0 0 8px 0; font-size:16px;">Merchant health snapshot</h3>
-        <div id="healthSummary" class="muted tiny">Loading…</div>
-        <div class="muted tiny" style="margin-top:8px; line-height:1.4;">
-          Legend: 🟢 health ≥80%, 🟠 50–79%, 🔴 <50%; UX 🟢 <25%, 🟡 25–49%, 🔴 ≥50%.
-          Arrows: ↑/↓ latest day ≥10pp vs prior 6-day avg; ↗/↘ between 2–10pp; → within ±2pp.
+
+        <div class="heatmap-tile" id="healthSummaryPanel">
+          <h3>Merchant Health Snapshot</h3>
+          <p class="tile-subtext">Summarized merchant health over the same window—quickly see strong performers, watchlist candidates, and trends before cardholders feel pain.</p>
+          <div id="healthSummary" class="muted tiny">Loading…</div>
+          <div class="muted tiny" style="margin-top:8px; line-height:1.4;">
+            Legend: 🟢 health ≥80%, 🟠 50–79%, 🔴 <50%; UX 🟢 <25%, 🟡 25–49%, 🔴 ≥50%.
+            Arrows: ↑/↓ latest day ≥10pp vs prior 6-day avg; ↗/↘ between 2–10pp; → within ±2pp.
+          </div>
         </div>
       </div>
     </section>
@@ -405,6 +523,7 @@
 
     const urlParams = new URLSearchParams(location.search);
     const dayMs = 86400000;
+    const pageLoader = $("#pageLoader");
     function isoLocalFromDate(d) {
       const copy = new Date(d.getTime());
       copy.setHours(0, 0, 0, 0);
@@ -662,6 +781,45 @@
       }
     }
 
+    function classifyStatus(tags = []) {
+      const lower = tags.map((t) => t && t.toString().toLowerCase());
+      if (lower.some((t) => t.includes("down") || t.includes("disabled"))) {
+        return { label: "Down", css: "down" };
+      }
+      if (lower.some((t) => t.includes("limited") || t.includes("beta") || t.includes("degraded"))) {
+        return { label: "Limited", css: "limited" };
+      }
+      if (lower.some((t) => t.includes("unrestricted") || t === "prod")) {
+        return { label: "Up", css: "up" };
+      }
+      return { label: "Unknown", css: "unknown" };
+    }
+
+    async function loadMerchantStatuses() {
+      try {
+        const res = await fetch("/merchant-sites", { cache: "no-store" });
+        if (!res.ok) return;
+        const data = await res.json();
+        const map = new Map();
+        const sites = Array.isArray(data?.sites) ? data.sites : [];
+        sites.forEach((s) => {
+          const host = (s.host || s.hostname || "").toString().toLowerCase();
+          if (!host) return;
+          const tags = Array.isArray(s.tags) ? s.tags : [];
+          const status = classifyStatus(tags);
+          map.set(host, { ...status, tags });
+        });
+        merchantStatusMap = map;
+      } catch (err) {
+        console.warn("Failed to load merchant site statuses", err);
+      }
+    }
+
+    function getMerchantStatusMeta(merchantName) {
+      const host = (merchantName || "").toString().toLowerCase();
+      return merchantStatusMap.get(host) || null;
+    }
+
     // ===== State =====
     let MODE = "traffic"; // traffic | health | conversion | anomaly | availability
     const startEl = $("#start");
@@ -678,6 +836,7 @@
     const tip = $("#tip");
     const countEl = $("#count");
     const healthSummaryEl = $("#healthSummary");
+    let merchantStatusMap = new Map();
     const includeProdToggle = document.getElementById("includeProdMerchants");
     const includeTestToggle = document.getElementById("includeTestMerchants");
     const INSTANCE_ALL_VALUE = "__all_instances__";
@@ -1149,24 +1308,50 @@
 
     let currentData = null;
 
-    async function loadAndRender(start, end) {
-      $("#grid").setAttribute("aria-busy", "true");
-      leftCol.innerHTML = "";
-      rowsWrap.innerHTML = "";
-      headTicks.innerHTML = "";
-      legendEl.innerHTML = "";
+    function setLoading(isLoading, message) {
+      if (!pageLoader) return;
+      pageLoader.hidden = !isLoading;
+      pageLoader.style.display = isLoading ? "flex" : "none";
+      const textEl = pageLoader.querySelector(".loading-text");
+      if (textEl && message) textEl.textContent = message;
+    }
 
-      const res = await fetch(`/merchant-heatmap?start=${start}&end=${end}`);
-      if (!res.ok) {
-        rowsWrap.innerHTML = `<div style="padding:16px" class="muted">Failed to load data (${res.status}).</div>`;
+    function updateLoadingMessage(message) {
+      const textEl = pageLoader?.querySelector(".loading-text");
+      if (textEl && message) textEl.textContent = message;
+    }
+
+    async function loadAndRender(start, end) {
+      try {
+        setLoading(true, "Loading merchant data…");
+        $("#grid").setAttribute("aria-busy", "true");
+        if (leftCol) leftCol.innerHTML = "";
+        if (rowsWrap) rowsWrap.innerHTML = "";
+        if (headTicks) headTicks.innerHTML = "";
+        if (legendEl) legendEl.innerHTML = "";
+
+        // Pull slices and merchants in two steps to show progress
+        updateLoadingMessage("Loading merchant slices…");
+        const res = await fetch(`/merchant-heatmap?start=${start}&end=${end}`);
+        if (!res.ok) {
+          rowsWrap.innerHTML = `<div style="padding:16px" class="muted">Failed to load data (${res.status}).</div>`;
+          return;
+        }
+        const text = await res.text();
+        updateLoadingMessage("Parsing merchant data…");
+        const json = JSON.parse(text);
+        currentData = json;
+        latestMerchantPayload = json;
+        applyFilters();
+      } catch (err) {
+        console.error("heatmap load failed", err);
+        if (rowsWrap) {
+          rowsWrap.innerHTML = `<div style="padding:16px" class="muted">Failed to load data.</div>`;
+        }
+      } finally {
         $("#grid").removeAttribute("aria-busy");
-        return;
+        setLoading(false);
       }
-      const json = await res.json();
-      currentData = json;
-      latestMerchantPayload = json;
-      applyFilters();
-      $("#grid").removeAttribute("aria-busy");
     }
 
     function populateFilterOptionsFromSlices(slices) {
@@ -1304,7 +1489,26 @@
         const row = document.createElement("div");
         row.className = "site-row";
         row.title = label;
-        row.textContent = label;
+        const statusMeta = getMerchantStatusMeta(name) || classifyStatus(m.tags || []);
+        const statusClass = statusMeta?.css || "unknown";
+        const statusLabel = statusMeta?.label || "Status unknown";
+        const statusShort =
+          statusLabel === "Up"
+            ? "U"
+            : statusLabel === "Down"
+            ? "D"
+            : statusLabel === "Limited"
+            ? "L"
+            : "?";
+        const dot = document.createElement("span");
+        dot.className = `status-pill ${statusClass}`;
+        dot.title = statusLabel;
+        dot.setAttribute("aria-label", statusLabel);
+        dot.textContent = statusShort;
+        const text = document.createElement("span");
+        text.textContent = label;
+        row.appendChild(dot);
+        row.appendChild(text);
         leftCol.appendChild(row);
       }
 
@@ -1597,6 +1801,19 @@
     }
 
     function summarizeMerchantHealth(merchantRow = {}) {
+      let statusInfo = classifyStatus(merchantRow.tags || []);
+      if (statusInfo.css === "unknown") {
+        const meta = getMerchantStatusMeta(merchantRow.merchant || merchantRow.name || "");
+        if (meta) statusInfo = meta;
+      }
+      const statusShort =
+        statusInfo.label === "Up"
+          ? "U"
+          : statusInfo.label === "Down"
+          ? "D"
+          : statusInfo.label === "Limited"
+          ? "L"
+          : "?";
       const total = Number(merchantRow.total || 0);
       const billable = Number(merchantRow.billable || 0);
       const siteFailures = Number(merchantRow.siteFailures ?? merchantRow.siteFail ?? 0);
@@ -1641,6 +1858,9 @@
         healthArrow,
         uxArrow,
         severeUx: uxPct !== null && uxPct >= 80,
+        statusCss: statusInfo.css,
+        statusLabel: statusInfo.label,
+        statusShort,
       };
     }
 
@@ -1651,7 +1871,9 @@
         return;
       }
       const MIN_ATTEMPTS = 5;
-      const summaries = merchants.map((m) => summarizeMerchantHealth(m));
+      const summaries = merchants
+        .filter((m) => !m.merchant || !m.merchant.toLowerCase().includes("synthetic"))
+        .map((m) => summarizeMerchantHealth(m));
       summaries.sort((a, b) => (b.total || 0) - (a.total || 0));
       const main = summaries.filter((s) => (s.total || 0) >= MIN_ATTEMPTS);
       const lowVol = summaries.length - main.length;
@@ -1662,15 +1884,16 @@
           if (s.severeUx && healthEmoji === "🟢") healthEmoji = "🔴";
           const uxEmoji = s.uxPct === null ? "⚪️" : s.uxPct < 25 ? "🟢" : s.uxPct < 50 ? "🟡" : "🔴";
           const warningIcon = s.severeUx ? "⚠️" : "";
-          const totalText = (s.total || 0).toString().padEnd(4);
           const billableText = (s.billable || 0).toString().padEnd(4);
+          const totalText = (s.total || 0).toString().padEnd(4);
           const billablePct = s.total > 0 ? ((s.billable / s.total) * 100).toFixed(1).padStart(6) + "%" : "   —  ";
           const healthText = formatPct(s.healthPct).padStart(7);
           const uxText = formatPct(s.uxPct).padStart(7);
           const healthArrow = s.healthArrow || " ";
           const uxArrow = s.uxArrow || " ";
           const warnSpan = `<span style="display:inline-block; min-width:18px; text-align:center;">${warningIcon}</span>`;
-          return `<div class="mono" style="white-space:pre;">${healthEmoji} ${healthArrow} ${name} | total ${totalText} | billable ${billableText} (${billablePct}) | health ${healthText} | UX ${warnSpan}${uxEmoji} ${uxArrow} ${uxText}</div>`;
+          const statusPill = `<span class="status-pill ${s.statusCss || "unknown"}" title="${s.statusLabel || "Unknown"}">${s.statusShort || "?"}</span>`;
+          return `<div class="mono" style="white-space:pre;">${statusPill} ${name} | billable ${billableText} | total ${totalText} (${billablePct}) | health ${healthEmoji} ${healthArrow} ${healthText} | UX ${warnSpan}${uxEmoji} ${uxArrow} ${uxText}</div>`;
         })
         .join("");
       healthSummaryEl.innerHTML = `
@@ -1702,6 +1925,7 @@
 
     // Boot
     (async () => {
+      await loadMerchantStatuses();
       await fetchRegistry();
       await loadAndRender(initStart, initEnd);
       const mappingAvailable = (currentData?.merchants || []).some(
