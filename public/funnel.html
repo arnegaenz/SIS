@@ -1408,73 +1408,25 @@ function applyColumnTitles(root = document) {
         const shared = window.__FILTER_STATE;
         const includeTests = includeTestCheckbox?.checked;
         const fiTouched = shared && shared.__fiTouched;
-        const canonicalSet =
-          shared && shared.canonicalFiInstances && shared.canonicalFiInstances.size
-            ? shared.canonicalFiInstances
-            : null;
-        const matchesCanonical = (row) => {
-          if (!canonicalSet) return true;
-          const fiKey = normalizeFiKey(row.fi);
-          const instRaw =
-            row.instance ||
-            (Array.isArray(row.instances) && row.instances.length ? row.instances[0] : "any");
-          const instKey = normalizeInstanceKey(instRaw || "any");
-          const keyExact = makeFiInstanceKey(fiKey, instKey);
-          const keyAny = makeFiInstanceKey(fiKey, "any");
-          return canonicalSet.has(keyExact) || canonicalSet.has(keyAny);
-        };
         if (shared && shared.page === "funnel") {
           const sharedFiSet = shared.fis
             ? new Set(Array.from(shared.fis).map((fi) => normalizeFiKey(fi)))
             : new Set();
-          const sharedIntegration = normalizeIntegrationKey(shared.integration);
-          const selectedInstances =
-            shared.instance && shared.instance !== "All"
-              ? [normalizeInstanceKey(shared.instance)]
-              : [];
           return Object.values(perFi).filter((row) => {
             if (!includeTests && row.is_test) return false;
-            if (!matchesCanonical(row)) return false;
-            const rowPartner = row.partner || "Unknown";
-            if (shared.partner !== "All" && rowPartner !== shared.partner) return false;
-            const rowIntegration = normalizeIntegrationKey(row.integration_type);
-            if (shared.integration !== "All" && rowIntegration !== sharedIntegration) return false;
             if (fiTouched && sharedFiSet.size === 0) return false;
             if (sharedFiSet.size) {
               const fiKey = normalizeFiKey(row.fi);
               if (!sharedFiSet.has(fiKey)) return false;
-            }
-            if (selectedInstances.length > 0) {
-              const rowInstances =
-                Array.isArray(row.instances) && row.instances.length
-                  ? row.instances.map((inst) => normalizeInstanceKey(inst))
-                  : [normalizeInstanceKey(row.instance)];
-              if (!rowInstances.some((inst) => selectedInstances.includes(inst))) return false;
             }
             return true;
           });
         }
 
         const filterFi = fiFilterSelect?.value || FI_ALL_VALUE;
-        const filterIntegration = integrationSelect?.value || "(all)";
-        const filterPartner = partnerSelect?.value || PARTNER_ALL_VALUE;
-        const selectedInstances = getSelectedInstances();
         return Object.values(perFi).filter((row) => {
           if (!includeTests && row.is_test) return false;
-          if (!matchesCanonical(row)) return false;
           if (filterFi && filterFi !== FI_ALL_VALUE && row.fi !== filterFi) return false;
-          if (filterIntegration !== "(all)" && row.integration_type !== filterIntegration) return false;
-          if (filterPartner !== PARTNER_ALL_VALUE) {
-            const rowPartner = row.partner || "Unknown";
-            if (rowPartner !== filterPartner) return false;
-          }
-          if (selectedInstances.length > 0) {
-            const rowInstances =
-              Array.isArray(row.instances) && row.instances.length
-                ? row.instances.map((inst) => normalizeInstanceKey(inst))
-                : [normalizeInstanceKey(row.instance)];
-            if (!rowInstances.some((inst) => selectedInstances.includes(inst))) return false;
-          }
           return true;
         });
       }
