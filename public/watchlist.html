@@ -198,6 +198,17 @@
       border-radius: 14px;
       box-shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
     }
+    .merchant-name,
+    .fi-name {
+      cursor: help;
+      text-decoration: underline dotted rgba(15, 23, 42, 0.4);
+      text-decoration-thickness: 1px;
+      text-underline-offset: 3px;
+    }
+    [data-theme="dark"] .merchant-name,
+    [data-theme="dark"] .fi-name {
+      text-decoration-color: rgba(229, 237, 255, 0.5);
+    }
     [data-theme="dark"] .watch-card {
       box-shadow: 0 20px 50px rgba(0,0,0,0.35);
     }
@@ -313,6 +324,7 @@
     const cardsEl = document.getElementById("cards");
     let fiInstanceDefaults = new Map();
     let merchantStatusMap = new Map();
+    const escapeAttr = (val) => (val ?? "").toString().replace(/"/g, "&quot;");
 
     async function loadFiRegistryDefaults() {
       try {
@@ -443,11 +455,13 @@
         const map = new Map();
         const sites = Array.isArray(data?.sites) ? data.sites : [];
         sites.forEach((s) => {
-          const host = (s.host || s.hostname || "").toString().toLowerCase();
+          const rawHost = (s.host || s.hostname || "").toString();
+          const host = rawHost.toLowerCase();
           if (!host) return;
           const tags = Array.isArray(s.tags) ? s.tags : [];
           const status = classifyStatus(tags);
-          map.set(host, { ...status, tags });
+          const name = s.name || s.display_name || "";
+          map.set(host, { ...status, tags, name: name || host, host: rawHost || host });
         });
         merchantStatusMap = map;
       } catch {
@@ -480,6 +494,26 @@
         }
       }
       return false;
+    }
+
+    function renderMerchantCell(name) {
+      const host = (name || "").toString().toLowerCase();
+      const meta = merchantStatusMap.get(host);
+      if (!meta) {
+        const safeName = name || "unknown";
+        return `${safeName}${statusBadge(name)}`;
+      }
+      const displayName = meta.name || name || "unknown";
+      const titleHost = meta.host || host;
+      const titleAttr = titleHost ? ` title="${escapeAttr(titleHost)}"` : "";
+      return `<span class="merchant-name"${titleAttr}>${displayName}</span>${statusBadge(name)}`;
+    }
+
+    function renderFiCell(row = {}) {
+      const label = row.fiName || row.name || "unknown";
+      const instance = row.instance || "";
+      const titleAttr = instance ? ` title="${escapeAttr(instance)}"` : "";
+      return `<span class="fi-name"${titleAttr}>${label}</span>`;
     }
 
     function aggregateSlicesToMerchants(slices = [], days = []) {
@@ -667,8 +701,12 @@
         if (prevVal === 0) return null;
         return ((cur - prevVal) / prevVal) * 100;
       };
+      const fiName = fiRow.fiName || fiRow.fi || "unknown_fi";
+      const instance = fiRow.instance || "unknown";
       return {
-        name: `${fiRow.fiName || fiRow.fi || "unknown_fi"}:${fiRow.instance || "unknown"}`,
+        name: fiName,
+        fiName,
+        instance,
         total: last.total,
         prevTotal: prev.total,
         avgWeekly: last90.length ? (baseline90.total / (last90.length || 1)) * 7 : null,
@@ -713,9 +751,10 @@
     }
 
     function buildCard(title, rows, deltaKey, reverse=false) {
+      const lowerTitle = title.toLowerCase();
       const isReliability = deltaKey === "siteFailDelta";
-      const isTraffic = title.toLowerCase().includes("traffic");
-      const isFiLevel = title.startsWith("FI:");
+      const isTraffic = lowerTitle.includes("traffic");
+      const isFiLevel = lowerTitle.includes("fis");
       const subtitle = (() => {
         if (title.toLowerCase().includes("drops • merchants")) return "Lowest recent 7-day traffic vs prior week; watch for outages or pullbacks.";
         if (title.toLowerCase().includes("spikes • merchants")) return "Highest recent 7-day traffic vs prior week; watch capacity and fraud signals.";
@@ -726,38 +765,43 @@
         if (title.startsWith("FI:")) return "Aggregated at FI level using placement slices.";
         return "";
       })();
-      const body = rows.map((r)=> {
-        const deltaClass = r[deltaKey]!==null && ((r[deltaKey]>0&&!reverse)||(r[deltaKey]<0&&reverse)) ? 'delta-bad' : 'delta-good';
-        if (isReliability) {
-          const reliabClass = r[deltaKey] > 0 ? "delta-bad" : "delta-good";
+      const body = rows
+        .map((r)=> {
+          const nameCell = isFiLevel ? renderFiCell(r) : renderMerchantCell(r.name);
+          const deltaClass = r[deltaKey] !== null && ((r[deltaKey] > 0 && !reverse) || (r[deltaKey] < 0 && reverse))
+            ? "delta-bad"
+            : "delta-good";
+          if (isReliability) {
+            const reliabClass = r[deltaKey] > 0 ? "delta-bad" : "delta-good";
+            return `<tr>
+              <td>${nameCell}</td>
+              <td class="num">${fmtNum(r.total)}</td>
+              <td class="num">${fmtNum(r.prevTotal)}</td>
+              <td class="num">${fmtPctVal(r.siteFailShare)}</td>
+              <td class="num ${reliabClass}">${fmtDelta(r.siteFailDelta)}</td>
+              <td class="num">${fmtDelta(r.healthDelta)}</td>
+            </tr>`;
+          }
+          if (isTraffic) {
+            const deltaClassTraffic = Number(r[deltaKey]) < 0 ? "delta-bad" : "delta-good";
+            return `<tr>
+              <td>${nameCell}</td>
+              <td class="num">${fmtNum(r.total)}</td>
+              <td class="num">${fmtNum(r.prevTotal)}</td>
+              <td class="num ${deltaClassTraffic}">${fmtDelta(r[deltaKey])}</td>
+              <td class="num">${fmtAvg(r.avgWeekly)}</td>
+            </tr>`;
+          }
           return `<tr>
-            <td>${r.name}${statusBadge(r.name)}</td>
-            <td class="num">${fmtNum(r.total)}</td>
-            <td class="num">${fmtNum(r.prevTotal)}</td>
-            <td class="num">${fmtPctVal(r.siteFailShare)}</td>
-            <td class="num ${reliabClass}">${fmtDelta(r.siteFailDelta)}</td>
-            <td class="num">${fmtDelta(r.healthDelta)}</td>
-          </tr>`;
-        }
-        if (isTraffic) {
-          const deltaClass = Number(r[deltaKey]) < 0 ? "delta-bad" : "delta-good";
-          return `<tr>
-            <td>${r.name}${statusBadge(r.name)}</td>
+            <td>${nameCell}</td>
             <td class="num">${fmtNum(r.total)}</td>
             <td class="num">${fmtNum(r.prevTotal)}</td>
             <td class="num ${deltaClass}">${fmtDelta(r[deltaKey])}</td>
-            <td class="num">${fmtAvg(r.avgWeekly)}</td>
+            <td class="num">${fmtDelta(r.healthDelta)}</td>
+            <td class="num">${fmtDelta(r.uxDelta)}</td>
           </tr>`;
-        }
-        return `<tr>
-          <td>${r.name}${statusBadge(r.name)}</td>
-          <td class="num">${fmtNum(r.total)}</td>
-          <td class="num">${fmtNum(r.prevTotal)}</td>
-          <td class="num ${deltaClass}">${fmtDelta(r[deltaKey])}</td>
-          <td class="num">${fmtDelta(r.healthDelta)}</td>
-          <td class="num">${fmtDelta(r.uxDelta)}</td>
-        </tr>`;
-      }).join("");
+        })
+        .join("");
       return `
         <div class="card">
           <h2>${title}</h2>
@@ -766,10 +810,10 @@
             <table class="watch-table">
               <thead>
                 ${isReliability
-                  ? `<tr><th>${isFiLevel ? "FI" : "Merchant"}</th><th class="num">Last 7d</th><th class="num">Prev 7d</th><th class="num">Site-fail%</th><th class="num">Site-fail Δ</th><th class="num">Health Δ</th></tr>`
+                  ? `<tr><th>${isFiLevel ? "Financial Institution" : "Merchant"}</th><th class="num">Last 7d</th><th class="num">Prev 7d</th><th class="num">Site-fail%</th><th class="num">Site-fail Δ</th><th class="num">Health Δ</th></tr>`
                   : isTraffic
-                  ? `<tr><th>${isFiLevel ? "FI" : "Merchant"}</th><th class="num">Last 7d</th><th class="num">Prev 7d</th><th class="num">Traffic Δ</th><th class="num">Avg/wk (90d)</th></tr>`
-                  : `<tr><th>${isFiLevel ? "FI" : "Merchant"}</th><th class="num">Last 7d</th><th class="num">Prev 7d</th><th class="num">Traffic Δ</th><th class="num">Health Δ</th><th class="num">UX Δ</th></tr>`}
+                  ? `<tr><th>${isFiLevel ? "Financial Institution" : "Merchant"}</th><th class="num">Last 7d</th><th class="num">Prev 7d</th><th class="num">Traffic Δ</th><th class="num">Avg/wk (90d)</th></tr>`
+                  : `<tr><th>${isFiLevel ? "Financial Institution" : "Merchant"}</th><th class="num">Last 7d</th><th class="num">Prev 7d</th><th class="num">Traffic Δ</th><th class="num">Health Δ</th><th class="num">UX Δ</th></tr>`}
               </thead>
               <tbody>${body}</tbody>
             </table>

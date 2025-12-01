@@ -1304,6 +1304,7 @@
       let selectedKey = null;
       let saving = false;
       let showingDupes = false;
+      let duplicateRows = null;
 
       function normalizeIntegration(value) {
         if (!value) return "NON-SSO";
@@ -1458,7 +1459,7 @@
         const entry = getEntryByKey(key);
         populateForm(entry);
         setStatus(entry ? `Editing ${entry.fi_name} (${entry.instance})` : "Select an FI row to edit its metadata.");
-        renderTable();
+        renderTable(showingDupes ? duplicateRows : undefined);
       }
 
       async function loadRegistry() {
@@ -1701,6 +1702,7 @@
         }
         if (showingDupes) {
           showingDupes = false;
+          duplicateRows = null;
           setStatus("Showing filtered registry.");
           renderTable();
           return;
@@ -1720,8 +1722,9 @@
           return;
         }
         showingDupes = true;
+        duplicateRows = dupes;
         setStatus(`Showing ${dupes.length} duplicate entries (same FI+instance).`);
-        renderTable(dupes);
+        renderTable(duplicateRows);
       });
 
       form.addEventListener("submit", (event) => {
