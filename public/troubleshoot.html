@@ -143,6 +143,33 @@
       border: 1px solid var(--border);
       border-radius: 12px;
       padding: 12px 14px;
+      transition: border 0.2s ease, box-shadow 0.2s ease;
+    }
+    .summary-card[data-filter] {
+      cursor: pointer;
+    }
+    .summary-card.active {
+      border-color: var(--accent);
+      box-shadow: 0 12px 30px rgba(37, 99, 235, 0.2);
+    }
+    .summary-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: flex-end;
+      margin-bottom: 12px;
+    }
+    .summary-controls .form-field {
+      margin-bottom: 0;
+    }
+    .summary-controls .form-select {
+      min-width: 220px;
+    }
+    .form-button-group {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      align-self: flex-end;
     }
     .summary-card .label {
       text-transform: uppercase;
@@ -367,6 +394,17 @@
       <div id="dateWarning" class="date-warning" aria-live="polite"></div>
       <div class="status-line" id="statusLine">Waiting for input…</div>
       <div class="summary-grid" id="summaryGrid" style="display: none;"></div>
+      <div class="summary-controls">
+        <div class="form-field">
+          <label for="merchantFilter">Merchant site</label>
+          <select id="merchantFilter" class="form-select">
+            <option value="__all_merchants__">(all merchants)</option>
+          </select>
+        </div>
+        <div class="form-button-group">
+          <button class="btn secondary" id="clearViewFilters" type="button">Clear view filters</button>
+        </div>
+      </div>
       <div class="session-list" id="sessionList"></div>
       <div class="empty-state" id="emptyState" style="display: none;">No sessions found for the selected filters.</div>
     </section>
@@ -389,12 +427,18 @@
         summary: document.getElementById("summaryGrid"),
         sessions: document.getElementById("sessionList"),
         empty: document.getElementById("emptyState"),
+        merchant: document.getElementById("merchantFilter"),
+        clearFilters: document.getElementById("clearViewFilters"),
       };
 
       const state = {
         options: null,
         data: null,
         loading: false,
+        viewFilter: {
+          summary: null,
+          merchant: "__all_merchants__",
+        },
       };
 
       function latestAllowedEndIso() {
@@ -453,6 +497,26 @@
         const minutes = Math.floor(seconds / 60);
         const rem = seconds % 60;
         return rem ? `${minutes}m ${rem}s` : `${minutes}m`;
+      }
+
+      const MERCHANT_ALL_VALUE = "__all_merchants__";
+      const SUMMARY_FILTER_PREDICATES = {
+        sessions_with_jobs: (session) => sessionJobStats(session).jobCount > 0,
+        sessions_with_success: (session) => sessionJobStats(session).jobSuccess > 0,
+        jobs_success: (session) => sessionJobStats(session).jobSuccess > 0,
+        jobs_failure: (session) => sessionJobStats(session).jobFailure > 0,
+      };
+
+      function normalizeMerchantName(value) {
+        return (value || "").toString().trim();
+      }
+
+      function sessionJobStats(session) {
+        const jobs = Array.isArray(session.jobs) ? session.jobs : [];
+        const jobCount = jobs.length;
+        const jobSuccess = jobs.filter((job) => job.is_success).length;
+        const jobFailure = Math.max(0, jobCount - jobSuccess);
+        return { jobs, jobCount, jobSuccess, jobFailure };
       }
 
       function setStatus(text, tone = "muted") {
@@ -773,22 +837,94 @@
         }
         els.summary.style.display = "grid";
         const cards = [
-          { label: "Sessions", value: totals.sessions },
-          { label: "Sessions with jobs", value: totals.sessions_with_jobs },
-          { label: "Sessions with success", value: totals.sessions_with_success },
-          { label: "Jobs", value: totals.jobs },
-          { label: "Job success", value: totals.jobs_success },
-          { label: "Job failures", value: totals.jobs_failure },
+          { key: null, label: "Sessions", value: totals.sessions },
+          { key: "sessions_with_jobs", label: "Sessions with jobs", value: totals.sessions_with_jobs },
+          { key: "sessions_with_success", label: "Sessions with success", value: totals.sessions_with_success },
+          { key: null, label: "Jobs", value: totals.jobs },
+          { key: "jobs_success", label: "Job success", value: totals.jobs_success },
+          { key: "jobs_failure", label: "Job failures", value: totals.jobs_failure },
         ];
         els.summary.innerHTML = cards
           .map(
             (c) => `
-            <div class="summary-card">
+            <div class="summary-card${c.key && state.viewFilter.summary === c.key ? " active" : ""}"${c.key ? ` data-filter="${c.key}"` : ""}>
               <div class="label">${escapeHtml(c.label)}</div>
               <div class="value">${c.value ?? 0}</div>
             </div>`
           )
           .join("");
+      }
+
+      function normalizedMerchantValue(value) {
+        return normalizeMerchantName(value).toLowerCase();
+      }
+
+      function updateMerchantOptions(sessions = []) {
+        if (!els.merchant) return;
+        const merchantMap = new Map();
+        (sessions || []).forEach((session) => {
+          const jobs = Array.isArray(session.jobs) ? session.jobs : [];
+          jobs.forEach((job) => {
+            const label = normalizeMerchantName(job.merchant);
+            if (!label) return;
+            const norm = normalizedMerchantValue(label);
+            if (!merchantMap.has(norm)) {
+              merchantMap.set(norm, label);
+            }
+          });
+        });
+        const merchantEntries = Array.from(merchantMap.entries()).sort((a, b) => a[1].localeCompare(b[1]));
+        const options = [[MERCHANT_ALL_VALUE, "(all merchants)"], ...merchantEntries];
+        const keepValue = els.merchant.value || MERCHANT_ALL_VALUE;
+        els.merchant.innerHTML = options
+          .map(
+            ([value, label]) => `
+              <option value="${value}">${escapeHtml(label)}</option>
+            `
+          )
+          .join("");
+        if (options.some(([value]) => value === keepValue)) {
+          els.merchant.value = keepValue;
+          state.viewFilter.merchant = keepValue;
+        } else {
+          els.merchant.value = MERCHANT_ALL_VALUE;
+          state.viewFilter.merchant = MERCHANT_ALL_VALUE;
+        }
+      }
+
+      function sessionMatchesMerchantFilter(session, merchantKey) {
+        if (!merchantKey || merchantKey === MERCHANT_ALL_VALUE) return true;
+        const stats = sessionJobStats(session);
+        return stats.jobs.some((job) => normalizedMerchantValue(job.merchant) === merchantKey);
+      }
+
+      function applyViewFiltersToSessions(sessions = []) {
+        let filtered = sessions;
+        const summaryKey = state.viewFilter.summary;
+        if (summaryKey && SUMMARY_FILTER_PREDICATES[summaryKey]) {
+          filtered = filtered.filter(SUMMARY_FILTER_PREDICATES[summaryKey]);
+        }
+        const merchantKey = state.viewFilter.merchant;
+        if (merchantKey && merchantKey !== MERCHANT_ALL_VALUE) {
+          filtered = filtered.filter((session) => sessionMatchesMerchantFilter(session, merchantKey));
+        }
+        return filtered;
+      }
+
+      function resetViewFilters() {
+        state.viewFilter.summary = null;
+        if (els.merchant) {
+          state.viewFilter.merchant = MERCHANT_ALL_VALUE;
+          els.merchant.value = MERCHANT_ALL_VALUE;
+        }
+        applyFilters();
+      }
+
+      function toggleSummaryFilter(filterKey) {
+        if (!filterKey || !SUMMARY_FILTER_PREDICATES[filterKey]) return;
+        const next = state.viewFilter.summary === filterKey ? null : filterKey;
+        state.viewFilter.summary = next;
+        applyFilters();
       }
 
       function jobBadgeClass(job) {
@@ -861,9 +997,10 @@
         els.empty.style.display = "none";
         els.sessions.innerHTML = sessions
           .map((session) => {
-            const jobCount = Array.isArray(session.jobs) ? session.jobs.length : 0;
-            const jobSuccess = session.jobs?.filter((j) => j.is_success).length || 0;
-            const jobFailure = Math.max(0, jobCount - jobSuccess);
+          const stats = sessionJobStats(session);
+          const jobCount = stats.jobCount;
+          const jobSuccess = stats.jobSuccess;
+          const jobFailure = stats.jobFailure;
             const integrationLabel =
               session.integration ||
               session.integration_type ||
@@ -899,7 +1036,7 @@
                 </div>
                 ${renderClickstream(session.clickstream)}
                 <div class="jobs">
-                  ${renderJobs(session.jobs)}
+                  ${renderJobs(stats.jobs)}
                 </div>
                 <details class="raw-details">
                   <summary>Raw session payload</summary>
@@ -930,10 +1067,7 @@
         };
         sessions.forEach((session) => {
           totals.sessions += 1;
-          const jobs = Array.isArray(session.jobs) ? session.jobs : [];
-          const jobCount = jobs.length;
-          const jobSuccess = jobs.filter((j) => j.is_success).length;
-          const jobFailure = Math.max(0, jobCount - jobSuccess);
+          const { jobCount, jobSuccess, jobFailure } = sessionJobStats(session);
           if (jobCount > 0) totals.sessions_with_jobs += 1;
           if (jobSuccess > 0) totals.sessions_with_success += 1;
           totals.jobs += jobCount;
@@ -974,9 +1108,10 @@
           }
           return true;
         });
-        const totals = summarizeTroubleshootSessions(filtered);
+        const viewFiltered = applyViewFiltersToSessions(filtered);
+        const totals = summarizeTroubleshootSessions(viewFiltered);
         renderSummary(totals);
-        renderSessions(filtered);
+        renderSessions(viewFiltered);
       }
 
       async function loadDay() {
@@ -1010,6 +1145,7 @@
           });
           state.data = data;
           refreshFilterOptions();
+          updateMerchantOptions(data.sessions || []);
           setStatus(
             `Loaded ${data.sessions?.length || 0} sessions for ${data.startDate || start} → ${data.endDate || end}.`
           );
@@ -1120,6 +1256,19 @@
           applyPreset(presetSelect.value || "last30");
         });
       }
+      els.summary?.addEventListener("click", (event) => {
+        const card = event.target.closest(".summary-card[data-filter]");
+        if (!card) return;
+        toggleSummaryFilter(card.dataset.filter);
+      });
+      els.merchant?.addEventListener("change", () => {
+        state.viewFilter.merchant = els.merchant.value || MERCHANT_ALL_VALUE;
+        applyFilters();
+      });
+      els.clearFilters?.addEventListener("click", () => {
+        resetViewFilters();
+        setStatus("View filters cleared.", "muted");
+      });
       if (els.startDate && els.endDate && !els.startDate.value && !els.endDate.value) {
         applyPreset("last1");
       }

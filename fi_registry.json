@@ -266,9 +266,13 @@
     "sources": [
       "placement"
     ],
-    "integration_type": "non-sso",
+    "integration_type": "cardsavr",
     "first_seen": "2025-11-03",
-    "last_seen": "2025-11-28"
+    "last_seen": "2025-11-28",
+    "partner": null,
+    "cardholder_total": null,
+    "cardholder_source": null,
+    "cardholder_as_of": null
   },
   "orb_stage__customer-dev": {
     "fi_name": "orb_stage",
@@ -2458,7 +2462,7 @@
     "cardholder_as_of": null
   },
   "UNKNOWN_FI__ondot": {
-    "fi_name": "UNKNOWN_FI",
+    "fi_name": "ondot_default",
     "fi_lookup_key": "default",
     "instance": "ondot",
     "sources": [
@@ -2466,7 +2470,11 @@
     ],
     "integration_type": "cardsavr",
     "first_seen": "2025-11-05",
-    "last_seen": "2025-11-27"
+    "last_seen": "2025-11-27",
+    "partner": null,
+    "cardholder_total": null,
+    "cardholder_source": null,
+    "cardholder_as_of": null
   },
   "ondot__ondot": {
     "fi_name": "ondot",
