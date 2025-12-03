@@ -78,7 +78,11 @@ By default the server listens on `http://localhost:8787`. Key pages:
 | --- | --- |
 | `/` | Landing page with quick links to the primary reports. |
 | `/funnel.html` | GA + SIS CardUpdatr funnel with filtering, drilldowns, and CSV export. |
+| `/sources.html` | Traffic source analytics by FI, partner, integration type, and instance with CSV export. |
 | `/heatmap.html` | Merchant site heatmap using per‑FI/per‑merchant/per‑day slices with Traffic / Health / Conversion / Anomaly / Availability modes. |
+| `/watchlist.html` | Alerts and anomaly detection for merchant and FI traffic/reliability tracking. |
+| `/troubleshoot.html` | Troubleshooting dashboard for debugging session and placement issues. |
+| `/maintenance.html` | Ops dashboard for data refresh, FI registry editing, merchant sites, and instance credential management. |
 
 While the server is running you can also hit the JSON helpers directly:
 
@@ -106,7 +110,23 @@ The CardUpdatr funnel view (and its CSV export) combines GA4 traffic with SIS se
 
 - **Totals bar** — Sums visible rows per column and then recomputes the conversion percentages from those summed values (e.g., `Σ ga_user / Σ ga_select`). This mirrors what partners see when exporting the same filtered set.
 - **Highlights panel** — Evaluates rolling windows (7/14/30 days, depending on the overall date range) and surfaces the best contiguous stretch per integration bucket with ≥200 GA selects. Each highlight row uses the same column math listed above.
-- **CSV export** — The “Summary”, “Monthly Rollups”, and “Weekly Rollups” tabs in the CSV reuse the exact same calculations as the UI to keep the narrative consistent when sharing reports outside the CLI.
+- **CSV export** — The "Summary", "Monthly Rollups", and "Weekly Rollups" tabs in the CSV reuse the exact same calculations as the UI to keep the narrative consistent when sharing reports outside the CLI.
+
+## Sources Analytics Page
+
+The Sources page (`/sources.html`) provides comprehensive traffic source tracking across all FIs, partners, and integration types. It helps identify which acquisition channels and partner integrations are driving the most engagement and conversion.
+
+**Key Features:**
+- **Multi-dimensional filtering** — Filter by FI, partner, integration type (SSO/NON-SSO/CardSavr), and specific instance
+- **Source metrics** — Shows GA traffic, sessions, success rates, and conversion funnels by source
+- **CSV export** — Download filtered results for external analysis and reporting
+- **Date range selection** — Analyze traffic patterns across custom date windows
+
+**Use Cases:**
+- Partner performance tracking — Compare SSO vs NON-SSO engagement by partner
+- FI source analysis — Identify which marketing channels drive the best conversion rates
+- Integration health — Monitor traffic distribution across CardSavr instances
+- ROI analysis — Export source data to calculate acquisition costs and lifetime value
 
 ## Heatmap (Merchant Availability & Filters)
 
@@ -129,3 +149,24 @@ The CardUpdatr funnel view (and its CSV export) combines GA4 traffic with SIS se
 ## New helper endpoint
 
 - `/merchant-sites` — served by `scripts/serve-funnel.mjs`, logs into ss01 and returns `{ count, sites }` with tags and tier. The Maintenance page and Alerts badges rely on this endpoint; restart the local server after pulling updates.
+
+## UI Architecture & Styling
+
+**CSS Variable System:**
+All UI pages share a centralized CSS variable system defined in `public/sis-shared.css`. This ensures visual consistency across the entire dashboard suite and simplifies theme maintenance.
+
+**Key CSS Variables:**
+- **Colors** — `--bg`, `--panel`, `--text`, `--muted` (60+ variables for light/dark modes)
+- **Status indicators** — `--success`, `--danger`, `--warn`, `--badge-*` colors
+- **Navigation** — `--nav-pill`, `--nav-pill-active-text` for consistent header styling
+- **Tables** — `--table-header`, `--table-border`, `--grid-divider` for data grids
+- **Accent colors** — `--accent`, `--accent-2` used in gradients and highlights
+
+**Theme Support:**
+Light and dark modes are controlled via the `[data-theme="dark"]` attribute selector. All pages inherit theme variables automatically from `sis-shared.css`.
+
+**Why Centralized CSS:**
+- Single source of truth — no drift between pages
+- Better browser caching — shared stylesheet loaded once
+- Backward compatibility — variable aliases (e.g., `--ink` → `--text`) maintain existing code
+- Easy maintenance — theme changes update all pages simultaneously
