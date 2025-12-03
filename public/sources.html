@@ -1,0 +1,496 @@
+<!doctype html>
+<html lang="en">
+  <head>
+  <meta charset="utf-8" />
+  <title>Source Analysis</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="/sis-shared.css?v=navfix" />
+  <link rel="stylesheet" href="assets/css/sis.css">
+  <link rel="stylesheet" href="/assets/css/filters.css">
+  <script defer src="assets/js/sis.js"></script>
+  <script defer src="assets/js/filters.js"></script>
+  <script defer src="assets/js/sources.js"></script>
+    <style>
+      body {
+        font-family: "Inter", "Segoe UI", ui-sans-serif, system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+        background: var(--bg);
+        color: var(--ink);
+      }
+      .sis-panel {
+        background: var(--panel);
+      }
+
+      .sources-card {
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 24px;
+        background: var(--card);
+        margin-top: 20px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+      }
+
+      .sources-card h2 {
+        margin: 0 0 8px 0;
+        font-size: 18px;
+        letter-spacing: 0.2px;
+        color: var(--ink);
+        font-weight: 700;
+      }
+
+      .sources-card .subhead {
+        margin: 0 0 20px 0;
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.5;
+      }
+
+      .sources-table-wrapper {
+        overflow-x: auto;
+        border: 1px solid var(--table-border);
+        border-radius: 10px;
+        background: var(--surface);
+      }
+
+      .sources-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.88rem;
+        min-width: 900px;
+      }
+
+      .sources-table th,
+      .sources-table td {
+        padding: 10px 12px;
+        text-align: left;
+        border-bottom: 1px solid var(--table-border);
+      }
+
+      .sources-table thead th {
+        background: var(--table-header);
+        color: var(--ink);
+        font-weight: 700;
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        font-size: 0.82rem;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+      }
+
+      [data-theme="dark"] .sources-table thead th {
+        background: rgba(255,255,255,0.05);
+      }
+
+      .sources-table tbody tr:last-child td {
+        border-bottom: none;
+      }
+
+      .sources-table td.num,
+      .sources-table th.num {
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .sources-table th:first-child,
+      .sources-table td:first-child {
+        width: 18%;
+        font-weight: 600;
+      }
+
+      .sources-table .metric-header {
+        text-align: left;
+        border-bottom: 2px solid var(--table-border);
+        background: linear-gradient(to bottom, var(--table-header), transparent);
+        padding: 8px 12px;
+        font-weight: 800;
+        font-size: 0.75rem;
+        letter-spacing: 0.08em;
+      }
+
+      .sources-empty {
+        padding: 40px 20px;
+        text-align: center;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      #filter-bar {
+        margin-bottom: 20px;
+      }
+
+      .form-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: flex-end;
+      }
+
+      .form-field {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        min-width: 160px;
+        flex: 0 0 auto;
+      }
+
+      .form-field label {
+        font-size: 0.75rem;
+        color: var(--muted);
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+        padding-left: 2px;
+        height: 18px;
+        line-height: 18px;
+      }
+
+      .form-input,
+      .form-select {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        color: var(--ink);
+        padding: 0 12px;
+        font-size: 0.92rem;
+        min-width: 160px;
+        height: 42px;
+        line-height: 42px;
+        box-sizing: border-box;
+      }
+
+      .form-input[type="date"] {
+        padding: 8px 12px;
+        line-height: normal;
+      }
+
+      .form-input:focus,
+      .form-select:focus {
+        outline: none;
+        border-color: #2563eb;
+        box-shadow: 0 0 0 3px rgba(37,99,235,0.2);
+      }
+
+      .form-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+
+      .form-checkbox {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.85rem;
+        color: var(--muted);
+        height: 42px;
+        white-space: nowrap;
+      }
+
+      .form-checkbox input[type="checkbox"] {
+        width: 16px;
+        height: 16px;
+        accent-color: #2563eb;
+      }
+
+      .form-button {
+        background: linear-gradient(120deg, #2563eb, #0ea5e9);
+        border: none;
+        border-radius: 999px;
+        padding: 0 28px;
+        min-width: 150px;
+        height: 42px;
+        font-size: 0.9rem;
+        cursor: pointer;
+        color: #f8fafc;
+        font-weight: 600;
+        letter-spacing: 0.2px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .form-button.secondary {
+        background: transparent;
+        border: 1px solid var(--border);
+        color: var(--muted);
+      }
+
+      .form-button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .form-button:not(:disabled):hover {
+        transform: translateY(-1px);
+        filter: brightness(1.05);
+      }
+
+      .status-message {
+        margin: 8px 0;
+        color: var(--muted);
+        font-size: 0.88rem;
+      }
+
+      .fi-guard {
+        margin: 8px 0;
+        padding: 12px 16px;
+        background: rgba(251, 191, 36, 0.1);
+        border: 1px solid rgba(251, 191, 36, 0.3);
+        border-radius: 10px;
+        color: #92400e;
+        font-size: 0.88rem;
+      }
+
+      [data-theme="dark"] .fi-guard {
+        background: rgba(251, 191, 36, 0.15);
+        color: #fbbf24;
+      }
+
+      .loading-banner {
+        display: none;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 12px;
+        border: 1px solid #f59e0b;
+        border-radius: 12px;
+        background: rgba(245, 158, 11, 0.12);
+        color: #92400e;
+        font-size: 13px;
+        margin-bottom: 12px;
+      }
+
+      .loading-banner.visible {
+        display: flex;
+      }
+
+      .loading-banner .spinner {
+        width: 16px;
+        height: 16px;
+        border: 2px solid #f59e0b;
+        border-top-color: #2563eb;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+        flex-shrink: 0;
+      }
+
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+
+      .ga-summary {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+        margin-bottom: 20px;
+      }
+
+      .ga-card {
+        padding: 16px;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: var(--surface);
+      }
+
+      .ga-card h3 {
+        margin: 0 0 12px 0;
+        font-size: 0.75rem;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--muted);
+        font-weight: 700;
+      }
+
+      .ga-metrics {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .ga-metric {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        font-size: 0.85rem;
+      }
+
+      .ga-metric .label {
+        color: var(--muted);
+        font-size: 0.8rem;
+      }
+
+      .ga-metric .value {
+        font-weight: 600;
+        color: var(--ink);
+        font-size: 0.95rem;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="sis-header">
+      <div class="sis-topbar">
+        <div class="sis-title">Strivve Insights Service</div>
+
+        <nav class="sis-nav">
+          <a href="index.html">Overview</a>
+          <a href="funnel.html">FI Funnel</a>
+          <a href="sources.html">Sources</a>
+          <a href="heatmap.html">Merchant Heatmap</a>
+          <a href="watchlist.html">Alerts</a>
+          <a href="troubleshoot.html">Troubleshooting</a>
+          <a href="maintenance.html">Maintenance</a>
+        </nav>
+      </div>
+
+      <h1 class="sis-page-name">Source Analysis</h1>
+      <p class="sis-page-desc">Compare SSO vs CU2_SSO traffic and conversion funnels for one FI with full end-to-end metrics.</p>
+    </header>
+
+    <div class="sis-content">
+      <main class="sis-main">
+        <section class="sis-panel">
+          <div id="filter-bar"></div>
+          <div id="loadingBanner" class="loading-banner">
+            <div class="spinner"></div>
+            <span>Loading data…</span>
+          </div>
+
+          <div class="form-grid">
+            <div class="form-field">
+              <label for="rangePreset">Range preset</label>
+              <select id="rangePreset" class="form-select">
+                <option value="today">Today</option>
+                <option value="last_7">Last 7 days</option>
+                <option value="last_30" selected>Last 30 days</option>
+                <option value="last_90">Last 90 days</option>
+                <option value="ytd">Year to date</option>
+                <option value="all">All time</option>
+                <option value="custom">Custom</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label for="startDate">Start date</label>
+              <input id="startDate" type="date" class="form-input" />
+            </div>
+            <div class="form-field">
+              <label for="endDate">End date</label>
+              <input id="endDate" type="date" class="form-input" />
+            </div>
+            <div class="form-field">
+              <label for="applyFilters">Actions</label>
+              <button id="applyFilters" class="form-button" disabled>Apply filters</button>
+            </div>
+            <div class="form-field">
+              <label>&nbsp;</label>
+              <button id="exportCsv" class="form-button secondary" disabled>Export CSV</button>
+            </div>
+          </div>
+
+          <div id="statusMessage" class="status-message">
+            Pick a date range and apply filters.
+          </div>
+
+          <div id="fiGuard" class="fi-guard" style="display:none;">
+            Select <strong>one</strong> FI to view Sources analysis.
+          </div>
+
+          <div id="gaSection" style="display:none;">
+            <div class="sources-card">
+              <h2>Google Analytics Metrics</h2>
+              <p class="subhead">Event counts from GA for the selected date range</p>
+              <div class="ga-summary">
+                <div class="ga-card">
+                  <h3>CU2_SSO Period</h3>
+                  <div class="ga-metrics">
+                    <div class="ga-metric">
+                      <span class="label">Select merchants</span>
+                      <span class="value" id="gaSelectSso">—</span>
+                    </div>
+                    <div class="ga-metric">
+                      <span class="label">User data</span>
+                      <span class="value" id="gaUserSso">—</span>
+                    </div>
+                    <div class="ga-metric">
+                      <span class="label">Credentials</span>
+                      <span class="value" id="gaCredSso">—</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="ga-card">
+                  <h3>SSO Period</h3>
+                  <div class="ga-metrics">
+                    <div class="ga-metric">
+                      <span class="label">Select merchants</span>
+                      <span class="value" id="gaSelectNon">—</span>
+                    </div>
+                    <div class="ga-metric">
+                      <span class="label">User data</span>
+                      <span class="value" id="gaUserNon">—</span>
+                    </div>
+                    <div class="ga-metric">
+                      <span class="label">Credentials</span>
+                      <span class="value" id="gaCredNon">—</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div id="comparisonSection" style="display:none;">
+            <div class="sources-card">
+              <h2>Conversion Funnel Comparison</h2>
+              <p class="subhead">Step-by-step conversion metrics comparing CU2_SSO and SSO traffic</p>
+              <div class="sources-table-wrapper">
+                <table class="sources-table" id="comparisonTable">
+                  <thead>
+                    <tr>
+                      <th rowspan="2">Metric</th>
+                      <th colspan="2" class="metric-header">CU2_SSO</th>
+                      <th colspan="2" class="metric-header">SSO</th>
+                    </tr>
+                    <tr>
+                      <th class="num">Count</th>
+                      <th class="num">Conversion %</th>
+                      <th class="num">Count</th>
+                      <th class="num">Conversion %</th>
+                    </tr>
+                  </thead>
+                  <tbody id="comparisonBody">
+                    <!-- Populated by JavaScript -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div id="merchantSection" style="display:none;">
+            <div class="sources-card">
+              <h2>Jobs by Merchant</h2>
+              <p class="subhead">Sessions with jobs only, grouped by merchant</p>
+              <div class="sources-table-wrapper">
+                <table class="sources-table">
+                  <thead>
+                    <tr>
+                      <th>Merchant</th>
+                      <th class="num">CU2_SSO Sessions</th>
+                      <th class="num">CU2_SSO Jobs</th>
+                      <th class="num">CU2_SSO Success %</th>
+                      <th class="num">SSO Sessions</th>
+                      <th class="num">SSO Jobs</th>
+                      <th class="num">SSO Success %</th>
+                      <th class="num">Placements</th>
+                    </tr>
+                  </thead>
+                  <tbody id="merchantBody">
+                    <!-- Populated by JavaScript -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

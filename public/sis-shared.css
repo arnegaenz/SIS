@@ -1,38 +1,150 @@
 :root {
+  /* Base colors */
   --bg: #f6f8fb;
   --panel: #ffffff;
+  --panel-bg: var(--panel); /* Alias for compatibility */
   --panel-soft: #eef2f8;
+  --panel-light: #f1f5f9;
+  --card: #ffffff;
+  --card-alt: #f1f5f9;
   --header-bg: #ffffff;
+
+  /* Text colors */
   --text: #0f172a;
+  --ink: var(--text); /* Alias - standardized to --text */
+  --panel-title: var(--text); /* Alias for compatibility */
   --muted: #475569;
+
+  /* Borders */
   --border: #d7deea;
   --border-strong: #c9d2e1;
+  --table-border: var(--border);
+  --grid-border: var(--border);
+  --panel-border: var(--border);
+
+  /* Table */
+  --table-header: #e2e8f0;
+  --table-alt: #f8fafc;
+  --grid-divider: rgba(15, 23, 42, 0.06);
+
+  /* Form inputs */
+  --input-bg: #ffffff;
+  --input-border: #cbd5e1;
+
+  /* Surfaces */
+  --surface: #f8fafc;
+  --log-bg: #f8fafc;
+
+  /* Shadows */
   --shadow: 0 22px 70px rgba(15, 23, 42, 0.08);
+
+  /* Accent colors */
   --accent: #2563eb;
   --accent-2: #0ea5e9;
+
+  /* Navigation */
   --nav-pill: #e2e8f0;
   --nav-pill-text: #0f172a;
   --nav-pill-active-text: #ffffff;
   --nav-pill-border: transparent;
+
+  /* Chips & badges */
+  --chip: #e2e8f0;
+  --chip-on: #dbeafe;
+  --chip-ring: #2563eb;
+  --chip-bg: #e0f2fe;
+  --chip-text: #0ea5e9;
+
+  /* Status colors */
+  --badge-success: #16a34a;
+  --badge-fail: #dc2626;
+  --badge-warn: #f59e0b;
+  --badge-neutral: #64748b;
+  --success: #16a34a;
+  --danger: #dc2626;
+  --warn: #f59e0b;
+  --bad: #ef4444;
+  --good: #22c55e;
+
+  /* Tooltip */
+  --tooltip-bg: #ffffff;
+
+  /* Panel background fallback */
   --sis-panel-bg: var(--panel);
 }
 
 [data-theme="dark"] {
-  --bg: #070a0f;
-  --panel: #111827;
+  /* Base colors */
+  --bg: #0b0d10;
+  --panel: #0f172a;
+  --panel-bg: var(--panel);
   --panel-soft: rgba(17, 24, 39, 0.82);
+  --panel-light: #1a2333;
+  --card: var(--panel);
+  --card-alt: rgba(15, 23, 42, 0.7);
   --header-bg: #050b17;
-  --text: #e2e8f0;
-  --muted: #94a3b8;
-  --border: rgba(148, 163, 184, 0.22);
+
+  /* Text colors */
+  --text: #e5edff;
+  --ink: var(--text);
+  --panel-title: #e0e7ff;
+  --muted: #a8b3cf;
+
+  /* Borders */
+  --border: rgba(255, 255, 255, 0.12);
   --border-strong: rgba(148, 163, 184, 0.35);
+  --table-border: rgba(255, 255, 255, 0.12);
+  --grid-border: #1b2430;
+  --panel-border: rgba(255, 255, 255, 0.08);
+
+  /* Table */
+  --table-header: rgba(255, 255, 255, 0.06);
+  --table-alt: rgba(11, 18, 32, 0.65);
+  --grid-divider: rgba(255, 255, 255, 0.08);
+
+  /* Form inputs */
+  --input-bg: #0f1319;
+  --input-border: rgba(148, 163, 184, 0.35);
+
+  /* Surfaces */
+  --surface: rgba(255, 255, 255, 0.03);
+  --log-bg: #030712;
+
+  /* Shadows */
   --shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
-  --accent: #38bdf8;
-  --accent-2: #6366f1;
+
+  /* Accent colors */
+  --accent: #7aa2ff;
+  --accent-2: #b48bff;
+
+  /* Navigation */
   --nav-pill: rgba(15, 23, 42, 0.4);
   --nav-pill-text: #e0e7ff;
   --nav-pill-active-text: #020617;
   --nav-pill-border: rgba(255, 255, 255, 0.45);
+
+  /* Chips & badges */
+  --chip: #1b2230;
+  --chip-on: #25314a;
+  --chip-ring: #3a4b70;
+  --chip-bg: rgba(56, 189, 248, 0.12);
+  --chip-text: #7dd3fc;
+
+  /* Status colors */
+  --badge-success: #22c55e;
+  --badge-fail: #f97316;
+  --badge-warn: #facc15;
+  --badge-neutral: #94a3b8;
+  --success: #22c55e;
+  --danger: #f97316;
+  --warn: #ffb86c;
+  --bad: #ff6b6b;
+  --good: #3bd671;
+
+  /* Tooltip */
+  --tooltip-bg: #0f1319;
+
+  /* Panel background fallback */
   --sis-panel-bg: var(--panel);
 }
 

@@ -8,6 +8,12 @@ import { isTestInstanceName } from "../src/config/testInstances.mjs";
 import { fetchRawRange } from "./fetch-raw.mjs";
 import { buildDailyFromRawRange } from "./build-daily-from-raw.mjs";
 import { loginWithSdk, getMerchantSitesPage } from "../src/api.mjs";
+import {
+  groupSessionsBySource,
+  computeSourceKpis,
+  buildDailySeries,
+  buildMerchantSeries,
+} from "../src/lib/analytics/sources.mjs";
 const { URLSearchParams } = url;
 
 const __filename = fileURLToPath(import.meta.url);
@@ -1460,6 +1466,78 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  if (pathname === "/sources/summary") {
+    const defaults = defaultUpdateRange();
+    const start = parseIso(queryParams.get("start"), defaults.startDate);
+    const end = parseIso(queryParams.get("end"), defaults.endDate);
+    if (!start || !end) {
+      return send(res, 400, { error: "start and end must be YYYY-MM-DD" });
+    }
+    if (new Date(`${start}T00:00:00Z`) > new Date(`${end}T00:00:00Z`)) {
+      return send(res, 400, { error: "start date must be on or before end date" });
+    }
+    const rawFi = queryParams.get("fi");
+    if (!rawFi) {
+      return send(res, 400, { error: "fi query parameter is required" });
+    }
+    const fiKey = normalizeFiKey(rawFi);
+    if (!fiKey) {
+      return send(res, 400, { error: "Invalid fi value" });
+    }
+    const includeTests = queryParams.get("includeTests") === "true";
+    const days = daysBetween(start, end);
+    if (!days.length) {
+      return send(res, 400, { error: "Invalid date range" });
+    }
+    const sessions = [];
+    const placements = [];
+    for (const day of days) {
+      const daySessions = await readSessionDay(day);
+      if (daySessions?.sessions) {
+        sessions.push(...daySessions.sessions);
+      }
+      const dayPlacements = await readPlacementDay(day);
+      if (dayPlacements?.placements) {
+        placements.push(...dayPlacements.placements);
+      }
+    }
+    const fiRegistry = await loadFiRegistrySafe();
+    const fiMeta = buildFiMetaMap(fiRegistry);
+    const instanceMeta = await loadInstanceMetaMap();
+    const payload = buildTroubleshootPayload(
+      `${start} → ${end}`,
+      { sessions },
+      { placements },
+      fiMeta,
+      instanceMeta
+    );
+    const normalizedSessions = Array.isArray(payload.sessions) ? payload.sessions : [];
+    const filteredSessions = normalizedSessions.filter((session) => {
+      if (!includeTests && session.is_test) return false;
+      return session.fi_key === fiKey;
+    });
+    const grouped = groupSessionsBySource(filteredSessions);
+    const kpis = computeSourceKpis(grouped);
+    const daily = buildDailySeries(grouped, days);
+    const merchants = buildMerchantSeries(filteredSessions);
+    const fiEntry = fiMeta.get(fiKey);
+    return send(res, 200, {
+      start,
+      end,
+      fi: fiKey,
+      fiName: fiEntry?.fi || fiKey,
+      includeTests,
+      counts: {
+        sessions: filteredSessions.length,
+        days: days.length,
+      },
+      days,
+      kpis,
+      daily,
+      merchants,
+    });
+  }
+
   if (pathname === "/" || pathname === "/index.html") {
     const fp = path.join(PUBLIC_DIR, "index.html");
     if (await fileExists(fp)) return serveFile(res, fp);
@@ -1472,6 +1550,11 @@ const server = http.createServer(async (req, res) => {
 
   if (pathname === "/funnel" || pathname === "/funnel.html") {
     const fp = path.join(PUBLIC_DIR, "funnel.html");
+    if (await fileExists(fp)) return serveFile(res, fp);
+  }
+
+  if (pathname === "/sources" || pathname === "/sources.html") {
+    const fp = path.join(PUBLIC_DIR, "sources.html");
     if (await fileExists(fp)) return serveFile(res, fp);
   }
 
