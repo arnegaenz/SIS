@@ -59,6 +59,21 @@ function migrateRegistry(raw = {}) {
         first_seen: value.first_seen || null,
         last_seen: value.last_seen || null,
       };
+
+      // Preserve manually entered metadata fields from the source value
+      if ('partner' in value && value.partner !== undefined) {
+        existing.partner = value.partner;
+      }
+      if ('cardholder_total' in value && value.cardholder_total !== undefined) {
+        existing.cardholder_total = value.cardholder_total;
+      }
+      if ('cardholder_source' in value && value.cardholder_source !== undefined) {
+        existing.cardholder_source = value.cardholder_source;
+      }
+      if ('cardholder_as_of' in value && value.cardholder_as_of !== undefined) {
+        existing.cardholder_as_of = value.cardholder_as_of;
+      }
+
       const mergedSources = new Set([
         ...(existing.sources || []),
         ...((value.sources || []).map((src) => src.toString())),
@@ -256,6 +271,20 @@ function normalizeEntryForOutput(nameKey, entry, ssoLookupSet) {
     first_seen: toDateOnly(entry.first_seen),
     last_seen: toDateOnly(entry.last_seen),
   };
+
+  // Preserve manually entered metadata fields
+  if ('partner' in entry && entry.partner !== undefined) {
+    normalized.partner = entry.partner;
+  }
+  if ('cardholder_total' in entry && entry.cardholder_total !== undefined) {
+    normalized.cardholder_total = entry.cardholder_total;
+  }
+  if ('cardholder_source' in entry && entry.cardholder_source !== undefined) {
+    normalized.cardholder_source = entry.cardholder_source;
+  }
+  if ('cardholder_as_of' in entry && entry.cardholder_as_of !== undefined) {
+    normalized.cardholder_as_of = entry.cardholder_as_of;
+  }
 
   return normalized;
 }
