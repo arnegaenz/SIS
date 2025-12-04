@@ -1,9 +1,9 @@
 :root{
   --page-x:24px; --page-y:28px;
   --gap-sm:8px; --gap-md:12px; --gap-lg:16px;
-  --ink:#0b1520; --muted:#5f6673; --hair:#e7e9ee; --bg:#ffffff; --bg-subtle:#f7f8fb;
   --brand:#0b57d0; --brand-ink:#083b8f; --brand-ghost:#e8f0ff;
   --r:12px;
+  /* Note: --bg, --bg-subtle, --ink, --muted, --hair now come from sis-shared.css for dark mode support */
 }
 
 /* Top header (title + nav) */

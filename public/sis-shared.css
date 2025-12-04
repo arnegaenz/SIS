@@ -1,6 +1,7 @@
 :root {
   /* Base colors */
   --bg: #f6f8fb;
+  --bg-subtle: #f7f8fb; /* Alias for sis.css compatibility */
   --panel: #ffffff;
   --panel-bg: var(--panel); /* Alias for compatibility */
   --panel-soft: #eef2f8;
@@ -17,6 +18,7 @@
 
   /* Borders */
   --border: #d7deea;
+  --hair: #e7e9ee; /* Alias for sis.css compatibility - subtle border */
   --border-strong: #c9d2e1;
   --table-border: var(--border);
   --grid-border: var(--border);
@@ -76,6 +78,7 @@
 [data-theme="dark"] {
   /* Base colors */
   --bg: #0b0d10;
+  --bg-subtle: #0f1419; /* Alias for sis.css compatibility */
   --panel: #0f172a;
   --panel-bg: var(--panel);
   --panel-soft: rgba(17, 24, 39, 0.82);
@@ -92,6 +95,7 @@
 
   /* Borders */
   --border: rgba(255, 255, 255, 0.12);
+  --hair: rgba(255, 255, 255, 0.08); /* Alias for sis.css compatibility - subtle border */
   --border-strong: rgba(148, 163, 184, 0.35);
   --table-border: rgba(255, 255, 255, 0.12);
   --grid-border: #1b2430;
