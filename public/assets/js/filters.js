@@ -202,12 +202,37 @@
   function renderMultiSelect(container, values, state) {
     const btn = container.querySelector("button");
     const panel = container.querySelector(".panel");
+
+    // Setup event handlers (only if not already set up)
+    if (!btn.dataset.handlersAttached) {
+      const openPanel = () => {
+        panel.removeAttribute("hidden");
+        container.dataset.open = "true";
+      };
+      const closePanel = () => {
+        panel.setAttribute("hidden", "hidden");
+        container.dataset.open = "false";
+      };
+
+      btn.addEventListener("click", (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        const open = panel.hasAttribute("hidden") ? false : true;
+        if (open) closePanel();
+        else openPanel();
+      });
+
+      btn.dataset.handlersAttached = "true";
+    }
+
     panel.innerHTML = "";
+
     if (!values.length) {
       btn.textContent = "No FIs";
       state.fis.clear();
       return;
     }
+
     const shouldSelectAll = !state.__fiTouched;
     const nextSelected = shouldSelectAll ? new Set(values) : new Set(state.fis);
     // Keep internal state in sync with the UI default of "all selected" on first load
@@ -238,6 +263,7 @@
       panel.appendChild(label);
     });
     if (shouldSelectAll) state.fis = nextSelected;
+
     const updateLabel = () => {
       const count = state.fis.size;
       const total = values.length;
@@ -245,22 +271,7 @@
       btn.textContent = allSelected ? `All FIs (${total})` : count ? `${count} selected` : "No FIs";
     };
     updateLabel();
-    const openPanel = () => {
-      panel.removeAttribute("hidden");
-      container.dataset.open = "true";
-    };
-    const closePanel = () => {
-      panel.setAttribute("hidden", "hidden");
-      container.dataset.open = "false";
-    };
 
-    btn.addEventListener("click", (ev) => {
-      ev.preventDefault();
-      ev.stopPropagation();
-      const open = panel.hasAttribute("hidden") ? false : true;
-      if (open) closePanel();
-      else openPanel();
-    });
     panel.addEventListener("change", (ev) => {
       if (!ev.target || !ev.target.value) return;
       state.__fiTouched = true;
