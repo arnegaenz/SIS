@@ -49,6 +49,51 @@ let currentUpdateJob = {
   forceRaw: false,
 };
 
+// ========== SERVER LOGS CAPTURE ==========
+const MAX_LOG_LINES = 2000;
+const serverLogs = [];
+
+function captureLog(level, ...args) {
+  const timestamp = new Date().toISOString();
+  const message = args.map(arg =>
+    typeof arg === 'object' ? JSON.stringify(arg) : String(arg)
+  ).join(' ');
+
+  serverLogs.push({
+    timestamp,
+    level,
+    message
+  });
+
+  // Keep only last MAX_LOG_LINES
+  if (serverLogs.length > MAX_LOG_LINES) {
+    serverLogs.shift();
+  }
+}
+
+// Intercept console methods
+const originalLog = console.log;
+const originalError = console.error;
+const originalWarn = console.warn;
+
+console.log = (...args) => {
+  captureLog('info', ...args);
+  originalLog(...args);
+};
+
+console.error = (...args) => {
+  captureLog('error', ...args);
+  originalError(...args);
+};
+
+console.warn = (...args) => {
+  captureLog('warn', ...args);
+  originalWarn(...args);
+};
+
+console.log('Server logs capture initialized');
+// ========== END SERVER LOGS CAPTURE ==========
+
 function todayIsoDate() {
   return new Date().toISOString().slice(0, 10);
 }
@@ -476,11 +521,102 @@ async function fetchMerchantSitesFromSs01() {
   return sites;
 }
 
+async function fetchAllFinancialInstitutions() {
+  const { entries } = await readInstancesFile();
+
+  const allFis = [];
+  const instanceStatuses = {};
+  const instanceNames = entries.map(e => e.name);
+
+  for (const inst of entries) {
+    try {
+      console.log(`Fetching FIs from ${inst.name}...`);
+      const { session } = await loginWithSdk(inst);
+
+      let pagingMeta = null;
+      let guard = 0;
+
+      while (guard < 200) {
+        let resp;
+        try {
+          if (pagingMeta) {
+            resp = await session.getFinancialInstitutions({}, JSON.stringify(pagingMeta));
+          } else {
+            resp = await session.getFinancialInstitutions({});
+          }
+        } catch (err) {
+          console.error(`[${inst.name}] SDK call failed:`, err);
+          throw err;
+        }
+
+        // Normalize response structure
+        const rows = Array.isArray(resp?.body)
+          ? resp.body
+          : Array.isArray(resp?.financial_institutions)
+          ? resp.financial_institutions
+          : Array.isArray(resp)
+          ? resp
+          : [];
+
+        // Enrich each FI with instance name
+        for (const fi of rows) {
+          allFis.push({ ...fi, _instance: inst.name });
+        }
+
+        // Check for pagination
+        const pagingHeader = resp?.headers?.get
+          ? resp.headers.get("x-cardsavr-paging")
+          : resp?.headers?.["x-cardsavr-paging"];
+
+        if (!pagingHeader) break;
+
+        try {
+          pagingMeta = JSON.parse(pagingHeader);
+        } catch {
+          break;
+        }
+
+        const total = Number(pagingMeta.total_results) || rows.length;
+        const pageLen = Number(pagingMeta.page_length) || rows.length || 25;
+        const totalPages = pageLen > 0 ? Math.ceil(total / pageLen) : 1;
+        const nextPage = (Number(pagingMeta.page) || pagingMeta.page || 1) + 1;
+
+        if (nextPage > totalPages) break;
+
+        // Create new paging object for next request
+        pagingMeta = {
+          ...pagingMeta,
+          page: nextPage,
+          page_length: pagingMeta.page_length || pageLen
+        };
+        guard += 1;
+      }
+
+      instanceStatuses[inst.name] = 'success';
+      console.log(`✅ Fetched FIs from ${inst.name}: ${allFis.filter(f => f._instance === inst.name).length} records`);
+
+    } catch (err) {
+      console.error(`❌ Failed to fetch FIs from ${inst.name}:`, err.message);
+      instanceStatuses[inst.name] = 'error';
+    }
+  }
+
+  return {
+    fis: allFis,
+    instances: instanceNames,
+    instanceStatuses,
+    fetchedAt: new Date().toISOString(),
+    totalCount: allFis.length
+  };
+}
+
 async function readPlacementDay(day) {
   try {
     const fp = path.join(RAW_PLACEMENTS_DIR, `${day}.json`);
     const raw = await fs.readFile(fp, "utf8");
-    return JSON.parse(raw);
+    const data = JSON.parse(raw);
+    console.log(`📂 Read placements for ${day}: ${data.placements?.length || 0} records`);
+    return data;
   } catch {
     return null;
   }
@@ -490,7 +626,9 @@ async function readSessionDay(day) {
   try {
     const fp = path.join(RAW_DIR, "sessions", `${day}.json`);
     const raw = await fs.readFile(fp, "utf8");
-    return JSON.parse(raw);
+    const data = JSON.parse(raw);
+    console.log(`📂 Read sessions for ${day}: ${data.sessions?.length || 0} records`);
+    return data;
   } catch {
     return null;
   }
@@ -541,8 +679,12 @@ function formatInstanceDisplay(value) {
 async function loadFiRegistrySafe() {
   try {
     const raw = await fs.readFile(FI_REGISTRY_FILE, "utf8");
-    return JSON.parse(raw);
-  } catch {
+    const data = JSON.parse(raw);
+    const count = Object.keys(data).length;
+    console.log(`📂 Loaded FI registry: ${count} FIs`);
+    return data;
+  } catch (err) {
+    console.warn(`⚠️  Failed to load FI registry: ${err.message}`);
     return {};
   }
 }
@@ -956,6 +1098,13 @@ const server = http.createServer(async (req, res) => {
   const search = parsedUrl.search;
   const queryParams = new URLSearchParams(search || "");
 
+  // Log all HTTP requests (except asset/static files to reduce noise)
+  const skipLogging = pathname.match(/\.(css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$/);
+  if (!skipLogging && pathname !== "/server-logs") {
+    const queryStr = search ? search : '';
+    console.log(`${req.method} ${pathname}${queryStr}`);
+  }
+
   if (pathname === "/run-update/status") {
     return send(res, 200, currentUpdateSnapshot());
   }
@@ -1054,6 +1203,45 @@ const server = http.createServer(async (req, res) => {
       const message = err?.message || "Unable to load merchant sites";
       console.error("merchant-sites fetch failed", err);
       return send(res, 500, { error: message });
+    }
+  }
+  if (pathname === "/fi-api-data") {
+    try {
+      console.log("Fetching FI data from all instances...");
+      const data = await fetchAllFinancialInstitutions();
+      console.log(`✅ FI API data fetch complete: ${data.totalCount} FIs total`);
+      return send(res, 200, data);
+    } catch (err) {
+      const message = err?.message || "Unable to load FI API data";
+      console.error("FI API data fetch failed", err);
+      return send(res, 500, { error: message });
+    }
+  }
+
+  if (pathname === "/server-logs") {
+    try {
+      const query = new URLSearchParams(parsedUrl.searchParams);
+      const limit = parseInt(query.get('limit')) || 500;
+      const level = query.get('level') || null;
+
+      let logs = serverLogs.slice();
+
+      // Filter by level if specified
+      if (level && level !== 'all') {
+        logs = logs.filter(log => log.level === level);
+      }
+
+      // Return most recent logs (last N)
+      const recentLogs = logs.slice(-limit);
+
+      return send(res, 200, {
+        logs: recentLogs,
+        totalCount: serverLogs.length,
+        maxLines: MAX_LOG_LINES
+      });
+    } catch (err) {
+      console.error("Server logs fetch failed", err);
+      return send(res, 500, { error: err.message });
     }
   }
   if (pathname === "/fi-registry") {

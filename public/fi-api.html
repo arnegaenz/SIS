@@ -1,0 +1,438 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>FI API Data</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="./sis-shared.css?v=navfix" />
+  <link rel="stylesheet" href="./assets/css/sis.css">
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      background: var(--bg);
+      color: var(--panel-title);
+      font-family: "Inter", "Segoe UI", ui-sans-serif, system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    .fi-api-card {
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 18px;
+      padding: 26px;
+      margin-top: 24px;
+      box-shadow: 0 18px 45px rgba(15, 23, 42, 0.12);
+    }
+    .fi-api-card h2 {
+      margin: 0 0 8px 0;
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--ink);
+    }
+    .fi-api-card .description {
+      margin: 0 0 20px 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    .fi-api-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: flex-end;
+      margin-bottom: 16px;
+    }
+    .fi-api-controls label {
+      display: flex;
+      flex-direction: column;
+      font-size: 12px;
+      text-transform: uppercase;
+      color: var(--muted);
+      gap: 4px;
+      min-width: 200px;
+    }
+    .fi-api-controls input,
+    .fi-api-controls select {
+      width: 100%;
+      border-radius: 8px;
+      border: 1px solid var(--panel-border);
+      background: var(--input-bg);
+      color: var(--panel-title);
+      padding: 8px 10px;
+      font-size: 14px;
+      height: 40px;
+      line-height: 22px;
+    }
+    .fi-api-controls .btn {
+      height: 40px;
+      padding: 0 18px;
+      min-width: 150px;
+    }
+    .btn {
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      text-decoration: none;
+      font-family: "Inter", "Segoe UI", ui-sans-serif, system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+      color: #f8fafc;
+      border-radius: 999px;
+      padding: 10px 28px;
+      font-weight: 600;
+      letter-spacing: 0.2px;
+      border: none;
+      background: linear-gradient(120deg, var(--accent), var(--accent-2));
+      transition: transform 0.15s ease, filter 0.15s ease;
+      cursor: pointer;
+    }
+    .btn.secondary {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+    .btn:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.05);
+    }
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .status-line {
+      font-size: 13px;
+      min-height: 20px;
+      margin-bottom: 12px;
+      color: var(--muted);
+    }
+    .status-line.success { color: var(--success); }
+    .status-line.error { color: var(--danger); }
+    .fi-api-table-wrapper {
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+      overflow: hidden;
+      max-height: 600px;
+      background: var(--surface);
+      display: flex;
+      flex-direction: column;
+    }
+    .fi-api-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      min-width: 1000px;
+    }
+    .fi-api-table thead {
+      background: var(--surface);
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+    .fi-api-table th,
+    .fi-api-table td {
+      padding: 10px 12px;
+      text-align: left;
+      border-bottom: 1px solid var(--panel-border);
+    }
+    .fi-api-table th {
+      background: rgba(37, 99, 235, 0.06);
+      color: var(--panel-title);
+      font-weight: 700;
+      backdrop-filter: blur(2px);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .fi-api-table tbody {
+      display: block;
+      overflow-y: auto;
+      max-height: 540px;
+    }
+    .fi-api-table thead,
+    .fi-api-table tbody tr {
+      display: table;
+      width: 100%;
+      table-layout: fixed;
+    }
+    .fi-api-table tbody tr:hover {
+      background: rgba(37, 99, 235, 0.06);
+    }
+    .fi-api-table tbody tr:last-child td {
+      border-bottom: none;
+    }
+    .fi-api-table th:nth-child(1),
+    .fi-api-table td:nth-child(1) { width: 25%; }
+    .fi-api-table th:nth-child(2),
+    .fi-api-table td:nth-child(2) { width: 20%; }
+    .fi-api-table th:nth-child(3),
+    .fi-api-table td:nth-child(3) { width: 15%; }
+    .fi-api-table th:nth-child(4),
+    .fi-api-table td:nth-child(4) { width: 10%; }
+    .fi-api-table th:nth-child(5),
+    .fi-api-table td:nth-child(5) { width: 30%; }
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+      font-size: 12px;
+      color: var(--panel-title);
+    }
+    @media (max-width: 960px) {
+      .fi-api-table-wrapper,
+      .fi-api-table tbody {
+        max-height: 400px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="sis-header">
+    <div class="sis-topbar">
+      <div class="sis-title">Strivve Insights Service</div>
+      <nav class="sis-nav">
+        <a href="index.html">Overview</a>
+        <a href="funnel.html">FI Funnel</a>
+        <a href="sources.html">Sources</a>
+        <a href="heatmap.html">Merchant Heatmap</a>
+        <a href="watchlist.html">Alerts</a>
+        <a href="troubleshoot.html">Troubleshooting</a>
+        <a href="maintenance.html">Maintenance</a>
+        <a href="fi-api.html" class="active">FI API Data</a>
+        <a href="logs.html">Server Logs</a>
+      </nav>
+    </div>
+
+    <h1 class="sis-page-name">Financial Institutions API</h1>
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+      <p class="sis-page-desc" style="flex:1 1 auto;">
+        Live FI data from the /financial_institutions endpoint across all instances
+      </p>
+      <button class="theme-toggle" type="button" aria-pressed="false">Light mode</button>
+    </div>
+  </header>
+
+  <div class="sis-content">
+    <main class="sis-main">
+      <section class="sis-panel">
+        <div class="fi-api-card">
+          <h2>Financial Institution Records</h2>
+          <p class="description">
+            Browse FI data fetched directly from the API across all configured instances. Use filters to find specific FIs or view by instance.
+          </p>
+
+          <div class="fi-api-controls">
+            <label>
+              Search
+              <input type="text" id="fiApiSearch" placeholder="FI name or lookup key" />
+            </label>
+            <label>
+              Instance
+              <select id="fiApiInstanceFilter">
+                <option value="">(all instances)</option>
+              </select>
+            </label>
+            <button class="btn" id="fiApiRefresh">Refresh Data</button>
+            <button class="btn secondary" id="fiApiExportCsv" disabled>Export CSV</button>
+          </div>
+
+          <div id="fiApiStatus" class="status-line">Loading...</div>
+
+          <div class="fi-api-table-wrapper">
+            <table class="fi-api-table">
+              <thead>
+                <tr>
+                  <th>FI Name</th>
+                  <th>Lookup Key</th>
+                  <th>Instance</th>
+                  <th>ID</th>
+                  <th>Additional Data</th>
+                </tr>
+              </thead>
+              <tbody id="fiApiTableBody">
+                <tr><td colspan="5">Loading...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="./theme-toggle.js"></script>
+  <script>
+    (function setupFiApiPage() {
+      const searchInput = document.getElementById("fiApiSearch");
+      const instanceFilter = document.getElementById("fiApiInstanceFilter");
+      const refreshBtn = document.getElementById("fiApiRefresh");
+      const exportBtn = document.getElementById("fiApiExportCsv");
+      const statusLine = document.getElementById("fiApiStatus");
+      const tableBody = document.getElementById("fiApiTableBody");
+
+      let allFis = [];
+      let filteredFis = [];
+      let instanceStatuses = {};
+
+      function setStatus(message, kind = "") {
+        statusLine.textContent = message || "";
+        statusLine.className = "status-line " + kind;
+      }
+
+      function normalizeText(value) {
+        return value ? value.toString().trim() : "";
+      }
+
+      function extractAdditionalData(fi) {
+        const skip = ["_instance", "id", "fi_name", "name", "fi_lookup_key", "lookup_key", "financial_institution"];
+        const parts = [];
+        for (const [key, value] of Object.entries(fi)) {
+          if (skip.includes(key)) continue;
+          if (value === null || value === undefined || value === "") continue;
+          if (typeof value === "object") {
+            parts.push(`${key}: ${JSON.stringify(value)}`);
+          } else {
+            parts.push(`${key}: ${value}`);
+          }
+        }
+        return parts.length > 0 ? parts.join(", ") : "—";
+      }
+
+      function renderTable() {
+        const search = (searchInput.value || "").trim().toLowerCase();
+        const instanceValue = instanceFilter.value;
+
+        const filtered = allFis.filter((fi) => {
+          if (instanceValue && fi._instance !== instanceValue) {
+            return false;
+          }
+          if (search) {
+            const fiName = normalizeText(fi.fi_name || fi.name).toLowerCase();
+            const lookupKey = normalizeText(fi.fi_lookup_key || fi.lookup_key || fi.financial_institution).toLowerCase();
+            const haystack = `${fiName} ${lookupKey}`;
+            if (!haystack.includes(search)) {
+              return false;
+            }
+          }
+          return true;
+        });
+
+        filteredFis = filtered;
+        exportBtn.disabled = filtered.length === 0;
+
+        if (!filtered.length) {
+          tableBody.innerHTML = "<tr><td colspan='5'>No FI records match the current filters.</td></tr>";
+          setStatus("No matching FI records found.");
+          return;
+        }
+
+        // Sort by instance, then FI name
+        filtered.sort((a, b) => {
+          const instA = (a._instance || "").toLowerCase();
+          const instB = (b._instance || "").toLowerCase();
+          if (instA !== instB) return instA.localeCompare(instB);
+          const nameA = (a.fi_name || a.name || "").toLowerCase();
+          const nameB = (b.fi_name || b.name || "").toLowerCase();
+          return nameA.localeCompare(nameB);
+        });
+
+        tableBody.innerHTML = filtered
+          .map((fi) => {
+            const fiName = normalizeText(fi.fi_name || fi.name);
+            const lookupKey = normalizeText(fi.fi_lookup_key || fi.lookup_key || fi.financial_institution);
+            const instance = normalizeText(fi._instance);
+            const id = normalizeText(fi.id);
+            const additional = extractAdditionalData(fi);
+
+            return `
+              <tr>
+                <td>${fiName || "—"}</td>
+                <td><code>${lookupKey || "—"}</code></td>
+                <td>${instance || "—"}</td>
+                <td>${id || "—"}</td>
+                <td style="font-size:11px;color:var(--muted);">${additional}</td>
+              </tr>
+            `;
+          })
+          .join("");
+
+        const statusParts = [`Showing ${filtered.length} of ${allFis.length} FI records`];
+        const failedInstances = Object.entries(instanceStatuses)
+          .filter(([_, status]) => status === "error")
+          .map(([name, _]) => name);
+        if (failedInstances.length > 0) {
+          statusParts.push(`(failed: ${failedInstances.join(", ")})`);
+        }
+        setStatus(statusParts.join(" "), "success");
+      }
+
+      async function loadFiApiData() {
+        setStatus("Loading FI data from all instances...");
+        tableBody.innerHTML = "<tr><td colspan='5'>Loading...</td></tr>";
+        refreshBtn.disabled = true;
+        exportBtn.disabled = true;
+
+        try {
+          const res = await fetch("/fi-api-data");
+          if (!res.ok) {
+            throw new Error(`HTTP ${res.status}`);
+          }
+
+          const data = await res.json();
+          allFis = data.fis || [];
+          instanceStatuses = data.instanceStatuses || {};
+
+          // Populate instance filter
+          const instances = data.instances || [];
+          instanceFilter.innerHTML = '<option value="">(all instances)</option>' +
+            instances.map((inst) => {
+              const status = instanceStatuses[inst] === "error" ? " ❌" : "";
+              return `<option value="${inst}">${inst}${status}</option>`;
+            }).join("");
+
+          renderTable();
+        } catch (err) {
+          console.error("FI API data load failed", err);
+          setStatus("Failed to load FI API data. Is the server running?", "error");
+          tableBody.innerHTML = "<tr><td colspan='5'>Failed to load data.</td></tr>";
+        } finally {
+          refreshBtn.disabled = false;
+        }
+      }
+
+      function exportCsv() {
+        if (!filteredFis.length) return;
+
+        const escape = (value) => {
+          const str = value == null ? "" : String(value);
+          return /[",\n]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str;
+        };
+
+        const rows = [["FI Name", "Lookup Key", "Instance", "ID", "Additional Data"]];
+        for (const fi of filteredFis) {
+          rows.push([
+            escape(fi.fi_name || fi.name || ""),
+            escape(fi.fi_lookup_key || fi.lookup_key || fi.financial_institution || ""),
+            escape(fi._instance || ""),
+            escape(fi.id || ""),
+            escape(extractAdditionalData(fi))
+          ]);
+        }
+
+        const csv = rows.map((r) => r.join(",")).join("\n");
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "fi-api-data.csv";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+      }
+
+      searchInput.addEventListener("input", renderTable);
+      instanceFilter.addEventListener("change", renderTable);
+      refreshBtn.addEventListener("click", loadFiApiData);
+      exportBtn.addEventListener("click", exportCsv);
+
+      loadFiApiData();
+    })();
+  </script>
+</body>
+</html>
