@@ -2863,21 +2863,6 @@
     "cardholder_as_of": "2025-11-01",
     "partner": "Alkami"
   },
-  "UNKNOWN_FI__ss01": {
-    "fi_name": "Elevations Credit Union",
-    "fi_lookup_key": "elevationscu",
-    "instance": "ss01",
-    "sources": [
-      "session"
-    ],
-    "integration_type": "sso",
-    "first_seen": "2025-11-01",
-    "last_seen": "2025-11-28",
-    "partner": null,
-    "cardholder_total": null,
-    "cardholder_source": null,
-    "cardholder_as_of": null
-  },
   "First Mid Bank and Trust__ss01": {
     "fi_name": "First Mid Bank and Trust",
     "fi_lookup_key": "firstmid",
@@ -3312,5 +3297,20 @@
     "integration_type": "non-sso",
     "first_seen": null,
     "last_seen": null
+  },
+  "Elevations Credit Union__ss01": {
+    "fi_name": "Elevations Credit Union",
+    "fi_lookup_key": "elevationscu",
+    "partner": "Alkami",
+    "instance": "ss01",
+    "sources": [
+      "placement"
+    ],
+    "integration_type": "sso",
+    "first_seen": "2023-07-26",
+    "last_seen": "2025-12-04",
+    "cardholder_total": "148221",
+    "cardholder_as_of": "2025-11-01",
+    "cardholder_source": "customer-provided"
   }
 }
