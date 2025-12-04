@@ -228,6 +228,57 @@
         font-size: 0.72rem;
         color: #f97316;
       }
+      .sources-missing-badge {
+        display: inline-block;
+        padding: 2px 8px;
+        background: #fef3c7;
+        color: #92400e;
+        border-radius: 4px;
+        font-weight: 600;
+        cursor: help;
+        font-size: 0.75rem;
+      }
+      .sources-missing-badge:hover {
+        background: #fde68a;
+      }
+      .sources-missing-tooltip {
+        position: relative;
+      }
+      .sources-missing-tooltip .tooltip-content {
+        visibility: hidden;
+        opacity: 0;
+        position: absolute;
+        z-index: 1000;
+        background-color: #1f2937;
+        color: #fff;
+        padding: 12px;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        line-height: 1.5;
+        white-space: pre-wrap;
+        max-width: 400px;
+        max-height: 300px;
+        overflow-y: auto;
+        bottom: 125%;
+        left: 50%;
+        transform: translateX(-50%);
+        transition: opacity 0.2s, visibility 0.2s;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      }
+      .sources-missing-tooltip:hover .tooltip-content {
+        visibility: visible;
+        opacity: 1;
+      }
+      .sources-missing-tooltip .tooltip-content::after {
+        content: "";
+        position: absolute;
+        top: 100%;
+        left: 50%;
+        margin-left: -5px;
+        border-width: 5px;
+        border-style: solid;
+        border-color: #1f2937 transparent transparent transparent;
+      }
       .funnel-header {
         margin-bottom: 8px;
       }
@@ -1499,6 +1550,36 @@ function applyColumnTitles(root = document) {
       function formatSelectToSuccessPct(row) {
         const ratio = getSelectToSuccessRatio(row);
         return ratio ? (ratio * 100).toFixed(1) + "%" : "";
+      }
+
+      function formatSourcesMissing(sourcesMissing) {
+        if (!sourcesMissing || sourcesMissing.length === 0) {
+          return "";
+        }
+
+        // For multi-FI view: sources_missing is array of objects with {date, missing: []}
+        // For single-FI view: sources_missing is array of strings like "2023-07-05: Sess"
+        let detailText = "";
+        let count = 0;
+
+        if (sourcesMissing.length > 0 && typeof sourcesMissing[0] === "object" && sourcesMissing[0].date) {
+          // Multi-FI view format
+          detailText = sourcesMissing
+            .map((entry) => `${entry.date}: ${entry.missing.join(", ")}`)
+            .join("\n");
+          count = sourcesMissing.length;
+        } else {
+          // Single-FI view format (simple array of strings)
+          detailText = sourcesMissing.join("\n");
+          count = sourcesMissing.length;
+        }
+
+        const badge = count === 1 ? "1 gap" : `${count} gaps`;
+
+        return `<div class="sources-missing-tooltip">
+          <span class="sources-missing-badge">${badge}</span>
+          <div class="tooltip-content">${detailText}</div>
+        </div>`;
       }
 
       function getBillablePlacementCount(placements) {
@@ -3156,7 +3237,7 @@ function applyColumnTitles(root = document) {
           : Array.isArray(row.instances) && row.instances.length
           ? row.instances.join(", ")
           : "";
-        const missing = (row.sources_missing || []).join(" | ");
+        const missing = formatSourcesMissing(row.sources_missing);
         tr.innerHTML = `
           <td${columnAttr("period")}>${row.periodLabel}</td>
           <td${columnAttr("fi")}>${row.fi}</td>
@@ -3175,7 +3256,7 @@ function applyColumnTitles(root = document) {
           <td${columnAttr("sess_with_success")}>${row.sess_with_success || 0}</td>
           <td${columnAttr("sess_success_pct")}>${sessSuccessPct}</td>
           <td${columnAttr("placements")}>${row.placements || 0}</td>
-          <td${columnAttr("sources_missing")}>${missing}</td>
+          <td class="sources-missing"${columnAttr("sources_missing")}>${missing}</td>
         `;
         return tr;
       }
@@ -3327,9 +3408,7 @@ function applyColumnTitles(root = document) {
           const sessJobsPct = formatSessJobsPct(row);
           const sessSuccessPct = formatSessSuccessPct(row);
 
-          const missing = (row.sources_missing || [])
-            .map((entry) => `${entry.date}: ${entry.missing.join(",")}`)
-            .join(" | ");
+          const missing = formatSourcesMissing(row.sources_missing);
 
           const tr = document.createElement("tr");
           tr.innerHTML = `
