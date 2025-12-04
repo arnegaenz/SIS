@@ -2296,7 +2296,8 @@ function applyColumnTitles(root = document) {
           const quarterEndDate = new Date(Date.UTC(year, q * 3, 0));
           const quarterStart = formatDateUtc(quarterStartDate);
           const quarterEnd = formatDateUtc(quarterEndDate);
-          if (quarterStart < startDate || quarterEnd > endDate) continue;
+          // Skip quarter only if it doesn't overlap with the date range
+          if (quarterEnd < startDate || quarterStart > endDate) continue;
           if (!buckets.has(key)) {
             buckets.set(key, { start: quarterStart, end: quarterEnd, label: `Q${q} ${year}`, rows: [] });
           }
