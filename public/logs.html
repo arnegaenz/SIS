@@ -136,8 +136,31 @@
     .logs-content {
       padding: 16px;
       max-height: 600px;
-      overflow-y: auto;
+      overflow-y: scroll;
       font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    }
+    .logs-content::-webkit-scrollbar {
+      width: 12px;
+    }
+    .logs-content::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 6px;
+    }
+    .logs-content::-webkit-scrollbar-thumb {
+      background: rgba(71, 85, 105, 0.85);
+      border-radius: 6px;
+    }
+    .logs-content::-webkit-scrollbar-thumb:hover {
+      background: rgba(71, 85, 105, 1);
+    }
+    [data-theme="dark"] .logs-content::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.1);
+    }
+    [data-theme="dark"] .logs-content::-webkit-scrollbar-thumb {
+      background: rgba(200, 210, 230, 0.5);
+    }
+    [data-theme="dark"] .logs-content::-webkit-scrollbar-thumb:hover {
+      background: rgba(200, 210, 230, 0.7);
     }
     .log-entry {
       display: flex;
@@ -305,7 +328,7 @@
           return;
         }
 
-        const html = filtered.map(log => `
+        const html = filtered.reverse().map(log => `
           <div class="log-entry">
             <span class="log-timestamp">${formatTimestamp(log.timestamp)}</span>
             <span class="log-level ${log.level}">${log.level.toUpperCase()}</span>
@@ -315,9 +338,9 @@
 
         logsContent.innerHTML = html;
 
-        // Auto-scroll to bottom
+        // Auto-scroll to top (newest logs)
         if (isAutoScrolling) {
-          logsContent.scrollTop = logsContent.scrollHeight;
+          logsContent.scrollTop = 0;
         }
 
         setStatus(`Showing ${filtered.length} of ${allLogs.length} logs`, "success");
@@ -370,6 +393,9 @@
         logsContent.innerHTML = '<div class="logs-empty">Display cleared. Click "Refresh Now" to reload.</div>';
         allLogs = [];
         setStatus("Display cleared");
+        // Stop auto-refresh when clearing
+        autoRefresh.checked = false;
+        stopAutoRefresh();
       });
 
       autoRefresh.addEventListener("change", () => {

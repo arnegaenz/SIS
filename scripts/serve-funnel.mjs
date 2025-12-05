@@ -535,19 +535,47 @@ async function fetchAllFinancialInstitutions() {
 
       let pagingMeta = null;
       let guard = 0;
+      let lastPage = 0;
 
       while (guard < 200) {
         let resp;
         try {
           if (pagingMeta) {
-            resp = await session.getFinancialInstitutions({}, JSON.stringify(pagingMeta));
+            console.log(`[${inst.name}] Fetching page with paging:`, JSON.stringify(pagingMeta));
+            // Pass paging as second parameter (header), not as query params
+            resp = await session.getFinancialInstitutions({}, pagingMeta);
           } else {
+            console.log(`[${inst.name}] Fetching first page (no paging)`);
             resp = await session.getFinancialInstitutions({});
           }
         } catch (err) {
           console.error(`[${inst.name}] SDK call failed:`, err);
           throw err;
         }
+
+        // Check for pagination header first
+        const pagingHeader = resp?.headers?.get
+          ? resp.headers.get("x-cardsavr-paging")
+          : resp?.headers?.["x-cardsavr-paging"];
+
+        let currentPage = 1;
+        if (pagingHeader) {
+          try {
+            const parsedPaging = JSON.parse(pagingHeader);
+            currentPage = Number(parsedPaging.page) || 1;
+          } catch {
+            // ignore parse error
+          }
+        }
+
+        // Check if API returned same page as last time (ignoring our page request)
+        if (lastPage > 0 && currentPage === lastPage) {
+          console.log(`[${inst.name}] API returned page ${currentPage} again (ignoring pagination), stopping without adding duplicates`);
+          break;
+        }
+
+        // Track the page we just received
+        lastPage = currentPage;
 
         // Normalize response structure
         const rows = Array.isArray(resp?.body)
@@ -563,12 +591,14 @@ async function fetchAllFinancialInstitutions() {
           allFis.push({ ...fi, _instance: inst.name });
         }
 
-        // Check for pagination
-        const pagingHeader = resp?.headers?.get
-          ? resp.headers.get("x-cardsavr-paging")
-          : resp?.headers?.["x-cardsavr-paging"];
+        console.log(`[${inst.name}] Fetched ${rows.length} FIs (total so far: ${allFis.filter(f => f._instance === inst.name).length})`);
 
-        if (!pagingHeader) break;
+        if (!pagingHeader) {
+          console.log(`[${inst.name}] No paging header found, stopping pagination`);
+          break;
+        }
+
+        console.log(`[${inst.name}] Paging header:`, pagingHeader);
 
         try {
           pagingMeta = JSON.parse(pagingHeader);
@@ -579,9 +609,14 @@ async function fetchAllFinancialInstitutions() {
         const total = Number(pagingMeta.total_results) || rows.length;
         const pageLen = Number(pagingMeta.page_length) || rows.length || 25;
         const totalPages = pageLen > 0 ? Math.ceil(total / pageLen) : 1;
-        const nextPage = (Number(pagingMeta.page) || pagingMeta.page || 1) + 1;
+        const nextPage = currentPage + 1;
 
-        if (nextPage > totalPages) break;
+        console.log(`[${inst.name}] Paging: page ${currentPage}, total_results=${total}, page_length=${pageLen}, totalPages=${totalPages}`);
+
+        if (nextPage > totalPages) {
+          console.log(`[${inst.name}] Reached last page, stopping pagination`);
+          break;
+        }
 
         // Create new paging object for next request
         pagingMeta = {
