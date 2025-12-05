@@ -69,6 +69,66 @@
       padding: 0 18px;
       min-width: 150px;
     }
+    .instance-multi-select {
+      position: relative;
+      width: 100%;
+    }
+    .instance-multi-select button {
+      width: 100%;
+      background: var(--input-bg);
+      border: 1px solid var(--input-border);
+      border-radius: 8px;
+      color: var(--panel-title);
+      padding: 8px 36px 8px 10px;
+      font-size: 14px;
+      height: 40px;
+      text-align: left;
+      cursor: pointer;
+      position: relative;
+      font-weight: 600;
+    }
+    .instance-multi-select button::after {
+      content: "▾";
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--muted);
+      pointer-events: none;
+    }
+    .instance-multi-select button:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18);
+    }
+    .instance-multi-select .panel {
+      position: absolute;
+      z-index: 60;
+      min-width: 100%;
+      max-height: 260px;
+      overflow: auto;
+      border: 1px solid var(--border);
+      background: var(--panel);
+      color: var(--text);
+      padding: 8px;
+      border-radius: 6px;
+      box-shadow: 0 12px 28px rgba(15, 23, 42, 0.15);
+      margin-top: 4px;
+    }
+    .instance-multi-select .panel label {
+      display: block;
+      padding: 4px 2px;
+      white-space: normal;
+      word-break: break-word;
+      cursor: pointer;
+    }
+    .instance-multi-select .panel input[type="checkbox"] {
+      margin-right: 6px;
+      accent-color: var(--accent);
+      width: 14px;
+      height: 14px;
+      flex-shrink: 0;
+    }
     .btn {
       display: inline-flex;
       justify-content: center;
@@ -110,17 +170,61 @@
     .fi-api-table-wrapper {
       border: 1px solid var(--panel-border);
       border-radius: 12px;
-      overflow: hidden;
-      max-height: 600px;
       background: var(--surface);
-      display: flex;
-      flex-direction: column;
+      max-height: 600px;
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
+    .fi-api-table-wrapper::-webkit-scrollbar {
+      width: 8px;
+    }
+    .fi-api-table-wrapper::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 4px;
+    }
+    .fi-api-table-wrapper::-webkit-scrollbar-thumb {
+      background: rgba(71, 85, 105, 0.85);
+      border-radius: 4px;
+    }
+    .fi-api-table-wrapper::-webkit-scrollbar-thumb:hover {
+      background: rgba(71, 85, 105, 1);
+    }
+    [data-theme="dark"] .fi-api-table-wrapper::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.1);
+    }
+    [data-theme="dark"] .fi-api-table-wrapper::-webkit-scrollbar-thumb {
+      background: rgba(200, 210, 230, 0.5);
+    }
+    [data-theme="dark"] .fi-api-table-wrapper::-webkit-scrollbar-thumb:hover {
+      background: rgba(200, 210, 230, 0.7);
+    }
+    .json-viewer::-webkit-scrollbar {
+      width: 8px;
+    }
+    .json-viewer::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 4px;
+    }
+    .json-viewer::-webkit-scrollbar-thumb {
+      background: rgba(71, 85, 105, 0.85);
+      border-radius: 4px;
+    }
+    .json-viewer::-webkit-scrollbar-thumb:hover {
+      background: rgba(71, 85, 105, 1);
+    }
+    [data-theme="dark"] .json-viewer::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.1);
+    }
+    [data-theme="dark"] .json-viewer::-webkit-scrollbar-thumb {
+      background: rgba(200, 210, 230, 0.5);
+    }
+    [data-theme="dark"] .json-viewer::-webkit-scrollbar-thumb:hover {
+      background: rgba(200, 210, 230, 0.7);
     }
     .fi-api-table {
       width: 100%;
       border-collapse: collapse;
       font-size: 13px;
-      min-width: 1400px;
     }
     .fi-api-table thead {
       background: var(--surface);
@@ -287,9 +391,8 @@
       color: var(--accent);
     }
     @media (max-width: 960px) {
-      .fi-api-table-wrapper,
-      .fi-api-table tbody {
-        max-height: 400px;
+      .fi-api-table-wrapper {
+        font-size: 12px;
       }
     }
   </style>
@@ -336,9 +439,10 @@
             </label>
             <label>
               Instance
-              <select id="fiApiInstanceFilter">
-                <option value="">(all instances)</option>
-              </select>
+              <div class="instance-multi-select" id="fiApiInstanceFilter">
+                <button type="button" id="instanceFilterBtn">All instances</button>
+                <div class="panel" hidden id="instanceFilterPanel"></div>
+              </div>
             </label>
             <label>
               Status
@@ -383,6 +487,8 @@
     (function setupFiApiPage() {
       const searchInput = document.getElementById("fiApiSearch");
       const instanceFilter = document.getElementById("fiApiInstanceFilter");
+      const instanceFilterBtn = document.getElementById("instanceFilterBtn");
+      const instanceFilterPanel = document.getElementById("instanceFilterPanel");
       const statusFilter = document.getElementById("fiApiStatusFilter");
       const refreshBtn = document.getElementById("fiApiRefresh");
       const exportBtn = document.getElementById("fiApiExportCsv");
@@ -402,6 +508,97 @@
 
       function normalizeText(value) {
         return value ? value.toString().trim() : "";
+      }
+
+      // Multi-select dropdown helpers
+      function getSelectedInstances() {
+        const checkboxes = instanceFilterPanel.querySelectorAll('input[type="checkbox"]:not([value="__toggle_all__"])');
+        const selected = [];
+        checkboxes.forEach(cb => {
+          if (cb.checked) selected.push(cb.value);
+        });
+        return selected;
+      }
+
+      function updateInstanceButtonText() {
+        const selected = getSelectedInstances();
+        if (selected.length === 0) {
+          instanceFilterBtn.textContent = "All instances";
+        } else if (selected.length === 1) {
+          instanceFilterBtn.textContent = selected[0];
+        } else {
+          instanceFilterBtn.textContent = `${selected.length} instances selected`;
+        }
+      }
+
+      function toggleInstancePanel(ev) {
+        if (ev) {
+          ev.preventDefault();
+          ev.stopPropagation();
+        }
+        const isOpen = !instanceFilterPanel.hasAttribute("hidden");
+        if (isOpen) {
+          instanceFilterPanel.setAttribute("hidden", "hidden");
+        } else {
+          instanceFilterPanel.removeAttribute("hidden");
+        }
+      }
+
+      function closeInstancePanelOnOutsideClick(ev) {
+        if (!instanceFilter.contains(ev.target)) {
+          instanceFilterPanel.setAttribute("hidden", "hidden");
+        }
+      }
+
+      function renderInstanceMultiSelect(instances) {
+        const currentSelected = getSelectedInstances();
+
+        instanceFilterPanel.innerHTML = "";
+
+        // Toggle all checkbox
+        const toggleLabel = document.createElement("label");
+        toggleLabel.style.fontWeight = "600";
+        toggleLabel.style.borderBottom = "1px solid var(--border)";
+        toggleLabel.style.paddingBottom = "6px";
+        toggleLabel.style.marginBottom = "6px";
+        const toggleCb = document.createElement("input");
+        toggleCb.type = "checkbox";
+        toggleCb.value = "__toggle_all__";
+        toggleCb.checked = currentSelected.length === instances.length;
+        toggleLabel.appendChild(toggleCb);
+        toggleLabel.appendChild(document.createTextNode(" (select/deselect all)"));
+        instanceFilterPanel.appendChild(toggleLabel);
+
+        // Individual checkboxes
+        instances.forEach(inst => {
+          const label = document.createElement("label");
+          const cb = document.createElement("input");
+          cb.type = "checkbox";
+          cb.value = inst;
+          cb.checked = currentSelected.length === 0 || currentSelected.includes(inst);
+          label.appendChild(cb);
+          label.appendChild(document.createTextNode(" " + inst));
+          instanceFilterPanel.appendChild(label);
+
+          cb.addEventListener("change", () => {
+            updateInstanceButtonText();
+            renderTable();
+            // Update toggle all state
+            const allCheckboxes = instanceFilterPanel.querySelectorAll('input[type="checkbox"]:not([value="__toggle_all__"])');
+            const allChecked = Array.from(allCheckboxes).every(c => c.checked);
+            toggleCb.checked = allChecked;
+          });
+        });
+
+        // Toggle all handler
+        toggleCb.addEventListener("change", () => {
+          const checked = toggleCb.checked;
+          instanceFilterPanel.querySelectorAll('input[type="checkbox"]:not([value="__toggle_all__"])').forEach(cb => {
+            cb.checked = checked;
+          });
+          updateInstanceButtonText();
+          renderTable();
+        });
       }
 
       function formatDate(dateStr) {
@@ -518,11 +715,11 @@
 
       function renderTable() {
         const search = (searchInput.value || "").trim().toLowerCase();
-        const instanceValue = instanceFilter.value;
+        const selectedInstances = getSelectedInstances();
         const statusValue = statusFilter.value;
 
         const filtered = allFis.filter((fi) => {
-          if (instanceValue && fi._instance !== instanceValue) {
+          if (selectedInstances.length > 0 && !selectedInstances.includes(fi._instance)) {
             return false;
           }
           if (statusValue) {
@@ -625,13 +822,11 @@
               allFis = data.fis || [];
               instanceStatuses = data.instanceStatuses || {};
 
-              // Populate instance filter
+              // Populate instance filter (sorted alphabetically)
               const instances = data.instances || [];
-              instanceFilter.innerHTML = '<option value="">(all instances)</option>' +
-                instances.map((inst) => {
-                  const status = instanceStatuses[inst] === "error" ? " ❌" : "";
-                  return `<option value="${inst}">${inst}${status}</option>`;
-                }).join("");
+              const sortedInstances = [...instances].sort((a, b) => a.localeCompare(b));
+              renderInstanceMultiSelect(sortedInstances);
+              updateInstanceButtonText();
 
               renderTable();
               refreshBtn.disabled = false;
@@ -693,10 +888,13 @@
       }
 
       searchInput.addEventListener("input", renderTable);
-      instanceFilter.addEventListener("change", renderTable);
       statusFilter.addEventListener("change", renderTable);
       refreshBtn.addEventListener("click", loadFiApiData);
       exportBtn.addEventListener("click", exportCsv);
+
+      // Multi-select dropdown event listeners
+      instanceFilterBtn.addEventListener("click", toggleInstancePanel);
+      document.addEventListener("click", closeInstancePanelOnOutsideClick);
 
       // Sort header click listeners
       document.querySelectorAll("th[data-column]").forEach((th) => {
