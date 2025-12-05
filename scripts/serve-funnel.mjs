@@ -521,14 +521,26 @@ async function fetchMerchantSitesFromSs01() {
   return sites;
 }
 
-async function fetchAllFinancialInstitutions() {
+async function fetchAllFinancialInstitutions(progressCallback = null) {
   const { entries } = await readInstancesFile();
 
   const allFis = [];
   const instanceStatuses = {};
   const instanceNames = entries.map(e => e.name);
+  const totalInstances = entries.length;
+  let currentInstanceIndex = 0;
 
   for (const inst of entries) {
+    currentInstanceIndex++;
+    if (progressCallback) {
+      progressCallback({
+        type: 'progress',
+        current: currentInstanceIndex,
+        total: totalInstances,
+        instance: inst.name,
+        fisLoaded: allFis.length
+      });
+    }
     try {
       console.log(`Fetching FIs from ${inst.name}...`);
       const { session } = await loginWithSdk(inst);
@@ -586,9 +598,19 @@ async function fetchAllFinancialInstitutions() {
           ? resp
           : [];
 
-        // Enrich each FI with instance name
+        // Enrich each FI with instance name and send progress update
         for (const fi of rows) {
           allFis.push({ ...fi, _instance: inst.name });
+          // Send progress update after each FI added
+          if (progressCallback) {
+            progressCallback({
+              type: 'progress',
+              current: currentInstanceIndex,
+              total: totalInstances,
+              instance: inst.name,
+              fisLoaded: allFis.length
+            });
+          }
         }
 
         console.log(`[${inst.name}] Fetched ${rows.length} FIs (total so far: ${allFis.filter(f => f._instance === inst.name).length})`);
@@ -1251,6 +1273,34 @@ const server = http.createServer(async (req, res) => {
       console.error("FI API data fetch failed", err);
       return send(res, 500, { error: message });
     }
+  }
+
+  if (pathname === "/fi-api-data-stream") {
+    try {
+      res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive'
+      });
+
+      const sendEvent = (data) => {
+        res.write(`data: ${JSON.stringify(data)}\n\n`);
+      };
+
+      console.log("Streaming FI data from all instances...");
+      const data = await fetchAllFinancialInstitutions(sendEvent);
+      console.log(`✅ FI API data fetch complete: ${data.totalCount} FIs total`);
+
+      // Send final data
+      sendEvent({ type: 'complete', data });
+      res.end();
+    } catch (err) {
+      const message = err?.message || "Unable to load FI API data";
+      console.error("FI API data fetch failed", err);
+      res.write(`data: ${JSON.stringify({ type: 'error', error: message })}\n\n`);
+      res.end();
+    }
+    return;
   }
 
   if (pathname === "/server-logs") {
