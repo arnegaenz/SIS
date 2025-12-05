@@ -380,6 +380,115 @@
       @keyframes spin {
         to { transform: rotate(360deg); }
       }
+
+      /* Conversion Analysis Panel */
+      .conversion-analysis-panel {
+        margin-top: 16px;
+        padding: 20px;
+        border-radius: 14px;
+        border: 1px solid var(--border);
+        background: var(--panel-light);
+      }
+      .conversion-header {
+        margin: 0 0 16px;
+        font-weight: 700;
+        font-size: 1rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--text);
+      }
+      .conversion-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 16px;
+        margin-bottom: 24px;
+      }
+      .conversion-metric {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 14px;
+      }
+      .metric-label {
+        font-size: 0.75rem;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 8px;
+      }
+      .metric-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: var(--text);
+        margin-bottom: 4px;
+      }
+      .metric-pct {
+        font-size: 0.85rem;
+        color: var(--muted);
+        font-weight: 600;
+      }
+      .conversion-breakdown {
+        border-top: 1px solid var(--border);
+        padding-top: 20px;
+      }
+      .breakdown-header {
+        font-weight: 700;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--text);
+        margin-bottom: 14px;
+      }
+      .breakdown-grid {
+        display: grid;
+        gap: 14px;
+      }
+      .breakdown-item {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 14px;
+      }
+      .breakdown-label {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--text);
+        margin-bottom: 8px;
+      }
+      .breakdown-value {
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: var(--text);
+        display: inline-block;
+        margin-right: 8px;
+      }
+      .breakdown-pct {
+        font-size: 0.9rem;
+        color: var(--muted);
+        font-weight: 600;
+        display: inline-block;
+      }
+      .breakdown-bar {
+        margin-top: 10px;
+        height: 8px;
+        background: var(--surface);
+        border-radius: 4px;
+        overflow: hidden;
+      }
+      .breakdown-bar-fill {
+        height: 100%;
+        transition: width 0.3s ease;
+        border-radius: 4px;
+      }
+      .breakdown-bar-success {
+        background: linear-gradient(90deg, #22c55e, #16a34a);
+      }
+      .breakdown-bar-system {
+        background: linear-gradient(90deg, #f59e0b, #d97706);
+      }
+      .breakdown-bar-ux {
+        background: linear-gradient(90deg, #ef4444, #dc2626);
+      }
     </style>
   </head>
   <body>
@@ -454,6 +563,56 @@
       <div id="bestWindows" style="margin-bottom: 8px;"></div>
       <div id="totalsBar" class="group-header" style="display: none;"></div>
       <div id="partnerSummary" class="partner-summary" style="display: none;"></div>
+
+      <div id="conversionAnalysis" class="conversion-analysis-panel" style="display: none;">
+        <div class="conversion-header">Session Conversion & Failure Analysis</div>
+        <div class="conversion-grid">
+          <div class="conversion-metric">
+            <div class="metric-label">Total Sessions</div>
+            <div class="metric-value" id="convMetricTotalSessions">-</div>
+          </div>
+          <div class="conversion-metric">
+            <div class="metric-label">Sessions w/o Jobs (Abandoned)</div>
+            <div class="metric-value" id="convMetricNoJobs">-</div>
+            <div class="metric-pct" id="convMetricNoJobsPct">-</div>
+          </div>
+          <div class="conversion-metric">
+            <div class="metric-label">Sessions w/ Jobs</div>
+            <div class="metric-value" id="convMetricWithJobs">-</div>
+            <div class="metric-pct" id="convMetricWithJobsPct">-</div>
+          </div>
+        </div>
+
+        <div class="conversion-breakdown">
+          <div class="breakdown-header">Job Outcome Breakdown</div>
+          <div class="breakdown-grid">
+            <div class="breakdown-item breakdown-success">
+              <div class="breakdown-label">✓ Successful</div>
+              <div class="breakdown-value" id="convBreakdownSuccess">-</div>
+              <div class="breakdown-pct" id="convBreakdownSuccessPct">-</div>
+              <div class="breakdown-bar">
+                <div class="breakdown-bar-fill breakdown-bar-success" id="convBarSuccess" style="width: 0%;"></div>
+              </div>
+            </div>
+            <div class="breakdown-item breakdown-system">
+              <div class="breakdown-label">⚠ System Failures</div>
+              <div class="breakdown-value" id="convBreakdownSystem">-</div>
+              <div class="breakdown-pct" id="convBreakdownSystemPct">-</div>
+              <div class="breakdown-bar">
+                <div class="breakdown-bar-fill breakdown-bar-system" id="convBarSystem" style="width: 0%;"></div>
+              </div>
+            </div>
+            <div class="breakdown-item breakdown-ux">
+              <div class="breakdown-label">⊗ UX Failures</div>
+              <div class="breakdown-value" id="convBreakdownUX">-</div>
+              <div class="breakdown-pct" id="convBreakdownUXPct">-</div>
+              <div class="breakdown-bar">
+                <div class="breakdown-bar-fill breakdown-bar-ux" id="convBarUX" style="width: 0%;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <div id="multiFiView">
       <div class="group-block" data-group="SSO">
@@ -2751,6 +2910,146 @@ function applyColumnTitles(root = document) {
         return results;
       }
 
+      // Termination rules for categorizing placement outcomes
+      const TERMINATION_RULES = {
+        BILLABLE: { includeInHealth: true, includeInUx: false, severity: "success" },
+        SITE_INTERACTION_FAILURE: { includeInHealth: true, includeInUx: false, severity: "site-failure" },
+        UNSUCCESSFUL: { includeInHealth: true, includeInUx: false, severity: "site-failure" },
+        USER_DATA_FAILURE: { includeInHealth: false, includeInUx: true, severity: "ux" },
+        NEVER_STARTED: { includeInHealth: false, includeInUx: true, severity: "ux" },
+        TIMEOUT_CREDENTIALS: { includeInHealth: false, includeInUx: true, severity: "ux" },
+        TIMEOUT_TFA: { includeInHealth: false, includeInUx: true, severity: "ux" },
+        ABANDONED_QUICKSTART: { includeInHealth: false, includeInUx: true, severity: "ux" },
+        CANCELED: { includeInHealth: false, includeInUx: true, severity: "ux" },
+        ACCOUNT_SETUP_INCOMPLETE: { includeInHealth: false, includeInUx: true, severity: "ux" },
+        TOO_MANY_LOGIN_FAILURES: { includeInHealth: false, includeInUx: true, severity: "ux" },
+        ACCOUNT_LOCKED: { includeInHealth: false, includeInUx: true, severity: "ux" },
+        PASSWORD_RESET_REQUIRED: { includeInHealth: false, includeInUx: true, severity: "ux" },
+        INVALID_CARD_DETAILS: { includeInHealth: false, includeInUx: true, severity: "ux" },
+        UNKNOWN: { includeInHealth: false, includeInUx: false, severity: "unknown" },
+      };
+
+      function calculateConversionMetrics(startDate, endDate, visibleRows) {
+        const metrics = {
+          totalSessions: 0,
+          sessionsWithoutJobs: 0,
+          sessionsWithJobs: 0,
+          successful: 0,
+          systemFailures: 0,
+          uxFailures: 0,
+          totalPlacements: 0,
+        };
+
+        // Aggregate from visible rows only (respects filters)
+        for (const row of visibleRows) {
+          metrics.totalSessions += row.sessions || 0;
+          metrics.sessionsWithJobs += row.sess_with_jobs || 0;
+        }
+        metrics.sessionsWithoutJobs = metrics.totalSessions - metrics.sessionsWithJobs;
+
+        // Now categorize placements by termination type
+        const dates = Object.keys(dailyData).sort();
+        for (const date of dates) {
+          if (!inRange(date, startDate, endDate)) continue;
+          const day = dailyData[date];
+          if (!day?.fi) continue;
+
+          // Process each FI in the day's data
+          for (const fiName in day.fi) {
+            const fiData = day.fi[fiName];
+            if (!fiData?.placements?.by_termination) continue;
+
+            // Check if this FI is in the visible rows (filter applied)
+            const isVisible = visibleRows.some(row => {
+              const rowFi = normalizeFiKey(row.fi || "");
+              const dayFi = normalizeFiKey(fiName);
+              return rowFi === dayFi;
+            });
+
+            if (!isVisible) continue;
+
+            // Categorize each termination type
+            for (const termType in fiData.placements.by_termination) {
+              const count = fiData.placements.by_termination[termType];
+              const rule = TERMINATION_RULES[termType] || TERMINATION_RULES.UNKNOWN;
+
+              if (rule.severity === "success") {
+                metrics.successful += count;
+              } else if (rule.includeInHealth) {
+                metrics.systemFailures += count;
+              } else if (rule.includeInUx) {
+                metrics.uxFailures += count;
+              } else {
+                // Unknown - default to system failures
+                metrics.systemFailures += count;
+              }
+              metrics.totalPlacements += count;
+            }
+          }
+        }
+
+        return metrics;
+      }
+
+      function renderConversionAnalysis(metrics) {
+        const panel = document.getElementById("conversionAnalysis");
+        if (!panel) return;
+
+        const totalSessions = metrics.totalSessions || 0;
+        const noJobs = metrics.sessionsWithoutJobs || 0;
+        const withJobs = metrics.sessionsWithJobs || 0;
+        const successful = metrics.successful || 0;
+        const systemFail = metrics.systemFailures || 0;
+        const uxFail = metrics.uxFailures || 0;
+        const totalPlacements = metrics.totalPlacements || 0;
+
+        // Update session metrics
+        document.getElementById("convMetricTotalSessions").textContent = totalSessions.toLocaleString();
+        document.getElementById("convMetricNoJobs").textContent = noJobs.toLocaleString();
+        document.getElementById("convMetricNoJobsPct").textContent = totalSessions > 0
+          ? `(${((noJobs / totalSessions) * 100).toFixed(1)}%)`
+          : "(0.0%)";
+        document.getElementById("convMetricWithJobs").textContent = withJobs.toLocaleString();
+        document.getElementById("convMetricWithJobsPct").textContent = totalSessions > 0
+          ? `(${((withJobs / totalSessions) * 100).toFixed(1)}%)`
+          : "(0.0%)";
+
+        // Update breakdown metrics
+        document.getElementById("convBreakdownSuccess").textContent = successful.toLocaleString();
+        document.getElementById("convBreakdownSuccessPct").textContent = totalPlacements > 0
+          ? `(${((successful / totalPlacements) * 100).toFixed(1)}%)`
+          : "(0.0%)";
+        document.getElementById("convBreakdownSystem").textContent = systemFail.toLocaleString();
+        document.getElementById("convBreakdownSystemPct").textContent = totalPlacements > 0
+          ? `(${((systemFail / totalPlacements) * 100).toFixed(1)}%)`
+          : "(0.0%)";
+        document.getElementById("convBreakdownUX").textContent = uxFail.toLocaleString();
+        document.getElementById("convBreakdownUXPct").textContent = totalPlacements > 0
+          ? `(${((uxFail / totalPlacements) * 100).toFixed(1)}%)`
+          : "(0.0%)";
+
+        // Update progress bars
+        if (totalPlacements > 0) {
+          const successPct = (successful / totalPlacements) * 100;
+          const systemPct = (systemFail / totalPlacements) * 100;
+          const uxPct = (uxFail / totalPlacements) * 100;
+          document.getElementById("convBarSuccess").style.width = `${successPct}%`;
+          document.getElementById("convBarSystem").style.width = `${systemPct}%`;
+          document.getElementById("convBarUX").style.width = `${uxPct}%`;
+        } else {
+          document.getElementById("convBarSuccess").style.width = "0%";
+          document.getElementById("convBarSystem").style.width = "0%";
+          document.getElementById("convBarUX").style.width = "0%";
+        }
+
+        // Show the panel if there's data
+        if (totalSessions > 0 || totalPlacements > 0) {
+          panel.style.display = "block";
+        } else {
+          panel.style.display = "none";
+        }
+      }
+
       function renderBestWindows(entries, visibleRows) {
         bestWindowsDiv.innerHTML = "";
         if (!visibleRows || !visibleRows.length) {
@@ -3511,6 +3810,11 @@ function applyColumnTitles(root = document) {
         });
         latestHighlights = best;
         renderBestWindows(best, visibleRows);
+
+        // Calculate and render conversion metrics
+        const conversionMetrics = calculateConversionMetrics(startDate, endDate, visibleRows);
+        renderConversionAnalysis(conversionMetrics);
+
         renderTables(visibleRows, startDate, endDate, daySpan);
 
         lastRenderContext = {
@@ -3545,6 +3849,11 @@ function applyColumnTitles(root = document) {
         const { perFi, startDate, endDate, daySpan, best } = lastRenderContext;
         const visibleRows = getVisibleRows(perFi);
         renderBestWindows(best, visibleRows);
+
+        // Recalculate and render conversion metrics with new filters
+        const conversionMetrics = calculateConversionMetrics(startDate, endDate, visibleRows);
+        renderConversionAnalysis(conversionMetrics);
+
         renderTables(visibleRows, startDate, endDate, daySpan);
       }
 
