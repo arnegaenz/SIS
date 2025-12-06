@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="./sis-shared.css?v=navfix" />
   <link rel="stylesheet" href="./assets/css/sis.css">
   <script defer src="./assets/js/sis.js"></script>
+  <script defer src="./assets/js/data-cache.js"></script>
   <script defer src="./assets/js/filters.js?v=shared"></script>
   <link rel="stylesheet" href="./assets/css/filters.css">
     <style>
@@ -810,7 +811,7 @@
               </div>
 
               <details class="placement-details" data-type="success">
-                <summary class="placement-summary">View placements</summary>
+                <summary class="placement-summary">View successful placements</summary>
                 <div class="placement-content">
                   <div class="placement-loading" style="display: none;">
                     <div class="spinner"></div>
@@ -830,7 +831,7 @@
               </div>
 
               <details class="placement-details" data-type="system">
-                <summary class="placement-summary">View placements</summary>
+                <summary class="placement-summary">View system failures</summary>
                 <div class="placement-content">
                   <div class="placement-loading" style="display: none;">
                     <div class="spinner"></div>
@@ -850,7 +851,7 @@
               </div>
 
               <details class="placement-details" data-type="ux">
-                <summary class="placement-summary">View placements</summary>
+                <summary class="placement-summary">View UX failures</summary>
                 <div class="placement-content">
                   <div class="placement-loading" style="display: none;">
                     <div class="spinner"></div>
@@ -1722,8 +1723,24 @@ function applyColumnTitles(root = document) {
       }
 
       async function fetchDaily(date) {
+        // Check cache first
+        if (window.DataCache) {
+          const cached = window.DataCache.get(`daily_${date}`);
+          if (cached) {
+            return cached;
+          }
+        }
+
+        // Fetch from server
         const payload = await fetchJson(`/daily?date=${date}`);
-        return payload?.error ? null : payload;
+        const result = payload?.error ? null : payload;
+
+        // Store in cache if valid
+        if (result && window.DataCache) {
+          window.DataCache.set(`daily_${date}`, result);
+        }
+
+        return result;
       }
 
       function getCardholderMap() {

@@ -1509,6 +1509,32 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
+  // Data version endpoint for cache invalidation
+  if (pathname === "/api/data-version") {
+    try {
+      // Get last modified time of daily directory to detect data updates
+      const dailyDirStats = await fs.stat(DAILY_DIR).catch(() => null);
+      const lastModified = dailyDirStats ? dailyDirStats.mtime.getTime() : Date.now();
+
+      // Get list of available daily files
+      const files = await fs.readdir(DAILY_DIR).catch(() => []);
+      const dailyFiles = files.filter(f => f.endsWith('.json')).sort();
+
+      return send(res, 200, {
+        version: lastModified,
+        lastModified: new Date(lastModified).toISOString(),
+        fileCount: dailyFiles.length,
+        dateRange: dailyFiles.length > 0 ? {
+          start: dailyFiles[0].replace('.json', ''),
+          end: dailyFiles[dailyFiles.length - 1].replace('.json', '')
+        } : null
+      });
+    } catch (err) {
+      console.error('Data version check failed:', err);
+      return send(res, 500, { error: err.message });
+    }
+  }
+
   if (pathname === "/fi-registry") {
     try {
       const raw = await fs.readFile(FI_REGISTRY_FILE, "utf8");

@@ -405,6 +405,7 @@
       state.integration = ALL;
       state.instance = ALL;
       state.fis.clear();
+      state.__fiTouched = false;  // Reset touched flag so checkboxes re-check
       refreshOptions();
       applyCb();
       writeQuery(state);
