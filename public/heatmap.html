@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="./sis-shared.css?v=navfix" />
   <link rel="stylesheet" href="./assets/css/sis.css">
   <script defer src="./assets/js/sis.js"></script>
+  <script defer src="./assets/js/data-cache.js"></script>
   <script defer src="./assets/js/filters.js?v=shared"></script>
   <link rel="stylesheet" href="./assets/css/filters.css">
   <style>
@@ -1295,6 +1296,19 @@
         if (headTicks) headTicks.innerHTML = "";
         if (legendEl) legendEl.innerHTML = "";
 
+        // Check cache first
+        const cacheKey = `heatmap_${start}_${end}`;
+        if (window.DataCache) {
+          const cached = window.DataCache.get(cacheKey);
+          if (cached) {
+            updateLoadingMessage("Loading from cache…");
+            currentData = cached;
+            latestMerchantPayload = cached;
+            applyFilters();
+            return;
+          }
+        }
+
         // Pull slices and merchants in two steps to show progress
         updateLoadingMessage("Loading merchant slices…");
         const res = await fetch(`/merchant-heatmap?start=${start}&end=${end}`);
@@ -1307,6 +1321,12 @@
         const json = JSON.parse(text);
         currentData = json;
         latestMerchantPayload = json;
+
+        // Store in cache
+        if (window.DataCache) {
+          window.DataCache.set(cacheKey, json);
+        }
+
         applyFilters();
       } catch (err) {
         console.error("heatmap load failed", err);

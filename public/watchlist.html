@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="./sis-shared.css?v=navfix" />
   <link rel="stylesheet" href="./assets/css/sis.css">
   <script defer src="./assets/js/sis.js"></script>
+  <script defer src="./assets/js/data-cache.js"></script>
   <style>
     body {
       font-family: "Inter", "Segoe UI", ui-sans-serif, system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -269,11 +270,26 @@
       return d.toISOString().slice(0,10);
     };
     async function fetchDaily(date) {
+      // Check cache first
+      if (window.DataCache) {
+        const cached = window.DataCache.get(`daily_${date}`);
+        if (cached) {
+          return cached;
+        }
+      }
+
       try {
         const res = await fetch(`/daily?date=${date}`);
         if (!res.ok) return null;
         const data = await res.json();
-        return data?.error ? null : data;
+        const result = data?.error ? null : data;
+
+        // Store in cache if valid
+        if (result && window.DataCache) {
+          window.DataCache.set(`daily_${date}`, result);
+        }
+
+        return result;
       } catch {
         return null;
       }

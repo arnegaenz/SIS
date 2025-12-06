@@ -249,7 +249,19 @@
 
   async function loadDailyFile(day) {
     if (!day) return null;
+
+    // Check in-memory cache first
     if (dailyCache.has(day)) return dailyCache.get(day);
+
+    // Check persistent cache
+    if (window.DataCache) {
+      const cached = window.DataCache.get(`daily_${day}`);
+      if (cached) {
+        dailyCache.set(day, cached);  // Also store in memory cache
+        return cached;
+      }
+    }
+
     try {
       const res = await fetch(`/daily?date=${encodeURIComponent(day)}`);
       if (!res.ok) {
@@ -257,6 +269,12 @@
       }
       const json = await res.json();
       dailyCache.set(day, json);
+
+      // Store in persistent cache
+      if (window.DataCache) {
+        window.DataCache.set(`daily_${day}`, json);
+      }
+
       return json;
     } catch (err) {
       console.warn("Unable to load daily GA data", day, err);
