@@ -490,6 +490,220 @@
       .breakdown-bar-ux {
         background: linear-gradient(90deg, #ef4444, #dc2626);
       }
+
+      /* Placement Details Expandable Sections */
+      .placement-details {
+        margin-top: 16px;
+        border-top: 1px solid var(--border);
+        padding-top: 12px;
+      }
+
+      .placement-summary {
+        cursor: pointer;
+        padding: 8px 12px;
+        font-weight: 600;
+        font-size: 0.85rem;
+        color: var(--accent);
+        list-style: none;
+        border-radius: 6px;
+        transition: background 0.2s ease;
+      }
+
+      .placement-summary:hover {
+        background: var(--panel-light);
+      }
+
+      .placement-summary::-webkit-details-marker {
+        display: none;
+      }
+
+      .placement-summary::before {
+        content: "▸";
+        display: inline-block;
+        margin-right: 6px;
+        transition: transform 0.2s ease;
+      }
+
+      .placement-details[open] .placement-summary::before {
+        transform: rotate(90deg);
+      }
+
+      .placement-content {
+        margin-top: 12px;
+      }
+
+      .placement-loading {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 20px;
+        justify-content: center;
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+
+      .placement-loading .spinner {
+        width: 20px;
+        height: 20px;
+        border: 2px solid var(--border);
+        border-top-color: var(--accent);
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+
+      .placement-error {
+        padding: 12px;
+        background: rgba(239, 68, 68, 0.1);
+        border: 1px solid rgba(239, 68, 68, 0.3);
+        border-radius: 8px;
+        color: #ef4444;
+        font-size: 0.85rem;
+      }
+
+      .placement-table-container {
+        overflow-x: auto;
+        margin-top: 8px;
+      }
+
+      .placement-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.85rem;
+      }
+
+      .placement-table thead th {
+        background: var(--panel-light);
+        padding: 10px 12px;
+        text-align: left;
+        font-weight: 600;
+        color: var(--muted);
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border-bottom: 2px solid var(--border);
+        white-space: nowrap;
+      }
+
+      .placement-table tbody tr {
+        border-bottom: 1px solid var(--border);
+        transition: background 0.15s ease;
+      }
+
+      .placement-table tbody tr:hover {
+        background: var(--panel-light);
+      }
+
+      .placement-table tbody td {
+        padding: 10px 12px;
+        color: var(--text);
+      }
+
+      .placement-table tbody td.merchant-group {
+        font-weight: 600;
+        background: var(--surface);
+        color: var(--accent);
+      }
+
+      .placement-table tbody td.merchant-group-count {
+        font-size: 0.8rem;
+        color: var(--muted);
+        font-weight: normal;
+      }
+
+      .placement-table tbody tr.group-row {
+        background: var(--surface);
+      }
+
+      .placement-table tbody tr.placement-row td:first-child {
+        padding-left: 24px;
+      }
+
+      .placement-truncate {
+        max-width: 250px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .placement-truncate:hover {
+        overflow: visible;
+        white-space: normal;
+        word-break: break-word;
+      }
+
+      .placement-badge {
+        display: inline-block;
+        padding: 3px 8px;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        white-space: nowrap;
+      }
+
+      .placement-badge.integration-sso {
+        background: rgba(59, 130, 246, 0.12);
+        color: #3b82f6;
+      }
+
+      .placement-badge.integration-nonsso {
+        background: rgba(168, 85, 247, 0.12);
+        color: #a855f7;
+      }
+
+      .placement-badge.integration-cardsavr {
+        background: rgba(34, 197, 94, 0.12);
+        color: #22c55e;
+      }
+
+      .placement-job-id {
+        font-family: ui-monospace, SFMono-Regular, monospace;
+        font-size: 0.8rem;
+        color: var(--muted);
+      }
+
+      .placement-timestamp {
+        font-size: 0.8rem;
+        color: var(--muted);
+        white-space: nowrap;
+      }
+
+      .placement-duration {
+        font-size: 0.8rem;
+        color: var(--muted);
+      }
+
+      .show-all-btn {
+        margin-top: 12px;
+        padding: 8px 16px;
+        background: var(--accent);
+        color: white;
+        border: none;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.2s ease;
+      }
+
+      .show-all-btn:hover {
+        background: var(--accent-2);
+      }
+
+      .show-all-btn:disabled {
+        background: var(--border);
+        color: var(--muted);
+        cursor: not-allowed;
+      }
+
+      .placement-empty {
+        padding: 20px;
+        text-align: center;
+        color: var(--muted);
+        font-size: 0.9rem;
+        border: 1px dashed var(--border);
+        border-radius: 8px;
+        background: var(--panel-light);
+      }
     </style>
   </head>
   <body>
@@ -594,6 +808,18 @@
               <div class="breakdown-bar">
                 <div class="breakdown-bar-fill breakdown-bar-success" id="convBarSuccess" style="width: 0%;"></div>
               </div>
+
+              <details class="placement-details" data-type="success">
+                <summary class="placement-summary">View placements</summary>
+                <div class="placement-content">
+                  <div class="placement-loading" style="display: none;">
+                    <div class="spinner"></div>
+                    <span>Loading placements...</span>
+                  </div>
+                  <div class="placement-error" style="display: none;"></div>
+                  <div class="placement-table-container"></div>
+                </div>
+              </details>
             </div>
             <div class="breakdown-item breakdown-system">
               <div class="breakdown-label">⚠ System Failures</div>
@@ -602,6 +828,18 @@
               <div class="breakdown-bar">
                 <div class="breakdown-bar-fill breakdown-bar-system" id="convBarSystem" style="width: 0%;"></div>
               </div>
+
+              <details class="placement-details" data-type="system">
+                <summary class="placement-summary">View placements</summary>
+                <div class="placement-content">
+                  <div class="placement-loading" style="display: none;">
+                    <div class="spinner"></div>
+                    <span>Loading placements...</span>
+                  </div>
+                  <div class="placement-error" style="display: none;"></div>
+                  <div class="placement-table-container"></div>
+                </div>
+              </details>
             </div>
             <div class="breakdown-item breakdown-ux">
               <div class="breakdown-label">⊗ UX Failures</div>
@@ -610,6 +848,18 @@
               <div class="breakdown-bar">
                 <div class="breakdown-bar-fill breakdown-bar-ux" id="convBarUX" style="width: 0%;"></div>
               </div>
+
+              <details class="placement-details" data-type="ux">
+                <summary class="placement-summary">View placements</summary>
+                <div class="placement-content">
+                  <div class="placement-loading" style="display: none;">
+                    <div class="spinner"></div>
+                    <span>Loading placements...</span>
+                  </div>
+                  <div class="placement-error" style="display: none;"></div>
+                  <div class="placement-table-container"></div>
+                </div>
+              </details>
             </div>
           </div>
         </div>
@@ -3051,6 +3301,309 @@ function applyColumnTitles(root = document) {
         }
       }
 
+      // Placement Details Cache and Functions
+      const placementDetailsCache = new Map();
+
+      /**
+       * Initialize placement details event handlers
+       */
+      function initPlacementDetailsHandlers() {
+        const detailsElements = document.querySelectorAll('.placement-details');
+
+        detailsElements.forEach(details => {
+          details.addEventListener('toggle', async (event) => {
+            if (details.open) {
+              await loadPlacementDetails(details);
+            }
+          });
+        });
+      }
+
+      /**
+       * Fetch and render placement details for a specific breakdown type
+       */
+      async function loadPlacementDetails(detailsElement) {
+        const type = detailsElement.getAttribute('data-type');
+        const container = detailsElement.querySelector('.placement-table-container');
+        const loadingEl = detailsElement.querySelector('.placement-loading');
+        const errorEl = detailsElement.querySelector('.placement-error');
+
+        // Check cache first
+        const cacheKey = getCacheKey(type);
+        if (placementDetailsCache.has(cacheKey)) {
+          renderPlacementTable(container, placementDetailsCache.get(cacheKey), type);
+          return;
+        }
+
+        // Show loading state
+        loadingEl.style.display = 'flex';
+        errorEl.style.display = 'none';
+        container.innerHTML = '';
+
+        try {
+          const data = await fetchPlacementDetails(type);
+
+          // Cache the result
+          placementDetailsCache.set(cacheKey, data);
+
+          // Hide loading
+          loadingEl.style.display = 'none';
+
+          // Render table
+          renderPlacementTable(container, data, type);
+
+        } catch (error) {
+          console.error('Failed to load placement details:', error);
+          loadingEl.style.display = 'none';
+          errorEl.style.display = 'block';
+          errorEl.textContent = `Failed to load placements: ${error.message}`;
+        }
+      }
+
+      /**
+       * Generate cache key based on current filters
+       */
+      function getCacheKey(type) {
+        const startDate = startDateInput?.value || defaultStartDateStr;
+        const endDate = endDateInput?.value || defaultEndDateStr;
+        const fi = fiFilterSelect?.value || '__all__';
+        const partner = partnerSelect?.value || '__all_partners__';
+        const integration = integrationSelect?.value || '(all)';
+        const includeTest = includeTestCheckbox?.checked || false;
+
+        return `${type}|${startDate}|${endDate}|${fi}|${partner}|${integration}|${includeTest}`;
+      }
+
+      /**
+       * Fetch placement details from API
+       */
+      async function fetchPlacementDetails(type, showAll = false) {
+        const params = new URLSearchParams({
+          type: type,
+          startDate: startDateInput?.value || defaultStartDateStr,
+          endDate: endDateInput?.value || defaultEndDateStr,
+          fi: fiFilterSelect?.value || '__all__',
+          partner: partnerSelect?.value || '__all_partners__',
+          integration: integrationSelect?.value || '(all)',
+          includeTest: includeTestCheckbox?.checked ? 'true' : 'false',
+          limit: '50',
+          showAll: showAll ? 'true' : 'false',
+        });
+
+        const response = await fetch(`/api/placement-details?${params}`);
+
+        if (!response.ok) {
+          const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+          throw new Error(error.error || `HTTP ${response.status}`);
+        }
+
+        return response.json();
+      }
+
+      /**
+       * Render placement table with grouped merchants
+       */
+      function renderPlacementTable(container, data, type) {
+        if (!data.results || data.results.length === 0) {
+          container.innerHTML = '<div class="placement-empty">No placements found for this category.</div>';
+          return;
+        }
+
+        // Build table
+        const table = document.createElement('table');
+        table.className = 'placement-table';
+
+        // Table header (varies by type)
+        const thead = document.createElement('thead');
+        const headerRow = document.createElement('tr');
+
+        const headers = getTableHeaders(type);
+        headers.forEach(header => {
+          const th = document.createElement('th');
+          th.textContent = header;
+          headerRow.appendChild(th);
+        });
+
+        thead.appendChild(headerRow);
+        table.appendChild(thead);
+
+        // Table body
+        const tbody = document.createElement('tbody');
+
+        data.results.forEach(merchantGroup => {
+          // Merchant group header row
+          const groupRow = document.createElement('tr');
+          groupRow.className = 'group-row';
+
+          const groupCell = document.createElement('td');
+          groupCell.colSpan = headers.length;
+          groupCell.className = 'merchant-group';
+          groupCell.innerHTML = `
+            ${merchantGroup.merchant}
+            <span class="merchant-group-count">(${merchantGroup.count} placement${merchantGroup.count !== 1 ? 's' : ''})</span>
+          `;
+
+          groupRow.appendChild(groupCell);
+          tbody.appendChild(groupRow);
+
+          // Individual placement rows
+          merchantGroup.placements.forEach(placement => {
+            const placementRow = document.createElement('tr');
+            placementRow.className = 'placement-row';
+
+            const cells = getPlacementCells(placement, type);
+            cells.forEach(cellHtml => {
+              const td = document.createElement('td');
+              td.innerHTML = cellHtml;
+              placementRow.appendChild(td);
+            });
+
+            tbody.appendChild(placementRow);
+          });
+        });
+
+        table.appendChild(tbody);
+        container.innerHTML = '';
+        container.appendChild(table);
+
+        // Add "Show all" button if there are more results
+        if (data.hasMore) {
+          const showAllBtn = document.createElement('button');
+          showAllBtn.className = 'show-all-btn';
+          showAllBtn.textContent = `Show all (${data.total} total placements)`;
+
+          showAllBtn.addEventListener('click', async () => {
+            showAllBtn.disabled = true;
+            showAllBtn.textContent = 'Loading...';
+
+            try {
+              const allData = await fetchPlacementDetails(type, true);
+              renderPlacementTable(container, allData, type);
+            } catch (error) {
+              console.error('Failed to load all placements:', error);
+              showAllBtn.disabled = false;
+              showAllBtn.textContent = `Show all (${data.total} total placements)`;
+            }
+          });
+
+          container.appendChild(showAllBtn);
+        }
+      }
+
+      /**
+       * Get table headers based on breakdown type
+       */
+      function getTableHeaders(type) {
+        switch (type) {
+          case 'success':
+            return ['Merchant', 'FI', 'Instance', 'Integration Type', 'Duration'];
+          case 'system':
+            return ['Merchant', 'FI', 'Instance', 'Integration Type', 'Termination Type', 'Error Message', 'Timestamp', 'Job ID'];
+          case 'ux':
+            return ['Merchant', 'FI', 'Instance', 'Integration Type', 'Failure Reason', 'Error Message'];
+          default:
+            return ['Merchant', 'FI', 'Instance'];
+        }
+      }
+
+      /**
+       * Get table cells for a placement row based on type
+       */
+      function getPlacementCells(placement, type) {
+        const integrationBadge = `<span class="placement-badge integration-${placement.integration.toLowerCase().replace(/[^a-z]/g, '')}">${escapeHtml(placement.integration)}</span>`;
+
+        const baseCells = [
+          '', // Empty first cell (merchant is in group header)
+          `<span class="placement-truncate" title="${escapeHtml(placement.fi)}">${escapeHtml(placement.fi)}</span>`,
+          escapeHtml(placement.instance),
+          integrationBadge,
+        ];
+
+        switch (type) {
+          case 'success':
+            return [
+              ...baseCells,
+              `<span class="placement-duration">${formatDuration(placement.timeElapsed)}</span>`,
+            ];
+
+          case 'system':
+            return [
+              ...baseCells,
+              escapeHtml(placement.terminationType),
+              `<span class="placement-truncate" title="${escapeHtml(placement.statusMessage)}">${escapeHtml(placement.statusMessage)}</span>`,
+              `<span class="placement-timestamp">${formatTimestamp(placement.completedOn)}</span>`,
+              `<span class="placement-job-id">${escapeHtml(placement.jobId)}</span>`,
+            ];
+
+          case 'ux':
+            return [
+              ...baseCells,
+              escapeHtml(placement.terminationType),
+              `<span class="placement-truncate" title="${escapeHtml(placement.statusMessage)}">${escapeHtml(placement.statusMessage)}</span>`,
+            ];
+
+          default:
+            return baseCells;
+        }
+      }
+
+      /**
+       * Format duration in milliseconds to readable string
+       */
+      function formatDuration(ms) {
+        if (!ms || ms === 0) return '-';
+
+        const seconds = Math.floor(ms / 1000);
+        const minutes = Math.floor(seconds / 60);
+        const hours = Math.floor(minutes / 60);
+
+        if (hours > 0) {
+          return `${hours}h ${minutes % 60}m`;
+        } else if (minutes > 0) {
+          return `${minutes}m ${seconds % 60}s`;
+        } else {
+          return `${seconds}s`;
+        }
+      }
+
+      /**
+       * Format ISO timestamp to readable string
+       */
+      function formatTimestamp(isoString) {
+        if (!isoString) return '-';
+
+        const date = new Date(isoString);
+        return date.toLocaleString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        });
+      }
+
+      /**
+       * Escape HTML to prevent XSS
+       */
+      function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text.toString();
+        return div.innerHTML;
+      }
+
+      /**
+       * Clear placement details cache when filters change
+       */
+      function clearPlacementDetailsCache() {
+        placementDetailsCache.clear();
+
+        // Close all open details
+        const detailsElements = document.querySelectorAll('.placement-details');
+        detailsElements.forEach(details => {
+          details.open = false;
+        });
+      }
+
       function renderBestWindows(entries, visibleRows) {
         bestWindowsDiv.innerHTML = "";
         if (!visibleRows || !visibleRows.length) {
@@ -3792,6 +4345,9 @@ function applyColumnTitles(root = document) {
       }
 
       async function applyFilters() {
+        // Clear placement details cache when filters change
+        clearPlacementDetailsCache();
+
         await nextFrame(); // allow loader to render before heavy work
         const startDate = startDateInput.value || defaultStartDateStr;
         const endDate = endDateInput.value || defaultEndDateStr;
@@ -3842,6 +4398,9 @@ function applyColumnTitles(root = document) {
           lastFilterSnapshot.partner !== (partnerSelect?.value || PARTNER_ALL_VALUE) ||
           lastFilterSnapshot.includeTest !== includeTestCheckbox.checked;
         if (snapshotChanged) {
+          // Clear cache when filters change
+          clearPlacementDetailsCache();
+
           startLoading("Loading data…");
           applyFilters().finally(() => stopLoading());
           return;
@@ -3905,6 +4464,9 @@ function applyColumnTitles(root = document) {
           } catch (err) {
             console.error("Failed to load daily data:", err);
           }
+
+          // Initialize placement details handlers
+          initPlacementDetailsHandlers();
 
           await safeApplyFilters();
         } catch (err) {

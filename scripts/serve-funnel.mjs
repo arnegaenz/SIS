@@ -1329,6 +1329,186 @@ const server = http.createServer(async (req, res) => {
       return send(res, 500, { error: err.message });
     }
   }
+
+  // Placement details endpoint for expandable breakdown
+  if (pathname === "/api/placement-details") {
+    try {
+      const query = new URLSearchParams(parsedUrl.searchParams);
+      const type = query.get('type'); // 'success', 'system', or 'ux'
+      const startDate = query.get('startDate');
+      const endDate = query.get('endDate');
+      const fiFilter = query.get('fi') || '__all__';
+      const partnerFilter = query.get('partner') || '__all_partners__';
+      const integrationFilter = query.get('integration') || '(all)';
+      const includeTest = query.get('includeTest') === 'true';
+      const limit = parseInt(query.get('limit')) || 50;
+      const showAll = query.get('showAll') === 'true';
+
+      // Validate required params
+      if (!type || !startDate || !endDate) {
+        return send(res, 400, { error: 'Missing required parameters: type, startDate, endDate' });
+      }
+
+      if (!['success', 'system', 'ux'].includes(type)) {
+        return send(res, 400, { error: 'Invalid type. Must be success, system, or ux' });
+      }
+
+      // Load FI registry for integration type lookups
+      let fiRegistry = {};
+      try {
+        const raw = await fs.readFile(FI_REGISTRY_FILE, "utf8");
+        fiRegistry = JSON.parse(raw);
+      } catch (err) {
+        console.warn("Could not load FI registry:", err.message);
+      }
+
+      // Get date range
+      const dates = [];
+      const start = new Date(`${startDate}T00:00:00Z`);
+      const end = new Date(`${endDate}T00:00:00Z`);
+      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+        dates.push(d.toISOString().split('T')[0]);
+      }
+
+      // Collect all placements matching criteria
+      const allPlacements = [];
+
+      for (const date of dates) {
+        const placementFile = path.join(RAW_PLACEMENTS_DIR, `${date}.json`);
+
+        try {
+          const raw = await fs.readFile(placementFile, 'utf8');
+          const data = JSON.parse(raw);
+          const placements = data.placements || [];
+
+          for (const placement of placements) {
+            // Apply filters
+            const fiKey = normalizeFiKey(placement.fi_lookup_key || placement.fi_name || '');
+            const instance = placement._instance || '';
+            const terminationType = placement.termination_type || 'UNKNOWN';
+
+            // Test instance filter
+            if (!includeTest && isTestInstanceName(instance)) {
+              continue;
+            }
+
+            // FI filter
+            if (fiFilter !== '__all__' && normalizeFiKey(fiFilter) !== fiKey) {
+              continue;
+            }
+
+            // Type filter (categorize by termination type)
+            const rule = TERMINATION_RULES[terminationType] || TERMINATION_RULES.UNKNOWN;
+            let matchesType = false;
+
+            if (type === 'success' && rule.severity === 'success') {
+              matchesType = true;
+            } else if (type === 'system' && rule.includeInHealth && rule.severity !== 'success') {
+              matchesType = true;
+            } else if (type === 'ux' && rule.includeInUx) {
+              matchesType = true;
+            } else if (type === 'system' && !rule.includeInHealth && !rule.includeInUx && rule.severity !== 'success') {
+              // Default unknown to system
+              matchesType = true;
+            }
+
+            if (!matchesType) {
+              continue;
+            }
+
+            // Derive integration type
+            let integrationType = 'NON-SSO';
+            if (placement.source?.integration) {
+              const srcInt = placement.source.integration.toString().toLowerCase();
+              if (srcInt.includes('sso')) integrationType = 'SSO';
+              else if (srcInt.includes('cardsavr')) integrationType = 'CardSavr';
+            } else if (fiRegistry[fiKey]) {
+              const regInt = (fiRegistry[fiKey].integration_type || '').toString().toLowerCase();
+              if (regInt === 'sso') integrationType = 'SSO';
+              else if (regInt === 'cardsavr') integrationType = 'CardSavr';
+            }
+
+            // Integration filter
+            if (integrationFilter !== '(all)') {
+              const normalizedInt = integrationType.toUpperCase().replace(/[^A-Z]/g, '');
+              const filterInt = integrationFilter.toUpperCase().replace(/[^A-Z]/g, '');
+              if (normalizedInt !== filterInt) {
+                continue;
+              }
+            }
+
+            // Add to results with necessary fields
+            allPlacements.push({
+              merchant: placement.merchant_site_hostname || 'Unknown',
+              fi: placement.fi_name || 'Unknown',
+              instance: instance || 'unknown',
+              integration: integrationType,
+              terminationType: terminationType,
+              status: placement.status || '',
+              statusMessage: placement.status_message || '',
+              jobId: placement.id || placement.place_card_on_single_site_job_id || '',
+              createdOn: placement.job_created_on || placement.created_on || '',
+              completedOn: placement.completed_on || '',
+              timeElapsed: placement.time_elapsed || 0,
+              date: date,
+            });
+          }
+        } catch (err) {
+          // Skip missing files
+          if (err.code !== 'ENOENT') {
+            console.error(`Error reading placements for ${date}:`, err);
+          }
+        }
+      }
+
+      // Group by merchant and count
+      const merchantGroups = {};
+      for (const placement of allPlacements) {
+        const merchant = placement.merchant;
+        if (!merchantGroups[merchant]) {
+          merchantGroups[merchant] = [];
+        }
+        merchantGroups[merchant].push(placement);
+      }
+
+      // Sort merchants by frequency (most common first)
+      const sortedMerchants = Object.keys(merchantGroups).sort((a, b) => {
+        return merchantGroups[b].length - merchantGroups[a].length;
+      });
+
+      // Build response with top 50 or all
+      const resultLimit = showAll ? Infinity : limit;
+      const results = [];
+      let totalCount = 0;
+
+      for (const merchant of sortedMerchants) {
+        const placements = merchantGroups[merchant];
+        totalCount += placements.length;
+
+        if (results.length < resultLimit) {
+          results.push({
+            merchant: merchant,
+            count: placements.length,
+            placements: placements.slice(0, showAll ? undefined : 50), // Limit placements per merchant
+          });
+        }
+      }
+
+      return send(res, 200, {
+        type,
+        total: totalCount,
+        merchantCount: sortedMerchants.length,
+        showing: results.length,
+        hasMore: results.length < sortedMerchants.length,
+        results,
+      });
+
+    } catch (err) {
+      console.error('Placement details fetch failed:', err);
+      return send(res, 500, { error: err.message });
+    }
+  }
+
   if (pathname === "/fi-registry") {
     try {
       const raw = await fs.readFile(FI_REGISTRY_FILE, "utf8");
