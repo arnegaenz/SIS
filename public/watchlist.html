@@ -821,6 +821,19 @@
         await loadMerchantStatuses();
         const end = isoYesterday();
         const start = isoDaysAgo(29,end);
+
+        // Try to load processed data from bulk cache first
+        const bulkCacheKey = `watchlist_processed_${start}_${end}`;
+        if (window.DataCache) {
+          const cached = window.DataCache.get(bulkCacheKey);
+          if (cached && cached.cards) {
+            setLoaderText('Loading from cache…');
+            renderAllCards(cached.cards, cached.windowLabel);
+            stopLoading();
+            console.log('Loaded watchlist from bulk cache');
+            return;
+          }
+        }
         statusEl.textContent = `Loading ${start} → ${end}…`;
         const res = await fetch(`/merchant-heatmap?start=${start}&end=${end}`);
         if (!res.ok) {
@@ -976,13 +989,38 @@
           </div>
         `);
       }
-      cardsEl.innerHTML = cards.join("");
+      // Render cards and save to bulk cache
+      const windowLabelText = windowLabel ? windowLabel.textContent : '';
+      renderAllCards(cards, windowLabelText);
+
+      // Save to bulk cache for next time
+      if (window.DataCache) {
+        window.DataCache.set(bulkCacheKey, {
+          cards: cards,
+          windowLabel: windowLabelText,
+          summaryCount: summaries.length,
+          daysCount: days.length
+        });
+        console.log('Saved watchlist to bulk cache');
+      }
+
       statusEl.textContent = `Signals computed for ${summaries.length} merchants over ${days.length} days`;
       } catch (err) {
         console.error("watchlist load failed", err);
         statusEl.textContent = "Failed to load alerts.";
       } finally {
         stopLoading();
+      }
+    }
+
+    // Helper function to render cards (used for both fresh load and cache)
+    function renderAllCards(cards, windowLabelText) {
+      if (cardsEl) {
+        cardsEl.innerHTML = cards.join("");
+      }
+      const windowLabel = document.getElementById("windowLabel");
+      if (windowLabel && windowLabelText) {
+        windowLabel.textContent = windowLabelText;
       }
     }
 
