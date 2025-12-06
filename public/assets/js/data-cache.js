@@ -18,39 +18,49 @@
    */
   class DataCache {
     constructor() {
-      this.currentVersion = null;
+      this.currentVersion = this._getStoredVersion(); // Load from localStorage immediately
       this.memoryCache = new Map(); // Fast in-memory cache for current session
+      this.initialized = false;
+
+      // Start background validation
+      this.init();
     }
 
     /**
-     * Initialize the cache by checking server data version
+     * Initialize the cache by checking server data version (runs in background)
      */
     async init() {
       try {
         const response = await fetch('/api/data-version');
         if (!response.ok) {
-          console.warn('Failed to fetch data version, cache disabled');
+          console.warn('Failed to fetch data version, using cached version');
+          this.initialized = true;
           return;
         }
 
         const versionData = await response.json();
-        this.currentVersion = versionData.version;
+        const serverVersion = versionData.version;
 
         // Check if cached version matches server version
         const cachedVersion = this._getStoredVersion();
 
-        if (cachedVersion !== this.currentVersion) {
+        if (cachedVersion !== serverVersion) {
           console.log('Data version mismatch, clearing cache', {
             cached: cachedVersion,
-            server: this.currentVersion
+            server: serverVersion
           });
           this.clearAll();
-          this._setStoredVersion(this.currentVersion);
+          this.currentVersion = serverVersion;
+          this._setStoredVersion(serverVersion);
         } else {
-          console.log('Cache version valid:', this.currentVersion);
+          console.log('Cache version valid:', serverVersion);
+          this.currentVersion = serverVersion;
         }
+
+        this.initialized = true;
       } catch (err) {
         console.warn('Cache initialization failed:', err);
+        this.initialized = true; // Continue anyway with cached version
       }
     }
 
@@ -241,20 +251,11 @@
     }
   }
 
-  // Create global instance
+  // Create global instance immediately (init runs in constructor)
   window.DataCache = new DataCache();
-
-  // Initialize cache when DOM is ready
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-      window.DataCache.init();
-    });
-  } else {
-    window.DataCache.init();
-  }
 
   // Expose stats for debugging
   window.getCacheStats = () => window.DataCache.getStats();
 
-  console.log('DataCache module loaded');
+  console.log('DataCache module loaded and ready');
 })();
