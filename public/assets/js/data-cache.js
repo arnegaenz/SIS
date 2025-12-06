@@ -1,9 +1,11 @@
 /**
- * Persistent Data Cache using localStorage
+ * Persistent Data Cache using localStorage + IndexedDB
  *
  * This module provides a caching layer for daily data that persists across
  * page navigations and browser sessions. It automatically invalidates the
  * cache when the server data is updated.
+ *
+ * Uses localStorage for small items and IndexedDB for large bulk caches.
  */
 
 (function() {
@@ -11,7 +13,158 @@
 
   const CACHE_PREFIX = 'sis_daily_cache_';
   const VERSION_KEY = 'sis_data_version';
-  const MAX_CACHE_SIZE = 5 * 1024 * 1024; // 5MB limit for safety
+  const LOCALSTORAGE_THRESHOLD = 1 * 1024 * 1024; // 1MB - use IndexedDB for larger items
+  const DB_NAME = 'SISDataCache';
+  const DB_VERSION = 1;
+  const STORE_NAME = 'cache';
+
+  /**
+   * IndexedDB wrapper for large cache entries
+   */
+  class IndexedDBCache {
+    constructor() {
+      this.db = null;
+      this.ready = false;
+      this.initPromise = this._init();
+    }
+
+    async _init() {
+      return new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+        request.onerror = () => {
+          console.warn('IndexedDB initialization failed:', request.error);
+          resolve(false); // Continue without IndexedDB
+        };
+
+        request.onsuccess = () => {
+          this.db = request.result;
+          this.ready = true;
+          console.log('IndexedDB initialized successfully');
+          resolve(true);
+        };
+
+        request.onupgradeneeded = (event) => {
+          const db = event.target.result;
+          if (!db.objectStoreNames.contains(STORE_NAME)) {
+            db.createObjectStore(STORE_NAME);
+          }
+        };
+      });
+    }
+
+    async ensureReady() {
+      if (this.ready) return true;
+      return await this.initPromise;
+    }
+
+    async get(key) {
+      await this.ensureReady();
+      if (!this.db) return null;
+
+      return new Promise((resolve) => {
+        try {
+          const transaction = this.db.transaction([STORE_NAME], 'readonly');
+          const store = transaction.objectStore(STORE_NAME);
+          const request = store.get(key);
+
+          request.onsuccess = () => resolve(request.result || null);
+          request.onerror = () => {
+            console.warn('IndexedDB read error:', request.error);
+            resolve(null);
+          };
+        } catch (err) {
+          console.warn('IndexedDB get failed:', err);
+          resolve(null);
+        }
+      });
+    }
+
+    async set(key, data) {
+      await this.ensureReady();
+      if (!this.db) return false;
+
+      return new Promise((resolve) => {
+        try {
+          const transaction = this.db.transaction([STORE_NAME], 'readwrite');
+          const store = transaction.objectStore(STORE_NAME);
+          const request = store.put(data, key);
+
+          request.onsuccess = () => resolve(true);
+          request.onerror = () => {
+            console.warn('IndexedDB write error:', request.error);
+            resolve(false);
+          };
+        } catch (err) {
+          console.warn('IndexedDB set failed:', err);
+          resolve(false);
+        }
+      });
+    }
+
+    async has(key) {
+      await this.ensureReady();
+      if (!this.db) return false;
+
+      return new Promise((resolve) => {
+        try {
+          const transaction = this.db.transaction([STORE_NAME], 'readonly');
+          const store = transaction.objectStore(STORE_NAME);
+          const request = store.get(key);
+
+          request.onsuccess = () => resolve(request.result !== undefined);
+          request.onerror = () => resolve(false);
+        } catch (err) {
+          resolve(false);
+        }
+      });
+    }
+
+    async remove(key) {
+      await this.ensureReady();
+      if (!this.db) return;
+
+      try {
+        const transaction = this.db.transaction([STORE_NAME], 'readwrite');
+        const store = transaction.objectStore(STORE_NAME);
+        store.delete(key);
+      } catch (err) {
+        console.warn('IndexedDB remove error:', err);
+      }
+    }
+
+    async clearAll() {
+      await this.ensureReady();
+      if (!this.db) return;
+
+      try {
+        const transaction = this.db.transaction([STORE_NAME], 'readwrite');
+        const store = transaction.objectStore(STORE_NAME);
+        store.clear();
+        console.log('IndexedDB cache cleared');
+      } catch (err) {
+        console.warn('IndexedDB clear error:', err);
+      }
+    }
+
+    async getStats() {
+      await this.ensureReady();
+      if (!this.db) return { entries: 0 };
+
+      return new Promise((resolve) => {
+        try {
+          const transaction = this.db.transaction([STORE_NAME], 'readonly');
+          const store = transaction.objectStore(STORE_NAME);
+          const request = store.count();
+
+          request.onsuccess = () => resolve({ entries: request.result });
+          request.onerror = () => resolve({ entries: 0 });
+        } catch (err) {
+          resolve({ entries: 0 });
+        }
+      });
+    }
+  }
 
   /**
    * DataCache class - manages persistent caching of daily data
@@ -20,6 +173,7 @@
     constructor() {
       this.currentVersion = this._getStoredVersion(); // Load from localStorage immediately
       this.memoryCache = new Map(); // Fast in-memory cache for current session
+      this.indexedDB = new IndexedDBCache(); // IndexedDB for large items
       this.initialized = false;
 
       // Start background validation
@@ -44,17 +198,21 @@
         // Check if cached version matches server version
         const cachedVersion = this._getStoredVersion();
 
-        if (cachedVersion !== serverVersion) {
+        // Convert both to strings for comparison to handle type mismatches
+        const serverVersionStr = String(serverVersion);
+        const cachedVersionStr = String(cachedVersion);
+
+        if (cachedVersionStr !== serverVersionStr) {
           console.log('Data version mismatch, clearing cache', {
-            cached: cachedVersion,
-            server: serverVersion
+            cached: cachedVersionStr,
+            server: serverVersionStr
           });
           this.clearAll();
-          this.currentVersion = serverVersion;
-          this._setStoredVersion(serverVersion);
+          this.currentVersion = serverVersionStr;
+          this._setStoredVersion(serverVersionStr);
         } else {
-          console.log('Cache version valid:', serverVersion);
-          this.currentVersion = serverVersion;
+          console.log('Cache version valid:', serverVersionStr);
+          this.currentVersion = serverVersionStr;
         }
 
         this.initialized = true;
@@ -65,7 +223,7 @@
     }
 
     /**
-     * Get data from cache (checks memory first, then localStorage)
+     * Get data from cache (checks memory first, then localStorage, then IndexedDB)
      */
     get(key) {
       // Check memory cache first
@@ -73,7 +231,7 @@
         return this.memoryCache.get(key);
       }
 
-      // Check localStorage
+      // Check localStorage for small items
       try {
         const cacheKey = CACHE_PREFIX + key;
         const cached = localStorage.getItem(cacheKey);
@@ -85,47 +243,91 @@
           return data;
         }
       } catch (err) {
-        console.warn('Cache read error:', err);
+        // Ignore localStorage errors, will check IndexedDB
+      }
+
+      // For large items, check IndexedDB asynchronously
+      // Return null immediately and let async getter handle it
+      return null;
+    }
+
+    /**
+     * Async get for IndexedDB support (for large cache entries)
+     */
+    async getAsync(key) {
+      // Check memory cache first
+      if (this.memoryCache.has(key)) {
+        return this.memoryCache.get(key);
+      }
+
+      // Check localStorage for small items
+      try {
+        const cacheKey = CACHE_PREFIX + key;
+        const cached = localStorage.getItem(cacheKey);
+
+        if (cached) {
+          const data = JSON.parse(cached);
+          this.memoryCache.set(key, data);
+          return data;
+        }
+      } catch (err) {
+        // Continue to IndexedDB check
+      }
+
+      // Check IndexedDB for large items
+      try {
+        const data = await this.indexedDB.get(key);
+        if (data) {
+          // Store in memory cache for faster subsequent access
+          this.memoryCache.set(key, data);
+          return data;
+        }
+      } catch (err) {
+        console.warn('IndexedDB read error:', err);
       }
 
       return null;
     }
 
     /**
-     * Store data in cache (both memory and localStorage)
+     * Store data in cache (memory + localStorage for small items, IndexedDB for large)
      */
-    set(key, data) {
-      // Store in memory cache
+    async set(key, data) {
+      // Always store in memory cache
       this.memoryCache.set(key, data);
 
-      // Store in localStorage
       try {
-        const cacheKey = CACHE_PREFIX + key;
         const serialized = JSON.stringify(data);
+        const size = serialized.length;
 
-        // Check size before storing
-        if (serialized.length > MAX_CACHE_SIZE) {
-          console.warn('Data too large to cache:', key);
-          return false;
-        }
-
-        localStorage.setItem(cacheKey, serialized);
-        return true;
-      } catch (err) {
-        // Handle QuotaExceededError
-        if (err.name === 'QuotaExceededError') {
-          console.warn('localStorage quota exceeded, clearing old cache');
-          this.clearOldest();
-          // Try again after clearing
+        // Small items go to localStorage
+        if (size <= LOCALSTORAGE_THRESHOLD) {
           try {
-            localStorage.setItem(CACHE_PREFIX + key, JSON.stringify(data));
+            const cacheKey = CACHE_PREFIX + key;
+            localStorage.setItem(cacheKey, serialized);
+            console.log(`Cached "${key}" in localStorage (${(size / 1024).toFixed(1)}KB)`);
             return true;
-          } catch (retryErr) {
-            console.error('Failed to cache after clearing:', retryErr);
+          } catch (err) {
+            if (err.name === 'QuotaExceededError') {
+              console.warn('localStorage quota exceeded, falling back to IndexedDB');
+              // Fall through to IndexedDB
+            } else {
+              console.warn('localStorage write error:', err);
+              return false;
+            }
           }
-        } else {
-          console.warn('Cache write error:', err);
         }
+
+        // Large items go to IndexedDB
+        console.log(`Caching "${key}" in IndexedDB (${(size / 1024 / 1024).toFixed(2)}MB)`);
+        const success = await this.indexedDB.set(key, data);
+        if (success) {
+          console.log(`Successfully cached "${key}" in IndexedDB`);
+        }
+        return success;
+
+      } catch (err) {
+        console.warn('Cache write error:', err);
         return false;
       }
     }
@@ -139,23 +341,53 @@
       }
 
       try {
-        return localStorage.getItem(CACHE_PREFIX + key) !== null;
+        const cacheKey = CACHE_PREFIX + key;
+        if (localStorage.getItem(cacheKey) !== null) {
+          return true;
+        }
       } catch (err) {
-        return false;
+        // Continue to IndexedDB check
       }
+
+      // Note: Can't check IndexedDB synchronously
+      // Use hasAsync() for complete check
+      return false;
+    }
+
+    /**
+     * Async check if key exists (includes IndexedDB)
+     */
+    async hasAsync(key) {
+      if (this.memoryCache.has(key)) {
+        return true;
+      }
+
+      try {
+        const cacheKey = CACHE_PREFIX + key;
+        if (localStorage.getItem(cacheKey) !== null) {
+          return true;
+        }
+      } catch (err) {
+        // Continue to IndexedDB check
+      }
+
+      return await this.indexedDB.has(key);
     }
 
     /**
      * Remove specific key from cache
      */
-    remove(key) {
+    async remove(key) {
       this.memoryCache.delete(key);
 
       try {
-        localStorage.removeItem(CACHE_PREFIX + key);
+        const cacheKey = CACHE_PREFIX + key;
+        localStorage.removeItem(cacheKey);
       } catch (err) {
-        console.warn('Cache remove error:', err);
+        // Ignore localStorage errors
       }
+
+      await this.indexedDB.remove(key);
     }
 
     /**
@@ -171,61 +403,49 @@
             localStorage.removeItem(key);
           }
         });
-        console.log('Cache cleared');
+        console.log('localStorage cache cleared');
       } catch (err) {
-        console.warn('Cache clear error:', err);
+        console.warn('localStorage clear error:', err);
       }
-    }
 
-    /**
-     * Clear oldest cache entries (LRU-style cleanup)
-     * This is a simplified version - removes all cache when quota exceeded
-     */
-    clearOldest() {
-      try {
-        const keys = Object.keys(localStorage);
-        const cacheKeys = keys.filter(key => key.startsWith(CACHE_PREFIX));
-
-        // Remove half of the cached items
-        const toRemove = Math.ceil(cacheKeys.length / 2);
-        cacheKeys.slice(0, toRemove).forEach(key => {
-          localStorage.removeItem(key);
-        });
-
-        console.log(`Cleared ${toRemove} old cache entries`);
-      } catch (err) {
-        console.warn('Failed to clear oldest cache:', err);
-      }
+      // Clear IndexedDB asynchronously
+      this.indexedDB.clearAll();
     }
 
     /**
      * Get cache statistics
      */
-    getStats() {
+    async getStats() {
+      const stats = {
+        memoryEntries: this.memoryCache.size,
+        localStorageEntries: 0,
+        localStorageSize: 0,
+        indexedDBEntries: 0,
+        version: this.currentVersion
+      };
+
       try {
         const keys = Object.keys(localStorage);
         const cacheKeys = keys.filter(key => key.startsWith(CACHE_PREFIX));
+        stats.localStorageEntries = cacheKeys.length;
 
         let totalSize = 0;
         cacheKeys.forEach(key => {
           totalSize += localStorage.getItem(key).length;
         });
-
-        return {
-          entries: cacheKeys.length,
-          memoryEntries: this.memoryCache.size,
-          totalSize: totalSize,
-          version: this.currentVersion
-        };
+        stats.localStorageSize = totalSize;
       } catch (err) {
-        return {
-          entries: 0,
-          memoryEntries: this.memoryCache.size,
-          totalSize: 0,
-          version: this.currentVersion,
-          error: err.message
-        };
+        stats.localStorageError = err.message;
       }
+
+      try {
+        const idbStats = await this.indexedDB.getStats();
+        stats.indexedDBEntries = idbStats.entries;
+      } catch (err) {
+        stats.indexedDBError = err.message;
+      }
+
+      return stats;
     }
 
     /**
@@ -254,8 +474,8 @@
   // Create global instance immediately (init runs in constructor)
   window.DataCache = new DataCache();
 
-  // Expose stats for debugging
-  window.getCacheStats = () => window.DataCache.getStats();
+  // Expose stats for debugging (now async)
+  window.getCacheStats = async () => await window.DataCache.getStats();
 
-  console.log('DataCache module loaded and ready');
+  console.log('DataCache module loaded and ready (localStorage + IndexedDB)');
 })();

@@ -4959,13 +4959,17 @@ function applyColumnTitles(root = document) {
             // Try to load all data from bulk cache first (using async getAsync for IndexedDB)
             const bulkCacheKey = 'funnel_all_daily_data';
             if (window.DataCache) {
+              console.log('🔍 Checking bulk cache...');
               const cachedBulk = await window.DataCache.getAsync(bulkCacheKey);
-              if (cachedBulk && typeof cachedBulk === 'object') {
-                setLoaderMessage('Loading from cache…');
+              console.log('Bulk cache result:', cachedBulk ? `Found ${Object.keys(cachedBulk).length} days` : 'Not found');
+
+              if (cachedBulk && typeof cachedBulk === 'object' && Object.keys(cachedBulk).length > 0) {
+                setLoaderMessage('✓ Loading from cache…');
                 dailyData = cachedBulk;
-                console.log(`Loaded ${Object.keys(dailyData).length} days from bulk cache`);
+                console.log(`✓ Loaded ${Object.keys(dailyData).length} days from bulk cache`);
               } else {
                 // No bulk cache, load individually
+                console.log('→ Bulk cache empty, loading from server...');
                 const totalDays = dailyFiles.length;
                 let loadedDays = 0;
                 for (const file of dailyFiles) {
@@ -4983,8 +4987,13 @@ function applyColumnTitles(root = document) {
 
                 // Store bulk cache for next time (using async set for IndexedDB)
                 if (Object.keys(dailyData).length > 0) {
-                  await window.DataCache.set(bulkCacheKey, dailyData);
-                  console.log(`Cached ${Object.keys(dailyData).length} days in bulk cache`);
+                  console.log(`💾 Saving ${Object.keys(dailyData).length} days to bulk cache...`);
+                  const saved = await window.DataCache.set(bulkCacheKey, dailyData);
+                  if (saved) {
+                    console.log(`✓ Successfully cached ${Object.keys(dailyData).length} days in bulk cache`);
+                  } else {
+                    console.warn('⚠ Failed to save bulk cache');
+                  }
                 }
               }
             } else {
