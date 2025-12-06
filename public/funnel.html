@@ -1944,21 +1944,23 @@ function applyColumnTitles(root = document) {
       }
 
       async function fetchDaily(date) {
-        // Check cache first
+        // Check cache first (use getAsync for IndexedDB support)
         if (window.DataCache) {
-          const cached = window.DataCache.get(`daily_${date}`);
+          const cached = await window.DataCache.getAsync(`daily_${date}`);
           if (cached) {
+            console.log(`✓ Loaded daily_${date} from cache`);
             return cached;
           }
         }
 
         // Fetch from server
+        console.log(`→ Fetching daily_${date} from server`);
         const payload = await fetchJson(`/daily?date=${date}`);
         const result = payload?.error ? null : payload;
 
         // Store in cache if valid
         if (result && window.DataCache) {
-          window.DataCache.set(`daily_${date}`, result);
+          await window.DataCache.set(`daily_${date}`, result);
         }
 
         return result;
