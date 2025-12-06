@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="./sis-shared.css?v=navfix" />
   <link rel="stylesheet" href="./assets/css/sis.css">
   <script defer src="./assets/js/sis.js"></script>
-  <script defer src="./assets/js/data-cache.js?v=2"></script>
+  <script defer src="./assets/js/data-cache.js?v=3"></script>
   <style>
     body {
       font-family: "Inter", "Segoe UI", ui-sans-serif, system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -270,15 +270,17 @@
       return d.toISOString().slice(0,10);
     };
     async function fetchDaily(date) {
-      // Check cache first
+      // Check cache first (use getAsync for IndexedDB support)
       if (window.DataCache) {
-        const cached = window.DataCache.get(`daily_${date}`);
+        const cached = await window.DataCache.getAsync(`daily_${date}`);
         if (cached) {
+          console.log(`✓ Loaded daily_${date} from cache`);
           return cached;
         }
       }
 
       try {
+        console.log(`→ Fetching daily_${date} from server`);
         const res = await fetch(`/daily?date=${date}`);
         if (!res.ok) return null;
         const data = await res.json();
@@ -286,7 +288,7 @@
 
         // Store in cache if valid
         if (result && window.DataCache) {
-          window.DataCache.set(`daily_${date}`, result);
+          await window.DataCache.set(`daily_${date}`, result);
         }
 
         return result;
@@ -822,17 +824,19 @@
         const end = isoYesterday();
         const start = isoDaysAgo(29,end);
 
-        // Try to load processed data from bulk cache first
+        // Try to load processed data from bulk cache first (using async getAsync for IndexedDB)
         const bulkCacheKey = `watchlist_processed_${start}_${end}`;
         if (window.DataCache) {
-          const cached = window.DataCache.get(bulkCacheKey);
+          console.log('🔍 Checking watchlist cache...');
+          const cached = await window.DataCache.getAsync(bulkCacheKey);
           if (cached && cached.cards) {
-            setLoaderText('Loading from cache…');
+            console.log(`✓ Loaded watchlist from cache (${start} to ${end})`);
+            setLoaderText('✓ Loading from cache…');
             renderAllCards(cached.cards, cached.windowLabel);
             stopLoading();
-            console.log('Loaded watchlist from bulk cache');
             return;
           }
+          console.log('→ Watchlist cache miss, loading from server...');
         }
         statusEl.textContent = `Loading ${start} → ${end}…`;
         const res = await fetch(`/merchant-heatmap?start=${start}&end=${end}`);
@@ -993,15 +997,16 @@
       const windowLabelText = windowLabel ? windowLabel.textContent : '';
       renderAllCards(cards, windowLabelText);
 
-      // Save to bulk cache for next time
+      // Save to bulk cache for next time (using async set for IndexedDB)
       if (window.DataCache) {
-        window.DataCache.set(bulkCacheKey, {
+        console.log(`💾 Saving watchlist to cache (${cards.length} cards)...`);
+        await window.DataCache.set(bulkCacheKey, {
           cards: cards,
           windowLabel: windowLabelText,
           summaryCount: summaries.length,
           daysCount: days.length
         });
-        console.log('Saved watchlist to bulk cache');
+        console.log('✓ Watchlist cached successfully');
       }
 
       statusEl.textContent = `Signals computed for ${summaries.length} merchants over ${days.length} days`;

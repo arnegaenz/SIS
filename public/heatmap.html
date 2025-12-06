@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="./sis-shared.css?v=navfix" />
   <link rel="stylesheet" href="./assets/css/sis.css">
   <script defer src="./assets/js/sis.js"></script>
-  <script defer src="./assets/js/data-cache.js?v=2"></script>
+  <script defer src="./assets/js/data-cache.js?v=3"></script>
   <script defer src="./assets/js/filters.js?v=shared"></script>
   <link rel="stylesheet" href="./assets/css/filters.css">
   <style>
@@ -1296,17 +1296,20 @@
         if (headTicks) headTicks.innerHTML = "";
         if (legendEl) legendEl.innerHTML = "";
 
-        // Check cache first
+        // Check cache first (using async getAsync for IndexedDB)
         const cacheKey = `heatmap_${start}_${end}`;
         if (window.DataCache) {
-          const cached = window.DataCache.get(cacheKey);
+          console.log('🔍 Checking heatmap cache...');
+          const cached = await window.DataCache.getAsync(cacheKey);
           if (cached) {
-            updateLoadingMessage("Loading from cache…");
+            console.log(`✓ Loaded heatmap from cache (${start} to ${end})`);
+            updateLoadingMessage("✓ Loading from cache…");
             currentData = cached;
             latestMerchantPayload = cached;
             applyFilters();
             return;
           }
+          console.log('→ Heatmap cache miss, loading from server...');
         }
 
         // Pull slices and merchants in two steps to show progress
@@ -1322,9 +1325,11 @@
         currentData = json;
         latestMerchantPayload = json;
 
-        // Store in cache
+        // Store in cache (using async set for IndexedDB)
         if (window.DataCache) {
-          window.DataCache.set(cacheKey, json);
+          console.log(`💾 Saving heatmap to cache (${start} to ${end})...`);
+          await window.DataCache.set(cacheKey, json);
+          console.log('✓ Heatmap cached successfully');
         }
 
         applyFilters();
