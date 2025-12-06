@@ -1373,6 +1373,22 @@ const server = http.createServer(async (req, res) => {
       // Collect all placements matching criteria
       const allPlacements = [];
 
+      // Load sessions for each date to match with placements
+      const sessionsByDate = {};
+      for (const date of dates) {
+        const sessionData = await readSessionDay(date);
+        if (sessionData?.sessions) {
+          // Index sessions by agent_session_id for fast lookup
+          sessionsByDate[date] = {};
+          for (const session of sessionData.sessions) {
+            const sessionId = session.agent_session_id || session.id;
+            if (sessionId) {
+              sessionsByDate[date][sessionId] = session;
+            }
+          }
+        }
+      }
+
       for (const date of dates) {
         const placementFile = path.join(RAW_PLACEMENTS_DIR, `${date}.json`);
 
@@ -1440,7 +1456,11 @@ const server = http.createServer(async (req, res) => {
               }
             }
 
-            // Add to results with necessary fields + raw data
+            // Find matching session
+            const sessionId = placement.agent_session_id;
+            const matchingSession = sessionId && sessionsByDate[date]?.[sessionId];
+
+            // Add to results with necessary fields + raw data + session
             allPlacements.push({
               merchant: placement.merchant_site_hostname || 'Unknown',
               fi: placement.fi_name || 'Unknown',
@@ -1455,6 +1475,7 @@ const server = http.createServer(async (req, res) => {
               timeElapsed: placement.time_elapsed || 0,
               date: date,
               _raw: placement, // Include full raw placement object
+              _session: matchingSession || null, // Include matching session if found
             });
           }
         } catch (err) {
@@ -1516,17 +1537,21 @@ const server = http.createServer(async (req, res) => {
   // Data version endpoint for cache invalidation
   if (pathname === "/api/data-version") {
     try {
-      // Get last modified time of daily directory to detect data updates
-      const dailyDirStats = await fs.stat(DAILY_DIR).catch(() => null);
-      const lastModified = dailyDirStats ? dailyDirStats.mtime.getTime() : Date.now();
-
       // Get list of available daily files
       const files = await fs.readdir(DAILY_DIR).catch(() => []);
       const dailyFiles = files.filter(f => f.endsWith('.json')).sort();
 
+      // Create version from file list hash (stable across server restarts)
+      // Only changes when files are added/removed, not when directory is touched
+      const fileListHash = dailyFiles.join('|');
+      let version = 0;
+      for (let i = 0; i < fileListHash.length; i++) {
+        version = ((version << 5) - version) + fileListHash.charCodeAt(i);
+        version = version & version; // Convert to 32bit integer
+      }
+
       return send(res, 200, {
-        version: lastModified,
-        lastModified: new Date(lastModified).toISOString(),
+        version: Math.abs(version),
         fileCount: dailyFiles.length,
         dateRange: dailyFiles.length > 0 ? {
           start: dailyFiles[0].replace('.json', ''),

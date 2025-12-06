@@ -563,209 +563,195 @@
         font-size: 0.85rem;
       }
 
-      .placement-table-container {
-        overflow-x: auto;
+      /* Placement Details - Card-based Layout (matching troubleshoot.html) */
+      .placement-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
         margin-top: 8px;
-        max-width: 100%;
       }
 
-      .placement-table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 0.85rem;
+      .placement-group {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 14px;
+        box-shadow: 0 16px 40px rgba(15, 23, 42, 0.10);
       }
 
-      /* Column width specifications for each table type */
-      .placement-table.type-success th:nth-child(1),
-      .placement-table.type-success td:nth-child(1) {
-        width: 30%; /* Merchant */
-      }
-
-      .placement-table.type-success th:nth-child(2),
-      .placement-table.type-success td:nth-child(2) {
-        width: 35%; /* FI */
-      }
-
-      .placement-table.type-success th:nth-child(3),
-      .placement-table.type-success td:nth-child(3) {
-        width: 15%; /* Duration */
-      }
-
-      .placement-table.type-success th:nth-child(4),
-      .placement-table.type-success td:nth-child(4) {
-        width: 20%; /* Raw Data */
-      }
-
-      .placement-table.type-system th:nth-child(1),
-      .placement-table.type-system td:nth-child(1) {
-        width: 20%; /* Merchant */
-      }
-
-      .placement-table.type-system th:nth-child(2),
-      .placement-table.type-system td:nth-child(2) {
-        width: 20%; /* FI */
-      }
-
-      .placement-table.type-system th:nth-child(3),
-      .placement-table.type-system td:nth-child(3) {
-        width: 15%; /* Termination Type */
-      }
-
-      .placement-table.type-system th:nth-child(4),
-      .placement-table.type-system td:nth-child(4) {
-        width: 20%; /* Error Message */
-      }
-
-      .placement-table.type-system th:nth-child(5),
-      .placement-table.type-system td:nth-child(5) {
-        width: 12%; /* Timestamp */
-      }
-
-      .placement-table.type-system th:nth-child(6),
-      .placement-table.type-system td:nth-child(6) {
-        width: 8%; /* Job ID */
-      }
-
-      .placement-table.type-system th:nth-child(7),
-      .placement-table.type-system td:nth-child(7) {
-        width: 5%; /* Raw Data */
-      }
-
-      .placement-table.type-ux th:nth-child(1),
-      .placement-table.type-ux td:nth-child(1) {
-        width: 25%; /* Merchant */
-      }
-
-      .placement-table.type-ux th:nth-child(2),
-      .placement-table.type-ux td:nth-child(2) {
-        width: 30%; /* FI */
-      }
-
-      .placement-table.type-ux th:nth-child(3),
-      .placement-table.type-ux td:nth-child(3) {
-        width: 20%; /* Failure Reason */
-      }
-
-      .placement-table.type-ux th:nth-child(4),
-      .placement-table.type-ux td:nth-child(4) {
-        width: 20%; /* Error Message */
-      }
-
-      .placement-table.type-ux th:nth-child(5),
-      .placement-table.type-ux td:nth-child(5) {
-        width: 5%; /* Raw Data */
-      }
-
-      .placement-table thead th {
-        background: var(--panel-light);
-        padding: 10px 12px;
-        text-align: left;
-        font-weight: 600;
-        color: var(--muted);
-        font-size: 0.75rem;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        border-bottom: 2px solid var(--border);
-        white-space: nowrap;
-      }
-
-      .placement-table tbody tr {
+      .placement-group-header {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+        margin-bottom: 8px;
+        padding-bottom: 8px;
         border-bottom: 1px solid var(--border);
-        transition: background 0.15s ease;
       }
 
-      .placement-table tbody tr:hover {
+      .placement-group-merchant {
+        font-weight: 600;
+        color: var(--text);
+        font-size: 1rem;
+      }
+
+      .placement-group-count {
+        display: inline-flex;
+        align-items: center;
+        background: var(--chip-bg);
+        color: var(--chip-text);
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 0.78rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+
+      .placement-items {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .placement-item {
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 10px 12px;
         background: var(--panel-light);
       }
 
-      .placement-table tbody td {
-        padding: 10px 12px;
-        color: var(--text);
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
+      .placement-item-header {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+        margin-bottom: 6px;
       }
 
-      .placement-table tbody td.merchant-group {
+      .placement-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: var(--panel-light);
+        color: var(--muted);
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 0.78rem;
         font-weight: 600;
-        background: var(--surface);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border-radius: 999px;
+        padding: 4px 9px;
+        font-size: 0.78rem;
+        letter-spacing: 0.02em;
+        font-weight: 600;
+      }
+
+      .badge.success {
+        background: rgba(22,163,74,0.12);
+        color: var(--badge-success);
+      }
+
+      .badge.fail {
+        background: rgba(220,38,38,0.12);
+        color: var(--badge-fail);
+      }
+
+      .badge.warn {
+        background: rgba(245,158,11,0.15);
+        color: var(--badge-warn);
+      }
+
+      .badge.ux {
+        background: rgba(59,130,246,0.08);
         color: var(--accent);
       }
 
-      .placement-table tbody td.merchant-group-count {
-        font-size: 0.8rem;
+      .badge.neutral {
+        background: var(--panel);
         color: var(--muted);
-        font-weight: normal;
+        border: 1px solid var(--border);
       }
 
-      .placement-table tbody tr.group-row {
-        background: var(--surface);
+      .placement-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        font-size: 0.82rem;
+        color: var(--muted);
       }
 
-      .placement-table tbody tr.placement-row td:first-child {
-        padding-left: 24px;
+      .placement-meta strong {
+        color: var(--text);
       }
 
-      .placement-truncate {
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        display: inline-block;
-        vertical-align: middle;
-        max-width: 100%;
-      }
-
-      .placement-truncate:hover {
-        position: relative;
-        z-index: 10;
-        overflow: visible;
-        white-space: normal;
-        word-break: break-word;
+      .raw-details {
+        margin-top: 10px;
+        border: 1px solid var(--border);
+        border-radius: 10px;
         background: var(--panel-light);
-        padding: 4px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-        border-radius: 4px;
       }
 
-      .placement-badge {
-        display: inline-block;
-        padding: 3px 8px;
-        border-radius: 4px;
-        font-size: 0.75rem;
+      .raw-details summary {
+        cursor: pointer;
+        padding: 10px 12px;
         font-weight: 600;
-        white-space: nowrap;
-      }
-
-      .placement-badge.integration-sso {
-        background: rgba(59, 130, 246, 0.12);
-        color: #3b82f6;
-      }
-
-      .placement-badge.integration-nonsso {
-        background: rgba(168, 85, 247, 0.12);
-        color: #a855f7;
-      }
-
-      .placement-badge.integration-cardsavr {
-        background: rgba(34, 197, 94, 0.12);
-        color: #22c55e;
-      }
-
-      .placement-job-id {
-        font-family: ui-monospace, SFMono-Regular, monospace;
-        font-size: 0.8rem;
         color: var(--muted);
+        list-style: none;
       }
 
-      .placement-timestamp {
-        font-size: 0.8rem;
-        color: var(--muted);
-        white-space: nowrap;
+      .raw-details summary::-webkit-details-marker {
+        display: none;
       }
 
-      .placement-duration {
-        font-size: 0.8rem;
+      .raw-details summary::before {
+        content: "▸";
+        display: inline-block;
+        margin-right: 6px;
+        transform: translateY(-1px);
+      }
+
+      .raw-details[open] summary::before {
+        content: "▾";
+      }
+
+      .raw-block {
+        padding: 0 12px 12px;
+        overflow: auto;
+        max-height: 360px;
+        font-family: ui-monospace, SFMono-Regular, SFMono, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        font-size: 0.85rem;
         color: var(--muted);
+        white-space: pre;
+      }
+
+      /* JSON syntax highlighting in raw blocks */
+      .raw-block .json-key {
+        color: #9cdcfe;
+      }
+
+      .raw-block .json-string {
+        color: #ce9178;
+      }
+
+      .raw-block .json-number {
+        color: #b5cea8;
+      }
+
+      .raw-block .json-boolean {
+        color: #569cd6;
+      }
+
+      .raw-block .json-null {
+        color: #569cd6;
       }
 
       .show-all-btn {
@@ -801,75 +787,29 @@
         background: var(--panel-light);
       }
 
-      .placement-raw-toggle {
-        display: inline-block;
-        padding: 4px 10px;
-        background: var(--panel-light);
-        color: var(--accent);
-        border: 1px solid var(--border);
-        border-radius: 4px;
-        font-size: 0.75rem;
-        font-weight: 500;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        user-select: none;
-        white-space: nowrap;
-      }
-
-      .placement-raw-toggle:hover {
-        background: var(--surface);
-        border-color: var(--accent);
-      }
-
-      .placement-raw-toggle::before {
-        content: "▸";
-        display: inline-block;
-        margin-right: 4px;
-        transition: transform 0.2s ease;
-      }
-
-      .placement-raw-toggle.expanded::before {
-        transform: rotate(90deg);
-      }
-
-      .placement-raw-json {
-        margin-top: 8px;
+      /* Filter Controls Above Card List */
+      .placement-filters {
+        margin-bottom: 12px;
         padding: 12px;
-        background: #1e1e1e;
-        border-radius: 6px;
+        background: var(--panel);
         border: 1px solid var(--border);
-        overflow-x: auto;
-        max-height: 400px;
-        overflow-y: auto;
+        border-radius: 10px;
       }
 
-      .placement-raw-json pre {
-        margin: 0;
-        font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
-        font-size: 0.75rem;
-        line-height: 1.5;
-        color: #d4d4d4;
-        white-space: pre;
+      .placement-filter-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: center;
       }
 
-      .placement-raw-json .json-key {
-        color: #9cdcfe;
-      }
-
-      .placement-raw-json .json-string {
-        color: #ce9178;
-      }
-
-      .placement-raw-json .json-number {
-        color: #b5cea8;
-      }
-
-      .placement-raw-json .json-boolean {
-        color: #569cd6;
-      }
-
-      .placement-raw-json .json-null {
-        color: #569cd6;
+      .placement-filter-label {
+        font-size: 0.85rem;
+        color: var(--muted);
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+        font-weight: 600;
+        margin-right: 8px;
       }
 
       /* Column Filter Dropdowns */
@@ -884,6 +824,17 @@
         display: inline-flex;
         align-items: center;
         gap: 4px;
+        padding: 6px 12px;
+        background: var(--panel-light);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        font-size: 0.85rem;
+        transition: all 0.15s ease;
+      }
+
+      .column-filter-toggle:hover {
+        background: var(--surface);
+        border-color: var(--accent);
       }
 
       .column-filter-toggle::after {
@@ -3714,7 +3665,7 @@ function applyColumnTitles(root = document) {
       }
 
       /**
-       * Render placement table with grouped merchants
+       * Render placement cards with grouped merchants
        */
       function renderPlacementTable(container, data, type) {
         if (!data.results || data.results.length === 0) {
@@ -3722,144 +3673,166 @@ function applyColumnTitles(root = document) {
           return;
         }
 
-        // Build table
-        const table = document.createElement('table');
-        table.className = `placement-table type-${type}`;
+        // Create filter section
+        const filtersDiv = document.createElement('div');
+        filtersDiv.className = 'placement-filters';
 
-        // Table header (varies by type)
-        const thead = document.createElement('thead');
-        const headerRow = document.createElement('tr');
-
-        const headers = getTableHeaders(type);
-        headers.forEach((header, index) => {
-          const th = document.createElement('th');
-
-          // Add filter dropdown for Termination Type (system) or Failure Reason (ux)
-          if ((type === 'system' && header === 'Termination Type') ||
-              (type === 'ux' && header === 'Failure Reason')) {
-            const filterWrapper = document.createElement('div');
-            filterWrapper.className = 'column-filter-wrapper';
-
-            const filterToggle = document.createElement('div');
-            filterToggle.className = 'column-filter-toggle';
-            filterToggle.textContent = header;
-
-            const filterDropdown = document.createElement('div');
-            filterDropdown.className = 'column-filter-dropdown';
-
-            filterWrapper.appendChild(filterToggle);
-            filterWrapper.appendChild(filterDropdown);
-            th.appendChild(filterWrapper);
-
-            // Store column index for filtering
-            th.dataset.filterColumn = index;
-          } else {
-            th.textContent = header;
-          }
-
-          headerRow.appendChild(th);
-        });
-
-        thead.appendChild(headerRow);
-        table.appendChild(thead);
-
-        // Table body
-        const tbody = document.createElement('tbody');
+        // Build card list
+        const listDiv = document.createElement('div');
+        listDiv.className = 'placement-list';
 
         data.results.forEach(merchantGroup => {
-          // Merchant group header row
-          const groupRow = document.createElement('tr');
-          groupRow.className = 'group-row';
+          // Create merchant group card
+          const groupDiv = document.createElement('div');
+          groupDiv.className = 'placement-group';
 
-          const groupCell = document.createElement('td');
-          groupCell.colSpan = headers.length;
-          groupCell.className = 'merchant-group';
-          groupCell.innerHTML = `
-            ${merchantGroup.merchant}
-            <span class="merchant-group-count">(${merchantGroup.count} placement${merchantGroup.count !== 1 ? 's' : ''})</span>
-          `;
+          // Group header
+          const headerDiv = document.createElement('div');
+          headerDiv.className = 'placement-group-header';
 
-          groupRow.appendChild(groupCell);
-          tbody.appendChild(groupRow);
+          const merchantName = document.createElement('div');
+          merchantName.className = 'placement-group-merchant';
+          merchantName.textContent = merchantGroup.merchant;
 
-          // Individual placement rows
+          const countBadge = document.createElement('div');
+          countBadge.className = 'placement-group-count';
+          countBadge.textContent = `${merchantGroup.count} placement${merchantGroup.count !== 1 ? 's' : ''}`;
+
+          headerDiv.appendChild(merchantName);
+          headerDiv.appendChild(countBadge);
+          groupDiv.appendChild(headerDiv);
+
+          // Items container
+          const itemsDiv = document.createElement('div');
+          itemsDiv.className = 'placement-items';
+
+          // Individual placement cards
           merchantGroup.placements.forEach((placement, index) => {
-            const placementRow = document.createElement('tr');
-            placementRow.className = 'placement-row';
-            const rowId = `placement-${type}-${merchantGroup.merchant.replace(/[^a-z0-9]/gi, '-')}-${index}`;
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'placement-item';
 
-            const cells = getPlacementCells(placement, type);
-            cells.forEach(cellHtml => {
-              const td = document.createElement('td');
-              td.innerHTML = cellHtml;
-              placementRow.appendChild(td);
-            });
+            // Store filter value for filtering
+            let filterValue = '';
+            if (type === 'system') {
+              filterValue = placement.terminationType || '';
+            } else if (type === 'ux') {
+              filterValue = placement.terminationType || '';
+            }
+            itemDiv.dataset.filterValue = filterValue;
 
-            // Add "Raw Data" column with toggle button
-            const rawDataCell = document.createElement('td');
-            rawDataCell.style.verticalAlign = 'top';
+            // Item header with FI name and badges
+            const itemHeaderDiv = document.createElement('div');
+            itemHeaderDiv.className = 'placement-item-header';
 
-            // Create toggle button
-            const toggleBtn = document.createElement('div');
-            toggleBtn.className = 'placement-raw-toggle';
-            toggleBtn.textContent = 'Show';
-            toggleBtn.style.margin = '0';
+            // FI chip
+            const fiChip = document.createElement('div');
+            fiChip.className = 'placement-chip';
+            fiChip.textContent = placement.fi;
+            itemHeaderDiv.appendChild(fiChip);
 
-            // Toggle functionality
-            let isExpanded = false;
-            toggleBtn.addEventListener('click', () => {
-              isExpanded = !isExpanded;
-              if (isExpanded) {
-                toggleBtn.classList.add('expanded');
-                toggleBtn.textContent = 'Hide';
+            // Status badge
+            if (type === 'success') {
+              const badge = document.createElement('div');
+              badge.className = 'badge success';
+              badge.textContent = 'Success';
+              itemHeaderDiv.appendChild(badge);
+            } else if (type === 'system') {
+              const badge = document.createElement('div');
+              badge.className = 'badge fail';
+              badge.textContent = placement.terminationType || 'System Fail';
+              itemHeaderDiv.appendChild(badge);
+            } else if (type === 'ux') {
+              const badge = document.createElement('div');
+              badge.className = 'badge ux';
+              badge.textContent = placement.terminationType || 'UX Fail';
+              itemHeaderDiv.appendChild(badge);
+            }
 
-                // Create and show raw JSON row
-                const rawJsonRow = document.createElement('tr');
-                rawJsonRow.className = 'placement-raw-expanded-row';
-                rawJsonRow.id = `${rowId}-raw`;
+            itemDiv.appendChild(itemHeaderDiv);
 
-                const rawJsonCell = document.createElement('td');
-                rawJsonCell.colSpan = headers.length;
-                rawJsonCell.style.padding = '0 12px 12px 36px';
+            // Metadata
+            const metaDiv = document.createElement('div');
+            metaDiv.className = 'placement-meta';
 
-                const rawJsonContainer = document.createElement('div');
-                rawJsonContainer.className = 'placement-raw-json';
-
-                const pre = document.createElement('pre');
-                // Use _raw data if available, otherwise use the placement object
-                pre.innerHTML = syntaxHighlightJson(placement._raw || placement);
-                rawJsonContainer.appendChild(pre);
-
-                rawJsonCell.appendChild(rawJsonContainer);
-                rawJsonRow.appendChild(rawJsonCell);
-
-                // Insert raw JSON row after the current placement row
-                placementRow.after(rawJsonRow);
-              } else {
-                toggleBtn.classList.remove('expanded');
-                toggleBtn.textContent = 'Show';
-
-                // Remove raw JSON row
-                const rawJsonRow = document.getElementById(`${rowId}-raw`);
-                if (rawJsonRow) {
-                  rawJsonRow.remove();
-                }
+            if (type === 'success') {
+              if (placement.timeElapsed) {
+                const duration = document.createElement('div');
+                duration.innerHTML = `<strong>Duration:</strong> ${formatDuration(placement.timeElapsed)}`;
+                metaDiv.appendChild(duration);
               }
-            });
+            } else if (type === 'system') {
+              if (placement.statusMessage) {
+                const errorMsg = document.createElement('div');
+                errorMsg.innerHTML = `<strong>Error:</strong> ${escapeHtml(placement.statusMessage)}`;
+                metaDiv.appendChild(errorMsg);
+              }
+              if (placement.completedOn) {
+                const timestamp = document.createElement('div');
+                timestamp.innerHTML = `<strong>Timestamp:</strong> ${formatTimestamp(placement.completedOn)}`;
+                metaDiv.appendChild(timestamp);
+              }
+              if (placement.jobId) {
+                const jobId = document.createElement('div');
+                jobId.innerHTML = `<strong>Job ID:</strong> ${escapeHtml(placement.jobId)}`;
+                metaDiv.appendChild(jobId);
+              }
+            } else if (type === 'ux') {
+              if (placement.statusMessage) {
+                const errorMsg = document.createElement('div');
+                errorMsg.innerHTML = `<strong>Error:</strong> ${escapeHtml(placement.statusMessage)}`;
+                metaDiv.appendChild(errorMsg);
+              }
+            }
 
-            rawDataCell.appendChild(toggleBtn);
-            placementRow.appendChild(rawDataCell);
+            if (metaDiv.children.length > 0) {
+              itemDiv.appendChild(metaDiv);
+            }
 
-            tbody.appendChild(placementRow);
+            // Session data details (if available)
+            if (placement._session) {
+              const sessionDetails = document.createElement('details');
+              sessionDetails.className = 'raw-details';
+
+              const sessionSummary = document.createElement('summary');
+              sessionSummary.textContent = 'Session Data';
+              sessionDetails.appendChild(sessionSummary);
+
+              const sessionBlock = document.createElement('div');
+              sessionBlock.className = 'raw-block';
+              sessionBlock.innerHTML = syntaxHighlightJson(placement._session);
+              sessionDetails.appendChild(sessionBlock);
+
+              itemDiv.appendChild(sessionDetails);
+            }
+
+            // Placement raw data details
+            const details = document.createElement('details');
+            details.className = 'raw-details';
+
+            const summary = document.createElement('summary');
+            summary.textContent = 'Placement Data';
+            details.appendChild(summary);
+
+            const rawBlock = document.createElement('div');
+            rawBlock.className = 'raw-block';
+            rawBlock.innerHTML = syntaxHighlightJson(placement._raw || placement);
+            details.appendChild(rawBlock);
+
+            itemDiv.appendChild(details);
+            itemsDiv.appendChild(itemDiv);
           });
+
+          groupDiv.appendChild(itemsDiv);
+          listDiv.appendChild(groupDiv);
         });
 
-        table.appendChild(tbody);
+        // Clear and populate container
         container.innerHTML = '';
-        container.appendChild(table);
+        container.appendChild(filtersDiv);
+        container.appendChild(listDiv);
 
-        // Initialize column filters after table is rendered
-        initColumnFilters(table, type, data);
+        // Initialize card filters
+        initCardFilters(filtersDiv, listDiv, type, data);
 
         // Add "Show all" button if there are more results
         if (data.hasMore) {
@@ -3885,58 +3858,6 @@ function applyColumnTitles(root = document) {
         }
       }
 
-      /**
-       * Get table headers based on breakdown type
-       */
-      function getTableHeaders(type) {
-        switch (type) {
-          case 'success':
-            return ['Merchant', 'FI', 'Duration', 'Raw Data'];
-          case 'system':
-            return ['Merchant', 'FI', 'Termination Type', 'Error Message', 'Timestamp', 'Job ID', 'Raw Data'];
-          case 'ux':
-            return ['Merchant', 'FI', 'Failure Reason', 'Error Message', 'Raw Data'];
-          default:
-            return ['Merchant', 'FI', 'Raw Data'];
-        }
-      }
-
-      /**
-       * Get table cells for a placement row based on type
-       */
-      function getPlacementCells(placement, type) {
-        const baseCells = [
-          '', // Empty first cell (merchant is in group header)
-          `<span class="placement-truncate" title="${escapeHtml(placement.fi)}">${escapeHtml(placement.fi)}</span>`,
-        ];
-
-        switch (type) {
-          case 'success':
-            return [
-              ...baseCells,
-              `<span class="placement-duration">${formatDuration(placement.timeElapsed)}</span>`,
-            ];
-
-          case 'system':
-            return [
-              ...baseCells,
-              escapeHtml(placement.terminationType),
-              `<span class="placement-truncate" title="${escapeHtml(placement.statusMessage)}">${escapeHtml(placement.statusMessage)}</span>`,
-              `<span class="placement-timestamp">${formatTimestamp(placement.completedOn)}</span>`,
-              `<span class="placement-job-id">${escapeHtml(placement.jobId)}</span>`,
-            ];
-
-          case 'ux':
-            return [
-              ...baseCells,
-              escapeHtml(placement.terminationType),
-              `<span class="placement-truncate" title="${escapeHtml(placement.statusMessage)}">${escapeHtml(placement.statusMessage)}</span>`,
-            ];
-
-          default:
-            return baseCells;
-        }
-      }
 
       /**
        * Format duration in milliseconds to readable string
@@ -4005,157 +3926,174 @@ function applyColumnTitles(root = document) {
       }
 
       /**
-       * Initialize column filter dropdowns
+       * Initialize card filter dropdowns
        */
-      function initColumnFilters(table, type, data) {
-        const filterHeaders = table.querySelectorAll('th[data-filter-column]');
+      function initCardFilters(filtersDiv, listDiv, type, data) {
+        // Only add filters for system and ux types
+        if (type !== 'system' && type !== 'ux') {
+          filtersDiv.style.display = 'none';
+          return;
+        }
 
-        filterHeaders.forEach(th => {
-          const columnIndex = parseInt(th.dataset.filterColumn);
-          const filterWrapper = th.querySelector('.column-filter-wrapper');
-          const filterToggle = filterWrapper.querySelector('.column-filter-toggle');
-          const filterDropdown = filterWrapper.querySelector('.column-filter-dropdown');
+        // Collect unique filter values from placement items
+        const uniqueValues = new Set();
+        const items = listDiv.querySelectorAll('.placement-item');
 
-          // Collect unique values from this column
-          const uniqueValues = new Set();
-          const rows = table.querySelectorAll('tbody tr.placement-row');
+        items.forEach(item => {
+          const filterValue = item.dataset.filterValue;
+          if (filterValue) {
+            uniqueValues.add(filterValue);
+          }
+        });
 
-          rows.forEach(row => {
-            const cells = row.querySelectorAll('td');
-            if (cells[columnIndex]) {
-              const cellText = cells[columnIndex].textContent.trim();
-              if (cellText) {
-                uniqueValues.add(cellText);
-              }
+        // Build filter options
+        const valueArray = Array.from(uniqueValues).sort();
+        if (valueArray.length === 0) {
+          filtersDiv.style.display = 'none';
+          return;
+        }
+
+        const selectedValues = new Set(valueArray); // All selected by default
+
+        // Create filter row
+        const filterRow = document.createElement('div');
+        filterRow.className = 'placement-filter-row';
+
+        // Filter label
+        const filterLabel = document.createElement('div');
+        filterLabel.className = 'placement-filter-label';
+        filterLabel.textContent = type === 'system' ? 'Termination Type:' : 'Failure Reason:';
+        filterRow.appendChild(filterLabel);
+
+        // Filter wrapper
+        const filterWrapper = document.createElement('div');
+        filterWrapper.className = 'column-filter-wrapper';
+
+        const filterToggle = document.createElement('div');
+        filterToggle.className = 'column-filter-toggle';
+        filterToggle.textContent = 'Filter';
+
+        const filterDropdown = document.createElement('div');
+        filterDropdown.className = 'column-filter-dropdown';
+
+        // Add controls (Select All / Deselect All)
+        const controls = document.createElement('div');
+        controls.className = 'column-filter-controls';
+        controls.innerHTML = `
+          <button class="select-all-btn">Select All</button>
+          <button class="deselect-all-btn">Deselect All</button>
+        `;
+        filterDropdown.appendChild(controls);
+
+        // Add checkboxes for each value
+        valueArray.forEach(value => {
+          const option = document.createElement('div');
+          option.className = 'column-filter-option';
+
+          const checkbox = document.createElement('input');
+          checkbox.type = 'checkbox';
+          checkbox.checked = true;
+          checkbox.id = `filter-${type}-${value.replace(/[^a-z0-9]/gi, '-')}`;
+
+          const label = document.createElement('label');
+          label.htmlFor = checkbox.id;
+          label.textContent = value;
+
+          option.appendChild(checkbox);
+          option.appendChild(label);
+          filterDropdown.appendChild(option);
+
+          // Handle checkbox change
+          checkbox.addEventListener('change', () => {
+            if (checkbox.checked) {
+              selectedValues.add(value);
+            } else {
+              selectedValues.delete(value);
             }
-          });
-
-          // Build filter options
-          const valueArray = Array.from(uniqueValues).sort();
-          const selectedValues = new Set(valueArray); // All selected by default
-
-          // Add controls (Select All / Deselect All)
-          const controls = document.createElement('div');
-          controls.className = 'column-filter-controls';
-          controls.innerHTML = `
-            <button class="select-all-btn">Select All</button>
-            <button class="deselect-all-btn">Deselect All</button>
-          `;
-          filterDropdown.appendChild(controls);
-
-          // Add checkboxes for each value
-          valueArray.forEach(value => {
-            const option = document.createElement('div');
-            option.className = 'column-filter-option';
-
-            const checkbox = document.createElement('input');
-            checkbox.type = 'checkbox';
-            checkbox.checked = true;
-            checkbox.id = `filter-${type}-${columnIndex}-${value.replace(/[^a-z0-9]/gi, '-')}`;
-
-            const label = document.createElement('label');
-            label.htmlFor = checkbox.id;
-            label.textContent = value;
-
-            option.appendChild(checkbox);
-            option.appendChild(label);
-            filterDropdown.appendChild(option);
-
-            // Handle checkbox change
-            checkbox.addEventListener('change', () => {
-              if (checkbox.checked) {
-                selectedValues.add(value);
-              } else {
-                selectedValues.delete(value);
-              }
-              applyColumnFilter();
-              updateFilterCount();
-            });
-          });
-
-          // Apply filter function
-          const applyColumnFilter = () => {
-            rows.forEach(row => {
-              const cells = row.querySelectorAll('td');
-              const cellText = cells[columnIndex]?.textContent.trim();
-
-              if (cellText && !selectedValues.has(cellText)) {
-                row.style.display = 'none';
-              } else {
-                row.style.display = '';
-              }
-            });
-
-            // Hide merchant groups if all placements are hidden
-            const groupRows = table.querySelectorAll('tbody tr.group-row');
-            groupRows.forEach(groupRow => {
-              const nextRows = [];
-              let sibling = groupRow.nextElementSibling;
-
-              while (sibling && sibling.classList.contains('placement-row')) {
-                nextRows.push(sibling);
-                sibling = sibling.nextElementSibling;
-              }
-
-              const allHidden = nextRows.every(r => r.style.display === 'none');
-              groupRow.style.display = allHidden ? 'none' : '';
-            });
-          };
-
-          // Update filter count badge
-          const updateFilterCount = () => {
-            const activeCount = selectedValues.size;
-            const totalCount = valueArray.length;
-
-            // Remove existing count badge
-            const existingBadge = filterToggle.querySelector('.column-filter-count');
-            if (existingBadge) {
-              existingBadge.remove();
-            }
-
-            // Add count badge if not all selected
-            if (activeCount < totalCount) {
-              const badge = document.createElement('span');
-              badge.className = 'column-filter-count';
-              badge.textContent = activeCount;
-              filterToggle.appendChild(badge);
-            }
-          };
-
-          // Toggle dropdown visibility
-          filterToggle.addEventListener('click', (e) => {
-            e.stopPropagation();
-            filterDropdown.classList.toggle('active');
-          });
-
-          // Select All button
-          controls.querySelector('.select-all-btn').addEventListener('click', () => {
-            filterDropdown.querySelectorAll('input[type="checkbox"]').forEach(cb => {
-              cb.checked = true;
-              const value = cb.labels[0]?.textContent;
-              if (value) selectedValues.add(value);
-            });
-            applyColumnFilter();
+            applyCardFilter();
             updateFilterCount();
           });
+        });
 
-          // Deselect All button
-          controls.querySelector('.deselect-all-btn').addEventListener('click', () => {
-            filterDropdown.querySelectorAll('input[type="checkbox"]').forEach(cb => {
-              cb.checked = false;
-              const value = cb.labels[0]?.textContent;
-              if (value) selectedValues.delete(value);
-            });
-            applyColumnFilter();
-            updateFilterCount();
-          });
+        filterWrapper.appendChild(filterToggle);
+        filterWrapper.appendChild(filterDropdown);
+        filterRow.appendChild(filterWrapper);
+        filtersDiv.appendChild(filterRow);
 
-          // Close dropdown when clicking outside
-          document.addEventListener('click', (e) => {
-            if (!filterWrapper.contains(e.target)) {
-              filterDropdown.classList.remove('active');
+        // Apply filter function
+        const applyCardFilter = () => {
+          items.forEach(item => {
+            const filterValue = item.dataset.filterValue;
+
+            if (filterValue && !selectedValues.has(filterValue)) {
+              item.style.display = 'none';
+            } else {
+              item.style.display = '';
             }
           });
+
+          // Hide placement groups if all items are hidden
+          const groups = listDiv.querySelectorAll('.placement-group');
+          groups.forEach(group => {
+            const groupItems = group.querySelectorAll('.placement-item');
+            const allHidden = Array.from(groupItems).every(item => item.style.display === 'none');
+            group.style.display = allHidden ? 'none' : '';
+          });
+        };
+
+        // Update filter count badge
+        const updateFilterCount = () => {
+          const activeCount = selectedValues.size;
+          const totalCount = valueArray.length;
+
+          // Remove existing count badge
+          const existingBadge = filterToggle.querySelector('.column-filter-count');
+          if (existingBadge) {
+            existingBadge.remove();
+          }
+
+          // Add count badge if not all selected
+          if (activeCount < totalCount) {
+            const badge = document.createElement('span');
+            badge.className = 'column-filter-count';
+            badge.textContent = activeCount;
+            filterToggle.appendChild(badge);
+          }
+        };
+
+        // Toggle dropdown visibility
+        filterToggle.addEventListener('click', (e) => {
+          e.stopPropagation();
+          filterDropdown.classList.toggle('active');
+        });
+
+        // Select All button
+        controls.querySelector('.select-all-btn').addEventListener('click', () => {
+          filterDropdown.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+            cb.checked = true;
+            const value = cb.labels[0]?.textContent;
+            if (value) selectedValues.add(value);
+          });
+          applyCardFilter();
+          updateFilterCount();
+        });
+
+        // Deselect All button
+        controls.querySelector('.deselect-all-btn').addEventListener('click', () => {
+          filterDropdown.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+            cb.checked = false;
+            const value = cb.labels[0]?.textContent;
+            if (value) selectedValues.delete(value);
+          });
+          applyCardFilter();
+          updateFilterCount();
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+          if (!filterWrapper.contains(e.target)) {
+            filterDropdown.classList.remove('active');
+          }
         });
       }
 
