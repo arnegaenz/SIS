@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="./sis-shared.css?v=navfix" />
   <link rel="stylesheet" href="./assets/css/sis.css">
   <script defer src="./assets/js/sis.js"></script>
-  <script defer src="./assets/js/data-cache.js?v=2"></script>
+  <script defer src="./assets/js/data-cache.js?v=3"></script>
   <script defer src="./assets/js/filters.js?v=shared"></script>
   <link rel="stylesheet" href="./assets/css/filters.css">
     <style>
@@ -531,6 +531,8 @@
 
       .placement-content {
         margin-top: 12px;
+        max-width: 100%;
+        overflow: hidden;
       }
 
       .placement-loading {
@@ -564,12 +566,94 @@
       .placement-table-container {
         overflow-x: auto;
         margin-top: 8px;
+        max-width: 100%;
       }
 
       .placement-table {
         width: 100%;
         border-collapse: collapse;
         font-size: 0.85rem;
+      }
+
+      /* Column width specifications for each table type */
+      .placement-table.type-success th:nth-child(1),
+      .placement-table.type-success td:nth-child(1) {
+        width: 30%; /* Merchant */
+      }
+
+      .placement-table.type-success th:nth-child(2),
+      .placement-table.type-success td:nth-child(2) {
+        width: 35%; /* FI */
+      }
+
+      .placement-table.type-success th:nth-child(3),
+      .placement-table.type-success td:nth-child(3) {
+        width: 15%; /* Duration */
+      }
+
+      .placement-table.type-success th:nth-child(4),
+      .placement-table.type-success td:nth-child(4) {
+        width: 20%; /* Raw Data */
+      }
+
+      .placement-table.type-system th:nth-child(1),
+      .placement-table.type-system td:nth-child(1) {
+        width: 20%; /* Merchant */
+      }
+
+      .placement-table.type-system th:nth-child(2),
+      .placement-table.type-system td:nth-child(2) {
+        width: 20%; /* FI */
+      }
+
+      .placement-table.type-system th:nth-child(3),
+      .placement-table.type-system td:nth-child(3) {
+        width: 15%; /* Termination Type */
+      }
+
+      .placement-table.type-system th:nth-child(4),
+      .placement-table.type-system td:nth-child(4) {
+        width: 20%; /* Error Message */
+      }
+
+      .placement-table.type-system th:nth-child(5),
+      .placement-table.type-system td:nth-child(5) {
+        width: 12%; /* Timestamp */
+      }
+
+      .placement-table.type-system th:nth-child(6),
+      .placement-table.type-system td:nth-child(6) {
+        width: 8%; /* Job ID */
+      }
+
+      .placement-table.type-system th:nth-child(7),
+      .placement-table.type-system td:nth-child(7) {
+        width: 5%; /* Raw Data */
+      }
+
+      .placement-table.type-ux th:nth-child(1),
+      .placement-table.type-ux td:nth-child(1) {
+        width: 25%; /* Merchant */
+      }
+
+      .placement-table.type-ux th:nth-child(2),
+      .placement-table.type-ux td:nth-child(2) {
+        width: 30%; /* FI */
+      }
+
+      .placement-table.type-ux th:nth-child(3),
+      .placement-table.type-ux td:nth-child(3) {
+        width: 20%; /* Failure Reason */
+      }
+
+      .placement-table.type-ux th:nth-child(4),
+      .placement-table.type-ux td:nth-child(4) {
+        width: 20%; /* Error Message */
+      }
+
+      .placement-table.type-ux th:nth-child(5),
+      .placement-table.type-ux td:nth-child(5) {
+        width: 5%; /* Raw Data */
       }
 
       .placement-table thead th {
@@ -597,6 +681,9 @@
       .placement-table tbody td {
         padding: 10px 12px;
         color: var(--text);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
 
       .placement-table tbody td.merchant-group {
@@ -620,16 +707,24 @@
       }
 
       .placement-truncate {
-        max-width: 250px;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+        display: inline-block;
+        vertical-align: middle;
+        max-width: 100%;
       }
 
       .placement-truncate:hover {
+        position: relative;
+        z-index: 10;
         overflow: visible;
         white-space: normal;
         word-break: break-word;
+        background: var(--panel-light);
+        padding: 4px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        border-radius: 4px;
       }
 
       .placement-badge {
@@ -704,6 +799,181 @@
         border: 1px dashed var(--border);
         border-radius: 8px;
         background: var(--panel-light);
+      }
+
+      .placement-raw-toggle {
+        display: inline-block;
+        padding: 4px 10px;
+        background: var(--panel-light);
+        color: var(--accent);
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        user-select: none;
+        white-space: nowrap;
+      }
+
+      .placement-raw-toggle:hover {
+        background: var(--surface);
+        border-color: var(--accent);
+      }
+
+      .placement-raw-toggle::before {
+        content: "▸";
+        display: inline-block;
+        margin-right: 4px;
+        transition: transform 0.2s ease;
+      }
+
+      .placement-raw-toggle.expanded::before {
+        transform: rotate(90deg);
+      }
+
+      .placement-raw-json {
+        margin-top: 8px;
+        padding: 12px;
+        background: #1e1e1e;
+        border-radius: 6px;
+        border: 1px solid var(--border);
+        overflow-x: auto;
+        max-height: 400px;
+        overflow-y: auto;
+      }
+
+      .placement-raw-json pre {
+        margin: 0;
+        font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+        font-size: 0.75rem;
+        line-height: 1.5;
+        color: #d4d4d4;
+        white-space: pre;
+      }
+
+      .placement-raw-json .json-key {
+        color: #9cdcfe;
+      }
+
+      .placement-raw-json .json-string {
+        color: #ce9178;
+      }
+
+      .placement-raw-json .json-number {
+        color: #b5cea8;
+      }
+
+      .placement-raw-json .json-boolean {
+        color: #569cd6;
+      }
+
+      .placement-raw-json .json-null {
+        color: #569cd6;
+      }
+
+      /* Column Filter Dropdowns */
+      .column-filter-wrapper {
+        position: relative;
+        display: inline-block;
+      }
+
+      .column-filter-toggle {
+        cursor: pointer;
+        user-select: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+      }
+
+      .column-filter-toggle::after {
+        content: '▾';
+        font-size: 0.7rem;
+        opacity: 0.6;
+      }
+
+      .column-filter-dropdown {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        margin-top: 4px;
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        padding: 8px;
+        min-width: 200px;
+        max-width: 300px;
+        max-height: 300px;
+        overflow-y: auto;
+        z-index: 1000;
+        display: none;
+      }
+
+      .column-filter-dropdown.active {
+        display: block;
+      }
+
+      .column-filter-option {
+        padding: 6px 8px;
+        margin: 2px 0;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background 0.15s ease;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.85rem;
+      }
+
+      .column-filter-option:hover {
+        background: var(--panel-light);
+      }
+
+      .column-filter-option input[type="checkbox"] {
+        cursor: pointer;
+      }
+
+      .column-filter-option label {
+        cursor: pointer;
+        flex: 1;
+        user-select: none;
+      }
+
+      .column-filter-controls {
+        display: flex;
+        gap: 8px;
+        padding: 8px 8px 4px 8px;
+        border-bottom: 1px solid var(--border);
+        margin-bottom: 4px;
+      }
+
+      .column-filter-controls button {
+        flex: 1;
+        padding: 4px 8px;
+        background: var(--panel-light);
+        color: var(--text);
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        font-size: 0.75rem;
+        cursor: pointer;
+        transition: all 0.15s ease;
+      }
+
+      .column-filter-controls button:hover {
+        background: var(--surface);
+        border-color: var(--accent);
+      }
+
+      .column-filter-count {
+        display: inline-block;
+        margin-left: 4px;
+        padding: 2px 6px;
+        background: var(--accent);
+        color: white;
+        border-radius: 10px;
+        font-size: 0.7rem;
+        font-weight: 600;
       }
     </style>
   </head>
@@ -3395,13 +3665,39 @@ function applyColumnTitles(root = document) {
        * Fetch placement details from API
        */
       async function fetchPlacementDetails(type, showAll = false) {
+        // Get current filter state from shared filters
+        const shared = window.__FILTER_STATE;
+
+        // Build FI list from shared filter state
+        let fiParam = '__all__';
+        if (shared && shared.page === 'funnel' && shared.fis && shared.fis.size > 0) {
+          fiParam = Array.from(shared.fis).join(',');
+        } else if (fiFilterSelect?.value && fiFilterSelect.value !== '__all__') {
+          fiParam = fiFilterSelect.value;
+        }
+
+        // Get partner and integration from shared state or fallback to old selects
+        let partnerParam = '__all_partners__';
+        if (shared && shared.partner && shared.partner !== 'All') {
+          partnerParam = shared.partner;
+        } else if (partnerSelect?.value && partnerSelect.value !== '__all_partners__') {
+          partnerParam = partnerSelect.value;
+        }
+
+        let integrationParam = '(all)';
+        if (shared && shared.integration && shared.integration !== 'All') {
+          integrationParam = shared.integration;
+        } else if (integrationSelect?.value && integrationSelect.value !== '(all)') {
+          integrationParam = integrationSelect.value;
+        }
+
         const params = new URLSearchParams({
           type: type,
           startDate: startDateInput?.value || defaultStartDateStr,
           endDate: endDateInput?.value || defaultEndDateStr,
-          fi: fiFilterSelect?.value || '__all__',
-          partner: partnerSelect?.value || '__all_partners__',
-          integration: integrationSelect?.value || '(all)',
+          fi: fiParam,
+          partner: partnerParam,
+          integration: integrationParam,
           includeTest: includeTestCheckbox?.checked ? 'true' : 'false',
           limit: '50',
           showAll: showAll ? 'true' : 'false',
@@ -3428,16 +3724,39 @@ function applyColumnTitles(root = document) {
 
         // Build table
         const table = document.createElement('table');
-        table.className = 'placement-table';
+        table.className = `placement-table type-${type}`;
 
         // Table header (varies by type)
         const thead = document.createElement('thead');
         const headerRow = document.createElement('tr');
 
         const headers = getTableHeaders(type);
-        headers.forEach(header => {
+        headers.forEach((header, index) => {
           const th = document.createElement('th');
-          th.textContent = header;
+
+          // Add filter dropdown for Termination Type (system) or Failure Reason (ux)
+          if ((type === 'system' && header === 'Termination Type') ||
+              (type === 'ux' && header === 'Failure Reason')) {
+            const filterWrapper = document.createElement('div');
+            filterWrapper.className = 'column-filter-wrapper';
+
+            const filterToggle = document.createElement('div');
+            filterToggle.className = 'column-filter-toggle';
+            filterToggle.textContent = header;
+
+            const filterDropdown = document.createElement('div');
+            filterDropdown.className = 'column-filter-dropdown';
+
+            filterWrapper.appendChild(filterToggle);
+            filterWrapper.appendChild(filterDropdown);
+            th.appendChild(filterWrapper);
+
+            // Store column index for filtering
+            th.dataset.filterColumn = index;
+          } else {
+            th.textContent = header;
+          }
+
           headerRow.appendChild(th);
         });
 
@@ -3464,9 +3783,10 @@ function applyColumnTitles(root = document) {
           tbody.appendChild(groupRow);
 
           // Individual placement rows
-          merchantGroup.placements.forEach(placement => {
+          merchantGroup.placements.forEach((placement, index) => {
             const placementRow = document.createElement('tr');
             placementRow.className = 'placement-row';
+            const rowId = `placement-${type}-${merchantGroup.merchant.replace(/[^a-z0-9]/gi, '-')}-${index}`;
 
             const cells = getPlacementCells(placement, type);
             cells.forEach(cellHtml => {
@@ -3475,6 +3795,61 @@ function applyColumnTitles(root = document) {
               placementRow.appendChild(td);
             });
 
+            // Add "Raw Data" column with toggle button
+            const rawDataCell = document.createElement('td');
+            rawDataCell.style.verticalAlign = 'top';
+
+            // Create toggle button
+            const toggleBtn = document.createElement('div');
+            toggleBtn.className = 'placement-raw-toggle';
+            toggleBtn.textContent = 'Show';
+            toggleBtn.style.margin = '0';
+
+            // Toggle functionality
+            let isExpanded = false;
+            toggleBtn.addEventListener('click', () => {
+              isExpanded = !isExpanded;
+              if (isExpanded) {
+                toggleBtn.classList.add('expanded');
+                toggleBtn.textContent = 'Hide';
+
+                // Create and show raw JSON row
+                const rawJsonRow = document.createElement('tr');
+                rawJsonRow.className = 'placement-raw-expanded-row';
+                rawJsonRow.id = `${rowId}-raw`;
+
+                const rawJsonCell = document.createElement('td');
+                rawJsonCell.colSpan = headers.length;
+                rawJsonCell.style.padding = '0 12px 12px 36px';
+
+                const rawJsonContainer = document.createElement('div');
+                rawJsonContainer.className = 'placement-raw-json';
+
+                const pre = document.createElement('pre');
+                // Use _raw data if available, otherwise use the placement object
+                pre.innerHTML = syntaxHighlightJson(placement._raw || placement);
+                rawJsonContainer.appendChild(pre);
+
+                rawJsonCell.appendChild(rawJsonContainer);
+                rawJsonRow.appendChild(rawJsonCell);
+
+                // Insert raw JSON row after the current placement row
+                placementRow.after(rawJsonRow);
+              } else {
+                toggleBtn.classList.remove('expanded');
+                toggleBtn.textContent = 'Show';
+
+                // Remove raw JSON row
+                const rawJsonRow = document.getElementById(`${rowId}-raw`);
+                if (rawJsonRow) {
+                  rawJsonRow.remove();
+                }
+              }
+            });
+
+            rawDataCell.appendChild(toggleBtn);
+            placementRow.appendChild(rawDataCell);
+
             tbody.appendChild(placementRow);
           });
         });
@@ -3482,6 +3857,9 @@ function applyColumnTitles(root = document) {
         table.appendChild(tbody);
         container.innerHTML = '';
         container.appendChild(table);
+
+        // Initialize column filters after table is rendered
+        initColumnFilters(table, type, data);
 
         // Add "Show all" button if there are more results
         if (data.hasMore) {
@@ -3513,13 +3891,13 @@ function applyColumnTitles(root = document) {
       function getTableHeaders(type) {
         switch (type) {
           case 'success':
-            return ['Merchant', 'FI', 'Instance', 'Integration Type', 'Duration'];
+            return ['Merchant', 'FI', 'Duration', 'Raw Data'];
           case 'system':
-            return ['Merchant', 'FI', 'Instance', 'Integration Type', 'Termination Type', 'Error Message', 'Timestamp', 'Job ID'];
+            return ['Merchant', 'FI', 'Termination Type', 'Error Message', 'Timestamp', 'Job ID', 'Raw Data'];
           case 'ux':
-            return ['Merchant', 'FI', 'Instance', 'Integration Type', 'Failure Reason', 'Error Message'];
+            return ['Merchant', 'FI', 'Failure Reason', 'Error Message', 'Raw Data'];
           default:
-            return ['Merchant', 'FI', 'Instance'];
+            return ['Merchant', 'FI', 'Raw Data'];
         }
       }
 
@@ -3527,13 +3905,9 @@ function applyColumnTitles(root = document) {
        * Get table cells for a placement row based on type
        */
       function getPlacementCells(placement, type) {
-        const integrationBadge = `<span class="placement-badge integration-${placement.integration.toLowerCase().replace(/[^a-z]/g, '')}">${escapeHtml(placement.integration)}</span>`;
-
         const baseCells = [
           '', // Empty first cell (merchant is in group header)
           `<span class="placement-truncate" title="${escapeHtml(placement.fi)}">${escapeHtml(placement.fi)}</span>`,
-          escapeHtml(placement.instance),
-          integrationBadge,
         ];
 
         switch (type) {
@@ -3606,6 +3980,183 @@ function applyColumnTitles(root = document) {
         const div = document.createElement('div');
         div.textContent = text.toString();
         return div.innerHTML;
+      }
+
+      /**
+       * Syntax highlight JSON with colors
+       */
+      function syntaxHighlightJson(obj) {
+        const json = JSON.stringify(obj, null, 2);
+        return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
+          let cls = 'json-number';
+          if (/^"/.test(match)) {
+            if (/:$/.test(match)) {
+              cls = 'json-key';
+            } else {
+              cls = 'json-string';
+            }
+          } else if (/true|false/.test(match)) {
+            cls = 'json-boolean';
+          } else if (/null/.test(match)) {
+            cls = 'json-null';
+          }
+          return '<span class="' + cls + '">' + escapeHtml(match) + '</span>';
+        });
+      }
+
+      /**
+       * Initialize column filter dropdowns
+       */
+      function initColumnFilters(table, type, data) {
+        const filterHeaders = table.querySelectorAll('th[data-filter-column]');
+
+        filterHeaders.forEach(th => {
+          const columnIndex = parseInt(th.dataset.filterColumn);
+          const filterWrapper = th.querySelector('.column-filter-wrapper');
+          const filterToggle = filterWrapper.querySelector('.column-filter-toggle');
+          const filterDropdown = filterWrapper.querySelector('.column-filter-dropdown');
+
+          // Collect unique values from this column
+          const uniqueValues = new Set();
+          const rows = table.querySelectorAll('tbody tr.placement-row');
+
+          rows.forEach(row => {
+            const cells = row.querySelectorAll('td');
+            if (cells[columnIndex]) {
+              const cellText = cells[columnIndex].textContent.trim();
+              if (cellText) {
+                uniqueValues.add(cellText);
+              }
+            }
+          });
+
+          // Build filter options
+          const valueArray = Array.from(uniqueValues).sort();
+          const selectedValues = new Set(valueArray); // All selected by default
+
+          // Add controls (Select All / Deselect All)
+          const controls = document.createElement('div');
+          controls.className = 'column-filter-controls';
+          controls.innerHTML = `
+            <button class="select-all-btn">Select All</button>
+            <button class="deselect-all-btn">Deselect All</button>
+          `;
+          filterDropdown.appendChild(controls);
+
+          // Add checkboxes for each value
+          valueArray.forEach(value => {
+            const option = document.createElement('div');
+            option.className = 'column-filter-option';
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.checked = true;
+            checkbox.id = `filter-${type}-${columnIndex}-${value.replace(/[^a-z0-9]/gi, '-')}`;
+
+            const label = document.createElement('label');
+            label.htmlFor = checkbox.id;
+            label.textContent = value;
+
+            option.appendChild(checkbox);
+            option.appendChild(label);
+            filterDropdown.appendChild(option);
+
+            // Handle checkbox change
+            checkbox.addEventListener('change', () => {
+              if (checkbox.checked) {
+                selectedValues.add(value);
+              } else {
+                selectedValues.delete(value);
+              }
+              applyColumnFilter();
+              updateFilterCount();
+            });
+          });
+
+          // Apply filter function
+          const applyColumnFilter = () => {
+            rows.forEach(row => {
+              const cells = row.querySelectorAll('td');
+              const cellText = cells[columnIndex]?.textContent.trim();
+
+              if (cellText && !selectedValues.has(cellText)) {
+                row.style.display = 'none';
+              } else {
+                row.style.display = '';
+              }
+            });
+
+            // Hide merchant groups if all placements are hidden
+            const groupRows = table.querySelectorAll('tbody tr.group-row');
+            groupRows.forEach(groupRow => {
+              const nextRows = [];
+              let sibling = groupRow.nextElementSibling;
+
+              while (sibling && sibling.classList.contains('placement-row')) {
+                nextRows.push(sibling);
+                sibling = sibling.nextElementSibling;
+              }
+
+              const allHidden = nextRows.every(r => r.style.display === 'none');
+              groupRow.style.display = allHidden ? 'none' : '';
+            });
+          };
+
+          // Update filter count badge
+          const updateFilterCount = () => {
+            const activeCount = selectedValues.size;
+            const totalCount = valueArray.length;
+
+            // Remove existing count badge
+            const existingBadge = filterToggle.querySelector('.column-filter-count');
+            if (existingBadge) {
+              existingBadge.remove();
+            }
+
+            // Add count badge if not all selected
+            if (activeCount < totalCount) {
+              const badge = document.createElement('span');
+              badge.className = 'column-filter-count';
+              badge.textContent = activeCount;
+              filterToggle.appendChild(badge);
+            }
+          };
+
+          // Toggle dropdown visibility
+          filterToggle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            filterDropdown.classList.toggle('active');
+          });
+
+          // Select All button
+          controls.querySelector('.select-all-btn').addEventListener('click', () => {
+            filterDropdown.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+              cb.checked = true;
+              const value = cb.labels[0]?.textContent;
+              if (value) selectedValues.add(value);
+            });
+            applyColumnFilter();
+            updateFilterCount();
+          });
+
+          // Deselect All button
+          controls.querySelector('.deselect-all-btn').addEventListener('click', () => {
+            filterDropdown.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+              cb.checked = false;
+              const value = cb.labels[0]?.textContent;
+              if (value) selectedValues.delete(value);
+            });
+            applyColumnFilter();
+            updateFilterCount();
+          });
+
+          // Close dropdown when clicking outside
+          document.addEventListener('click', (e) => {
+            if (!filterWrapper.contains(e.target)) {
+              filterDropdown.classList.remove('active');
+            }
+          });
+        });
       }
 
       /**
@@ -4465,10 +5016,10 @@ function applyColumnTitles(root = document) {
               renderDateWarning();
             }
 
-            // Try to load all data from bulk cache first
+            // Try to load all data from bulk cache first (using async getAsync for IndexedDB)
             const bulkCacheKey = 'funnel_all_daily_data';
             if (window.DataCache) {
-              const cachedBulk = window.DataCache.get(bulkCacheKey);
+              const cachedBulk = await window.DataCache.getAsync(bulkCacheKey);
               if (cachedBulk && typeof cachedBulk === 'object') {
                 setLoaderMessage('Loading from cache…');
                 dailyData = cachedBulk;
@@ -4490,9 +5041,9 @@ function applyColumnTitles(root = document) {
                   setLoaderMessage(`Loading daily data… ${totalDays}/${totalDays}`);
                 }
 
-                // Store bulk cache for next time
+                // Store bulk cache for next time (using async set for IndexedDB)
                 if (Object.keys(dailyData).length > 0) {
-                  window.DataCache.set(bulkCacheKey, dailyData);
+                  await window.DataCache.set(bulkCacheKey, dailyData);
                   console.log(`Cached ${Object.keys(dailyData).length} days in bulk cache`);
                 }
               }

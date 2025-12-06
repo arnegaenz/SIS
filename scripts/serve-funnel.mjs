@@ -1392,9 +1392,12 @@ const server = http.createServer(async (req, res) => {
               continue;
             }
 
-            // FI filter
-            if (fiFilter !== '__all__' && normalizeFiKey(fiFilter) !== fiKey) {
-              continue;
+            // FI filter (handle comma-separated list)
+            if (fiFilter !== '__all__') {
+              const allowedFis = fiFilter.split(',').map(f => normalizeFiKey(f.trim()));
+              if (!allowedFis.includes(fiKey)) {
+                continue;
+              }
             }
 
             // Type filter (categorize by termination type)
@@ -1437,7 +1440,7 @@ const server = http.createServer(async (req, res) => {
               }
             }
 
-            // Add to results with necessary fields
+            // Add to results with necessary fields + raw data
             allPlacements.push({
               merchant: placement.merchant_site_hostname || 'Unknown',
               fi: placement.fi_name || 'Unknown',
@@ -1451,6 +1454,7 @@ const server = http.createServer(async (req, res) => {
               completedOn: placement.completed_on || '',
               timeElapsed: placement.time_elapsed || 0,
               date: date,
+              _raw: placement, // Include full raw placement object
             });
           }
         } catch (err) {
