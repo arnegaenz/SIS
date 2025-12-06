@@ -4464,19 +4464,54 @@ function applyColumnTitles(root = document) {
               }
               renderDateWarning();
             }
-            const totalDays = dailyFiles.length;
-            let loadedDays = 0;
-            for (const file of dailyFiles) {
-              const date = file.replace(".json", "");
-              setLoaderMessage(`Loading daily data… ${loadedDays}/${totalDays}`);
-              const data = await fetchDaily(date);
-              if (data) {
-                dailyData[date] = data;
+
+            // Try to load all data from bulk cache first
+            const bulkCacheKey = 'funnel_all_daily_data';
+            if (window.DataCache) {
+              const cachedBulk = window.DataCache.get(bulkCacheKey);
+              if (cachedBulk && typeof cachedBulk === 'object') {
+                setLoaderMessage('Loading from cache…');
+                dailyData = cachedBulk;
+                console.log(`Loaded ${Object.keys(dailyData).length} days from bulk cache`);
+              } else {
+                // No bulk cache, load individually
+                const totalDays = dailyFiles.length;
+                let loadedDays = 0;
+                for (const file of dailyFiles) {
+                  const date = file.replace(".json", "");
+                  setLoaderMessage(`Loading daily data… ${loadedDays}/${totalDays}`);
+                  const data = await fetchDaily(date);
+                  if (data) {
+                    dailyData[date] = data;
+                  }
+                  loadedDays += 1;
+                }
+                if (totalDays) {
+                  setLoaderMessage(`Loading daily data… ${totalDays}/${totalDays}`);
+                }
+
+                // Store bulk cache for next time
+                if (Object.keys(dailyData).length > 0) {
+                  window.DataCache.set(bulkCacheKey, dailyData);
+                  console.log(`Cached ${Object.keys(dailyData).length} days in bulk cache`);
+                }
               }
-              loadedDays += 1;
-            }
-            if (totalDays) {
-              setLoaderMessage(`Loading daily data… ${totalDays}/${totalDays}`);
+            } else {
+              // No DataCache available, load normally
+              const totalDays = dailyFiles.length;
+              let loadedDays = 0;
+              for (const file of dailyFiles) {
+                const date = file.replace(".json", "");
+                setLoaderMessage(`Loading daily data… ${loadedDays}/${totalDays}`);
+                const data = await fetchDaily(date);
+                if (data) {
+                  dailyData[date] = data;
+                }
+                loadedDays += 1;
+              }
+              if (totalDays) {
+                setLoaderMessage(`Loading daily data… ${totalDays}/${totalDays}`);
+              }
             }
           } catch (err) {
             console.error("Failed to load daily data:", err);
