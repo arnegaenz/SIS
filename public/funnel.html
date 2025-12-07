@@ -585,8 +585,31 @@
         gap: 8px;
         align-items: center;
         margin-bottom: 8px;
-        padding-bottom: 8px;
+        padding: 8px;
         border-bottom: 1px solid var(--border);
+        cursor: pointer;
+        user-select: none;
+        border-radius: 8px;
+        transition: background 0.2s;
+      }
+
+      .placement-group-header:hover {
+        background: var(--hover-bg, rgba(0, 0, 0, 0.02));
+      }
+
+      [data-theme="dark"] .placement-group-header:hover {
+        background: rgba(255, 255, 255, 0.05);
+      }
+
+      .placement-group-toggle {
+        font-size: 0.9rem;
+        color: var(--muted);
+        margin-right: 4px;
+        transition: transform 0.2s;
+      }
+
+      .placement-group.collapsed .placement-group-toggle {
+        transform: rotate(-90deg);
       }
 
       .placement-group-merchant {
@@ -612,6 +635,11 @@
         display: flex;
         flex-direction: column;
         gap: 8px;
+        margin-top: 8px;
+      }
+
+      .placement-group.collapsed .placement-items {
+        display: none;
       }
 
       .placement-item {
@@ -947,7 +975,10 @@
       </div>
 
     <h1 class="sis-page-name">Card Placement Funnel</h1>
-    <p class="sis-page-desc">Track Google Analytics events through sessions and placement data; spot where cardholders are gained or lost.</p>
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+      <p class="sis-page-desc" style="flex:1 1 auto;">Track Google Analytics events through sessions and placement data; spot where cardholders are gained or lost.</p>
+      <button class="theme-toggle" type="button" aria-pressed="false" style="flex:0 0 auto;">Light mode</button>
+    </div>
   </header>
   <div class="sis-content">
   <main class="sis-main">
@@ -3686,11 +3717,17 @@ function applyColumnTitles(root = document) {
         data.results.forEach(merchantGroup => {
           // Create merchant group card
           const groupDiv = document.createElement('div');
-          groupDiv.className = 'placement-group';
+          groupDiv.className = 'placement-group collapsed';
 
           // Group header
           const headerDiv = document.createElement('div');
           headerDiv.className = 'placement-group-header';
+
+          // Toggle icon
+          const toggleIcon = document.createElement('span');
+          toggleIcon.className = 'placement-group-toggle';
+          toggleIcon.textContent = '▼';
+          headerDiv.appendChild(toggleIcon);
 
           const merchantName = document.createElement('div');
           merchantName.className = 'placement-group-merchant';
@@ -3698,10 +3735,27 @@ function applyColumnTitles(root = document) {
 
           const countBadge = document.createElement('div');
           countBadge.className = 'placement-group-count';
-          countBadge.textContent = `${merchantGroup.count} placement${merchantGroup.count !== 1 ? 's' : ''}`;
+
+          // Use contextual label based on type
+          let countLabel = 'placement';
+          if (type === 'system') {
+            countLabel = 'system failure';
+          } else if (type === 'ux') {
+            countLabel = 'UX failure';
+          } else if (type === 'success') {
+            countLabel = 'successful placement';
+          }
+
+          countBadge.textContent = `${merchantGroup.count} ${countLabel}${merchantGroup.count !== 1 ? 's' : ''}`;
 
           headerDiv.appendChild(merchantName);
           headerDiv.appendChild(countBadge);
+
+          // Add click handler to toggle collapse/expand
+          headerDiv.addEventListener('click', () => {
+            groupDiv.classList.toggle('collapsed');
+          });
+
           groupDiv.appendChild(headerDiv);
 
           // Items container
@@ -4957,9 +5011,11 @@ function applyColumnTitles(root = document) {
             }
 
             // Try to load all data from bulk cache first (using async getAsync for IndexedDB)
-            const bulkCacheKey = 'funnel_all_daily_data';
+            // Include data version in cache key so it invalidates when files are added/removed
+            const dataVersion = window.DataCache?.currentVersion || 'unknown';
+            const bulkCacheKey = `funnel_all_daily_data_v${dataVersion}`;
             if (window.DataCache) {
-              console.log('🔍 Checking bulk cache...');
+              console.log(`🔍 Checking bulk cache (version ${dataVersion})...`);
               const cachedBulk = await window.DataCache.getAsync(bulkCacheKey);
               console.log('Bulk cache result:', cachedBulk ? `Found ${Object.keys(cachedBulk).length} days` : 'Not found');
 
@@ -5188,5 +5244,6 @@ function applyColumnTitles(root = document) {
         loadNext(0);
       })("funnel");
     </script>
+    <script src="./theme-toggle.js"></script>
   </body>
 </html>

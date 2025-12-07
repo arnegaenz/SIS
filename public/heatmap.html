@@ -368,7 +368,10 @@
     </div>
 
     <h1 class="sis-page-name">Merchant Reach &amp; Reliability</h1>
-    <p class="sis-page-desc">Track where cardholders succeed and struggle: traffic, health, and anomalies across your merchant footprint.</p>
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+      <p class="sis-page-desc" style="flex:1 1 auto;">Track where cardholders succeed and struggle: traffic, health, and anomalies across your merchant footprint.</p>
+      <button class="theme-toggle" type="button" aria-pressed="false" style="flex:0 0 auto;">Light mode</button>
+    </div>
   </header>
   <div class="sis-content">
   <main class="sis-main">
@@ -488,6 +491,7 @@
     }
 
     const urlParams = new URLSearchParams(location.search);
+    console.log('🔍 Heatmap URL params:', Object.fromEntries(urlParams.entries()));
     const dayMs = 86400000;
     const pageLoader = $("#pageLoader");
     function isoLocalFromDate(d) {
@@ -1146,9 +1150,10 @@
     integrationSelect?.addEventListener("change", () => applyFilters());
     partnerSelect?.addEventListener("change", () => applyFilters());
 
-    // initial dates: from query or default last 90 days
+    // initial dates: from query, localStorage, or default last 90 days
+    const HEATMAP_DATES_KEY = 'heatmap_last_dates';
     const initEndParam = urlParams.get("end");
-    const initEndRaw = initEndParam || isoYesterday();
+    const initStartParam = urlParams.get("start");
     const clampToYesterday = (iso) => (iso > isoYesterday() ? isoYesterday() : iso);
     const partnerParam = urlParams.get("partner");
     const integrationParam = urlParams.get("integration");
@@ -1156,13 +1161,33 @@
     const fiParam = urlParams.get("fi");
     const hasUrlFilters = Boolean(partnerParam || integrationParam || instanceParam || fiParam);
 
-    let initEnd = clampToYesterday(initEndRaw);
-    let initStart = urlParams.get("start") || isoDaysAgo(89, initEnd);
-    let initPreset = "";
-    if (!urlParams.has("start") && !urlParams.has("end")) {
-      initPreset = "last90";
-      initEnd = isoYesterday();
-      initStart = isoDaysAgo(89, initEnd);
+    let initEnd, initStart, initPreset = "";
+
+    // Priority: URL params > localStorage > default calculation
+    if (initStartParam && initEndParam) {
+      // Use URL params if present
+      initStart = initStartParam;
+      initEnd = clampToYesterday(initEndParam);
+      console.log('📅 Using dates from URL:', { start: initStart, end: initEnd });
+    } else {
+      // Try to load last used dates from localStorage
+      try {
+        const stored = localStorage.getItem(HEATMAP_DATES_KEY);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          initStart = parsed.start;
+          initEnd = clampToYesterday(parsed.end);
+          console.log('📅 Using dates from localStorage:', { start: initStart, end: initEnd });
+        } else {
+          throw new Error('No stored dates');
+        }
+      } catch {
+        // Calculate default dates
+        console.log('📅 No saved dates, calculating default dates');
+        initPreset = "last90";
+        initEnd = isoYesterday();
+        initStart = isoDaysAgo(89, initEnd);
+      }
     }
     startEl.value = initStart;
     endEl.value = initEnd;
@@ -1289,28 +1314,35 @@
 
     async function loadAndRender(start, end) {
       try {
+        // Save dates to localStorage for next visit
+        try {
+          localStorage.setItem(HEATMAP_DATES_KEY, JSON.stringify({ start, end }));
+        } catch (err) {
+          console.warn('Failed to save dates to localStorage:', err);
+        }
+
+        // Check cache FIRST before showing spinner or clearing content
+        const cacheKey = `heatmap_${start}_${end}`;
+        console.log(`🔍 Checking heatmap cache with key: "${cacheKey}"`);
+        if (window.DataCache) {
+          const cached = await window.DataCache.getAsync(cacheKey);
+          if (cached) {
+            console.log(`✓ Loaded heatmap from cache (${start} to ${end}) - instant load!`);
+            currentData = cached;
+            latestMerchantPayload = cached;
+            applyFilters();
+            return;
+          }
+          console.log(`→ Heatmap cache miss for key "${cacheKey}", loading from server...`);
+        }
+
+        // Cache miss - show loading spinner and clear content
         setLoading(true, "Loading merchant data…");
         $("#grid").setAttribute("aria-busy", "true");
         if (leftCol) leftCol.innerHTML = "";
         if (rowsWrap) rowsWrap.innerHTML = "";
         if (headTicks) headTicks.innerHTML = "";
         if (legendEl) legendEl.innerHTML = "";
-
-        // Check cache first (using async getAsync for IndexedDB)
-        const cacheKey = `heatmap_${start}_${end}`;
-        if (window.DataCache) {
-          console.log('🔍 Checking heatmap cache...');
-          const cached = await window.DataCache.getAsync(cacheKey);
-          if (cached) {
-            console.log(`✓ Loaded heatmap from cache (${start} to ${end})`);
-            updateLoadingMessage("✓ Loading from cache…");
-            currentData = cached;
-            latestMerchantPayload = cached;
-            applyFilters();
-            return;
-          }
-          console.log('→ Heatmap cache miss, loading from server...');
-        }
 
         // Pull slices and merchants in two steps to show progress
         updateLoadingMessage("Loading merchant slices…");
@@ -1915,9 +1947,23 @@
 
     // Boot
     (async () => {
-      await loadMerchantStatuses();
-      await fetchRegistry();
+      // Persist initial dates to URL if not already present
+      if (!urlParams.has("start") || !urlParams.has("end")) {
+        const u = new URL(location.href);
+        u.searchParams.set("start", initStart);
+        u.searchParams.set("end", initEnd);
+        history.replaceState(null, "", u);
+        console.log('📌 Persisted dates to URL:', { start: initStart, end: initEnd, url: u.toString() });
+      }
+
+      // Check cache and load data FIRST (before loading merchant statuses/registry)
       await loadAndRender(initStart, initEnd);
+
+      // Load merchant statuses and registry in parallel (for status badges)
+      await Promise.all([
+        loadMerchantStatuses(),
+        fetchRegistry()
+      ]);
       const mappingAvailable = (currentData?.merchants || []).some(
         (m) => Array.isArray(m.fi_list) && m.fi_list.length
       );
@@ -1955,5 +2001,6 @@
       })("heatmap");
     })();
   </script>
+  <script src="./theme-toggle.js"></script>
 </body>
 </html>

@@ -237,7 +237,10 @@
     </div>
 
     <h1 class="sis-page-name">Reliability &amp; Anomaly Watch</h1>
-    <p class="sis-page-desc">Highlight week-over-week anomalies and failure trends to catch system-level or cardholder pain early.</p>
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+      <p class="sis-page-desc" style="flex:1 1 auto;">Highlight week-over-week anomalies and failure trends to catch system-level or cardholder pain early.</p>
+      <button class="theme-toggle" type="button" aria-pressed="false" style="flex:0 0 auto;">Light mode</button>
+    </div>
   </header>
   <div class="sis-content">
   <main class="sis-main">
@@ -257,6 +260,8 @@
 
   <script>
     const dayMs = 86400000;
+    const urlParams = new URLSearchParams(window.location.search);
+    console.log('🔍 Watchlist URL params:', Object.fromEntries(urlParams.entries()));
     const isoYesterday = () => {
       const d = new Date();
       d.setDate(d.getDate() - 1);
@@ -816,28 +821,68 @@
       `;
     }
 
-    async function loadWatchlist() {
-      startLoading("Loading alerts…");
-      try {
-        await loadFiRegistryDefaults();
-        await loadMerchantStatuses();
-        const end = isoYesterday();
-        const start = isoDaysAgo(29,end);
+    const WATCHLIST_DATES_KEY = 'watchlist_last_dates';
 
-        // Try to load processed data from bulk cache first (using async getAsync for IndexedDB)
+    async function loadWatchlist() {
+      try {
+        // Determine dates first (before showing loading spinner)
+        let end, start;
+        if (urlParams.has("start") && urlParams.has("end")) {
+          // Use URL params if present
+          start = urlParams.get("start");
+          end = urlParams.get("end");
+          console.log('📅 Using dates from URL:', { start, end });
+        } else {
+          // Try to load last used dates from localStorage
+          try {
+            const stored = localStorage.getItem(WATCHLIST_DATES_KEY);
+            if (stored) {
+              const parsed = JSON.parse(stored);
+              start = parsed.start;
+              end = parsed.end;
+              console.log('📅 Using dates from localStorage:', { start, end });
+            } else {
+              throw new Error('No stored dates');
+            }
+          } catch {
+            // Calculate default dates
+            end = isoYesterday();
+            start = isoDaysAgo(29, end);
+            console.log('📅 No saved dates, calculating default dates:', { start, end });
+          }
+
+          // Persist to URL for sharing/bookmarking
+          const u = new URL(location.href);
+          u.searchParams.set("start", start);
+          u.searchParams.set("end", end);
+          history.replaceState(null, "", u);
+          console.log('📌 Persisted dates to URL:', { start, end, url: u.toString() });
+        }
+
+        // Save dates to localStorage for next visit
+        try {
+          localStorage.setItem(WATCHLIST_DATES_KEY, JSON.stringify({ start, end }));
+        } catch (err) {
+          console.warn('Failed to save dates to localStorage:', err);
+        }
+
+        // Check cache FIRST before showing loading spinner
         const bulkCacheKey = `watchlist_processed_${start}_${end}`;
+        console.log(`🔍 Checking watchlist cache with key: "${bulkCacheKey}"`);
         if (window.DataCache) {
-          console.log('🔍 Checking watchlist cache...');
           const cached = await window.DataCache.getAsync(bulkCacheKey);
           if (cached && cached.cards) {
-            console.log(`✓ Loaded watchlist from cache (${start} to ${end})`);
-            setLoaderText('✓ Loading from cache…');
+            console.log(`✓ Loaded watchlist from cache (${start} to ${end}) - instant load!`);
             renderAllCards(cached.cards, cached.windowLabel);
-            stopLoading();
             return;
           }
-          console.log('→ Watchlist cache miss, loading from server...');
+          console.log(`→ Watchlist cache miss for key "${bulkCacheKey}", loading from server...`);
         }
+
+        // Cache miss - show loading spinner and fetch data
+        startLoading("Loading alerts…");
+        await loadFiRegistryDefaults();
+        await loadMerchantStatuses();
         statusEl.textContent = `Loading ${start} → ${end}…`;
         const res = await fetch(`/merchant-heatmap?start=${start}&end=${end}`);
         if (!res.ok) {
@@ -1035,5 +1080,6 @@
       stopLoading();
     });
   </script>
+  <script src="./theme-toggle.js"></script>
 </body>
 </html>

@@ -321,7 +321,10 @@
     </div>
 
     <h1 class="sis-page-name">Troubleshooting</h1>
-    <p class="sis-page-desc">Mirror the FI Funnel filters, then drill into every session and card placement for a single day. Spot bad terminations, job timing, and click patterns without leaving the browser.</p>
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+      <p class="sis-page-desc" style="flex:1 1 auto;">Mirror the FI Funnel filters, then drill into every session and card placement for a single day. Spot bad terminations, job timing, and click patterns without leaving the browser.</p>
+      <button class="theme-toggle" type="button" aria-pressed="false" style="flex:0 0 auto;">Light mode</button>
+    </div>
   </header>
   <div class="sis-content">
   <main class="sis-main">
@@ -1273,5 +1276,6 @@
       })("troubleshoot");
     })();
   </script>
+  <script src="./theme-toggle.js"></script>
 </body>
 </html>

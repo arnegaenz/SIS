@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="assets/css/sis.css">
   <link rel="stylesheet" href="/assets/css/filters.css">
   <script defer src="assets/js/sis.js"></script>
-  <script defer src="assets/js/data-cache.js?v=2"></script>
+  <script defer src="assets/js/data-cache.js?v=3"></script>
   <script defer src="assets/js/filters.js"></script>
   <script defer src="assets/js/sources.js"></script>
     <style>
@@ -345,7 +345,10 @@
     </div>
 
     <h1 class="sis-page-name">Source Analysis</h1>
-    <p class="sis-page-desc">Compare SSO vs CU2_SSO traffic and conversion funnels for one FI with full end-to-end metrics.</p>
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+      <p class="sis-page-desc" style="flex:1 1 auto;">Compare SSO vs CU2_SSO traffic and conversion funnels for one FI with full end-to-end metrics.</p>
+      <button class="theme-toggle" type="button" aria-pressed="false" style="flex:0 0 auto;">Light mode</button>
+    </div>
   </header>
 
     <div class="sis-content">
@@ -495,5 +498,6 @@
         </section>
       </main>
     </div>
+    <script src="./theme-toggle.js"></script>
   </body>
 </html>
