@@ -1552,7 +1552,7 @@ const server = http.createServer(async (req, res) => {
             successCount: group.successCount,
             systemCount: group.systemCount,
             uxCount: group.uxCount,
-            placements: typedPlacements.slice(0, showAll ? undefined : 50), // Limit placements per merchant
+            placements: typedPlacements, // Show all placements for this merchant
           });
         }
       }

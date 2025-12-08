@@ -3713,8 +3713,8 @@ function applyColumnTitles(root = document) {
           partner: partnerParam,
           integration: integrationParam,
           includeTest: includeTestCheckbox?.checked ? 'true' : 'false',
-          limit: '50',
-          showAll: showAll ? 'true' : 'false',
+          limit: '1000',
+          showAll: 'true', // Always show all placements
         });
 
         const response = await fetch(`/api/placement-details?${params}`);
@@ -3932,28 +3932,7 @@ function applyColumnTitles(root = document) {
         // Initialize card filters
         initCardFilters(filtersDiv, listDiv, type, data);
 
-        // Add "Show all" button if there are more results
-        if (data.hasMore) {
-          const showAllBtn = document.createElement('button');
-          showAllBtn.className = 'show-all-btn';
-          showAllBtn.textContent = `Show all (${data.total} total placements)`;
-
-          showAllBtn.addEventListener('click', async () => {
-            showAllBtn.disabled = true;
-            showAllBtn.textContent = 'Loading...';
-
-            try {
-              const allData = await fetchPlacementDetails(type, true);
-              renderPlacementTable(container, allData, type);
-            } catch (error) {
-              console.error('Failed to load all placements:', error);
-              showAllBtn.disabled = false;
-              showAllBtn.textContent = `Show all (${data.total} total placements)`;
-            }
-          });
-
-          container.appendChild(showAllBtn);
-        }
+        // Show all button removed - we now always show all placements
       }
 
 
