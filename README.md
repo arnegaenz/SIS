@@ -92,6 +92,32 @@ While the server is running you can also hit the JSON helpers directly:
 
 Stop the server with `Ctrl+C` when you’re done.
 
+## Funnel Breakdown & Placement Details
+
+The funnel page includes expandable breakdown sections that provide deep visibility into job outcomes:
+
+**Job Outcome Breakdown:**
+- **✓ Successful** — Shows successful placements grouped by merchant with full counts across all three categories (success/system/UX)
+- **⚠ System Failures** — Technical failures grouped by merchant with placement details and session context
+- **⊗ UX Failures** — User experience issues grouped by merchant showing credential errors, timeouts, and user cancellations
+- **⊘ Sessions Without Jobs** — Sessions that dropped off before creating jobs, grouped by last page visited with full clickstream data
+
+**Placement Details (expandable):**
+Each section displays placements grouped by merchant site with:
+- Count badges showing all three outcome types (green for success, amber for system, red for UX)
+- Individual placement cards with FI, integration type, job ID, timestamps, and termination details
+- Session context including clickstream, source integration, and device info
+- Raw placement/session data available in expandable JSON view
+
+**Sessions Without Jobs Analysis:**
+Shows sessions grouped by drop-off point with:
+- Last page visited (e.g., `/select-merchants`, `/user-data-collection`, `/credential-entry`)
+- Session duration and timestamp information
+- Full user journey via clickstream (page1 → page2 → page3)
+- FI and integration context to identify patterns in abandonment behavior
+
+All breakdown data respects the same filters as the main funnel (FI, partner, integration, date range, test exclusion) and updates dynamically when filters change.
+
 ## Funnel Columns & Totals
 
 The CardUpdatr funnel view (and its CSV export) combines GA4 traffic with SIS session + placement telemetry. Every column on the table and the exported file corresponds to the same fields:
