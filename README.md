@@ -201,30 +201,57 @@ Light and dark modes are controlled via the `[data-theme="dark"]` attribute sele
 
 ### Windows: GA Authentication Error
 
-If you see `invalid_grant: Invalid JWT Signature` errors on Windows after cloning the repository, this is caused by git converting line endings in the GA service account JSON files from LF to CRLF.
+If you see `invalid_grant: Invalid JWT Signature` errors on Windows after cloning the repository, this is caused by git converting line endings in the GA service account JSON files from LF to CRLF, which corrupts the RSA private key signatures.
 
-**Fix:**
+**Diagnosis:**
 
-The repository now includes a `.gitattributes` file to prevent this issue. To fix an existing clone:
+First, check if your GA credentials files have issues:
 
 ```bash
-# 1. Remove the corrupted GA files
-rm secrets/ga-service-account.json secrets/ga-test.json
-
-# 2. Reset git's index to reapply line ending rules
-git rm --cached -r .
-git reset --hard
-
-# 3. Verify the files were restored with correct line endings
-git diff
+node scripts/validate-ga-credentials.mjs
 ```
 
-Alternatively, you can reconfigure git globally to not auto-convert line endings:
+This will scan `secrets/ga-service-account.json` and `secrets/ga-test.json` for:
+- CRLF line endings (the most common cause)
+- Missing required fields
+- Invalid JSON formatting
+- Private key format issues
+
+**Fix Method 1: Automatic Fix (Recommended)**
+
+If the validator detects CRLF line endings, fix them automatically:
+
+```bash
+node scripts/validate-ga-credentials.mjs --fix
+```
+
+This will convert CRLF → LF and create backups of the original files.
+
+**Fix Method 2: Manual Reset**
+
+If the automatic fix doesn't work, try resetting from git:
+
+```bash
+# Configure git to preserve line endings for this repo
+git config core.autocrlf false
+
+# Reset the corrupted files
+git checkout HEAD -- secrets/ga-service-account.json secrets/ga-test.json
+
+# Verify they're fixed
+node scripts/validate-ga-credentials.mjs
+```
+
+**Fix Method 3: Fresh Clone**
+
+As a last resort, reconfigure git globally and re-clone:
 
 ```bash
 git config --global core.autocrlf false
+cd ..
+rm -rf strivve-metrics
+git clone https://github.com/arnegaenz/SIS.git strivve-metrics
+cd strivve-metrics
 ```
 
-Then delete and re-clone the repository.
-
-**Note:** GA data is supplemental analytics. The core SIS functionality (sessions and placements) will work fine even if GA fetching fails.
+**Note:** GA data provides supplemental traffic analytics. The core SIS functionality (sessions and placements) will work fine even if GA fetching fails. The `.gitattributes` file in the repository should prevent this issue on fresh clones.
