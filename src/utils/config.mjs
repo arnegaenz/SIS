@@ -21,19 +21,19 @@ export function loadSsoFis(baseDir) {
 }
 
 export function loadInstances(baseDir) {
-  const instPath = path.join(baseDir, "instances.json");
+  const instPath = path.join(baseDir, "secrets", "instances.json");
   try {
     const raw = fs.readFileSync(instPath, "utf8");
     const arr = JSON.parse(raw);
     if (Array.isArray(arr) && arr.length > 0) {
-      console.log(`Loaded ${arr.length} instance(s) from instances.json`);
+      console.log(`Loaded ${arr.length} instance(s) from secrets/instances.json`);
       return arr;
     }
   } catch (e) {
     // ignore, we'll fall back
   }
 
-  console.log("No instances.json — using .env values as single instance.");
+  console.log("No secrets/instances.json — using .env values as single instance.");
   return [
     {
       name: "default",

@@ -22,7 +22,7 @@ export async function loginWithSdk(overrides = {}) {
 
   if (!CARDSAVR_INSTANCE || !API_KEY || !APP_NAME || !USERNAME || !PASSWORD) {
     throw new Error(
-      "Missing Cardsavr config. Check .env or instances.json entry."
+      "Missing Cardsavr config. Check .env or secrets/instances.json entry."
     );
   }
 

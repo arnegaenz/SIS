@@ -28,8 +28,7 @@ const RAW_DIR = path.join(ROOT, "raw");
 const RAW_PLACEMENTS_DIR = path.join(RAW_DIR, "placements");
 const FI_REGISTRY_FILE = path.join(ROOT, "fi_registry.json");
 const INSTANCES_FILES = [
-  path.join(ROOT, "src", "instances.json"),
-  path.join(ROOT, "instances.json"),
+  path.join(ROOT, "secrets", "instances.json"),
 ];
 const PORT = 8787;
 const FI_ALL_VALUE = "__all__";
@@ -396,7 +395,7 @@ async function readInstancesFile() {
       const raw = await fs.readFile(candidate, "utf8");
       const parsed = JSON.parse(raw);
       if (!Array.isArray(parsed)) {
-        throw Object.assign(new Error("instances.json must be an array"), {
+        throw Object.assign(new Error("secrets/instances.json must be an array"), {
           status: 400,
         });
       }
