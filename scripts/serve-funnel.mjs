@@ -1416,24 +1416,18 @@ const server = http.createServer(async (req, res) => {
               }
             }
 
-            // Type filter (categorize by termination type)
+            // Categorize by termination type (but don't filter yet - we need all types for counts)
             const rule = TERMINATION_RULES[terminationType] || TERMINATION_RULES.UNKNOWN;
-            let matchesType = false;
+            let placementType = 'system'; // default
 
-            if (type === 'success' && rule.severity === 'success') {
-              matchesType = true;
-            } else if (type === 'system' && rule.includeInHealth && rule.severity !== 'success') {
-              matchesType = true;
-            } else if (type === 'ux' && rule.includeInUx) {
-              matchesType = true;
-            } else if (type === 'system' && !rule.includeInHealth && !rule.includeInUx && rule.severity !== 'success') {
-              // Default unknown to system
-              matchesType = true;
+            if (rule.severity === 'success') {
+              placementType = 'success';
+            } else if (rule.includeInUx) {
+              placementType = 'ux';
+            } else if (rule.includeInHealth && rule.severity !== 'success') {
+              placementType = 'system';
             }
-
-            if (!matchesType) {
-              continue;
-            }
+            // Note: We're NOT filtering by type here - we collect all placements to show full counts
 
             // Derive integration type
             let integrationType = 'NON-SSO';
@@ -1467,6 +1461,7 @@ const server = http.createServer(async (req, res) => {
               instance: instance || 'unknown',
               integration: integrationType,
               terminationType: terminationType,
+              placementType: placementType, // success, system, or ux
               status: placement.status || '',
               statusMessage: placement.status_message || '',
               jobId: placement.id || placement.place_card_on_single_site_job_id || '',
@@ -1486,19 +1481,39 @@ const server = http.createServer(async (req, res) => {
         }
       }
 
-      // Group by merchant and count
+      // Group by merchant and count all placement types
       const merchantGroups = {};
       for (const placement of allPlacements) {
         const merchant = placement.merchant;
         if (!merchantGroups[merchant]) {
-          merchantGroups[merchant] = [];
+          merchantGroups[merchant] = {
+            allPlacements: [],
+            successCount: 0,
+            systemCount: 0,
+            uxCount: 0
+          };
         }
-        merchantGroups[merchant].push(placement);
+        merchantGroups[merchant].allPlacements.push(placement);
+
+        // Count this placement based on its placementType
+        if (placement.placementType === 'success') {
+          merchantGroups[merchant].successCount++;
+        } else if (placement.placementType === 'ux') {
+          merchantGroups[merchant].uxCount++;
+        } else {
+          merchantGroups[merchant].systemCount++;
+        }
       }
 
-      // Sort merchants by frequency (most common first)
+      // Sort merchants by frequency (most common first) based on current type's count
       const sortedMerchants = Object.keys(merchantGroups).sort((a, b) => {
-        return merchantGroups[b].length - merchantGroups[a].length;
+        const countA = type === 'success' ? merchantGroups[a].successCount :
+                       type === 'ux' ? merchantGroups[a].uxCount :
+                       merchantGroups[a].systemCount;
+        const countB = type === 'success' ? merchantGroups[b].successCount :
+                       type === 'ux' ? merchantGroups[b].uxCount :
+                       merchantGroups[b].systemCount;
+        return countB - countA;
       });
 
       // Build response with top 50 or all
@@ -1507,14 +1522,25 @@ const server = http.createServer(async (req, res) => {
       let totalCount = 0;
 
       for (const merchant of sortedMerchants) {
-        const placements = merchantGroups[merchant];
-        totalCount += placements.length;
+        const group = merchantGroups[merchant];
+
+        // Filter placements to only show the requested type
+        const typedPlacements = group.allPlacements.filter(p => p.placementType === type);
+        const typeCount = typedPlacements.length;
+
+        // Skip merchants with zero of the requested type
+        if (typeCount === 0) continue;
+
+        totalCount += typeCount;
 
         if (results.length < resultLimit) {
           results.push({
             merchant: merchant,
-            count: placements.length,
-            placements: placements.slice(0, showAll ? undefined : 50), // Limit placements per merchant
+            count: typeCount, // Count for the requested type
+            successCount: group.successCount,
+            systemCount: group.systemCount,
+            uxCount: group.uxCount,
+            placements: typedPlacements.slice(0, showAll ? undefined : 50), // Limit placements per merchant
           });
         }
       }
