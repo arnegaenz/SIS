@@ -223,28 +223,30 @@
     <div class="sis-topbar">
       <div class="sis-title">Strivve Insights Service</div>
 
-      <nav class="sis-nav">
-        <a href="index.html">Overview</a>
-        <a href="funnel.html">FI Funnel</a>
-        <a href="sources.html">Sources</a>
-        <a href="heatmap.html">Merchant Heatmap</a>
-        <a href="watchlist.html">Alerts</a>
-        <a href="troubleshoot.html">Troubleshooting</a>
-        <a href="maintenance.html">Maintenance</a>
-        <a href="fi-api.html">FI API Data</a>
-        <a href="logs.html">Server Logs</a>
-      </nav>
-    </div>
+        <nav class="sis-nav">
+          <a href="index.html">Overview</a>
+          <a href="funnel.html">FI Funnel</a>
+          <a href="sources.html">Sources</a>
+          <a href="heatmap.html">Merchant Heatmap</a>
+          <a href="watchlist.html">Alerts</a>
+          <a href="troubleshoot.html">Troubleshooting</a>
+          <a href="maintenance.html">Maintenance</a>
+          <a href="fi-api.html">FI API Data</a>
+          <a href="logs.html">Server Logs</a>
+        </nav>
+      </div>
 
-    <h1 class="sis-page-name">Reliability &amp; Anomaly Watch</h1>
-    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-      <p class="sis-page-desc" style="flex:1 1 auto;">Highlight week-over-week anomalies and failure trends to catch system-level or cardholder pain early.</p>
-      <button class="theme-toggle" type="button" aria-pressed="false" style="flex:0 0 auto;">Light mode</button>
-    </div>
+      <div class="sis-page-header">
+        <h1 class="sis-page-title">Reliability &amp; Anomaly Watch</h1>
+        <div class="sis-page-header-row">
+          <p class="sis-page-subtitle">Highlight week-over-week anomalies and failure trends to catch system-level or cardholder pain early.</p>
+          <button class="theme-toggle" type="button" aria-pressed="false">Light mode</button>
+        </div>
+      </div>
   </header>
   <div class="sis-content">
-  <main class="sis-main">
-    <section class="sis-panel">
+    <main class="sis-main">
+      <section class="sis-panel">
       <div id="pageLoader" class="loading-banner" hidden>
         <div class="spinner" aria-hidden="true"></div>
         <div class="loading-text">Loading alerts…</div>
@@ -255,7 +257,7 @@
       </div>
       <div class="watchlist-grid" id="cards" style="margin-top:12px;"></div>
     </section>
-  </main>
+    </main>
   </div>
 
   <script>

@@ -24,7 +24,7 @@
 }
 
 /* Nav as tabs */
-.sis-nav{ display:flex; flex-wrap:wrap; gap: var(--gap-sm); }
+.sis-nav{ display:flex; flex-wrap:nowrap; gap: var(--gap-sm); }
 .sis-nav a{
   text-decoration:none; color:#225; font-weight:600;
   padding:10px 14px; border-radius:10px;
@@ -70,4 +70,37 @@ button, .btn{ cursor:pointer; }
 @media (max-width: 720px){
   .sis-header{ padding: 16px var(--page-x) var(--gap-md); }
   .sis-page-name{ font-size:22px; }
+}
+
+.sis-page-header {
+  margin-top: 16px;
+  margin-bottom: 20px;
+}
+
+.sis-page-title {
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--ink);
+  margin: 0;
+}
+
+.sis-page-subtitle {
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.5;
+  max-width: 80ch;
+  margin: 0;
+}
+
+.sis-page-header-row {
+  margin: 6px 0 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.sis-page-header-row .theme-toggle {
+  flex: 0 0 auto;
 }

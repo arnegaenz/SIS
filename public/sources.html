@@ -4,9 +4,9 @@
   <meta charset="utf-8" />
   <title>Source Analysis</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="stylesheet" href="/sis-shared.css?v=navfix" />
-  <link rel="stylesheet" href="assets/css/sis.css">
-  <link rel="stylesheet" href="/assets/css/filters.css">
+  <link rel="stylesheet" href="./sis-shared.css?v=navfix" />
+  <link rel="stylesheet" href="./assets/css/sis.css">
+  <link rel="stylesheet" href="./assets/css/filters.css">
   <script defer src="assets/js/sis.js"></script>
   <script defer src="assets/js/data-cache.js?v=3"></script>
   <script defer src="assets/js/filters.js"></script>
@@ -331,25 +331,27 @@
       <div class="sis-topbar">
         <div class="sis-title">Strivve Insights Service</div>
 
-      <nav class="sis-nav">
-        <a href="index.html">Overview</a>
-        <a href="funnel.html">FI Funnel</a>
-        <a href="sources.html">Sources</a>
-        <a href="heatmap.html">Merchant Heatmap</a>
-        <a href="watchlist.html">Alerts</a>
-        <a href="troubleshoot.html">Troubleshooting</a>
-        <a href="maintenance.html">Maintenance</a>
-        <a href="fi-api.html">FI API Data</a>
-        <a href="logs.html">Server Logs</a>
-      </nav>
-    </div>
+        <nav class="sis-nav">
+          <a href="index.html">Overview</a>
+          <a href="funnel.html">FI Funnel</a>
+          <a href="sources.html">Sources</a>
+          <a href="heatmap.html">Merchant Heatmap</a>
+          <a href="watchlist.html">Alerts</a>
+          <a href="troubleshoot.html">Troubleshooting</a>
+          <a href="maintenance.html">Maintenance</a>
+          <a href="fi-api.html">FI API Data</a>
+          <a href="logs.html">Server Logs</a>
+        </nav>
+      </div>
 
-    <h1 class="sis-page-name">Source Analysis</h1>
-    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-      <p class="sis-page-desc" style="flex:1 1 auto;">Compare SSO vs CU2_SSO traffic and conversion funnels for one FI with full end-to-end metrics.</p>
-      <button class="theme-toggle" type="button" aria-pressed="false" style="flex:0 0 auto;">Light mode</button>
-    </div>
-  </header>
+      <div class="sis-page-header">
+        <h1 class="sis-page-title">Source Analysis</h1>
+        <div class="sis-page-header-row">
+          <p class="sis-page-subtitle">Compare SSO vs CU2_SSO traffic and conversion funnels for one FI with full end-to-end metrics.</p>
+          <button class="theme-toggle" type="button" aria-pressed="false">Light mode</button>
+        </div>
+      </div>
+    </header>
 
     <div class="sis-content">
       <main class="sis-main">

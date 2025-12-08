@@ -1,9 +1,9 @@
 :root{
   --page-x:24px; --page-y:28px;
   --gap-sm:8px; --gap-md:12px; --gap-lg:16px;
-  --ink:#0b1520; --muted:#5f6673; --hair:#e7e9ee; --bg:#ffffff; --bg-subtle:#f7f8fb;
   --brand:#0b57d0; --brand-ink:#083b8f; --brand-ghost:#e8f0ff;
   --r:12px;
+  /* Note: --bg, --bg-subtle, --ink, --muted, --hair now come from sis-shared.css for dark mode support */
 }
 
 /* Top header (title + nav) */
@@ -24,7 +24,7 @@
 }
 
 /* Nav as tabs */
-.sis-nav{ display:flex; flex-wrap:wrap; gap: var(--gap-sm); }
+.sis-nav{ display:flex; flex-wrap:nowrap; gap: var(--gap-sm); }
 .sis-nav a{
   text-decoration:none; color:#225; font-weight:600;
   padding:10px 14px; border-radius:10px;
@@ -48,13 +48,46 @@
 }
 
 /* Main page content wrapper */
-.sis-content{ padding: 12px var(--page-x) 0; }
+.sis-content{ padding: 4px var(--page-x) 0; }
 
 /* Cards/buttons on your overview tiles keep their look */
 button, .btn{ cursor:pointer; }
 
 /* Responsive niceties */
+.sis-page-header {
+  margin-top: 16px;
+  margin-bottom: 20px;
+}
+
+.sis-page-title {
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--ink);
+  margin: 0;
+}
+
+.sis-page-subtitle {
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.5;
+  max-width: 80ch;
+  margin: 0;
+}
+
+.sis-page-header-row {
+  margin: 6px 0 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.sis-page-header-row .theme-toggle {
+  flex: 0 0 auto;
+}
+
 @media (max-width: 720px){
   .sis-header{ padding: 16px var(--page-x) var(--gap-md); }
-  .sis-page-name{ font-size:22px; }
+.sis-page-name{ font-size:22px; }
 }
