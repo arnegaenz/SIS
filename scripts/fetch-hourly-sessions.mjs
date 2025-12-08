@@ -10,6 +10,7 @@ import { readRaw, ensureRawDirs } from "../src/lib/rawStorage.mjs";
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const SRC_DIR = path.resolve("src");
+const ROOT_DIR = path.resolve(".");
 const HOURLY_DIR = path.resolve("raw", "sessions_hourly");
 
 function parseDateArg(value, label) {
@@ -167,7 +168,7 @@ function hourlyFilePath(key) {
 }
 
 async function fetchHourlySessions(startDate, endDate) {
-  const instances = loadInstances(SRC_DIR);
+  const instances = loadInstances(ROOT_DIR);
   const sessionCache = new Map();
   const dates = enumerateDates(startDate, endDate);
   ensureRawDirs();

@@ -17,6 +17,7 @@ import {
 } from "../src/lib/rawStorage.mjs";
 
 const SRC_DIR = path.resolve("src");
+const ROOT_DIR = path.resolve(".");
 const DAILY_FORMAT = /^\d{4}-\d{2}-\d{2}$/;
 const DEFAULT_GA_PROPERTY = process.env.GA_PROPERTY_ID || "328054560";
 const DEFAULT_GA_KEYFILE =
@@ -287,7 +288,7 @@ function shouldRefreshRaw(type, date, force = false) {
 }
 
 export async function fetchRawRange({ startDate, endDate, onStatus, forceRaw }) {
-  const instances = loadInstances(SRC_DIR);
+  const instances = loadInstances(ROOT_DIR);
   const sessionCache = new Map();
   const dates = enumerateDates(startDate, endDate);
   ensureRawDirs();
