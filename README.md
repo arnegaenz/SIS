@@ -196,3 +196,35 @@ Light and dark modes are controlled via the `[data-theme="dark"]` attribute sele
 - Better browser caching — shared stylesheet loaded once
 - Backward compatibility — variable aliases (e.g., `--ink` → `--text`) maintain existing code
 - Easy maintenance — theme changes update all pages simultaneously
+
+## Troubleshooting
+
+### Windows: GA Authentication Error
+
+If you see `invalid_grant: Invalid JWT Signature` errors on Windows after cloning the repository, this is caused by git converting line endings in the GA service account JSON files from LF to CRLF.
+
+**Fix:**
+
+The repository now includes a `.gitattributes` file to prevent this issue. To fix an existing clone:
+
+```bash
+# 1. Remove the corrupted GA files
+rm secrets/ga-service-account.json secrets/ga-test.json
+
+# 2. Reset git's index to reapply line ending rules
+git rm --cached -r .
+git reset --hard
+
+# 3. Verify the files were restored with correct line endings
+git diff
+```
+
+Alternatively, you can reconfigure git globally to not auto-convert line endings:
+
+```bash
+git config --global core.autocrlf false
+```
+
+Then delete and re-clone the repository.
+
+**Note:** GA data is supplemental analytics. The core SIS functionality (sessions and placements) will work fine even if GA fetching fails.
