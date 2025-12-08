@@ -1,0 +1,14 @@
+# Ensure JSON files always use LF line endings (critical for GA service account credentials)
+*.json text eol=lf
+
+# Ensure JavaScript/TypeScript files use LF
+*.js text eol=lf
+*.mjs text eol=lf
+*.ts text eol=lf
+
+# Markdown files
+*.md text eol=lf
+
+# HTML/CSS files
+*.html text eol=lf
+*.css text eol=lf
