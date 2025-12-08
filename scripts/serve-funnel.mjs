@@ -1349,8 +1349,8 @@ const server = http.createServer(async (req, res) => {
         return send(res, 400, { error: 'Missing required parameters: type, startDate, endDate' });
       }
 
-      if (!['success', 'system', 'ux'].includes(type)) {
-        return send(res, 400, { error: 'Invalid type. Must be success, system, or ux' });
+      if (!['success', 'system', 'ux', 'nojobs'].includes(type)) {
+        return send(res, 400, { error: 'Invalid type. Must be success, system, ux, or nojobs' });
       }
 
       // Load FI registry for integration type lookups
@@ -1368,6 +1368,113 @@ const server = http.createServer(async (req, res) => {
       const end = new Date(`${endDate}T00:00:00Z`);
       for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
         dates.push(d.toISOString().split('T')[0]);
+      }
+
+      // Handle "nojobs" type separately - show sessions without jobs
+      if (type === 'nojobs') {
+        const instanceMeta = await loadInstanceMetaMap();
+        const fiMeta = buildFiMetaMap(fiRegistry);
+        const noJobSessions = [];
+
+        for (const date of dates) {
+          const sessionData = await readSessionDay(date);
+          if (!sessionData?.sessions) continue;
+
+          for (const session of sessionData.sessions) {
+            // Skip sessions that have jobs
+            const totalJobs = session.total_jobs ?? 0;
+            if (totalJobs > 0) continue;
+
+            // Apply filters
+            const instanceRaw = session._instance || session.instance || session.instance_name || session.org_name || "";
+            const instanceDisplay = formatInstanceDisplay(instanceRaw || "unknown");
+
+            // Test instance filter
+            if (!includeTest && isTestInstanceName(instanceDisplay)) continue;
+
+            // FI filter
+            const fiKey = normalizeFiKey(session.financial_institution_lookup_key || session.fi_lookup_key || session.fi_name || '');
+            if (fiFilter !== '__all__') {
+              const allowedFis = fiFilter.split(',').map(f => normalizeFiKey(f.trim()));
+              if (!allowedFis.includes(fiKey)) continue;
+            }
+
+            // Integration filter
+            const fiEntry = fiMeta.get(fiKey);
+            const integration = normalizeIntegration(session.source?.integration || fiEntry?.integration || 'UNKNOWN');
+            if (integrationFilter !== '(all)') {
+              if (integration !== normalizeIntegration(integrationFilter)) continue;
+            }
+
+            // Determine last page visited
+            const clickstream = Array.isArray(session.clickstream) ? session.clickstream : [];
+            const lastPage = clickstream.length > 0 ? clickstream[clickstream.length - 1] : null;
+            const lastUrl = lastPage?.url || lastPage?.page_title || 'Unknown';
+
+            // Calculate session duration
+            const createdOn = session.created_on ? new Date(session.created_on) : null;
+            const closedOn = session.closed_on ? new Date(session.closed_on) : null;
+            const durationMs = (createdOn && closedOn) ? closedOn - createdOn : null;
+
+            noJobSessions.push({
+              date,
+              sessionId: session.agent_session_id || session.id || session.cuid,
+              cuid: session.cuid,
+              fi: fiEntry?.fi || session.fi_name || fiKey || 'Unknown',
+              fiKey,
+              integration,
+              instance: instanceDisplay,
+              lastPage: lastUrl,
+              clickstreamLength: clickstream.length,
+              clickstream,
+              createdOn: session.created_on,
+              closedOn: session.closed_on,
+              durationMs,
+              _rawSession: session
+            });
+          }
+        }
+
+        // Group by last page visited
+        const pageGroups = {};
+        for (const sess of noJobSessions) {
+          const page = sess.lastPage;
+          if (!pageGroups[page]) {
+            pageGroups[page] = [];
+          }
+          pageGroups[page].push(sess);
+        }
+
+        // Sort pages by frequency
+        const sortedPages = Object.keys(pageGroups).sort((a, b) => {
+          return pageGroups[b].length - pageGroups[a].length;
+        });
+
+        const resultLimit = showAll ? Infinity : limit;
+        const results = [];
+        let totalCount = 0;
+
+        for (const page of sortedPages) {
+          const sessions = pageGroups[page];
+          totalCount += sessions.length;
+
+          if (results.length < resultLimit) {
+            results.push({
+              page: page,
+              count: sessions.length,
+              sessions: sessions
+            });
+          }
+        }
+
+        return send(res, 200, {
+          type: 'nojobs',
+          total: totalCount,
+          pageCount: sortedPages.length,
+          showing: results.length,
+          hasMore: results.length < sortedPages.length,
+          results
+        });
       }
 
       // Collect all placements matching criteria

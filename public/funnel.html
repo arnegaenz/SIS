@@ -491,6 +491,9 @@
       .breakdown-bar-ux {
         background: linear-gradient(90deg, #ef4444, #dc2626);
       }
+      .breakdown-bar-nojobs {
+        background: linear-gradient(90deg, #94a3b8, #64748b);
+      }
 
       /* Placement Details Expandable Sections */
       .placement-details {
@@ -1138,6 +1141,26 @@
                   <div class="placement-loading" style="display: none;">
                     <div class="spinner"></div>
                     <span>Loading placements...</span>
+                  </div>
+                  <div class="placement-error" style="display: none;"></div>
+                  <div class="placement-table-container"></div>
+                </div>
+              </details>
+            </div>
+            <div class="breakdown-item breakdown-nojobs">
+              <div class="breakdown-label">⊘ Sessions Without Jobs</div>
+              <div class="breakdown-value" id="convBreakdownNoJobs">-</div>
+              <div class="breakdown-pct" id="convBreakdownNoJobsPct">-</div>
+              <div class="breakdown-bar">
+                <div class="breakdown-bar-fill breakdown-bar-nojobs" id="convBarNoJobs" style="width: 0%;"></div>
+              </div>
+
+              <details class="placement-details" data-type="nojobs">
+                <summary class="placement-summary">View sessions without jobs</summary>
+                <div class="placement-content">
+                  <div class="placement-loading" style="display: none;">
+                    <div class="spinner"></div>
+                    <span>Loading sessions...</span>
                   </div>
                   <div class="placement-error" style="display: none;"></div>
                   <div class="placement-table-container"></div>
@@ -3579,19 +3602,26 @@ function applyColumnTitles(root = document) {
         document.getElementById("convBreakdownUXPct").textContent = totalPlacements > 0
           ? `(${((uxFail / totalPlacements) * 100).toFixed(1)}%)`
           : "(0.0%)";
+        document.getElementById("convBreakdownNoJobs").textContent = noJobs.toLocaleString();
+        document.getElementById("convBreakdownNoJobsPct").textContent = totalSessions > 0
+          ? `(${((noJobs / totalSessions) * 100).toFixed(1)}%)`
+          : "(0.0%)";
 
         // Update progress bars
-        if (totalPlacements > 0) {
-          const successPct = (successful / totalPlacements) * 100;
-          const systemPct = (systemFail / totalPlacements) * 100;
-          const uxPct = (uxFail / totalPlacements) * 100;
+        if (totalPlacements > 0 || totalSessions > 0) {
+          const successPct = totalPlacements > 0 ? (successful / totalPlacements) * 100 : 0;
+          const systemPct = totalPlacements > 0 ? (systemFail / totalPlacements) * 100 : 0;
+          const uxPct = totalPlacements > 0 ? (uxFail / totalPlacements) * 100 : 0;
+          const noJobsPct = totalSessions > 0 ? (noJobs / totalSessions) * 100 : 0;
           document.getElementById("convBarSuccess").style.width = `${successPct}%`;
           document.getElementById("convBarSystem").style.width = `${systemPct}%`;
           document.getElementById("convBarUX").style.width = `${uxPct}%`;
+          document.getElementById("convBarNoJobs").style.width = `${noJobsPct}%`;
         } else {
           document.getElementById("convBarSuccess").style.width = "0%";
           document.getElementById("convBarSystem").style.width = "0%";
           document.getElementById("convBarUX").style.width = "0%";
+          document.getElementById("convBarNoJobs").style.width = "0%";
         }
 
         // Show the panel if there's data
@@ -3728,11 +3758,132 @@ function applyColumnTitles(root = document) {
       }
 
       /**
-       * Render placement cards with grouped merchants
+       * Render sessions without jobs, grouped by last page visited
+       */
+      function renderNoJobsSessions(container, data) {
+        const listDiv = document.createElement('div');
+        listDiv.className = 'placement-list';
+
+        data.results.forEach(pageGroup => {
+          const groupDiv = document.createElement('div');
+          groupDiv.className = 'placement-group collapsed';
+
+          // Group header
+          const headerDiv = document.createElement('div');
+          headerDiv.className = 'placement-group-header';
+
+          // Toggle icon
+          const toggleIcon = document.createElement('span');
+          toggleIcon.className = 'placement-group-toggle';
+          toggleIcon.textContent = '▼';
+          headerDiv.appendChild(toggleIcon);
+
+          const pageName = document.createElement('div');
+          pageName.className = 'placement-group-merchant';
+          pageName.textContent = pageGroup.page;
+
+          const countBadge = document.createElement('div');
+          countBadge.className = 'placement-group-count placement-count-system';
+          countBadge.textContent = `${pageGroup.count} session${pageGroup.count !== 1 ? 's' : ''}`;
+
+          headerDiv.appendChild(pageName);
+          headerDiv.appendChild(countBadge);
+
+          // Add click handler to toggle collapse/expand
+          headerDiv.addEventListener('click', () => {
+            groupDiv.classList.toggle('collapsed');
+          });
+
+          groupDiv.appendChild(headerDiv);
+
+          // Items container
+          const itemsDiv = document.createElement('div');
+          itemsDiv.className = 'placement-items';
+
+          // Individual session cards
+          pageGroup.sessions.forEach(session => {
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'placement-item';
+
+            const headerRow = document.createElement('div');
+            headerRow.className = 'placement-item-header';
+
+            const sessionIdSpan = document.createElement('span');
+            sessionIdSpan.className = 'chip chip-id';
+            sessionIdSpan.textContent = session.cuid || session.sessionId || 'Unknown';
+            sessionIdSpan.title = 'Session CUID';
+
+            const fiSpan = document.createElement('span');
+            fiSpan.className = 'chip chip-fi';
+            fiSpan.textContent = session.fi;
+
+            const integrationSpan = document.createElement('span');
+            integrationSpan.className = 'chip chip-instance';
+            integrationSpan.textContent = session.integration;
+
+            const durationSpan = document.createElement('span');
+            durationSpan.className = 'chip';
+            if (session.durationMs) {
+              const seconds = Math.floor(session.durationMs / 1000);
+              const minutes = Math.floor(seconds / 60);
+              const remainingSeconds = seconds % 60;
+              durationSpan.textContent = `Duration: ${minutes}m ${remainingSeconds}s`;
+            } else {
+              durationSpan.textContent = 'Duration: Unknown';
+            }
+
+            headerRow.appendChild(sessionIdSpan);
+            headerRow.appendChild(fiSpan);
+            headerRow.appendChild(integrationSpan);
+            headerRow.appendChild(durationSpan);
+
+            itemDiv.appendChild(headerRow);
+
+            // Clickstream summary
+            if (session.clickstream && session.clickstream.length > 0) {
+              const clickstreamDiv = document.createElement('div');
+              clickstreamDiv.className = 'placement-meta';
+              clickstreamDiv.innerHTML = `<strong>Clickstream:</strong> ${session.clickstream.map(c => c.url || c.page_title).join(' → ')}`;
+              itemDiv.appendChild(clickstreamDiv);
+            }
+
+            // Raw session data expandable
+            const rawDetails = document.createElement('details');
+            rawDetails.className = 'raw-details';
+
+            const rawSummary = document.createElement('summary');
+            rawSummary.textContent = 'View raw session data';
+            rawDetails.appendChild(rawSummary);
+
+            const rawPre = document.createElement('pre');
+            rawPre.className = 'raw-block';
+            rawPre.textContent = JSON.stringify(session._rawSession, null, 2);
+            rawDetails.appendChild(rawPre);
+
+            itemDiv.appendChild(rawDetails);
+            itemsDiv.appendChild(itemDiv);
+          });
+
+          groupDiv.appendChild(itemsDiv);
+          listDiv.appendChild(groupDiv);
+        });
+
+        container.appendChild(listDiv);
+      }
+
+      /**
+       * Render placement cards with grouped merchants OR sessions without jobs
        */
       function renderPlacementTable(container, data, type) {
         if (!data.results || data.results.length === 0) {
-          container.innerHTML = '<div class="placement-empty">No placements found for this category.</div>';
+          const emptyMsg = type === 'nojobs' ? 'No sessions without jobs found.' : 'No placements found for this category.';
+          container.innerHTML = `<div class="placement-empty">${emptyMsg}</div>`;
+          return;
+        }
+
+        // Handle "nojobs" type differently
+        if (type === 'nojobs') {
+          renderNoJobsSessions(container, data);
           return;
         }
 
