@@ -3764,6 +3764,12 @@ function applyColumnTitles(root = document) {
           merchantName.textContent = merchantGroup.merchant;
 
           // Create three count badges showing all types
+          console.log('[DEBUG] merchantGroup:', merchantGroup.merchant, {
+            successCount: merchantGroup.successCount,
+            systemCount: merchantGroup.systemCount,
+            uxCount: merchantGroup.uxCount
+          });
+
           const successBadge = document.createElement('div');
           successBadge.className = 'placement-group-count placement-count-success';
           const successCount = merchantGroup.successCount || 0;

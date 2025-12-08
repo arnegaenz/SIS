@@ -1505,6 +1505,18 @@ const server = http.createServer(async (req, res) => {
         }
       }
 
+      // Debug: Log first merchant's counts
+      const firstMerchant = Object.keys(merchantGroups)[0];
+      if (firstMerchant) {
+        console.log(`[DEBUG] First merchant "${firstMerchant}":`, {
+          total: merchantGroups[firstMerchant].allPlacements.length,
+          success: merchantGroups[firstMerchant].successCount,
+          system: merchantGroups[firstMerchant].systemCount,
+          ux: merchantGroups[firstMerchant].uxCount,
+          sampleTypes: merchantGroups[firstMerchant].allPlacements.slice(0, 5).map(p => p.placementType)
+        });
+      }
+
       // Sort merchants by frequency (most common first) based on current type's count
       const sortedMerchants = Object.keys(merchantGroups).sort((a, b) => {
         const countA = type === 'success' ? merchantGroups[a].successCount :
