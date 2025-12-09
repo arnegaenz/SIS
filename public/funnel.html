@@ -1069,6 +1069,11 @@
         <div class="conversion-header">Session Conversion & Failure Analysis</div>
         <div class="conversion-grid">
           <div class="conversion-metric">
+            <div class="metric-label">GA Select Merchants</div>
+            <div class="metric-value" id="convMetricGaSelect">-</div>
+            <div class="metric-pct" id="convMetricGaSelectPct">-</div>
+          </div>
+          <div class="conversion-metric">
             <div class="metric-label">Total Sessions</div>
             <div class="metric-value" id="convMetricTotalSessions">-</div>
           </div>
@@ -3504,6 +3509,7 @@ function applyColumnTitles(root = document) {
 
       function calculateConversionMetrics(startDate, endDate, visibleRows) {
         const metrics = {
+          totalGaSelect: 0,
           totalSessions: 0,
           sessionsWithoutJobs: 0,
           sessionsWithJobs: 0,
@@ -3515,6 +3521,7 @@ function applyColumnTitles(root = document) {
 
         // Aggregate from visible rows only (respects filters)
         for (const row of visibleRows) {
+          metrics.totalGaSelect += row.ga_select || 0;
           metrics.totalSessions += row.sessions || 0;
           metrics.sessionsWithJobs += row.sess_with_jobs || 0;
         }
@@ -3568,6 +3575,7 @@ function applyColumnTitles(root = document) {
         const panel = document.getElementById("conversionAnalysis");
         if (!panel) return;
 
+        const totalGaSelect = metrics.totalGaSelect || 0;
         const totalSessions = metrics.totalSessions || 0;
         const noJobs = metrics.sessionsWithoutJobs || 0;
         const withJobs = metrics.sessionsWithJobs || 0;
@@ -3575,6 +3583,12 @@ function applyColumnTitles(root = document) {
         const systemFail = metrics.systemFailures || 0;
         const uxFail = metrics.uxFailures || 0;
         const totalPlacements = metrics.totalPlacements || 0;
+
+        // Update GA Select metric
+        document.getElementById("convMetricGaSelect").textContent = totalGaSelect.toLocaleString();
+        document.getElementById("convMetricGaSelectPct").textContent = totalGaSelect > 0
+          ? `(${((totalSessions / totalGaSelect) * 100).toFixed(1)}% sessions/page)`
+          : "(0.0% sessions/page)";
 
         // Update session metrics
         document.getElementById("convMetricTotalSessions").textContent = totalSessions.toLocaleString();
