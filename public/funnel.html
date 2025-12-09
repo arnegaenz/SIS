@@ -1397,11 +1397,9 @@
       const defaultStartDateStr = isoLocalDaysAgo(6); // last 7 days ending yesterday
 
       const getLatestUsableDateIso = () => {
-        const yesterday = isoLocalYesterday();
-        if (latestDailyDate) {
-          return latestDailyDate < yesterday ? latestDailyDate : yesterday;
-        }
-        return yesterday;
+        // Always allow selection through yesterday, regardless of data availability
+        // The date warning will inform users if data isn't ready yet
+        return isoLocalYesterday();
       };
 
       function getReferenceDate() {
@@ -2023,7 +2021,8 @@ function applyColumnTitles(root = document) {
       }
 
       async function fetchDailyList() {
-        const payload = await fetchJson("/list-daily");
+        // Add cache-busting to ensure we always get the latest daily file list
+        const payload = await fetch("/list-daily", { cache: 'no-store' }).then(r => r.json());
         return payload.files || [];
       }
 
