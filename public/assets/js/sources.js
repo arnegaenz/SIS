@@ -47,10 +47,18 @@
     return "unknown";
   }
 
-  function getSessionBucket(session) {
-    if (session?.source?.integration === "CU2_SSO") return "CU2_SSO";
-    if (session?.integration_display === "SSO") return "SSO";
-    return null;
+  function determineIntegrationGroup(session) {
+    const integration =
+      session?.source?.integration ||
+      session?.integration_display ||
+      session?.integration_raw ||
+      "";
+    const normalized = integration.toString().trim().toUpperCase();
+    if (!normalized) return "nonSso";
+    if (normalized === "CU2_SSO" || normalized === "SSO") {
+      return "SSO";
+    }
+    return "nonSso";
   }
 
   function computeDuration(session) {
@@ -289,12 +297,10 @@
     const days = getDailyCandidates(start, end);
     if (!days.length) return null;
     const totals = {
-      cu2Sso: { select: 0, user: 0, cred: 0 },
-      oldSso: { select: 0, user: 0, cred: 0 },
+      sso: { select: 0, user: 0, cred: 0 },
+      nonSso: { select: 0, user: 0, cred: 0 },
     };
-    let foundCu2 = false;
-    let foundOld = false;
-    const isCu2Day = (day) => {
+    const isSsoDay = (day) => {
       if (!ssoStartDate) return false;
       return day >= ssoStartDate;
     };
@@ -310,22 +316,14 @@
           const user = safeNumber(ga.user_data_collection);
           const cred = safeNumber(ga.credential_entry);
           if (!select && !user && !cred) continue;
-          const bucket = isCu2Day(day) ? totals.cu2Sso : totals.oldSso;
+          const bucket = isSsoDay(day) ? totals.sso : totals.nonSso;
           bucket.select += select;
           bucket.user += user;
           bucket.cred += cred;
-          if (isCu2Day(day)) {
-            foundCu2 = true;
-          } else {
-            foundOld = true;
-          }
         }
       }
     }
-    return {
-      cu2Sso: foundCu2 ? totals.cu2Sso : null,
-      oldSso: foundOld ? totals.oldSso : null,
-    };
+    return totals;
   }
 
   function formatGACount(value) {
@@ -340,14 +338,14 @@
       if (!el) return;
       el.textContent = value === null || value === undefined ? "—" : formatGACount(value);
     };
-    const cu2Sso = metrics?.cu2Sso || null;
-    const oldSso = metrics?.oldSso || null;
-    updateMetric(els.gaSelectSso, cu2Sso?.select ?? null);
-    updateMetric(els.gaUserSso, cu2Sso?.user ?? null);
-    updateMetric(els.gaCredSso, cu2Sso?.cred ?? null);
-    updateMetric(els.gaSelectNon, oldSso?.select ?? null);
-    updateMetric(els.gaUserNon, oldSso?.user ?? null);
-    updateMetric(els.gaCredNon, oldSso?.cred ?? null);
+    const gaSso = metrics?.sso || {};
+    const gaNonSso = metrics?.nonSso || {};
+    updateMetric(els.gaSelectSso, gaSso.select || null);
+    updateMetric(els.gaUserSso, gaSso.user || null);
+    updateMetric(els.gaCredSso, gaSso.cred || null);
+    updateMetric(els.gaSelectNon, gaNonSso.select || null);
+    updateMetric(els.gaUserNon, gaNonSso.user || null);
+    updateMetric(els.gaCredNon, gaNonSso.cred || null);
 
     if (els.gaSection && metrics) {
       els.gaSection.style.display = "";
@@ -390,42 +388,33 @@
     const dayList = enumerateDates(start, end);
     const dayMap = dayList.reduce((acc, day) => {
       acc[day] = {
-        CU2_SSO: { sessions: 0, totalJobs: 0, successJobs: 0, placements: 0 },
         SSO: { sessions: 0, totalJobs: 0, successJobs: 0, placements: 0 },
+        nonSso: { sessions: 0, totalJobs: 0, successJobs: 0, placements: 0 },
       };
       return acc;
     }, {});
 
+    const createBucket = () => ({
+      sessions: 0,
+      sessionsWithJobs: 0,
+      sessionsWithSuccess: 0,
+      totalJobs: 0,
+      successfulJobs: 0,
+      placements: 0,
+      durationSum: 0,
+      durationCount: 0,
+      devices: { desktop: 0, mobile: 0, unknown: 0 },
+    });
+
     const buckets = {
-      CU2_SSO: {
-        sessions: 0,
-        sessionsWithJobs: 0,
-        sessionsWithSuccess: 0,
-        totalJobs: 0,
-        successfulJobs: 0,
-        placements: 0,
-        durationSum: 0,
-        durationCount: 0,
-        devices: { desktop: 0, mobile: 0, unknown: 0 },
-      },
-      SSO: {
-        sessions: 0,
-        sessionsWithJobs: 0,
-        sessionsWithSuccess: 0,
-        totalJobs: 0,
-        successfulJobs: 0,
-        placements: 0,
-        durationSum: 0,
-        durationCount: 0,
-        devices: { desktop: 0, mobile: 0, unknown: 0 },
-      },
+      SSO: createBucket(),
+      nonSso: createBucket(),
     };
 
     const merchantMap = new Map();
 
     for (const session of sessions) {
-      const bucket = getSessionBucket(session);
-      if (!bucket) continue;
+      const bucket = determineIntegrationGroup(session);
       const stats = buckets[bucket];
       const totalJobs = safeNumber(session.total_jobs);
       const successfulJobs = safeNumber(session.successful_jobs);
@@ -470,8 +459,8 @@
             merchantMap.set(key, {
               merchant,
               placements: 0,
-              CU2_SSO: { sessions: new Set(), jobs: 0, successes: 0 },
               SSO: { sessions: new Set(), jobs: 0, successes: 0 },
+              nonSso: { sessions: new Set(), jobs: 0, successes: 0 },
             });
           }
           const entry = merchantMap.get(key);
@@ -486,45 +475,22 @@
       }
     }
 
-    const totalSessions =
-      buckets.CU2_SSO.sessions + buckets.SSO.sessions;
+    const totalSessions = buckets.SSO.sessions + buckets.nonSso.sessions;
+    const buildKpi = (bucket) => ({
+      sessions: bucket.sessions,
+      sessionsWithJobs: bucket.sessionsWithJobs,
+      sessionsWithSuccess: bucket.sessionsWithSuccess,
+      jobSuccessRate:
+        bucket.totalJobs > 0 ? (bucket.successfulJobs / bucket.totalJobs) * 100 : 0,
+      placements: bucket.placements,
+      avgSessionDurationMs:
+        bucket.durationCount > 0 ? bucket.durationSum / bucket.durationCount : null,
+      deviceSplit: buildDeviceSplit(bucket.devices, bucket.sessions),
+      sessionSharePct: totalSessions > 0 ? (bucket.sessions / totalSessions) * 100 : 0,
+    });
     const kpis = {
-      CU2_SSO: {
-        sessions: buckets.CU2_SSO.sessions,
-        sessionsWithJobs: buckets.CU2_SSO.sessionsWithJobs,
-        sessionsWithSuccess: buckets.CU2_SSO.sessionsWithSuccess,
-        jobSuccessRate:
-          buckets.CU2_SSO.totalJobs > 0
-            ? (buckets.CU2_SSO.successfulJobs / buckets.CU2_SSO.totalJobs) * 100
-            : 0,
-        placements: buckets.CU2_SSO.placements,
-        avgSessionDurationMs:
-          buckets.CU2_SSO.durationCount > 0
-            ? buckets.CU2_SSO.durationSum / buckets.CU2_SSO.durationCount
-            : null,
-        deviceSplit: buildDeviceSplit(buckets.CU2_SSO.devices, buckets.CU2_SSO.sessions),
-        sessionSharePct:
-          totalSessions > 0
-            ? (buckets.CU2_SSO.sessions / totalSessions) * 100
-            : 0,
-      },
-      SSO: {
-        sessions: buckets.SSO.sessions,
-        sessionsWithJobs: buckets.SSO.sessionsWithJobs,
-        sessionsWithSuccess: buckets.SSO.sessionsWithSuccess,
-        jobSuccessRate:
-          buckets.SSO.totalJobs > 0
-            ? (buckets.SSO.successfulJobs / buckets.SSO.totalJobs) * 100
-            : 0,
-        placements: buckets.SSO.placements,
-        avgSessionDurationMs:
-          buckets.SSO.durationCount > 0
-            ? buckets.SSO.durationSum / buckets.SSO.durationCount
-            : null,
-        deviceSplit: buildDeviceSplit(buckets.SSO.devices, buckets.SSO.sessions),
-        sessionSharePct:
-          totalSessions > 0 ? (buckets.SSO.sessions / totalSessions) * 100 : 0,
-      },
+      SSO: buildKpi(buckets.SSO),
+      nonSso: buildKpi(buckets.nonSso),
       totalSessions,
     };
 
@@ -532,14 +498,6 @@
       const bucketDay = dayMap[day];
       return {
         date: day,
-        CU2_SSO: {
-          sessions: bucketDay.CU2_SSO.sessions,
-          successPct:
-            bucketDay.CU2_SSO.totalJobs > 0
-              ? Number(((bucketDay.CU2_SSO.successJobs / bucketDay.CU2_SSO.totalJobs) * 100).toFixed(1))
-              : null,
-          placements: bucketDay.CU2_SSO.placements,
-        },
         SSO: {
           sessions: bucketDay.SSO.sessions,
           successPct:
@@ -548,24 +506,32 @@
               : null,
           placements: bucketDay.SSO.placements,
         },
+        nonSso: {
+          sessions: bucketDay.nonSso.sessions,
+          successPct:
+            bucketDay.nonSso.totalJobs > 0
+              ? Number(((bucketDay.nonSso.successJobs / bucketDay.nonSso.totalJobs) * 100).toFixed(1))
+              : null,
+          placements: bucketDay.nonSso.placements,
+        },
       };
     });
 
     const merchantRows = Array.from(merchantMap.values())
       .map((entry) => {
-        const cu2 = entry.CU2_SSO;
         const sso = entry.SSO;
+        const nonSso = entry.nonSso;
         return {
           merchant: entry.merchant,
-          cu2sso: {
-            sessions: cu2.sessions.size,
-            jobs: cu2.jobs,
-            successPct: cu2.jobs ? Number(((cu2.successes / cu2.jobs) * 100).toFixed(1)) : null,
-          },
           sso: {
             sessions: sso.sessions.size,
             jobs: sso.jobs,
             successPct: sso.jobs ? Number(((sso.successes / sso.jobs) * 100).toFixed(1)) : null,
+          },
+          nonSso: {
+            sessions: nonSso.sessions.size,
+            jobs: nonSso.jobs,
+            successPct: nonSso.jobs ? Number(((nonSso.successes / nonSso.jobs) * 100).toFixed(1)) : null,
           },
           placements: entry.placements,
         };
@@ -587,81 +553,74 @@
   function renderComparisonTable(kpis) {
     if (!kpis || !els.comparisonBody) return;
 
-    const cu2 = kpis.CU2_SSO;
     const sso = kpis.SSO;
+    const nonSso = kpis.nonSso;
     const gaMetrics = state.gaMetrics;
-    const gaCu2 = gaMetrics?.cu2Sso || {};
-    const gaSso = gaMetrics?.oldSso || {};
+    const gaSso = gaMetrics?.sso || {};
+    const gaNonSso = gaMetrics?.nonSso || {};
 
-    const cu2GaSelect = gaCu2.select || 0;
-    const cu2GaUser = gaCu2.user || 0;
-    const cu2GaCred = gaCu2.cred || 0;
-    const ssoGaSelect = gaSso.select || 0;
-    const ssoGaUser = gaSso.user || 0;
-    const ssoGaCred = gaSso.cred || 0;
-
-    const formatCount = (val) => val ? val.toLocaleString() : "0";
+    const formatCount = (val) => (val || 0).toLocaleString();
     const formatPct = (val) => val > 0 ? val.toFixed(1) + "%" : "—";
 
     const rows = [
       {
         label: "GA Select Merchants",
-        cu2Count: formatCount(cu2GaSelect),
-        cu2Pct: "—",
-        ssoCount: formatCount(ssoGaSelect),
-        ssoPct: "—"
+        ssoCount: formatCount(gaSso.select),
+        ssoPct: "—",
+        nonCount: formatCount(gaNonSso.select),
+        nonPct: "—"
       },
       {
         label: "GA User Data Collection",
-        cu2Count: formatCount(cu2GaUser),
-        cu2Pct: formatPct(cu2GaSelect > 0 ? (cu2GaUser / cu2GaSelect) * 100 : 0),
-        ssoCount: formatCount(ssoGaUser),
-        ssoPct: formatPct(ssoGaSelect > 0 ? (ssoGaUser / ssoGaSelect) * 100 : 0)
+        ssoCount: formatCount(gaSso.user),
+        ssoPct: formatPct(gaSso.select > 0 ? (gaSso.user / gaSso.select) * 100 : 0),
+        nonCount: formatCount(gaNonSso.user),
+        nonPct: formatPct(gaNonSso.select > 0 ? (gaNonSso.user / gaNonSso.select) * 100 : 0)
       },
       {
         label: "GA Credential Entry",
-        cu2Count: formatCount(cu2GaCred),
-        cu2Pct: formatPct(cu2GaSelect > 0 ? (cu2GaCred / cu2GaSelect) * 100 : 0),
-        ssoCount: formatCount(ssoGaCred),
-        ssoPct: formatPct(ssoGaSelect > 0 ? (ssoGaCred / ssoGaSelect) * 100 : 0)
+        ssoCount: formatCount(gaSso.cred),
+        ssoPct: formatPct(gaSso.select > 0 ? (gaSso.cred / gaSso.select) * 100 : 0),
+        nonCount: formatCount(gaNonSso.cred),
+        nonPct: formatPct(gaNonSso.select > 0 ? (gaNonSso.cred / gaNonSso.select) * 100 : 0)
       },
       {
         label: "Sessions",
-        cu2Count: formatCount(cu2.sessions),
-        cu2Pct: "—",
-        ssoCount: formatCount(sso.sessions),
-        ssoPct: "—"
+        ssoCount: formatCount(sso?.sessions || 0),
+        ssoPct: "—",
+        nonCount: formatCount(nonSso?.sessions || 0),
+        nonPct: "—"
       },
       {
         label: "Sessions with Jobs",
-        cu2Count: formatCount(cu2.sessionsWithJobs),
-        cu2Pct: formatPct(cu2.sessions > 0 ? (cu2.sessionsWithJobs / cu2.sessions) * 100 : 0),
-        ssoCount: formatCount(sso.sessionsWithJobs),
-        ssoPct: formatPct(sso.sessions > 0 ? (sso.sessionsWithJobs / sso.sessions) * 100 : 0)
+        ssoCount: formatCount(sso?.sessionsWithJobs || 0),
+        ssoPct: formatPct(sso?.sessions > 0 ? (sso.sessionsWithJobs / sso.sessions) * 100 : 0),
+        nonCount: formatCount(nonSso?.sessionsWithJobs || 0),
+        nonPct: formatPct(nonSso?.sessions > 0 ? (nonSso.sessionsWithJobs / nonSso.sessions) * 100 : 0)
       },
       {
         label: "Sessions with Success",
-        cu2Count: formatCount(cu2.sessionsWithSuccess),
-        cu2Pct: formatPct(cu2.sessions > 0 ? (cu2.sessionsWithSuccess / cu2.sessions) * 100 : 0),
-        ssoCount: formatCount(sso.sessionsWithSuccess),
-        ssoPct: formatPct(sso.sessions > 0 ? (sso.sessionsWithSuccess / sso.sessions) * 100 : 0)
+        ssoCount: formatCount(sso?.sessionsWithSuccess || 0),
+        ssoPct: formatPct(sso?.sessions > 0 ? (sso.sessionsWithSuccess / sso.sessions) * 100 : 0),
+        nonCount: formatCount(nonSso?.sessionsWithSuccess || 0),
+        nonPct: formatPct(nonSso?.sessions > 0 ? (nonSso.sessionsWithSuccess / nonSso.sessions) * 100 : 0)
       },
       {
         label: "Placements",
-        cu2Count: formatCount(cu2.placements),
-        cu2Pct: formatPct(cu2GaSelect > 0 ? (cu2.placements / cu2GaSelect) * 100 : 0),
-        ssoCount: formatCount(sso.placements),
-        ssoPct: formatPct(ssoGaSelect > 0 ? (sso.placements / ssoGaSelect) * 100 : 0)
+        ssoCount: formatCount(sso?.placements || 0),
+        ssoPct: formatPct(gaSso.select > 0 ? ((sso?.placements || 0) / gaSso.select) * 100 : 0),
+        nonCount: formatCount(nonSso?.placements || 0),
+        nonPct: formatPct(gaNonSso.select > 0 ? ((nonSso?.placements || 0) / gaNonSso.select) * 100 : 0)
       }
     ];
 
     els.comparisonBody.innerHTML = rows.map(row => `
       <tr>
         <td>${row.label}</td>
-        <td class="num">${row.cu2Count}</td>
-        <td class="num">${row.cu2Pct}</td>
         <td class="num">${row.ssoCount}</td>
         <td class="num">${row.ssoPct}</td>
+        <td class="num">${row.nonCount}</td>
+        <td class="num">${row.nonPct}</td>
       </tr>
     `).join("");
 
@@ -679,12 +638,12 @@
       const tr = document.createElement("tr");
       tr.innerHTML = `
         <td>${row.merchant}</td>
-        <td>${row.cu2sso.sessions || 0}</td>
-        <td>${row.cu2sso.jobs || 0}</td>
-        <td>${formatPercent(row.cu2sso.successPct)}</td>
         <td>${row.sso.sessions || 0}</td>
         <td>${row.sso.jobs || 0}</td>
         <td>${formatPercent(row.sso.successPct)}</td>
+        <td>${row.nonSso.sessions || 0}</td>
+        <td>${row.nonSso.jobs || 0}</td>
+        <td>${formatPercent(row.nonSso.successPct)}</td>
         <td>${row.placements || 0}</td>
       `;
       els.merchantBody?.appendChild(tr);
@@ -700,12 +659,13 @@
       ["Date", "Bucket", "Sessions", "Success %", "Placements"].join(","),
     ];
     rows.forEach((row) => {
-      ["CU2_SSO", "SSO"].forEach((bucket) => {
+      ["SSO", "nonSso"].forEach((bucket) => {
         const bucketRow = row[bucket];
+        const label = bucket === "nonSso" ? "Non-SSO" : bucket;
         lines.push(
           [
             row.date,
-            bucket,
+            label,
             bucketRow.sessions || 0,
             bucketRow.successPct !== null ? bucketRow.successPct.toFixed(1) : "",
             bucketRow.placements || 0,
@@ -723,25 +683,25 @@
       "",
       [
         "Merchant",
-        "CU2_SSO Sessions",
-        "CU2_SSO Jobs",
-        "CU2_SSO Success %",
         "SSO Sessions",
         "SSO Jobs",
         "SSO Success %",
+        "Non-SSO Sessions",
+        "Non-SSO Jobs",
+        "Non-SSO Success %",
         "Placements",
       ].join(","),
     ];
-      rows.forEach((row) => {
+    rows.forEach((row) => {
         lines.push(
           [
             `"${row.merchant.replace(/"/g, '""')}"`,
-            row.cu2sso.sessions || 0,
-            row.cu2sso.jobs || 0,
-            row.cu2sso.successPct !== null ? row.cu2sso.successPct.toFixed(1) : "",
             row.sso.sessions || 0,
             row.sso.jobs || 0,
             row.sso.successPct !== null ? row.sso.successPct.toFixed(1) : "",
+            row.nonSso.sessions || 0,
+            row.nonSso.jobs || 0,
+            row.nonSso.successPct !== null ? row.nonSso.successPct.toFixed(1) : "",
             row.placements || 0,
           ].join(",")
         );
@@ -840,10 +800,10 @@
         fiName: payload.fiName || fiKey || "FI",
       };
 
-      const firstCu2 = (aggregated.dailyRows || []).find(
-        (row) => row.CU2_SSO?.sessions > 0
+      const firstSso = (aggregated.dailyRows || []).find(
+        (row) => row.SSO?.sessions > 0
       );
-      const ssoStartDate = firstCu2?.date || null;
+      const ssoStartDate = firstSso?.date || null;
       const gaPromise = fetchGAMetrics(fiKey, start, end, ssoStartDate).catch((err) => {
         console.warn("GA fetch failed", err);
         return null;
@@ -852,6 +812,19 @@
       renderGAMetrics(gaMetrics);
       renderComparisonTable(aggregated.kpis);
       renderMerchantRows(aggregated.merchantRows);
+
+      // Display SSO start date
+      const ssoStartInfo = document.getElementById("ssoStartInfo");
+      const ssoStartDateEl = document.getElementById("ssoStartDate");
+      if (ssoStartInfo && ssoStartDateEl) {
+        if (ssoStartDate) {
+          ssoStartDateEl.textContent = ssoStartDate;
+          ssoStartInfo.style.display = "";
+        } else {
+          ssoStartDateEl.textContent = "None detected";
+          ssoStartInfo.style.display = "";
+        }
+      }
 
       if (els.merchantSection && aggregated.merchantRows?.length > 0) {
         els.merchantSection.style.display = "";

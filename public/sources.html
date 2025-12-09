@@ -99,7 +99,7 @@
       }
 
       .sources-table .metric-header {
-        text-align: left;
+        text-align: center;
         border-bottom: 2px solid var(--table-border);
         background: linear-gradient(to bottom, var(--table-header), transparent);
         padding: 8px 12px;
@@ -347,7 +347,7 @@
       <div class="sis-page-header">
         <h1 class="sis-page-title">Source Analysis</h1>
         <div class="sis-page-header-row">
-          <p class="sis-page-subtitle">Compare SSO vs CU2_SSO traffic and conversion funnels for one FI with full end-to-end metrics.</p>
+          <p class="sis-page-subtitle">Compare SSO (CU2 + legacy) vs non-SSO traffic and conversion funnels for one FI with full end-to-end metrics.</p>
           <button class="theme-toggle" type="button" aria-pressed="false">Light mode</button>
         </div>
       </div>
@@ -397,6 +397,10 @@
             Pick a date range and apply filters.
           </div>
 
+          <div id="ssoStartInfo" class="status-message" style="display:none;">
+            SSO Start Date: <strong id="ssoStartDate">—</strong>
+          </div>
+
           <div id="fiGuard" class="fi-guard" style="display:none;">
             Select <strong>one</strong> FI to view Sources analysis.
           </div>
@@ -407,7 +411,7 @@
               <p class="subhead">Event counts from GA for the selected date range</p>
               <div class="ga-summary">
                 <div class="ga-card">
-                  <h3>CU2_SSO Period</h3>
+                  <h3>SSO GA Events</h3>
                   <div class="ga-metrics">
                     <div class="ga-metric">
                       <span class="label">Select merchants</span>
@@ -424,7 +428,7 @@
                   </div>
                 </div>
                 <div class="ga-card">
-                  <h3>SSO Period</h3>
+                  <h3>Non-SSO GA</h3>
                   <div class="ga-metrics">
                     <div class="ga-metric">
                       <span class="label">Select merchants</span>
@@ -447,14 +451,14 @@
           <div id="comparisonSection" style="display:none;">
             <div class="sources-card">
               <h2>Conversion Funnel Comparison</h2>
-              <p class="subhead">Step-by-step conversion metrics comparing CU2_SSO and SSO traffic</p>
+              <p class="subhead">Step-by-step conversion metrics comparing SSO integrations vs non-SSO traffic</p>
               <div class="sources-table-wrapper">
                 <table class="sources-table" id="comparisonTable">
                   <thead>
                     <tr>
                       <th rowspan="2">Metric</th>
-                      <th colspan="2" class="metric-header">CU2_SSO</th>
                       <th colspan="2" class="metric-header">SSO</th>
+                      <th colspan="2" class="metric-header">Non-SSO</th>
                     </tr>
                     <tr>
                       <th class="num">Count</th>
@@ -480,12 +484,12 @@
                   <thead>
                     <tr>
                       <th>Merchant</th>
-                      <th class="num">CU2_SSO Sessions</th>
-                      <th class="num">CU2_SSO Jobs</th>
-                      <th class="num">CU2_SSO Success %</th>
                       <th class="num">SSO Sessions</th>
                       <th class="num">SSO Jobs</th>
                       <th class="num">SSO Success %</th>
+                      <th class="num">Non-SSO Sessions</th>
+                      <th class="num">Non-SSO Jobs</th>
+                      <th class="num">Non-SSO Success %</th>
                       <th class="num">Placements</th>
                     </tr>
                   </thead>
