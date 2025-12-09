@@ -1069,13 +1069,13 @@
         <div class="conversion-header">Session Conversion & Failure Analysis</div>
         <div class="conversion-grid">
           <div class="conversion-metric">
-            <div class="metric-label">GA Select Merchants</div>
+            <div class="metric-label">Unique CardUpdatr Views</div>
             <div class="metric-value" id="convMetricGaSelect">-</div>
-            <div class="metric-pct" id="convMetricGaSelectPct">-</div>
           </div>
           <div class="conversion-metric">
             <div class="metric-label">Total Sessions</div>
             <div class="metric-value" id="convMetricTotalSessions">-</div>
+            <div class="metric-pct" id="convMetricSessionsPct">-</div>
           </div>
           <div class="conversion-metric">
             <div class="metric-label">Sessions w/o Jobs (Abandoned)</div>
@@ -3584,14 +3584,14 @@ function applyColumnTitles(root = document) {
         const uxFail = metrics.uxFailures || 0;
         const totalPlacements = metrics.totalPlacements || 0;
 
-        // Update GA Select metric
+        // Update GA Select metric (Unique CardUpdatr Views)
         document.getElementById("convMetricGaSelect").textContent = totalGaSelect.toLocaleString();
-        document.getElementById("convMetricGaSelectPct").textContent = totalGaSelect > 0
-          ? `(${((totalSessions / totalGaSelect) * 100).toFixed(1)}% sessions/page)`
-          : "(0.0% sessions/page)";
 
         // Update session metrics
         document.getElementById("convMetricTotalSessions").textContent = totalSessions.toLocaleString();
+        document.getElementById("convMetricSessionsPct").textContent = totalGaSelect > 0
+          ? `(${((totalSessions / totalGaSelect) * 100).toFixed(1)}%)`
+          : "(0.0%)";
         document.getElementById("convMetricNoJobs").textContent = noJobs.toLocaleString();
         document.getElementById("convMetricNoJobsPct").textContent = totalSessions > 0
           ? `(${((noJobs / totalSessions) * 100).toFixed(1)}%)`
