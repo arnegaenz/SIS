@@ -324,6 +324,132 @@
         color: var(--ink);
         font-size: 0.95rem;
       }
+
+      .funnel-cards {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        margin-bottom: 30px;
+      }
+
+      .funnel-card {
+        padding: 20px;
+        border-radius: 12px;
+        border: 2px solid var(--border);
+      }
+
+      .funnel-card-sso {
+        background: linear-gradient(135deg, rgba(37, 99, 235, 0.05), rgba(37, 99, 235, 0.02));
+        border-color: rgba(37, 99, 235, 0.3);
+      }
+
+      .funnel-card-nonsso {
+        background: linear-gradient(135deg, rgba(100, 116, 139, 0.05), rgba(100, 116, 139, 0.02));
+        border-color: rgba(100, 116, 139, 0.3);
+      }
+
+      .funnel-card h3 {
+        margin: 0 0 16px 0;
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: var(--ink);
+      }
+
+      .funnel-metrics {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .funnel-metric-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        padding: 8px 0;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .funnel-metric-row:last-child {
+        border-bottom: none;
+      }
+
+      .funnel-metric-label {
+        font-size: 0.85rem;
+        color: var(--muted);
+      }
+
+      .funnel-metric-value {
+        font-weight: 600;
+        font-size: 1.05rem;
+        color: var(--ink);
+      }
+
+      .funnel-metric-pct {
+        font-size: 0.8rem;
+        color: var(--muted);
+        margin-left: 8px;
+      }
+
+      .funnel-chart {
+        margin-top: 20px;
+      }
+
+      .funnel-chart-row {
+        margin-bottom: 20px;
+      }
+
+      .funnel-chart-label {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--ink);
+        margin-bottom: 6px;
+      }
+
+      .funnel-chart-bars {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+
+      .funnel-bar-container {
+        flex: 1;
+        height: 36px;
+        background: var(--surface);
+        border-radius: 6px;
+        border: 1px solid var(--border);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .funnel-bar {
+        height: 100%;
+        border-radius: 5px;
+        transition: width 0.5s ease;
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        padding-right: 10px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: white;
+      }
+
+      .funnel-bar-sso {
+        background: linear-gradient(90deg, #2563eb, #3b82f6);
+      }
+
+      .funnel-bar-nonsso {
+        background: linear-gradient(90deg, #64748b, #94a3b8);
+      }
+
+      .funnel-bar-label {
+        min-width: 80px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--muted);
+      }
     </style>
   </head>
   <body>
@@ -452,54 +578,30 @@
             <div class="sources-card">
               <h2>Conversion Funnel Comparison</h2>
               <p class="subhead">Step-by-step conversion metrics comparing SSO integrations vs non-SSO traffic</p>
-              <div class="sources-table-wrapper">
-                <table class="sources-table" id="comparisonTable">
-                  <thead>
-                    <tr>
-                      <th rowspan="2">Metric</th>
-                      <th colspan="2" class="metric-header">SSO</th>
-                      <th colspan="2" class="metric-header">Non-SSO</th>
-                    </tr>
-                    <tr>
-                      <th class="num">Count</th>
-                      <th class="num">Conversion %</th>
-                      <th class="num">Count</th>
-                      <th class="num">Conversion %</th>
-                    </tr>
-                  </thead>
-                  <tbody id="comparisonBody">
+
+              <!-- Side-by-side metric cards -->
+              <div class="funnel-cards">
+                <div class="funnel-card funnel-card-sso">
+                  <h3>SSO</h3>
+                  <div class="funnel-metrics" id="ssoMetrics">
                     <!-- Populated by JavaScript -->
-                  </tbody>
-                </table>
+                  </div>
+                </div>
+                <div class="funnel-card funnel-card-nonsso">
+                  <h3>Non-SSO</h3>
+                  <div class="funnel-metrics" id="nonSsoMetrics">
+                    <!-- Populated by JavaScript -->
+                  </div>
+                </div>
+              </div>
+
+              <!-- Visual bar chart comparison -->
+              <div class="funnel-chart" id="funnelChart">
+                <!-- Populated by JavaScript -->
               </div>
             </div>
           </div>
 
-          <div id="merchantSection" style="display:none;">
-            <div class="sources-card">
-              <h2>Jobs by Merchant</h2>
-              <p class="subhead">Sessions with jobs only, grouped by merchant</p>
-              <div class="sources-table-wrapper">
-                <table class="sources-table">
-                  <thead>
-                    <tr>
-                      <th>Merchant</th>
-                      <th class="num">SSO Sessions</th>
-                      <th class="num">SSO Jobs</th>
-                      <th class="num">SSO Success %</th>
-                      <th class="num">Non-SSO Sessions</th>
-                      <th class="num">Non-SSO Jobs</th>
-                      <th class="num">Non-SSO Success %</th>
-                      <th class="num">Placements</th>
-                    </tr>
-                  </thead>
-                  <tbody id="merchantBody">
-                    <!-- Populated by JavaScript -->
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
 
         </section>
       </main>

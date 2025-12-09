@@ -11,15 +11,12 @@
     loadingBanner: document.getElementById("loadingBanner"),
     gaSection: document.getElementById("gaSection"),
     comparisonSection: document.getElementById("comparisonSection"),
-    merchantSection: document.getElementById("merchantSection"),
     gaSelectSso: document.getElementById("gaSelectSso"),
     gaUserSso: document.getElementById("gaUserSso"),
     gaCredSso: document.getElementById("gaCredSso"),
     gaSelectNon: document.getElementById("gaSelectNon"),
     gaUserNon: document.getElementById("gaUserNon"),
     gaCredNon: document.getElementById("gaCredNon"),
-    comparisonBody: document.getElementById("comparisonBody"),
-    merchantBody: document.getElementById("merchantBody"),
   };
 
   const state = {
@@ -548,7 +545,7 @@
   }
 
   function renderComparisonTable(kpis) {
-    if (!kpis || !els.comparisonBody) return;
+    if (!kpis) return;
 
     const sso = kpis.SSO;
     const nonSso = kpis.nonSso;
@@ -559,67 +556,117 @@
     const formatCount = (val) => (val || 0).toLocaleString();
     const formatPct = (val) => val > 0 ? val.toFixed(1) + "%" : "—";
 
-    const rows = [
+    // Build metrics for cards and chart
+    const metrics = [
       {
-        label: "GA Select Merchants",
-        ssoCount: formatCount(gaSso.select),
-        ssoPct: "—",
-        nonCount: formatCount(gaNonSso.select),
-        nonPct: "—"
+        label: "Select Merchants",
+        ssoCount: gaSso.select || 0,
+        nonSsoCount: gaNonSso.select || 0,
+        ssoPct: null,
+        nonSsoPct: null
       },
       {
-        label: "GA User Data Collection",
-        ssoCount: formatCount(gaSso.user),
-        ssoPct: formatPct(gaSso.select > 0 ? (gaSso.user / gaSso.select) * 100 : 0),
-        nonCount: formatCount(gaNonSso.user),
-        nonPct: formatPct(gaNonSso.select > 0 ? (gaNonSso.user / gaNonSso.select) * 100 : 0)
+        label: "User Data",
+        ssoCount: gaSso.user || 0,
+        nonSsoCount: gaNonSso.user || 0,
+        ssoPct: gaSso.select > 0 ? (gaSso.user / gaSso.select) * 100 : 0,
+        nonSsoPct: gaNonSso.select > 0 ? (gaNonSso.user / gaNonSso.select) * 100 : 0
       },
       {
-        label: "GA Credential Entry",
-        ssoCount: formatCount(gaSso.cred),
-        ssoPct: formatPct(gaSso.select > 0 ? (gaSso.cred / gaSso.select) * 100 : 0),
-        nonCount: formatCount(gaNonSso.cred),
-        nonPct: formatPct(gaNonSso.select > 0 ? (gaNonSso.cred / gaNonSso.select) * 100 : 0)
+        label: "Credentials",
+        ssoCount: gaSso.cred || 0,
+        nonSsoCount: gaNonSso.cred || 0,
+        ssoPct: gaSso.select > 0 ? (gaSso.cred / gaSso.select) * 100 : 0,
+        nonSsoPct: gaNonSso.select > 0 ? (gaNonSso.cred / gaNonSso.select) * 100 : 0
       },
       {
         label: "Sessions",
-        ssoCount: formatCount(sso?.sessions || 0),
-        ssoPct: "—",
-        nonCount: formatCount(nonSso?.sessions || 0),
-        nonPct: "—"
+        ssoCount: sso?.sessions || 0,
+        nonSsoCount: nonSso?.sessions || 0,
+        ssoPct: null,
+        nonSsoPct: null
       },
       {
-        label: "Sessions with Jobs",
-        ssoCount: formatCount(sso?.sessionsWithJobs || 0),
-        ssoPct: formatPct(sso?.sessions > 0 ? (sso.sessionsWithJobs / sso.sessions) * 100 : 0),
-        nonCount: formatCount(nonSso?.sessionsWithJobs || 0),
-        nonPct: formatPct(nonSso?.sessions > 0 ? (nonSso.sessionsWithJobs / nonSso.sessions) * 100 : 0)
+        label: "Sessions w/ Jobs",
+        ssoCount: sso?.sessionsWithJobs || 0,
+        nonSsoCount: nonSso?.sessionsWithJobs || 0,
+        ssoPct: sso?.sessions > 0 ? (sso.sessionsWithJobs / sso.sessions) * 100 : 0,
+        nonSsoPct: nonSso?.sessions > 0 ? (nonSso.sessionsWithJobs / nonSso.sessions) * 100 : 0
       },
       {
-        label: "Sessions with Success",
-        ssoCount: formatCount(sso?.sessionsWithSuccess || 0),
-        ssoPct: formatPct(sso?.sessions > 0 ? (sso.sessionsWithSuccess / sso.sessions) * 100 : 0),
-        nonCount: formatCount(nonSso?.sessionsWithSuccess || 0),
-        nonPct: formatPct(nonSso?.sessions > 0 ? (nonSso.sessionsWithSuccess / nonSso.sessions) * 100 : 0)
+        label: "Sessions w/ Success",
+        ssoCount: sso?.sessionsWithSuccess || 0,
+        nonSsoCount: nonSso?.sessionsWithSuccess || 0,
+        ssoPct: sso?.sessions > 0 ? (sso.sessionsWithSuccess / sso.sessions) * 100 : 0,
+        nonSsoPct: nonSso?.sessions > 0 ? (nonSso.sessionsWithSuccess / nonSso.sessions) * 100 : 0
       },
       {
         label: "Placements",
-        ssoCount: formatCount(sso?.placements || 0),
-        ssoPct: formatPct(gaSso.select > 0 ? ((sso?.placements || 0) / gaSso.select) * 100 : 0),
-        nonCount: formatCount(nonSso?.placements || 0),
-        nonPct: formatPct(gaNonSso.select > 0 ? ((nonSso?.placements || 0) / gaNonSso.select) * 100 : 0)
+        ssoCount: sso?.placements || 0,
+        nonSsoCount: nonSso?.placements || 0,
+        ssoPct: gaSso.select > 0 ? ((sso?.placements || 0) / gaSso.select) * 100 : 0,
+        nonSsoPct: gaNonSso.select > 0 ? ((nonSso?.placements || 0) / gaNonSso.select) * 100 : 0
       }
     ];
 
-    els.comparisonBody.innerHTML = rows.map(row => `
-      <tr>
-        <td>${row.label}</td>
-        <td class="num">${row.ssoCount}</td>
-        <td class="num">${row.ssoPct}</td>
-        <td class="num">${row.nonCount}</td>
-        <td class="num">${row.nonPct}</td>
-      </tr>
-    `).join("");
+    // Render SSO metrics card
+    const ssoMetricsEl = document.getElementById('ssoMetrics');
+    if (ssoMetricsEl) {
+      ssoMetricsEl.innerHTML = metrics.map(m => `
+        <div class="funnel-metric-row">
+          <span class="funnel-metric-label">${m.label}</span>
+          <span class="funnel-metric-value">
+            ${formatCount(m.ssoCount)}
+            ${m.ssoPct !== null ? `<span class="funnel-metric-pct">(${formatPct(m.ssoPct)})</span>` : ''}
+          </span>
+        </div>
+      `).join('');
+    }
+
+    // Render Non-SSO metrics card
+    const nonSsoMetricsEl = document.getElementById('nonSsoMetrics');
+    if (nonSsoMetricsEl) {
+      nonSsoMetricsEl.innerHTML = metrics.map(m => `
+        <div class="funnel-metric-row">
+          <span class="funnel-metric-label">${m.label}</span>
+          <span class="funnel-metric-value">
+            ${formatCount(m.nonSsoCount)}
+            ${m.nonSsoPct !== null ? `<span class="funnel-metric-pct">(${formatPct(m.nonSsoPct)})</span>` : ''}
+          </span>
+        </div>
+      `).join('');
+    }
+
+    // Render bar chart
+    const funnelChartEl = document.getElementById('funnelChart');
+    if (funnelChartEl) {
+      const maxCount = Math.max(...metrics.map(m => Math.max(m.ssoCount, m.nonSsoCount)));
+
+      funnelChartEl.innerHTML = metrics.map(m => {
+        const ssoWidth = maxCount > 0 ? (m.ssoCount / maxCount) * 100 : 0;
+        const nonSsoWidth = maxCount > 0 ? (m.nonSsoCount / maxCount) * 100 : 0;
+
+        return `
+          <div class="funnel-chart-row">
+            <div class="funnel-chart-label">${m.label}</div>
+            <div class="funnel-chart-bars">
+              <span class="funnel-bar-label">SSO</span>
+              <div class="funnel-bar-container">
+                <div class="funnel-bar funnel-bar-sso" style="width: ${ssoWidth}%">
+                  ${ssoWidth > 15 ? formatCount(m.ssoCount) : ''}
+                </div>
+              </div>
+              <span class="funnel-bar-label">Non-SSO</span>
+              <div class="funnel-bar-container">
+                <div class="funnel-bar funnel-bar-nonsso" style="width: ${nonSsoWidth}%">
+                  ${nonSsoWidth > 15 ? formatCount(m.nonSsoCount) : ''}
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
 
     if (els.comparisonSection) {
       els.comparisonSection.style.display = "";
@@ -627,25 +674,6 @@
   }
 
 
-  function renderMerchantRows(rows) {
-    if (!els.merchantBody) return;
-    els.merchantBody.innerHTML = "";
-    if (!rows || !rows.length) return;
-    rows.forEach((row) => {
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${row.merchant}</td>
-        <td class="num">${row.sso.sessions || 0}</td>
-        <td class="num">${row.sso.jobs || 0}</td>
-        <td class="num">${formatPercent(row.sso.successPct)}</td>
-        <td class="num">${row.nonSso.sessions || 0}</td>
-        <td class="num">${row.nonSso.jobs || 0}</td>
-        <td class="num">${formatPercent(row.nonSso.successPct)}</td>
-        <td class="num">${row.placements || 0}</td>
-      `;
-      els.merchantBody?.appendChild(tr);
-    });
-  }
 
 
   function buildDailyCsv(rows, start, end, fiName) {
@@ -808,7 +836,6 @@
       const gaMetrics = await gaPromise;
       renderGAMetrics(gaMetrics);
       renderComparisonTable(aggregated.kpis);
-      renderMerchantRows(aggregated.merchantRows);
 
       // Display SSO start date
       const ssoStartInfo = document.getElementById("ssoStartInfo");
@@ -821,10 +848,6 @@
           ssoStartDateEl.textContent = "None detected";
           ssoStartInfo.style.display = "";
         }
-      }
-
-      if (els.merchantSection && aggregated.merchantRows?.length > 0) {
-        els.merchantSection.style.display = "";
       }
 
       setStatus(
