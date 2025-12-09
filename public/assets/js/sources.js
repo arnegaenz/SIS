@@ -48,11 +48,8 @@
   }
 
   function determineIntegrationGroup(session) {
-    const integration =
-      session?.source?.integration ||
-      session?.integration_display ||
-      session?.integration_raw ||
-      "";
+    // Only trust source.integration field - fallbacks are unreliable
+    const integration = session?.source?.integration || "";
     const normalized = integration.toString().trim().toUpperCase();
     if (!normalized) return "nonSso";
     if (normalized === "CU2_SSO" || normalized === "SSO") {
