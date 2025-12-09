@@ -635,13 +635,13 @@
       const tr = document.createElement("tr");
       tr.innerHTML = `
         <td>${row.merchant}</td>
-        <td>${row.sso.sessions || 0}</td>
-        <td>${row.sso.jobs || 0}</td>
-        <td>${formatPercent(row.sso.successPct)}</td>
-        <td>${row.nonSso.sessions || 0}</td>
-        <td>${row.nonSso.jobs || 0}</td>
-        <td>${formatPercent(row.nonSso.successPct)}</td>
-        <td>${row.placements || 0}</td>
+        <td class="num">${row.sso.sessions || 0}</td>
+        <td class="num">${row.sso.jobs || 0}</td>
+        <td class="num">${formatPercent(row.sso.successPct)}</td>
+        <td class="num">${row.nonSso.sessions || 0}</td>
+        <td class="num">${row.nonSso.jobs || 0}</td>
+        <td class="num">${formatPercent(row.nonSso.successPct)}</td>
+        <td class="num">${row.placements || 0}</td>
       `;
       els.merchantBody?.appendChild(tr);
     });
