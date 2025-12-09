@@ -1409,8 +1409,7 @@
 
       function enforceEndDateBounds() {
         try {
-          const baseRef = getReferenceDate();
-          const baseIso = isoLocalFromDate(baseRef);
+          const baseIso = getLatestUsableDateIso();
           if (endDateInput && endDateInput.value && endDateInput.value > baseIso) {
             endDateInput.value = baseIso;
           }
@@ -5381,7 +5380,7 @@ function applyColumnTitles(root = document) {
         });
       }
 
-      applyDefaultDateRange(true);
+      applyDefaultDateRange(false);
       applyColumnTitles();
       (function ensureFilters(pageId){
         const run = () => {
