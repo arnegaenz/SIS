@@ -1339,6 +1339,7 @@ const server = http.createServer(async (req, res) => {
       const fiFilter = query.get('fi') || '__all__';
       const partnerFilter = query.get('partner') || '__all_partners__';
       const integrationFilter = query.get('integration') || '(all)';
+      const instanceFilter = query.get('instance') || 'All';
       const includeTest = query.get('includeTest') === 'true';
       const limit = parseInt(query.get('limit')) || 50;
       const showAll = query.get('showAll') === 'true';
@@ -1390,6 +1391,13 @@ const server = http.createServer(async (req, res) => {
 
             // Test instance filter
             if (!includeTest && isTestInstanceName(instanceDisplay)) continue;
+
+            // Instance filter
+            if (instanceFilter !== 'All') {
+              const normalizedInstance = canonicalInstance(instanceDisplay);
+              const normalizedFilter = canonicalInstance(instanceFilter);
+              if (normalizedInstance !== normalizedFilter) continue;
+            }
 
             // FI filter
             const fiKey = normalizeFiKey(session.financial_institution_lookup_key || session.fi_lookup_key || session.fi_name || '');
@@ -1512,6 +1520,15 @@ const server = http.createServer(async (req, res) => {
             // Test instance filter
             if (!includeTest && isTestInstanceName(instance)) {
               continue;
+            }
+
+            // Instance filter
+            if (instanceFilter !== 'All') {
+              const normalizedInstance = canonicalInstance(formatInstanceDisplay(instance));
+              const normalizedFilter = canonicalInstance(instanceFilter);
+              if (normalizedInstance !== normalizedFilter) {
+                continue;
+              }
             }
 
             // FI filter (handle comma-separated list)

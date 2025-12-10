@@ -190,10 +190,21 @@
     }
     if (!instancesOut.includes("customer-dev")) instancesOut.push("customer-dev");
     const partners = unique(currentSlice.map((r) => r.partner)).filter((p) => p !== "Unknown");
+
+    // Create FI options with instance labels: "fi_name (instance)"
+    const fiOptions = byInstance.map((r) => ({
+      value: r.fi_lookup_key,  // Store just the FI name
+      label: `${r.fi_lookup_key} (${r.instance})`,  // Display "FI (instance)"
+    }));
+    // Remove duplicates based on label and sort
+    const uniqueFiOptions = Array.from(
+      new Map(fiOptions.map((opt) => [opt.label, opt])).values()
+    ).sort((a, b) => a.label.localeCompare(b.label));
+
     return {
       partners,
       integrations: unique(byInstance.map((r) => r.integration)),
-      fis: unique(byInstance.map((r) => r.fi_lookup_key)),
+      fis: uniqueFiOptions,
       instances: instancesOut,
       currentSlice,
     };
@@ -233,11 +244,14 @@
       return;
     }
 
+    // Extract actual values (FI names) from option objects
+    const fiValues = values.map((opt) => (typeof opt === "object" ? opt.value : opt));
+
     const shouldSelectAll = !state.__fiTouched;
-    const nextSelected = shouldSelectAll ? new Set(values) : new Set(state.fis);
+    const nextSelected = shouldSelectAll ? new Set(fiValues) : new Set(state.fis);
     // Keep internal state in sync with the UI default of "all selected" on first load
     if (shouldSelectAll && state.fis.size === 0) {
-      state.fis = new Set(values);
+      state.fis = new Set(fiValues);
     }
 
     // Toggle all row
@@ -250,7 +264,10 @@
     toggleLabel.appendChild(document.createTextNode(" (select/deselect all)"));
     panel.appendChild(toggleLabel);
 
-    values.forEach((val) => {
+    values.forEach((opt) => {
+      // Handle both old format (string) and new format (object with value/label)
+      const val = typeof opt === "object" ? opt.value : opt;
+      const displayText = typeof opt === "object" ? opt.label : opt;
       const id = `fi-${val}`;
       const label = document.createElement("label");
       const cb = document.createElement("input");
@@ -259,7 +276,7 @@
       cb.id = id;
       cb.checked = nextSelected.has(val);
       label.appendChild(cb);
-      label.appendChild(document.createTextNode(" " + val));
+      label.appendChild(document.createTextNode(" " + displayText));
       panel.appendChild(label);
     });
     if (shouldSelectAll) state.fis = nextSelected;
@@ -277,7 +294,7 @@
       state.__fiTouched = true;
       if (ev.target.value === "__toggle_all__") {
         const checkAll = ev.target.checked;
-        state.fis = checkAll ? new Set(values) : new Set();
+        state.fis = checkAll ? new Set(fiValues) : new Set();
         panel.querySelectorAll('input[type="checkbox"]').forEach((cb) => {
           if (cb.value !== "__toggle_all__") cb.checked = checkAll;
         });

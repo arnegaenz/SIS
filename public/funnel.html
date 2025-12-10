@@ -2176,6 +2176,15 @@ function applyColumnTitles(root = document) {
           return Object.values(perFi).filter((row) => {
             if (!includeTests && row.is_test) return false;
             if (fiTouched && sharedFiSet.size === 0) return false;
+
+            // Check instance filter
+            if (shared.instance && shared.instance !== "All") {
+              const rowInstanceKey = normalizeInstanceKey(row.instance);
+              const filterInstanceKey = normalizeInstanceKey(shared.instance);
+              if (rowInstanceKey !== filterInstanceKey) return false;
+            }
+
+            // Check FI filter
             if (sharedFiSet.size) {
               const fiKey = normalizeFiKey(row.fi);
               if (!sharedFiSet.has(fiKey)) return false;
@@ -3528,29 +3537,44 @@ function applyColumnTitles(root = document) {
         metrics.sessionsWithoutJobs = metrics.totalSessions - metrics.sessionsWithJobs;
 
         // Now categorize placements by termination type
+        // Use fi_instances instead of fi to get instance-specific placement data
         const dates = Object.keys(dailyData).sort();
         for (const date of dates) {
           if (!inRange(date, startDate, endDate)) continue;
           const day = dailyData[date];
-          if (!day?.fi) continue;
+          if (!day?.fi_instances) continue;
 
-          // Process each FI in the day's data
-          for (const fiName in day.fi) {
-            const fiData = day.fi[fiName];
-            if (!fiData?.placements?.by_termination) continue;
+          // Process each FI+instance combination in the day's data
+          for (const fiInstanceKey in day.fi_instances) {
+            const fiInstanceData = day.fi_instances[fiInstanceKey];
+            if (!fiInstanceData?.placements?.by_termination) continue;
 
-            // Check if this FI is in the visible rows (filter applied)
+            const fiName = fiInstanceData.fi_lookup_key || fiInstanceData.fi_name || "";
+            const instanceName = fiInstanceData.instance || "";
+
+            // Check if this FI+instance combination is in the visible rows (filter applied)
             const isVisible = visibleRows.some(row => {
               const rowFi = normalizeFiKey(row.fi || "");
               const dayFi = normalizeFiKey(fiName);
-              return rowFi === dayFi;
+              if (rowFi !== dayFi) return false;
+
+              // Also check instance match
+              const rowInstance = normalizeInstanceKey(row.instance);
+              const dayInstance = normalizeInstanceKey(instanceName);
+
+              // If the row has a specific instance, make sure it matches
+              if (rowInstance && rowInstance !== "any" && dayInstance !== rowInstance) {
+                return false;
+              }
+
+              return true;
             });
 
             if (!isVisible) continue;
 
             // Categorize each termination type
-            for (const termType in fiData.placements.by_termination) {
-              const count = fiData.placements.by_termination[termType];
+            for (const termType in fiInstanceData.placements.by_termination) {
+              const count = fiInstanceData.placements.by_termination[termType];
               const rule = TERMINATION_RULES[termType] || TERMINATION_RULES.UNKNOWN;
 
               if (rule.severity === "success") {
@@ -3707,14 +3731,16 @@ function applyColumnTitles(root = document) {
        * Generate cache key based on current filters
        */
       function getCacheKey(type) {
+        const shared = window.__FILTER_STATE;
         const startDate = startDateInput?.value || defaultStartDateStr;
         const endDate = endDateInput?.value || defaultEndDateStr;
         const fi = fiFilterSelect?.value || '__all__';
         const partner = partnerSelect?.value || '__all_partners__';
         const integration = integrationSelect?.value || '(all)';
+        const instance = (shared && shared.instance) || 'All';
         const includeTest = includeTestCheckbox?.checked || false;
 
-        return `${type}|${startDate}|${endDate}|${fi}|${partner}|${integration}|${includeTest}`;
+        return `${type}|${startDate}|${endDate}|${fi}|${partner}|${integration}|${instance}|${includeTest}`;
       }
 
       /**
@@ -3747,6 +3773,12 @@ function applyColumnTitles(root = document) {
           integrationParam = integrationSelect.value;
         }
 
+        // Get instance from shared state
+        let instanceParam = 'All';
+        if (shared && shared.instance && shared.instance !== 'All') {
+          instanceParam = shared.instance;
+        }
+
         const params = new URLSearchParams({
           type: type,
           startDate: startDateInput?.value || defaultStartDateStr,
@@ -3754,6 +3786,7 @@ function applyColumnTitles(root = document) {
           fi: fiParam,
           partner: partnerParam,
           integration: integrationParam,
+          instance: instanceParam,
           includeTest: includeTestCheckbox?.checked ? 'true' : 'false',
           limit: '1000',
           showAll: 'true', // Always show all placements
