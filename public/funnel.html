@@ -1708,6 +1708,7 @@ function applyColumnTitles(root = document) {
       let latestHighlights = [];
       let latestPartnerSummary = null;
       let latestQuarterSummary = null;
+      let lastActiveTab = null;
 
       function buildLast4QuarterRanges(endIso) {
         const parseIso = (iso) => new Date(`${iso}T00:00:00Z`);
@@ -4793,6 +4794,7 @@ function applyColumnTitles(root = document) {
         });
 
         const activateTab = (key) => {
+          lastActiveTab = key;
           tabBar.querySelectorAll(".tab-button").forEach((btn) => {
             btn.classList.toggle("active", btn.dataset.tab === key);
           });
@@ -4809,7 +4811,12 @@ function applyColumnTitles(root = document) {
 
         singleFiView.appendChild(tabBar);
         singleFiView.appendChild(panelsWrap);
-        activateTab(availableSections[0].key);
+
+        // Restore last active tab if it exists in the available sections, otherwise use first
+        const tabToActivate = (lastActiveTab && availableSections.some(s => s.key === lastActiveTab))
+          ? lastActiveTab
+          : availableSections[0].key;
+        activateTab(tabToActivate);
         applyColumnTitles(singleFiView);
       }
 
@@ -5160,22 +5167,35 @@ function applyColumnTitles(root = document) {
           daySpan,
           best,
         };
+        // Capture filter snapshot from shared state for accurate comparison
+        const shared = window.__FILTER_STATE;
         lastFilterSnapshot = {
-          fi: fiFilterSelect?.value || FI_ALL_VALUE,
-          integration: integrationSelect?.value || "(all)",
-          partner: partnerSelect?.value || PARTNER_ALL_VALUE,
-          includeTest: includeTestCheckbox?.checked,
+          fis: shared && shared.page === "funnel" && shared.fis ? Array.from(shared.fis).sort().join(',') : '',
+          instance: shared && shared.page === "funnel" ? (shared.instance || '') : '',
+          integration: shared && shared.page === "funnel" ? (shared.integration || '') : (integrationSelect?.value || "(all)"),
+          partner: shared && shared.page === "funnel" ? (shared.partner || '') : (partnerSelect?.value || PARTNER_ALL_VALUE),
+          includeTest: includeTestCheckbox?.checked || false,
         };
       }
 
       function rerenderFromCache() {
         if (!lastRenderContext) return;
+        // Compare current filter state with snapshot using shared state
+        const shared = window.__FILTER_STATE;
+        const currentSnapshot = {
+          fis: shared && shared.page === "funnel" && shared.fis ? Array.from(shared.fis).sort().join(',') : '',
+          instance: shared && shared.page === "funnel" ? (shared.instance || '') : '',
+          integration: shared && shared.page === "funnel" ? (shared.integration || '') : (integrationSelect?.value || "(all)"),
+          partner: shared && shared.page === "funnel" ? (shared.partner || '') : (partnerSelect?.value || PARTNER_ALL_VALUE),
+          includeTest: includeTestCheckbox?.checked || false,
+        };
         const snapshotChanged =
           !lastFilterSnapshot ||
-          lastFilterSnapshot.fi !== fiFilterSelect.value ||
-          lastFilterSnapshot.integration !== (integrationSelect?.value || "(all)") ||
-          lastFilterSnapshot.partner !== (partnerSelect?.value || PARTNER_ALL_VALUE) ||
-          lastFilterSnapshot.includeTest !== includeTestCheckbox.checked;
+          lastFilterSnapshot.fis !== currentSnapshot.fis ||
+          lastFilterSnapshot.instance !== currentSnapshot.instance ||
+          lastFilterSnapshot.integration !== currentSnapshot.integration ||
+          lastFilterSnapshot.partner !== currentSnapshot.partner ||
+          lastFilterSnapshot.includeTest !== currentSnapshot.includeTest;
         if (snapshotChanged) {
           // Clear cache when filters change
           clearPlacementDetailsCache();
