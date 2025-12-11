@@ -3878,10 +3878,25 @@ function applyColumnTitles(root = document) {
               durationSpan.textContent = 'Duration: Unknown';
             }
 
+            // Add session date/time chip
+            const dateTimeSpan = document.createElement('span');
+            dateTimeSpan.className = 'chip chip-datetime';
+            dateTimeSpan.style.marginLeft = 'auto'; // Push to right side
+            if (session.createdOn) {
+              const dt = new Date(session.createdOn);
+              const dateStr = dt.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
+              const timeStr = dt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+              dateTimeSpan.textContent = `${dateStr} ${timeStr}`;
+              dateTimeSpan.title = 'Session Created';
+            } else {
+              dateTimeSpan.textContent = 'Date: Unknown';
+            }
+
             headerRow.appendChild(sessionIdSpan);
             headerRow.appendChild(fiSpan);
             headerRow.appendChild(integrationSpan);
             headerRow.appendChild(durationSpan);
+            headerRow.appendChild(dateTimeSpan);
 
             itemDiv.appendChild(headerRow);
 
@@ -4042,6 +4057,21 @@ function applyColumnTitles(root = document) {
               badge.textContent = placement.terminationType || 'UX Fail';
               itemHeaderDiv.appendChild(badge);
             }
+
+            // Add date/time chip
+            const dateTimeChip = document.createElement('div');
+            dateTimeChip.className = 'placement-chip chip-datetime';
+            dateTimeChip.style.marginLeft = 'auto'; // Push to right side
+            if (placement.createdOn) {
+              const dt = new Date(placement.createdOn);
+              const dateStr = dt.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
+              const timeStr = dt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+              dateTimeChip.textContent = `${dateStr} ${timeStr}`;
+              dateTimeChip.title = 'Job Created';
+            } else {
+              dateTimeChip.textContent = 'Date: Unknown';
+            }
+            itemHeaderDiv.appendChild(dateTimeChip);
 
             itemDiv.appendChild(itemHeaderDiv);
 
