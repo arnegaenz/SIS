@@ -401,15 +401,24 @@
       }
       .conversion-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        grid-template-columns: repeat(4, 1fr);
         gap: 16px;
         margin-bottom: 24px;
+      }
+      @media (max-width: 1024px) {
+        .conversion-grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
       }
       .conversion-metric {
         background: var(--panel);
         border: 1px solid var(--border);
         border-radius: 10px;
         padding: 14px;
+      }
+      .conversion-metric.with-jobs-theme {
+        background: linear-gradient(135deg, var(--panel) 0%, #e8f4f8 100%);
+        border-color: #4a9eba;
       }
       .metric-label {
         font-size: 0.75rem;
@@ -1032,7 +1041,6 @@
                 <option value="last60">Last 60 days</option>
                 <option value="last90">Last 90 days</option>
                 <option value="ytd">Year to date</option>
-                <option value="last4q">Past 4 quarters</option>
                 <option value="">Custom</option>
               </select>
             </div>
@@ -1082,10 +1090,23 @@
             <div class="metric-value" id="convMetricNoJobs">-</div>
             <div class="metric-pct" id="convMetricNoJobsPct">-</div>
           </div>
-          <div class="conversion-metric">
+          <div class="conversion-metric with-jobs-theme">
             <div class="metric-label">Sessions w/ Jobs</div>
             <div class="metric-value" id="convMetricWithJobs">-</div>
             <div class="metric-pct" id="convMetricWithJobsPct">-</div>
+          </div>
+          <div class="conversion-metric with-jobs-theme">
+            <div class="metric-label">Sessions w/ Successful Jobs</div>
+            <div class="metric-value" id="convMetricSuccessfulSessions">-</div>
+            <div class="metric-pct" id="convMetricSuccessfulSessionsPct">-</div>
+          </div>
+          <div class="conversion-metric with-jobs-theme">
+            <div class="metric-label">Avg Jobs Per Session</div>
+            <div class="metric-value" id="convMetricAvgJobs">-</div>
+          </div>
+          <div class="conversion-metric with-jobs-theme">
+            <div class="metric-label">Avg Successful Jobs Per Session</div>
+            <div class="metric-value" id="convMetricAvgSuccessfulJobs">-</div>
           </div>
         </div>
 
@@ -3185,6 +3206,8 @@ function applyColumnTitles(root = document) {
                 sessions: 0,
                 sess_with_jobs: 0,
                 sess_with_success: 0,
+                total_jobs: 0,
+                successful_jobs: 0,
                 placements: 0,
                 sources_missing: [],
                 instances: [instanceName],
@@ -3222,6 +3245,8 @@ function applyColumnTitles(root = document) {
               agg.sessions += row.sessions.total || 0;
               agg.sess_with_jobs += row.sessions.with_jobs || 0;
               agg.sess_with_success += row.sessions.with_success || 0;
+              agg.total_jobs += row.sessions.total_jobs || 0;
+              agg.successful_jobs += row.sessions.successful_jobs || 0;
             }
             if (row.placements) {
               agg.placements += getBillablePlacementCount(row.placements);
@@ -3523,6 +3548,9 @@ function applyColumnTitles(root = document) {
           totalSessions: 0,
           sessionsWithoutJobs: 0,
           sessionsWithJobs: 0,
+          sessionsWithSuccessfulJobs: 0,
+          totalJobs: 0,
+          successfulJobs: 0,
           successful: 0,
           systemFailures: 0,
           uxFailures: 0,
@@ -3534,6 +3562,9 @@ function applyColumnTitles(root = document) {
           metrics.totalGaSelect += row.ga_select || 0;
           metrics.totalSessions += row.sessions || 0;
           metrics.sessionsWithJobs += row.sess_with_jobs || 0;
+          metrics.sessionsWithSuccessfulJobs += row.sess_with_success || 0;
+          metrics.totalJobs += row.total_jobs || 0;
+          metrics.successfulJobs += row.successful_jobs || 0;
         }
         metrics.sessionsWithoutJobs = metrics.totalSessions - metrics.sessionsWithJobs;
 
@@ -3604,6 +3635,9 @@ function applyColumnTitles(root = document) {
         const totalSessions = metrics.totalSessions || 0;
         const noJobs = metrics.sessionsWithoutJobs || 0;
         const withJobs = metrics.sessionsWithJobs || 0;
+        const successfulSessions = metrics.sessionsWithSuccessfulJobs || 0;
+        const totalJobs = metrics.totalJobs || 0;
+        const totalSuccessfulJobs = metrics.successfulJobs || 0;
         const successful = metrics.successful || 0;
         const systemFail = metrics.systemFailures || 0;
         const uxFail = metrics.uxFailures || 0;
@@ -3626,6 +3660,23 @@ function applyColumnTitles(root = document) {
           ? `(${((withJobs / totalSessions) * 100).toFixed(1)}%)`
           : "(0.0%)";
 
+        // Update successful sessions metric
+        document.getElementById("convMetricSuccessfulSessions").textContent = successfulSessions.toLocaleString();
+        document.getElementById("convMetricSuccessfulSessionsPct").textContent = totalSessions > 0
+          ? `(${((successfulSessions / totalSessions) * 100).toFixed(1)}%)`
+          : "(0.0%)";
+
+        // Calculate and update average job metrics (for sessions with successful jobs only)
+        const avgJobsPerSession = successfulSessions > 0
+          ? (totalJobs / successfulSessions).toFixed(2)
+          : "0.00";
+        const avgSuccessfulJobsPerSession = successfulSessions > 0
+          ? (totalSuccessfulJobs / successfulSessions).toFixed(2)
+          : "0.00";
+
+        document.getElementById("convMetricAvgJobs").textContent = avgJobsPerSession;
+        document.getElementById("convMetricAvgSuccessfulJobs").textContent = avgSuccessfulJobsPerSession;
+
         // Update breakdown metrics
         document.getElementById("convBreakdownSuccess").textContent = successful.toLocaleString();
         document.getElementById("convBreakdownSuccessPct").textContent = totalPlacements > 0
@@ -3640,9 +3691,7 @@ function applyColumnTitles(root = document) {
           ? `(${((uxFail / totalPlacements) * 100).toFixed(1)}%)`
           : "(0.0%)";
         document.getElementById("convBreakdownNoJobs").textContent = noJobs.toLocaleString();
-        document.getElementById("convBreakdownNoJobsPct").textContent = totalSessions > 0
-          ? `(${((noJobs / totalSessions) * 100).toFixed(1)}%)`
-          : "(0.0%)";
+        document.getElementById("convBreakdownNoJobsPct").textContent = "";
 
         // Update progress bars
         if (totalPlacements > 0 || totalSessions > 0) {
@@ -3987,18 +4036,30 @@ function applyColumnTitles(root = document) {
           const successCount = merchantGroup.successCount || 0;
           successBadge.textContent = `${successCount} success${successCount !== 1 ? 'es' : ''}`;
           successBadge.title = 'Successful placements';
+          // Dim if not the active view type
+          if (type !== 'success') {
+            successBadge.style.opacity = '0.35';
+          }
 
           const systemBadge = document.createElement('div');
           systemBadge.className = 'placement-group-count placement-count-system';
           const systemCount = merchantGroup.systemCount || 0;
           systemBadge.textContent = `${systemCount} system failure${systemCount !== 1 ? 's' : ''}`;
           systemBadge.title = 'System failures';
+          // Dim if not the active view type
+          if (type !== 'system') {
+            systemBadge.style.opacity = '0.35';
+          }
 
           const uxBadge = document.createElement('div');
           uxBadge.className = 'placement-group-count placement-count-ux';
           const uxCount = merchantGroup.uxCount || 0;
           uxBadge.textContent = `${uxCount} UX failure${uxCount !== 1 ? 's' : ''}`;
           uxBadge.title = 'UX failures';
+          // Dim if not the active view type
+          if (type !== 'ux') {
+            uxBadge.style.opacity = '0.35';
+          }
 
           headerDiv.appendChild(merchantName);
           headerDiv.appendChild(successBadge);

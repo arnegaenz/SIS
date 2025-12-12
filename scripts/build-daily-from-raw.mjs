@@ -302,6 +302,8 @@ function aggregateSessionsFromRaw(raw, registryIndex) {
         total_sessions: 0,
         sessions_with_jobs: 0,
         sessions_with_success: 0,
+        total_jobs_sum: 0,
+        successful_jobs_sum: 0,
       };
     }
     const bucket = byInstance[key];
@@ -311,6 +313,8 @@ function aggregateSessionsFromRaw(raw, registryIndex) {
     bucket.total_sessions += 1;
     if (totalJobs > 0) bucket.sessions_with_jobs += 1;
     if (successfulJobs > 0) bucket.sessions_with_success += 1;
+    bucket.total_jobs_sum += totalJobs;
+    bucket.successful_jobs_sum += successfulJobs;
   }
 
   const byFi = {};
@@ -322,12 +326,16 @@ function aggregateSessionsFromRaw(raw, registryIndex) {
         total_sessions: 0,
         sessions_with_jobs: 0,
         sessions_with_success: 0,
+        total_jobs_sum: 0,
+        successful_jobs_sum: 0,
       };
     }
     const fiBucket = byFi[fiKey];
     fiBucket.total_sessions += entry.total_sessions;
     fiBucket.sessions_with_jobs += entry.sessions_with_jobs;
     fiBucket.sessions_with_success += entry.sessions_with_success;
+    fiBucket.total_jobs_sum += entry.total_jobs_sum || 0;
+    fiBucket.successful_jobs_sum += entry.successful_jobs_sum || 0;
   }
 
   return { byFi, byInstance };

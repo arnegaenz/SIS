@@ -164,6 +164,8 @@ export function buildDailyDocument({
         with_jobs: s.sessions_with_jobs,
         with_success: s.sessions_with_success,
         without_jobs,
+        total_jobs: s.total_jobs_sum || 0,
+        successful_jobs: s.successful_jobs_sum || 0,
       },
       placements: p,
     };
@@ -230,6 +232,8 @@ export function buildDailyDocument({
         with_jobs: s.sessions_with_jobs,
         with_success: s.sessions_with_success,
         without_jobs,
+        total_jobs: s.total_jobs_sum || 0,
+        successful_jobs: s.successful_jobs_sum || 0,
       },
       placements: {
         total_placements: p.total_placements || 0,

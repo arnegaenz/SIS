@@ -92,6 +92,23 @@ While the server is running you can also hit the JSON helpers directly:
 
 Stop the server with `Ctrl+C` when you’re done.
 
+## Conversion & Failure Analysis
+
+The funnel page features a **Conversion & Failure Analysis** panel with key session metrics organized into two visual rows:
+
+**Row 1 — Traffic & Volume Metrics:**
+- **Unique CardUpdatr Views** — GA4 select-merchant page views (NON-SSO only)
+- **Total Sessions** — All SIS sessions with percentage of GA traffic
+- **Sessions w/o Jobs (Abandoned)** — Sessions that dropped before creating jobs
+- **Sessions w/ Jobs** — Sessions that created at least one job (highlighted with visual theme)
+
+**Row 2 — Conversion Depth Metrics (Sessions with Jobs):**
+- **Sessions w/ Successful Jobs** — Sessions with at least one successful placement
+- **Avg Jobs Per Session** — Average number of jobs across sessions with successful jobs (2 decimal places)
+- **Avg Successful Jobs Per Session** — Average successful jobs across sessions with successful jobs (2 decimal places)
+
+The blue/teal visual theme on Row 2 cards links them to "Sessions w/ Jobs" to show they drill into that subset. All metrics update dynamically based on active filters (FI, partner, integration, date range).
+
 ## Funnel Breakdown & Placement Details
 
 The funnel page includes expandable breakdown sections that provide deep visibility into job outcomes:
@@ -100,7 +117,7 @@ The funnel page includes expandable breakdown sections that provide deep visibil
 - **✓ Successful** — Shows successful placements grouped by merchant with full counts across all three categories (success/system/UX)
 - **⚠ System Failures** — Technical failures grouped by merchant with placement details and session context
 - **⊗ UX Failures** — User experience issues grouped by merchant showing credential errors, timeouts, and user cancellations
-- **⊘ Sessions Without Jobs** — Sessions that dropped off before creating jobs, grouped by last page visited with full clickstream data
+- **⊘ Sessions Without Jobs** — Sessions that dropped off before creating jobs, grouped by last page visited with full clickstream data (count only, no percentage)
 
 **Placement Details (expandable):**
 Each section displays placements grouped by merchant site with:
