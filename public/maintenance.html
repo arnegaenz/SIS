@@ -401,6 +401,17 @@
       border-bottom: 1px solid var(--panel-border);
       text-align: left;
     }
+    .registry-table-wrapper th.sortable {
+      cursor: pointer;
+    }
+    .registry-table-wrapper th .sort-indicator {
+      margin-left: 6px;
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+    .registry-table-wrapper th.sortable.sorted .sort-indicator {
+      color: var(--brand);
+    }
     .registry-table-wrapper tbody {
       display: block;
       overflow-y: auto;
@@ -782,43 +793,67 @@
             <h2>FI Registry Editor</h2>
             <p class="description">Curate issuer metadata—names, lookup keys, integration type, partner, and cardholder counts—without redeploys.</p>
           </div>
-          <div class="registry-controls">
-            <label>
-              Search
-              <input type="text" id="registrySearch" placeholder="FI or instance name" />
-            </label>
-            <label>
-              Instance
-              <select id="registryInstanceFilter">
-                <option value="">(all)</option>
-              </select>
-            </label>
-            <label>
-              Integration
-              <select id="registryIntegrationFilter">
-                <option value="">(all)</option>
-                <option value="SSO">SSO</option>
-                <option value="NON-SSO">NON-SSO</option>
-                <option value="CardSavr">CardSavr</option>
-                <option value="TEST">TEST</option>
-                <option value="UNKNOWN">UNKNOWN</option>
-              </select>
-            </label>
-            <button class="btn secondary" id="registryReloadBtn" type="button">Reload Registry</button>
-            <button class="btn secondary" id="registryFindDupes" type="button">Find Duplicates</button>
-          </div>
+            <div class="registry-controls">
+              <label>
+                Search
+                <input type="text" id="registrySearch" placeholder="FI or instance name" />
+              </label>
+              <label>
+                Instance
+                <select id="registryInstanceFilter">
+                  <option value="">(all)</option>
+                </select>
+              </label>
+              <label>
+                Integration
+                <select id="registryIntegrationFilter">
+                  <option value="">(all)</option>
+                  <option value="SSO">SSO</option>
+                  <option value="NON-SSO">NON-SSO</option>
+                  <option value="CardSavr">CardSavr</option>
+                  <option value="TEST">TEST</option>
+                  <option value="UNKNOWN">UNKNOWN</option>
+                </select>
+              </label>
+              <label>
+                Partner
+                <select id="registryPartnerFilter">
+                  <option value="">(all)</option>
+                </select>
+              </label>
+              <button class="btn secondary" id="registryReloadBtn" type="button">Reload Registry</button>
+              <button class="btn secondary" id="registryFindDupes" type="button">Find Duplicates</button>
+            </div>
           <div class="registry-body">
             <div class="registry-table-wrapper">
-              <table>
+              <table id="registryTable">
                 <thead>
                   <tr>
-                    <th>FI</th>
-                    <th>Lookup Key</th>
-                    <th>Integration</th>
+                    <th data-column="fi_name" class="sortable">
+                      FI <span class="sort-indicator">↕</span>
+                    </th>
+                    <th data-column="fi_lookup_key" class="sortable">
+                      Lookup Key <span class="sort-indicator">↕</span>
+                    </th>
+                    <th data-column="integration_type" class="sortable">
+                      Integration <span class="sort-indicator">↕</span>
+                    </th>
+                    <th data-column="core_vendor" class="sortable">
+                      Core Vendor <span class="sort-indicator">↕</span>
+                    </th>
+                    <th data-column="core_product" class="sortable">
+                      Core Product <span class="sort-indicator">↕</span>
+                    </th>
+                    <th data-column="debit_processor" class="sortable">
+                      Debit Processor <span class="sort-indicator">↕</span>
+                    </th>
+                    <th data-column="credit_processor" class="sortable">
+                      Credit Processor <span class="sort-indicator">↕</span>
+                    </th>
                   </tr>
                 </thead>
                 <tbody id="registryTableBody">
-                  <tr><td colspan="3">Loading…</td></tr>
+                  <tr><td colspan="7">Loading…</td></tr>
                 </tbody>
               </table>
             </div>
@@ -861,6 +896,22 @@
                       <option value="Direct ss01"></option>
                       <option value="Advancial"></option>
                     </datalist>
+                  </label>
+                  <label>
+                    Core Vendor
+                    <input type="text" id="editorCoreVendor" placeholder="e.g. Fiserv" />
+                  </label>
+                  <label>
+                    Core Product
+                    <input type="text" id="editorCoreProduct" placeholder="e.g. DNA CoreAPI" />
+                  </label>
+                  <label>
+                    Debit Processor
+                    <input type="text" id="editorDebitProcessor" placeholder="e.g. PSCU" />
+                  </label>
+                  <label>
+                    Credit Processor
+                    <input type="text" id="editorCreditProcessor" placeholder="e.g. FIS" />
                   </label>
                   <label>
                     Cardholders
@@ -1265,10 +1316,67 @@
         instance: document.getElementById("editorInstance"),
         integration: document.getElementById("editorIntegration"),
         partner: document.getElementById("editorPartner"),
+        coreVendor: document.getElementById("editorCoreVendor"),
+        coreProduct: document.getElementById("editorCoreProduct"),
+        debitProcessor: document.getElementById("editorDebitProcessor"),
+        creditProcessor: document.getElementById("editorCreditProcessor"),
         cardholders: document.getElementById("editorCardholders"),
         source: document.getElementById("editorSource"),
         asOf: document.getElementById("editorAsOf"),
       };
+      const partnerFilter = document.getElementById("registryPartnerFilter");
+      const registryTable = document.getElementById("registryTable");
+      const registrySortHeaders = registryTable
+        ? Array.from(registryTable.querySelectorAll("thead th[data-column]"))
+        : [];
+      let registrySortState = { column: "fi_name", direction: "asc" };
+
+      function toggleRegistrySort(column) {
+        if (!column) return;
+        if (registrySortState.column === column) {
+          registrySortState.direction =
+            registrySortState.direction === "asc" ? "desc" : "asc";
+          return;
+        }
+        registrySortState.column = column;
+        registrySortState.direction = "asc";
+      }
+
+      function getRegistrySortValue(entry, column) {
+        if (!column) return "";
+        const raw = entry ? entry[column] : null;
+        if (raw === null || raw === undefined) return "";
+        return raw.toString().trim().toLowerCase();
+      }
+
+      function sortRegistryEntries(list) {
+        const column = registrySortState.column;
+        if (!column) return [...list];
+        const factor = registrySortState.direction === "desc" ? -1 : 1;
+        return [...list].sort((a, b) => {
+          const aVal = getRegistrySortValue(a, column);
+          const bVal = getRegistrySortValue(b, column);
+          if (aVal === bVal) return 0;
+          return factor * aVal.localeCompare(bVal);
+        });
+      }
+
+      function updateRegistrySortIndicators() {
+        if (!registrySortHeaders.length) return;
+        registrySortHeaders.forEach((th) => {
+          const col = th.dataset.column;
+          const indicator = th.querySelector(".sort-indicator");
+          const isActive = registrySortState.column === col;
+          const isAsc = isActive && registrySortState.direction === "asc";
+          const isDesc = isActive && registrySortState.direction === "desc";
+          th.classList.toggle("sorted", isActive);
+          th.classList.toggle("asc", isAsc);
+          th.classList.toggle("desc", isDesc);
+          if (indicator) {
+            indicator.textContent = isActive ? (isAsc ? "▲" : "▼") : "↕";
+          }
+        });
+      }
 
       let entries = [];
       let filteredEntries = [];
@@ -1307,6 +1415,10 @@
           cardholder_as_of: entry.cardholder_as_of || "",
           first_seen: entry.first_seen || "",
           last_seen: entry.last_seen || "",
+          core_vendor: entry.core_vendor || "",
+          core_product: entry.core_product || "",
+          debit_processor: entry.debit_processor || "",
+          credit_processor: entry.credit_processor || "",
         };
       }
 
@@ -1315,58 +1427,101 @@
         statusLine.className = "status-line " + kind;
       }
 
+      async function fetchRegistryPayload() {
+        const candidates = [
+          "/fi-registry",
+          "assets/data/fi_registry.json",
+          "/assets/data/fi_registry.json",
+          "/public/assets/data/fi_registry.json",
+          "fi_registry.json",
+          "/fi_registry.json",
+        ];
+        for (const url of candidates) {
+          try {
+            const res = await fetch(url);
+            if (!res.ok) {
+              throw new Error(`HTTP ${res.status}`);
+            }
+            const payload = await res.json();
+            if (payload && (typeof payload === "object" || Array.isArray(payload))) {
+              console.log("[registry] loaded from", url);
+              return payload;
+            }
+          } catch (err) {
+            console.warn("[registry] unable to load from", url, err);
+          }
+        }
+        return null;
+      }
+
       function renderTable(rowsOverride) {
         const search = (searchInput.value || "").trim().toLowerCase();
         const integrationValue = integrationFilter.value;
         const instanceValue = instanceFilter.value;
+        const partnerValue = (partnerFilter?.value || "").trim().toLowerCase();
         const source = Array.isArray(rowsOverride) ? rowsOverride : entries;
-        // rebuild instance options from current rows
+        // rebuild instance/partner options from current rows
         const instances = Array.from(new Set(source.map((e) => e.instance || "unknown"))).sort((a, b) =>
           a.localeCompare(b)
         );
+        const partners = Array.from(
+          new Set(
+            source
+              .map((e) => (e.partner || "").toString().trim())
+              .filter((val) => val)
+          )
+        ).sort((a, b) => a.localeCompare(b));
         const keepInstance = instanceFilter.value || "";
+        const keepPartner = partnerFilter?.value || "";
         instanceFilter.innerHTML = `<option value="">(all)</option>${instances
           .map((val) => `<option value="${val}">${val}</option>`)
           .join("")}`;
         if (instances.includes(keepInstance)) {
           instanceFilter.value = keepInstance;
         }
-        const next = source
-          .filter((entry) => {
-            if (search) {
-              const haystack = `${entry.fi_name} ${entry.instance} ${entry.fi_lookup_key || ""} ${entry.partner || ""} ${entry.cardholder_source || ""}`.toLowerCase();
-              if (!haystack.includes(search)) return false;
-            }
-            if (integrationValue && entry.integration_type !== integrationValue) {
-              return false;
-            }
-            if (instanceValue && entry.instance !== instanceValue) {
-              return false;
-            }
-            return true;
-          })
-          .sort((a, b) => {
-            const aKey = (a.fi_lookup_key || "").toString().toLowerCase();
-            const bKey = (b.fi_lookup_key || "").toString().toLowerCase();
-            if (aKey !== bKey) return aKey.localeCompare(bKey);
-            const aInst = (a.instance || "").toString().toLowerCase();
-            const bInst = (b.instance || "").toString().toLowerCase();
-            return aInst.localeCompare(bInst);
-          });
-        if (!rowsOverride) filteredEntries = next;
+        if (partnerFilter) {
+          partnerFilter.innerHTML = `<option value="">(all)</option>${partners
+            .map((val) => `<option value="${val}">${val}</option>`)
+            .join("")}`;
+          if (partners.includes(keepPartner)) {
+            partnerFilter.value = keepPartner;
+          }
+        }
+        const filtered = source.filter((entry) => {
+          if (search) {
+            const haystack = `${entry.fi_name} ${entry.instance} ${entry.fi_lookup_key || ""} ${entry.partner || ""} ${entry.cardholder_source || ""}`.toLowerCase();
+            if (!haystack.includes(search)) return false;
+          }
+          if (integrationValue && entry.integration_type !== integrationValue) {
+            return false;
+          }
+          if (instanceValue && entry.instance !== instanceValue) {
+            return false;
+          }
+          if (
+            partnerValue &&
+            (entry.partner || "").toString().trim().toLowerCase() !== partnerValue
+          ) {
+            return false;
+          }
+          return true;
+        });
+        const sorted = sortRegistryEntries(filtered);
+        filteredEntries = sorted;
 
         tableBody.innerHTML = "";
-        if (!next.length) {
+        if (!sorted.length) {
           const tr = document.createElement("tr");
           const td = document.createElement("td");
-          td.colSpan = 3;
+          td.colSpan = 7;
           td.textContent = "No registry entries match the current filters.";
           tr.appendChild(td);
           tableBody.appendChild(tr);
+          updateRegistrySortIndicators();
           return;
         }
 
-        next.forEach((entry) => {
+        sorted.forEach((entry) => {
           const tr = document.createElement("tr");
           tr.dataset.key = entry.key;
           if (entry.key === selectedKey) {
@@ -1376,9 +1531,14 @@
             <td>${entry.fi_name}</td>
             <td>${entry.fi_lookup_key || "—"}</td>
             <td>${entry.integration_type}</td>
+            <td>${entry.core_vendor || "—"}</td>
+            <td>${entry.core_product || "—"}</td>
+            <td>${entry.debit_processor || "—"}</td>
+            <td>${entry.credit_processor || "—"}</td>
           `;
           tableBody.appendChild(tr);
         });
+        updateRegistrySortIndicators();
       }
 
       function populateForm(entry) {
@@ -1388,6 +1548,10 @@
           inputs.instance.value = "";
           inputs.integration.value = "NON-SSO";
           inputs.partner.value = "";
+          inputs.coreVendor.value = "";
+          inputs.coreProduct.value = "";
+          inputs.debitProcessor.value = "";
+          inputs.creditProcessor.value = "";
           inputs.cardholders.value = "";
           inputs.source.value = "";
           inputs.asOf.value = "";
@@ -1402,6 +1566,10 @@
         inputs.instance.value = entry.instance;
         inputs.integration.value = entry.integration_type || "NON-SSO";
         inputs.partner.value = entry.partner || "";
+        inputs.coreVendor.value = entry.core_vendor || "";
+        inputs.coreProduct.value = entry.core_product || "";
+        inputs.debitProcessor.value = entry.debit_processor || "";
+        inputs.creditProcessor.value = entry.credit_processor || "";
         inputs.cardholders.value = entry.cardholder_total || "";
         const sourceValue = entry.cardholder_source || "";
         if (
@@ -1415,7 +1583,19 @@
         }
         inputs.source.value = sourceValue;
         inputs.asOf.value = entry.cardholder_as_of || "";
-        metaLine.textContent = `First seen: ${entry.first_seen || "—"} • Last seen: ${entry.last_seen || "—"}`;
+        const metaParts = [
+          `First seen: ${entry.first_seen || "—"}`,
+          `Last seen: ${entry.last_seen || "—"}`,
+        ];
+        const extraMeta = [];
+        if (entry.core_vendor) extraMeta.push(`Core Vendor: ${entry.core_vendor}`);
+        if (entry.core_product) extraMeta.push(`Core Product: ${entry.core_product}`);
+        if (entry.debit_processor) extraMeta.push(`Debit Processor: ${entry.debit_processor}`);
+        if (entry.credit_processor) extraMeta.push(`Credit Processor: ${entry.credit_processor}`);
+        if (extraMeta.length) {
+          metaParts.push(extraMeta.join(" • "));
+        }
+        metaLine.textContent = metaParts.join(" • ");
         saveBtn.disabled = false;
         resetBtn.disabled = false;
         deleteBtn.disabled = false;
@@ -1435,11 +1615,12 @@
 
       async function loadRegistry() {
         setStatus("Loading registry…");
-        tableBody.innerHTML = "<tr><td colspan='6'>Loading…</td></tr>";
+        tableBody.innerHTML = "<tr><td colspan='7'>Loading…</td></tr>";
         try {
-          const res = await fetch("/fi-registry");
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          const payload = await res.json();
+          const payload = await fetchRegistryPayload();
+          if (!payload) {
+            throw new Error("No registry payload available");
+          }
           entries = Object.entries(payload || {}).map(([key, value]) => normalizeEntry(key, value));
           selectedKey = selectedKey && entries.some((e) => e.key === selectedKey) ? selectedKey : null;
           populateForm(getEntryByKey(selectedKey));
@@ -1448,13 +1629,13 @@
         } catch (err) {
           console.error("registry load failed", err);
           setStatus("Failed to load registry.", "error");
-          tableBody.innerHTML = "<tr><td colspan='6'>Unable to load registry.</td></tr>";
+          tableBody.innerHTML = "<tr><td colspan='7'>Unable to load registry.</td></tr>";
         }
       }
       async function reloadRegistryFromData() {
         if (!window.confirm("Reload registry from data? New FI + instance combos will be added; existing entries are untouched.")) return;
         setStatus("Scanning data for new FI + instance combos…");
-        tableBody.innerHTML = "<tr><td colspan='6'>Scanning…</td></tr>";
+        tableBody.innerHTML = "<tr><td colspan='7'>Scanning…</td></tr>";
         try {
           const normalizeFiKey = (val) =>
             val ? val.toString().trim().toLowerCase() : "";
@@ -1567,6 +1748,10 @@
           fi_lookup_key: inputs.fiLookup.value.trim(),
           integration_type: inputs.integration.value,
           partner: inputs.partner.value.trim(),
+          core_vendor: inputs.coreVendor.value.trim(),
+          core_product: inputs.coreProduct.value.trim(),
+          debit_processor: inputs.debitProcessor.value.trim(),
+          credit_processor: inputs.creditProcessor.value.trim(),
           cardholder_total: inputs.cardholders.value.trim(),
           cardholder_source: inputs.source.value.trim(),
           cardholder_as_of: inputs.asOf.value || "",
@@ -1574,6 +1759,10 @@
         if (!updates.fi_name) throw new Error("FI Name is required");
         if (!updates.fi_lookup_key) throw new Error("FI Lookup Key is required");
         updates.partner = updates.partner === "" ? null : updates.partner;
+        updates.core_vendor = updates.core_vendor === "" ? null : updates.core_vendor;
+        updates.core_product = updates.core_product === "" ? null : updates.core_product;
+        updates.debit_processor = updates.debit_processor === "" ? null : updates.debit_processor;
+        updates.credit_processor = updates.credit_processor === "" ? null : updates.credit_processor;
         updates.cardholder_total = updates.cardholder_total === "" ? null : updates.cardholder_total;
         updates.cardholder_source = updates.cardholder_source === "" ? null : updates.cardholder_source;
         updates.cardholder_as_of = updates.cardholder_as_of === "" ? null : updates.cardholder_as_of;
@@ -1662,9 +1851,18 @@
         selectEntry(tr.dataset.key);
       });
 
+      registrySortHeaders.forEach((th) => {
+        th.addEventListener("click", () => {
+          toggleRegistrySort(th.dataset.column);
+          renderTable();
+        });
+      });
+      updateRegistrySortIndicators();
+
       searchInput.addEventListener("input", renderTable);
       integrationFilter.addEventListener("change", renderTable);
       instanceFilter.addEventListener("change", renderTable);
+      partnerFilter?.addEventListener("change", renderTable);
       reloadBtn.addEventListener("click", reloadRegistryFromData);
       dupesBtn?.addEventListener("click", () => {
         if (!entries.length) {

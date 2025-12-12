@@ -1791,6 +1791,11 @@ const server = http.createServer(async (req, res) => {
         if (!value) return null;
         return value.toString().trim();
       };
+      const normalizeFreeText = (value) => {
+        if (value === undefined) return undefined;
+        const str = value === null ? "" : value.toString().trim();
+        return str === "" ? null : str;
+      };
       const normalizeFiName = (value) => {
         if (value === undefined) return undefined;
         const str = value === null ? "" : value.toString().trim();
@@ -1855,6 +1860,18 @@ const server = http.createServer(async (req, res) => {
       }
       if ("cardholder_as_of" in updates) {
         next.cardholder_as_of = normalizeAsOf(updates.cardholder_as_of);
+      }
+      if ("core_vendor" in updates) {
+        next.core_vendor = normalizeFreeText(updates.core_vendor);
+      }
+      if ("core_product" in updates) {
+        next.core_product = normalizeFreeText(updates.core_product);
+      }
+      if ("debit_processor" in updates) {
+        next.debit_processor = normalizeFreeText(updates.debit_processor);
+      }
+      if ("credit_processor" in updates) {
+        next.credit_processor = normalizeFreeText(updates.credit_processor);
       }
 
       const targetLookup = canonicalLookupKey(next.fi_lookup_key || next.fi_name || key);
