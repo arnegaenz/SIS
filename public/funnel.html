@@ -3045,8 +3045,8 @@ function applyColumnTitles(root = document) {
           const quarterEndDate = new Date(Date.UTC(year, q * 3, 0));
           const quarterStart = formatDateUtc(quarterStartDate);
           const quarterEnd = formatDateUtc(quarterEndDate);
-          // Skip quarter only if it doesn't overlap with the date range
-          if (quarterEnd < startDate || quarterStart > endDate) continue;
+          // Skip quarter if it's not completely within the date range (same logic as monthly)
+          if (quarterStart < startDate || quarterEnd > endDate) continue;
           if (!buckets.has(key)) {
             buckets.set(key, { start: quarterStart, end: quarterEnd, label: `Q${q} ${year}`, rows: [] });
           }
@@ -3885,9 +3885,9 @@ function applyColumnTitles(root = document) {
             if (session.createdOn) {
               const dt = new Date(session.createdOn);
               const dateStr = dt.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
-              const timeStr = dt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+              const timeStr = dt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false, timeZoneName: 'short' });
               dateTimeSpan.textContent = `${dateStr} ${timeStr}`;
-              dateTimeSpan.title = 'Session Created';
+              dateTimeSpan.title = 'Session Created (Local Time)';
             } else {
               dateTimeSpan.textContent = 'Date: Unknown';
             }
@@ -4065,9 +4065,9 @@ function applyColumnTitles(root = document) {
             if (placement.createdOn) {
               const dt = new Date(placement.createdOn);
               const dateStr = dt.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
-              const timeStr = dt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+              const timeStr = dt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false, timeZoneName: 'short' });
               dateTimeChip.textContent = `${dateStr} ${timeStr}`;
-              dateTimeChip.title = 'Job Created';
+              dateTimeChip.title = 'Job Created (Local Time)';
             } else {
               dateTimeChip.textContent = 'Date: Unknown';
             }
