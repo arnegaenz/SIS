@@ -1,15 +1,146 @@
 # SIS — Strivve Insights Service
 
-**SIS (Strivve Insights Service)** is the analytics and metrics backbone for tracking performance across CardUpdatr, CardSavr, and Strivve’s partner integrations.  
+**SIS (Strivve Insights Service)** is the analytics and metrics backbone for tracking performance across CardUpdatr, CardSavr, and Strivve's partner integrations.
 
 It consolidates data from multiple Strivve instances into unified reporting views designed for:
-- Leadership dashboards — forward-looking trends and key conversion stories  
-- Partner analytics — performance and engagement by Financial Institution (FI)  
-- Merchant site health — reliability, UX friction, and anomaly tracking  
+- Leadership dashboards — forward-looking trends and key conversion stories
+- Partner analytics — performance and engagement by Financial Institution (FI)
+- Merchant site health — reliability, UX friction, and anomaly tracking
 
-SIS aggregates and normalizes event and placement data, producing concise, human-readable summaries for both CLI and dashboard consumption.  
+SIS aggregates and normalizes event and placement data, producing concise, human-readable summaries for both CLI and dashboard consumption.
 
 🧠 *In short: SIS turns raw traffic data into actionable insights.*
+
+## Quick Start
+
+### Prerequisites
+- **Node.js** — v16 or higher
+- **Git** — for cloning the repository
+- **Strivve Instance Credentials** — Username, password, and API key for each CardSavr instance you want to query
+- **Google Analytics Service Account** (optional) — For GA4 traffic data; SIS works fine without it using sessions/placements only
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/arnegaenz/SIS.git strivve-metrics
+cd strivve-metrics
+```
+
+### 2. Install Dependencies
+
+```bash
+npm install
+```
+
+### 3. Configure Credentials
+
+#### A. Create `.env` File
+
+Create a `.env` file in the project root (this file is gitignored):
+
+```bash
+# Google Analytics configuration (optional - for GA traffic data)
+GOOGLE_APPLICATION_CREDENTIALS=./secrets/ga-service-account.json
+GA_PROPERTY_ID=328054560
+GOOGLE_ANALYTICS_PROPERTY_ID=328054560
+
+GA_TEST_PROPERTY_ID=332183682
+GA_TEST_KEYFILE=./secrets/ga-test.json
+```
+
+#### B. Create `secrets/` Directory
+
+```bash
+mkdir -p secrets
+```
+
+#### C. Add Instance Credentials
+
+Create `secrets/instances.json` with your CardSavr instance credentials:
+
+```json
+[
+  {
+    "name": "your-instance-name",
+    "CARDSAVR_INSTANCE": "https://api.your-instance.cardsavr.io/",
+    "USERNAME": "your-username",
+    "PASSWORD": "your-password",
+    "API_KEY": "your-api-key",
+    "APP_NAME": "your-app-name"
+  }
+]
+```
+
+**Note:** You can add multiple instances to query data from different environments (prod, test, etc.).
+
+#### D. Add GA Service Account (Optional)
+
+If you want GA traffic data, add your Google Analytics service account JSON files:
+- `secrets/ga-service-account.json` — Production GA property
+- `secrets/ga-test.json` — Test GA property (if applicable)
+
+**Skip this step if you only need session and placement data.**
+
+### 4. Fetch Raw Data
+
+Download raw sessions, placements, and GA data from your Strivve instances:
+
+```bash
+# Fetch data from 2020-01-01 through today
+node scripts/fetch-raw.mjs 2020-01-01 2025-12-12
+```
+
+This creates:
+- `raw/sessions/YYYY-MM-DD.json` — Session events per day
+- `raw/placements/YYYY-MM-DD.json` — Placement attempts per day
+- `raw/ga/YYYY-MM-DD.json` — GA4 screen views per day (if configured)
+
+**Note:** This can take several minutes depending on the date range and number of instances.
+
+### 5. Build Daily Rollups
+
+Generate aggregated daily data for the dashboards:
+
+```bash
+# Build rollups for the same date range
+node scripts/build-daily-from-raw.mjs 2020-01-01 2025-12-12
+```
+
+This creates:
+- `data/daily/YYYY-MM-DD.json` — Daily aggregated metrics by FI and instance
+
+### 6. Launch the Dashboard
+
+Start the local web server:
+
+```bash
+node scripts/serve-funnel.mjs
+```
+
+Open your browser to **http://localhost:8787** and explore:
+- `/funnel.html` — FI-Funnel conversion analysis
+- `/sources.html` — Traffic source analytics
+- `/heatmap.html` — Merchant site health heatmap
+- `/watchlist.html` — Alerts and anomaly detection
+- `/troubleshoot.html` — Session/placement debugging
+- `/maintenance.html` — Data refresh and registry management
+
+Press `Ctrl+C` to stop the server.
+
+### Common Issues
+
+**"No data showing in dashboards"**
+- Verify `raw/` and `data/daily/` directories contain JSON files
+- Check that date range in UI matches your fetched data
+- Ensure `secrets/instances.json` has valid credentials
+
+**"GA authentication error"**
+- GA data is optional — sessions/placements work without it
+- If needed, see [Troubleshooting: Windows GA Authentication Error](#windows-ga-authentication-error) below
+
+**"Invalid credentials for instance"**
+- Verify username, password, and API key in `secrets/instances.json`
+- Test credentials by logging into the CardSavr instance web UI
 
 # Merchant Site Health Reporting
 
