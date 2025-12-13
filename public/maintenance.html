@@ -566,6 +566,10 @@
       flex-direction: column;
       gap: 12px;
     }
+    .instances-test-panel {
+      grid-column: 1 / -1;
+      min-height: 140px;
+    }
     .instances-editor fieldset {
       border: none;
       padding: 0;
@@ -953,6 +957,7 @@
             </label>
             <div class="instance-actions">
               <button class="btn secondary" id="instancesReloadBtn" type="button">Reload</button>
+              <button class="btn secondary" id="instancesTestBtn" type="button">Test Access</button>
               <button class="btn" id="instancesNewBtn" type="button">New Instance</button>
             </div>
           </div>
@@ -1007,6 +1012,11 @@
                   <button class="btn danger" type="button" id="instanceDeleteBtn" disabled>Delete</button>
                 </div>
               </form>
+            </div>
+            <div class="refresh-status instances-test-panel" id="instancesTestPanel" hidden>
+              <p>Credential test output</p>
+              <div class="status-line" id="instancesTestStatus"></div>
+              <pre class="refresh-log" id="instancesTestLog">(click "Test Access" to run)</pre>
             </div>
           </div>
         </article>
@@ -1230,6 +1240,27 @@
             appendLogLine(data.message || "Done.");
           } catch (err) {
             console.error("done parse error", err);
+          }
+          source?.close();
+          source = null;
+        });
+
+        source.addEventListener("job_error", (ev) => {
+          try {
+            const data = JSON.parse(ev.data || "{}");
+            setStatus(data.message || "Refresh cancelled.", "error");
+            appendLogLine(data.message || "Refresh cancelled.");
+            if (Array.isArray(data.failures) && data.failures.length) {
+              data.failures.forEach((f) => {
+                const name = f?.instanceName || f?.instance || "unknown";
+                const detail = f?.error ? ` - ${f.error}` : "";
+                appendLogLine(`  ${name}${detail}`);
+              });
+            }
+          } catch (err) {
+            console.error("job_error parse error", err);
+            setStatus("Refresh cancelled.", "error");
+            appendLogLine("Refresh cancelled.");
           }
           source?.close();
           source = null;
@@ -1915,13 +1946,21 @@
       const tableBody = document.getElementById("instancesTableBody");
       const searchInput = document.getElementById("instancesSearch");
       const reloadBtn = document.getElementById("instancesReloadBtn");
+      const testBtn = document.getElementById("instancesTestBtn");
       const newBtn = document.getElementById("instancesNewBtn");
       const statusLine = document.getElementById("instancesStatus");
       const metaLine = document.getElementById("instancesMeta");
+      const testPanel = document.getElementById("instancesTestPanel");
+      const testStatusLine = document.getElementById("instancesTestStatus");
+      const testLog = document.getElementById("instancesTestLog");
       const form = document.getElementById("instancesForm");
       const saveBtn = document.getElementById("instanceSaveBtn");
       const resetBtn = document.getElementById("instanceResetBtn");
       const deleteBtn = document.getElementById("instanceDeleteBtn");
+      const apiBase =
+        window.location.origin.includes("8787")
+          ? window.location.origin
+          : "http://localhost:8787";
       const inputs = {
         name: document.getElementById("instanceName"),
         app: document.getElementById("instanceApp"),
@@ -1947,6 +1986,18 @@
       function setStatus(message, kind = "") {
         statusLine.textContent = message || "";
         statusLine.className = "status-line " + kind;
+      }
+
+      function setTestStatus(message, kind = "") {
+        if (!testStatusLine) return;
+        testStatusLine.textContent = message || "";
+        testStatusLine.className = "status-line " + kind;
+      }
+
+      function setTestLog(text) {
+        if (!testLog) return;
+        testLog.textContent = text || "";
+        testLog.scrollTop = testLog.scrollHeight;
       }
 
       function getEntry(name) {
@@ -2025,6 +2076,7 @@
           inputs.apiKey.value.trim();
         saveBtn.disabled = saving || !required;
         deleteBtn.disabled = saving || !selectedName;
+        if (testBtn) testBtn.disabled = saving;
       }
 
       function gatherFormEntry() {
@@ -2130,6 +2182,73 @@
         }
       }
 
+      async function testInstanceAccess() {
+        if (saving) return;
+        saving = true;
+        updateSaveState();
+        if (testPanel) testPanel.hidden = false;
+        setTestStatus("Testing instance credentials (sessions + placements)…");
+        setTestLog("Running…");
+
+        try {
+          const today = new Date();
+          const yesterday = new Date(today.getTime() - 86400000);
+          const date = yesterday.toISOString().slice(0, 10);
+          const res = await fetch(`${apiBase}/instances/test`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ date }),
+          });
+          const contentType = (res.headers.get("content-type") || "").toLowerCase();
+          if (!contentType.includes("application/json")) {
+            const preview = await res.text().catch(() => "");
+            throw new Error(
+              `Unexpected response from /instances/test (not JSON). Ensure the SIS server is running on ${apiBase} and restart it after updates.${preview ? ` Preview: ${preview.slice(0, 120)}` : ""}`
+            );
+          }
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            throw new Error(data?.error || `HTTP ${res.status}`);
+          }
+          const results = Array.isArray(data?.results) ? data.results : [];
+          if (!results.length) {
+            setTestLog(
+              "No instances found to test.\n\nIf this is unexpected, verify `secrets/instances.json` is populated on the server you're hitting."
+            );
+            setTestStatus("No instances found to test.", "error");
+            return;
+          }
+          const lines = results.map((r) => {
+            const name = r?.instanceName || "unknown";
+            if (r?.ok) return `✅ ${name}`;
+            const msg = r?.error ? ` — ${r.error}` : " — failed";
+            return `❌ ${name}${msg}`;
+          });
+          setTestLog(lines.join("\n"));
+          const failing = Array.isArray(data?.failingInstances)
+            ? data.failingInstances.filter(Boolean)
+            : [];
+          if (data?.ok) {
+            setTestStatus(
+              `All ${results.length} instances OK (tested ${data.date || date}).`,
+              "success"
+            );
+          } else {
+            setTestStatus(
+              `Access failed for ${failing.length || data?.failures || "some"} instance(s): ${failing.join(", ")}`,
+              "error"
+            );
+          }
+        } catch (err) {
+          console.error("instances test failed", err);
+          setTestLog(err?.message || "Test failed.");
+          setTestStatus(err?.message || "Test failed.", "error");
+        } finally {
+          saving = false;
+          updateSaveState();
+        }
+      }
+
       async function deleteInstance() {
         if (!selectedName || saving) return;
         const confirmDelete = window.confirm(
@@ -2175,6 +2294,7 @@
       });
       searchInput.addEventListener("input", renderTable);
       reloadBtn.addEventListener("click", loadInstances);
+      testBtn?.addEventListener("click", testInstanceAccess);
       newBtn.addEventListener("click", startNewInstance);
       form.addEventListener("submit", (event) => {
         event.preventDefault();

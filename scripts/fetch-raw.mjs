@@ -4,7 +4,7 @@ import process from "node:process";
 import { pathToFileURL } from "node:url";
 
 import { fetchGaRowsForDay } from "../src/ga.mjs";
-import { loginWithSdk, getSessionsPage } from "../src/api.mjs";
+import { loginWithSdk, getCardPlacementPage, getSessionsPage } from "../src/api.mjs";
 import { loadInstances } from "../src/utils/config.mjs";
 import { fetchSessionsForInstance } from "../src/fetch/fetchSessions.mjs";
 import { fetchPlacementsForInstance } from "../src/fetch/fetchPlacements.mjs";
@@ -13,7 +13,6 @@ import {
   rawExists,
   writeRaw,
   readRaw,
-  deleteRaw,
 } from "../src/lib/rawStorage.mjs";
 
 const SRC_DIR = path.resolve("src");
@@ -122,8 +121,21 @@ async function verifySessionAccess(session, instanceName, verificationDate) {
   }
 }
 
+async function verifyPlacementAccess(session, instanceName, verificationDate) {
+  try {
+    await getCardPlacementPage(session, verificationDate, verificationDate, null);
+    console.log(
+      `[login] ${instanceName}: verified placements endpoint for ${verificationDate}`
+    );
+  } catch (err) {
+    const msg = err?.message || String(err);
+    throw new Error(`placements endpoint check failed (${msg})`);
+  }
+}
+
 async function verifyInstanceLogins(instances, cache, options = {}) {
   const verificationDate = options.verificationDate || todayUtc();
+  const verifyPlacements = options.verifyPlacements !== false;
   const failures = [];
   for (const instance of instances) {
     const instanceName =
@@ -136,6 +148,9 @@ async function verifyInstanceLogins(instances, cache, options = {}) {
       cache.set(instanceName, session);
       console.log(`[login] ${instanceName}: success`);
       await verifySessionAccess(session, instanceName, verificationDate);
+      if (verifyPlacements) {
+        await verifyPlacementAccess(session, instanceName, verificationDate);
+      }
     } catch (err) {
       const msg = err?.message || String(err);
       console.error(`[login] ${instanceName}: FAILED - ${msg}`);
@@ -146,30 +161,53 @@ async function verifyInstanceLogins(instances, cache, options = {}) {
     const detail = failures
       .map((failure) => `${failure.instanceName}: ${failure.error}`)
       .join("; ");
-    throw new Error(
-      `Instance login check failed for ${failures.length} instance(s): ${detail}`
+    const err = new Error(
+      `Instance credential check failed for ${failures.length} instance(s): ${detail}`
     );
+    err.failures = failures;
+    err.kind = "credentials";
+    throw err;
   }
 }
 
-async function collectSessionsForDay(date, instances, cache) {
+async function collectSessionsForDay(date, instances, cache, options = {}) {
+  const strict = options.strict !== false;
   const combined = [];
   const seenIds = new Set();
+  const failures = [];
   for (const instance of instances) {
-    const sdkSession = await getSessionForInstance(instance, cache);
-    await fetchSessionsForInstance(
-      sdkSession,
-      instance.name || instance.CARDSAVR_INSTANCE || "default",
-      date,
-      date,
-      seenIds,
-      combined
+    const instanceName =
+      instance?.name || instance?.CARDSAVR_INSTANCE || "default";
+    try {
+      const sdkSession = await getSessionForInstance(instance, cache);
+      await fetchSessionsForInstance(
+        sdkSession,
+        instanceName,
+        date,
+        date,
+        seenIds,
+        combined
+      );
+    } catch (err) {
+      const msg = err?.message || String(err);
+      failures.push({ instanceName, error: msg, type: "sessions", date });
+    }
+  }
+  if (failures.length && strict) {
+    const err = new Error(
+      `Sessions fetch failed for ${failures.length} instance(s): ${failures
+        .map((f) => f.instanceName)
+        .join(", ")}`
     );
+    err.failures = failures;
+    err.kind = "credentials";
+    throw err;
   }
   return combined;
 }
 
-async function collectPlacementsForDay(date, instances, cache) {
+async function collectPlacementsForDay(date, instances, cache, options = {}) {
+  const strict = options.strict !== false;
   const combined = [];
   const errors = [];
   const seenIds = new Set();
@@ -188,11 +226,25 @@ async function collectPlacementsForDay(date, instances, cache) {
       );
     } catch (err) {
       const msg = err?.message || String(err);
-      console.warn(
-        `[${date}] Placements error for ${instanceName}: ${msg}`
-      );
       errors.push({ instance: instanceName, error: msg });
+      console.warn(`[${date}] Placements error for ${instanceName}: ${msg}`);
     }
+  }
+  if (errors.length && strict) {
+    const failures = errors.map((e) => ({
+      instanceName: e.instance,
+      error: e.error,
+      type: "placements",
+      date,
+    }));
+    const err = new Error(
+      `Placements fetch failed for ${failures.length} instance(s): ${failures
+        .map((f) => f.instanceName)
+        .join(", ")}`
+    );
+    err.failures = failures;
+    err.kind = "credentials";
+    throw err;
   }
   return { placements: combined, errors };
 }
@@ -287,13 +339,22 @@ function shouldRefreshRaw(type, date, force = false) {
   return { refresh: false, reason: null };
 }
 
-export async function fetchRawRange({ startDate, endDate, onStatus, forceRaw }) {
+export async function fetchRawRange({
+  startDate,
+  endDate,
+  onStatus,
+  forceRaw,
+  strict = false,
+} = {}) {
   const instances = loadInstances(ROOT_DIR);
   const sessionCache = new Map();
   const dates = enumerateDates(startDate, endDate);
   ensureRawDirs();
   const verificationDate = dates[0] || todayUtc();
-  await verifyInstanceLogins(instances, sessionCache, { verificationDate });
+  await verifyInstanceLogins(instances, sessionCache, {
+    verificationDate,
+    verifyPlacements: true,
+  });
 
   for (const date of dates) {
     console.log(`\n=== ${date} ===`);
@@ -305,7 +366,6 @@ export async function fetchRawRange({ startDate, endDate, onStatus, forceRaw }) 
     if (shouldRefreshGa) {
       if (hasGa) {
         logRefetch(date, "GA", gaReason, onStatus);
-        if (forceRaw) deleteRaw("ga", date);
       }
       try {
         const payload = await fetchGaRaw(date);
@@ -315,6 +375,9 @@ export async function fetchRawRange({ startDate, endDate, onStatus, forceRaw }) 
         const warnMsg = `[${date}] GA error: ${err.message || err}`;
         if (onStatus) onStatus(warnMsg);
         console.warn(warnMsg);
+        if (strict) {
+          throw err;
+        }
         writeRaw("ga", date, {
           date,
           error: err.message || String(err),
@@ -334,10 +397,12 @@ export async function fetchRawRange({ startDate, endDate, onStatus, forceRaw }) 
     if (shouldRefreshSessions) {
       if (hasSessions) {
         logRefetch(date, "Sessions", sessionsReason, onStatus);
-        if (forceRaw) deleteRaw("sessions", date);
       }
       try {
-        const payload = await fetchSessionsRaw(date, instances, sessionCache);
+        const sessions = await collectSessionsForDay(date, instances, sessionCache, {
+          strict,
+        });
+        const payload = { date, sessions, count: sessions.length };
         writeRaw("sessions", date, payload);
         logWrite(
           date,
@@ -349,6 +414,9 @@ export async function fetchRawRange({ startDate, endDate, onStatus, forceRaw }) 
         const warnMsg = `[${date}] Sessions error: ${err.message || err}`;
         if (onStatus) onStatus(warnMsg);
         console.warn(warnMsg);
+        if (strict) {
+          throw err;
+        }
         writeRaw("sessions", date, {
           date,
           error: err.message || String(err),
@@ -368,10 +436,15 @@ export async function fetchRawRange({ startDate, endDate, onStatus, forceRaw }) 
     if (shouldRefreshPlacements) {
       if (hasPlacements) {
         logRefetch(date, "Placements", placementsReason, onStatus);
-        if (forceRaw) deleteRaw("placements", date);
       }
       try {
-        const payload = await fetchPlacementsRaw(date, instances, sessionCache);
+        const { placements, errors } = await collectPlacementsForDay(
+          date,
+          instances,
+          sessionCache,
+          { strict }
+        );
+        const payload = { date, placements, errors, count: placements.length };
         writeRaw("placements", date, payload);
         logWrite(
           date,
@@ -383,6 +456,9 @@ export async function fetchRawRange({ startDate, endDate, onStatus, forceRaw }) 
         const warnMsg = `[${date}] Placements error: ${err.message || err}`;
         if (onStatus) onStatus(warnMsg);
         console.warn(warnMsg);
+        if (strict) {
+          throw err;
+        }
         writeRaw("placements", date, {
           date,
           error: err.message || String(err),

@@ -7,7 +7,12 @@ import { TERMINATION_RULES } from "../src/config/terminationMap.mjs";
 import { isTestInstanceName } from "../src/config/testInstances.mjs";
 import { fetchRawRange } from "./fetch-raw.mjs";
 import { buildDailyFromRawRange } from "./build-daily-from-raw.mjs";
-import { loginWithSdk, getMerchantSitesPage } from "../src/api.mjs";
+import {
+  getCardPlacementPage,
+  getMerchantSitesPage,
+  getSessionsPage,
+  loginWithSdk,
+} from "../src/api.mjs";
 import {
   groupSessionsBySource,
   computeSourceKpis,
@@ -95,6 +100,12 @@ console.log('Server logs capture initialized');
 
 function todayIsoDate() {
   return new Date().toISOString().slice(0, 10);
+}
+
+function yesterdayIsoDate() {
+  const d = new Date();
+  d.setUTCDate(d.getUTCDate() - 1);
+  return d.toISOString().slice(0, 10);
 }
 
 function isoAddDays(isoDate, deltaDays) {
@@ -191,6 +202,7 @@ async function startUpdateJobIfNeeded(range = {}) {
       onStatus: (message) =>
         broadcastUpdate("progress", { phase: "raw", message }),
       forceRaw: Boolean(range.forceRaw),
+      strict: true,
     });
 
     broadcastUpdate("progress", {
@@ -216,12 +228,22 @@ async function startUpdateJobIfNeeded(range = {}) {
     currentUpdateJob.error = err?.message || String(err);
     currentUpdateJob.lastMessage = `Update failed: ${currentUpdateJob.error}`;
 
-    broadcastUpdate("error", {
+    const failures = Array.isArray(err?.failures) ? err.failures : [];
+    const instanceNames = failures
+      .map((f) => f?.instanceName)
+      .filter(Boolean);
+    const uniqueNames = Array.from(new Set(instanceNames));
+    const cancelMessage = uniqueNames.length
+      ? `Refresh cancelled — please fix credentials for: ${uniqueNames.join(", ")}`
+      : `Refresh cancelled — ${currentUpdateJob.error}`;
+
+    broadcastUpdate("job_error", {
       finishedAt: currentUpdateJob.finishedAt,
       startDate,
       endDate,
       error: currentUpdateJob.error,
-      message: currentUpdateJob.lastMessage,
+      message: cancelMessage,
+      failures,
     });
   }
 }
@@ -2047,6 +2069,47 @@ const server = http.createServer(async (req, res) => {
       console.error("instances load failed", err);
       const status = err?.status || 500;
       return send(res, status, { error: err.message || "Unable to read instances" });
+    }
+  }
+  if (pathname === "/instances/test" && req.method === "POST") {
+    try {
+      const rawBody = await readRequestBody(req);
+      const payload = rawBody ? JSON.parse(rawBody) : {};
+      const date =
+        payload?.date && /^\d{4}-\d{2}-\d{2}$/.test(payload.date)
+          ? payload.date
+          : yesterdayIsoDate();
+
+      const { entries } = await readInstancesFile();
+      const normalized = entries.map(normalizeInstanceEntry);
+
+      const results = [];
+      const failures = [];
+      for (const instance of normalized) {
+        const instanceName = instance.name || "default";
+        try {
+          const { session } = await loginWithSdk(instance);
+          await getSessionsPage(session, date, date, null);
+          await getCardPlacementPage(session, date, date, null);
+          results.push({ instanceName, ok: true });
+        } catch (err) {
+          const msg = err?.message || String(err);
+          results.push({ instanceName, ok: false, error: msg });
+          failures.push({ instanceName, error: msg });
+        }
+      }
+
+      return send(res, 200, {
+        ok: failures.length === 0,
+        date,
+        tested: results.length,
+        failures: failures.length,
+        failingInstances: failures.map((f) => f.instanceName),
+        results,
+      });
+    } catch (err) {
+      const status = err?.status || 500;
+      return send(res, status, { error: err?.message || "Unable to test instances" });
     }
   }
   if (pathname === "/instances/save" && req.method === "POST") {

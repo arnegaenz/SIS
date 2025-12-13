@@ -258,6 +258,13 @@ export function buildDailyDocument({
 export async function writeDailyFile(baseDir, day, doc) {
   await ensureDir(baseDir);
   const filePath = path.join(baseDir, `${day}.json`);
-  await fs.writeFile(filePath, JSON.stringify(doc, null, 2));
+  const tmpPath = path.join(
+    baseDir,
+    `.${day}.json.tmp-${process.pid}-${Date.now()}-${Math.random()
+      .toString(16)
+      .slice(2)}`
+  );
+  await fs.writeFile(tmpPath, JSON.stringify(doc, null, 2));
+  await fs.rename(tmpPath, filePath);
   return filePath;
 }
