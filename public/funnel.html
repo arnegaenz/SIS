@@ -3755,13 +3755,14 @@ function applyColumnTitles(root = document) {
 
       let lastMedianJobsRequestKey = null;
 
-      async function updateMedianJobsCard(startDate, endDate) {
-        const el = document.getElementById("convMetricMedianJobs");
-        if (!el) return;
-        const shared = window.__FILTER_STATE;
-        const fis =
-          shared && shared.page === "funnel" && shared.fis && shared.fis.size
-            ? Array.from(shared.fis)
+	      async function updateMedianJobsCard(startDate, endDate) {
+	        const el = document.getElementById("convMetricMedianJobs");
+	        if (!el) return;
+	        el.removeAttribute("title");
+	        const shared = window.__FILTER_STATE;
+	        const fis =
+	          shared && shared.page === "funnel" && shared.fis && shared.fis.size
+	            ? Array.from(shared.fis)
             : [];
         const partner =
           shared && shared.page === "funnel" ? (shared.partner || "") : "";
@@ -3793,24 +3794,44 @@ function applyColumnTitles(root = document) {
         if (partner && partner !== "(all)") params.set("partner", partner);
         if (integration && integration !== "(all)") params.set("integration", integration);
         if (instance && instance !== "(all)") params.set("instance", instance);
-        if (fis.length) params.set("fi", fis.join(","));
+	        if (fis.length) params.set("fi", fis.join(","));
 
-        try {
-          const res = await fetch(`/sessions/jobs-stats?${params.toString()}`, { cache: "no-store" });
-          const data = await res.json().catch(() => ({}));
-          if (lastMedianJobsRequestKey !== reqKey) return;
-          if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
-          const median = data?.medianJobsPerSessionWithJobs;
-          el.textContent =
-            typeof median === "number" && Number.isFinite(median)
-              ? median.toFixed(median % 1 ? 1 : 0)
-              : "—";
-        } catch (err) {
-          if (lastMedianJobsRequestKey !== reqKey) return;
-          console.warn("median jobs fetch failed", err);
-          el.textContent = "—";
-        }
-      }
+	        try {
+	          const res = await fetch(`/sessions/jobs-stats?${params.toString()}`, {
+	            cache: "no-store",
+	          });
+	          const contentType = (res.headers.get("content-type") || "").toLowerCase();
+	          if (!contentType.includes("application/json")) {
+	            const preview = await res.text().catch(() => "");
+	            throw new Error(
+	              `Unexpected response from /sessions/jobs-stats (not JSON). Ensure the SIS server is running on http://localhost:8787 and restart it after updates. Preview: ${preview
+	                .toString()
+	                .replace(/\s+/g, " ")
+	                .slice(0, 140)}`
+	            );
+	          }
+	          const data = await res.json().catch(() => ({}));
+	          if (lastMedianJobsRequestKey !== reqKey) return;
+	          if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
+	          const median = data?.medianJobsPerSessionWithJobs;
+	          if (data?.sessionsWithJobs === 0) {
+	            el.textContent = "—";
+	            el.title = "No sessions with jobs found in this date range.";
+	            return;
+	          }
+	          el.textContent =
+	            typeof median === "number" && Number.isFinite(median)
+	              ? median.toFixed(median % 1 ? 1 : 0)
+	              : "—";
+	        } catch (err) {
+	          if (lastMedianJobsRequestKey !== reqKey) return;
+	          console.warn("median jobs fetch failed", err);
+	          el.textContent = "—";
+	          el.title =
+	            err?.message ||
+	            "Unable to load Median Jobs. Ensure the SIS server is running and restart it after updates.";
+	        }
+	      }
 
       // Placement Details Cache and Functions
       const placementDetailsCache = new Map();
