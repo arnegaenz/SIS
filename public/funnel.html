@@ -1135,8 +1135,8 @@
             <div class="metric-pct" id="convMetricSuccessfulSessionsPct">-</div>
           </div>
           <div class="conversion-metric with-jobs-theme">
-            <div class="metric-label">Avg Jobs Per Session</div>
-            <div class="metric-value" id="convMetricAvgJobs">-</div>
+            <div class="metric-label">Median Jobs (sess w/ jobs)</div>
+            <div class="metric-value" id="convMetricMedianJobs">-</div>
           </div>
           <div class="conversion-metric with-jobs-theme">
             <div class="metric-label">Avg Successful Jobs Per Session</div>
@@ -3703,15 +3703,13 @@ function applyColumnTitles(root = document) {
         // Total jobs
         document.getElementById("convMetricTotalJobs").textContent = totalJobs.toLocaleString();
 
-        // Calculate and update average job metrics (for sessions with successful jobs only)
-        const avgJobsPerSession = successfulSessions > 0
-          ? (totalJobs / successfulSessions).toFixed(2)
-          : "0.00";
+        // Median jobs is computed asynchronously from raw sessions; show placeholder until it resolves.
+        const medianEl = document.getElementById("convMetricMedianJobs");
+        if (medianEl) medianEl.textContent = "—";
         const avgSuccessfulJobsPerSession = successfulSessions > 0
           ? (totalSuccessfulJobs / successfulSessions).toFixed(2)
           : "0.00";
 
-        document.getElementById("convMetricAvgJobs").textContent = avgJobsPerSession;
         document.getElementById("convMetricAvgSuccessfulJobs").textContent = avgSuccessfulJobsPerSession;
 
         // Update breakdown metrics
@@ -3752,6 +3750,65 @@ function applyColumnTitles(root = document) {
           panel.style.display = "block";
         } else {
           panel.style.display = "none";
+        }
+      }
+
+      let lastMedianJobsRequestKey = null;
+
+      async function updateMedianJobsCard(startDate, endDate) {
+        const el = document.getElementById("convMetricMedianJobs");
+        if (!el) return;
+        const shared = window.__FILTER_STATE;
+        const fis =
+          shared && shared.page === "funnel" && shared.fis && shared.fis.size
+            ? Array.from(shared.fis)
+            : [];
+        const partner =
+          shared && shared.page === "funnel" ? (shared.partner || "") : "";
+        const integration =
+          shared && shared.page === "funnel"
+            ? (shared.integration || "")
+            : integrationSelect?.value || "";
+        const instance =
+          shared && shared.page === "funnel" ? (shared.instance || "") : "";
+        const includeTests = includeTestCheckbox?.checked ? "true" : "false";
+
+        const reqKey = [
+          startDate,
+          endDate,
+          includeTests,
+          partner,
+          integration,
+          instance,
+          fis.slice().sort().join(","),
+        ].join("|");
+        lastMedianJobsRequestKey = reqKey;
+        el.textContent = "…";
+
+        const params = new URLSearchParams({
+          start: startDate,
+          end: endDate,
+          includeTests,
+        });
+        if (partner && partner !== "(all)") params.set("partner", partner);
+        if (integration && integration !== "(all)") params.set("integration", integration);
+        if (instance && instance !== "(all)") params.set("instance", instance);
+        if (fis.length) params.set("fi", fis.join(","));
+
+        try {
+          const res = await fetch(`/sessions/jobs-stats?${params.toString()}`, { cache: "no-store" });
+          const data = await res.json().catch(() => ({}));
+          if (lastMedianJobsRequestKey !== reqKey) return;
+          if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
+          const median = data?.medianJobsPerSessionWithJobs;
+          el.textContent =
+            typeof median === "number" && Number.isFinite(median)
+              ? median.toFixed(median % 1 ? 1 : 0)
+              : "—";
+        } catch (err) {
+          if (lastMedianJobsRequestKey !== reqKey) return;
+          console.warn("median jobs fetch failed", err);
+          el.textContent = "—";
         }
       }
 
@@ -5285,6 +5342,7 @@ function applyColumnTitles(root = document) {
         // Calculate and render conversion metrics
         const conversionMetrics = calculateConversionMetrics(startDate, endDate, visibleRows);
         renderConversionAnalysis(conversionMetrics);
+        updateMedianJobsCard(startDate, endDate);
 
         renderTables(visibleRows, startDate, endDate, daySpan);
 

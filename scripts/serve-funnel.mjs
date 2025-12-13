@@ -754,6 +754,32 @@ function formatInstanceDisplay(value) {
   return base || "unknown";
 }
 
+function medianFromFrequencyMap(freqMap, totalCount) {
+  if (!totalCount) return null;
+  const lowerIndex = Math.floor((totalCount - 1) / 2);
+  const upperIndex = Math.floor(totalCount / 2);
+  const sortedKeys = Array.from(freqMap.keys()).sort((a, b) => a - b);
+  let cursor = 0;
+  let lowerValue = null;
+  let upperValue = null;
+  for (const key of sortedKeys) {
+    const count = freqMap.get(key) || 0;
+    if (!count) continue;
+    const start = cursor;
+    const end = cursor + count - 1;
+    if (lowerValue === null && lowerIndex >= start && lowerIndex <= end) {
+      lowerValue = key;
+    }
+    if (upperValue === null && upperIndex >= start && upperIndex <= end) {
+      upperValue = key;
+    }
+    if (lowerValue !== null && upperValue !== null) break;
+    cursor += count;
+  }
+  if (lowerValue === null || upperValue === null) return null;
+  return (lowerValue + upperValue) / 2;
+}
+
 async function loadFiRegistrySafe() {
   try {
     const raw = await fs.readFile(FI_REGISTRY_FILE, "utf8");
@@ -2120,6 +2146,101 @@ const server = http.createServer(async (req, res) => {
     } catch (err) {
       const status = err?.status || 500;
       return send(res, status, { error: err?.message || "Unable to test instances" });
+    }
+  }
+  if (pathname === "/sessions/jobs-stats") {
+    const startParam =
+      queryParams.get("start") ||
+      queryParams.get("startDate") ||
+      queryParams.get("date");
+    const endParam =
+      queryParams.get("end") ||
+      queryParams.get("endDate") ||
+      startParam;
+    const isoRe = /^\d{4}-\d{2}-\d{2}$/;
+    if (!startParam || !isoRe.test(startParam)) {
+      return send(res, 400, { error: "start date query param must be YYYY-MM-DD" });
+    }
+    if (!endParam || !isoRe.test(endParam)) {
+      return send(res, 400, { error: "end date query param must be YYYY-MM-DD" });
+    }
+    if (new Date(`${startParam}T00:00:00Z`) > new Date(`${endParam}T00:00:00Z`)) {
+      return send(res, 400, { error: "start date must be on or before end date" });
+    }
+
+    const includeTests = queryParams.get("includeTests") === "true";
+    const partnerFilter = queryParams.get("partner") || "";
+    const instanceFilter = queryParams.get("instance") || "";
+    const integrationFilter = queryParams.get("integration") || "";
+    const fiParam = queryParams.get("fi") || "";
+    const fiList = fiParam
+      ? fiParam
+          .split(",")
+          .map((v) => normalizeFiKey(v))
+          .filter(Boolean)
+      : [];
+    const fiSet = fiList.length ? new Set(fiList) : null;
+
+    try {
+      const [fiRegistry, instanceMeta] = await Promise.all([
+        loadFiRegistrySafe(),
+        loadInstanceMetaMap(),
+      ]);
+      const fiMeta = buildFiMetaMap(fiRegistry);
+      const days = daysBetween(startParam, endParam);
+      const freq = new Map();
+      let sessionsScanned = 0;
+      let sessionsWithJobs = 0;
+      let totalJobs = 0;
+
+      const placementMap = new Map(); // empty; integration still resolved via session.source + registry
+
+      for (const day of days) {
+        const sessionsRaw = await readSessionDay(day);
+        if (!sessionsRaw || sessionsRaw.error) continue;
+        const sessions = Array.isArray(sessionsRaw.sessions) ? sessionsRaw.sessions : [];
+        for (const session of sessions) {
+          const entry = mapSessionToTroubleshootEntry(session, placementMap, fiMeta, instanceMeta);
+          sessionsScanned += 1;
+          if (!includeTests && entry.is_test) continue;
+          if (fiSet && !fiSet.has(normalizeFiKey(entry.fi_key))) continue;
+          if (partnerFilter && partnerFilter !== "(all)" && entry.partner !== partnerFilter) continue;
+          if (integrationFilter && integrationFilter !== "(all)" && entry.integration !== normalizeIntegration(integrationFilter)) continue;
+          if (
+            instanceFilter &&
+            instanceFilter !== "(all)" &&
+            canonicalInstance(entry.instance) !== canonicalInstance(instanceFilter)
+          ) {
+            continue;
+          }
+
+          const jobs = Number(entry.total_jobs) || 0;
+          if (jobs <= 0) continue;
+          sessionsWithJobs += 1;
+          totalJobs += jobs;
+          freq.set(jobs, (freq.get(jobs) || 0) + 1);
+        }
+      }
+
+      const median = medianFromFrequencyMap(freq, sessionsWithJobs);
+      return send(res, 200, {
+        startDate: startParam,
+        endDate: endParam,
+        includeTests,
+        filters: {
+          fi: fiList,
+          partner: partnerFilter || null,
+          integration: integrationFilter || null,
+          instance: instanceFilter || null,
+        },
+        sessionsScanned,
+        sessionsWithJobs,
+        totalJobs,
+        medianJobsPerSessionWithJobs: median,
+      });
+    } catch (err) {
+      const status = err?.status || 500;
+      return send(res, status, { error: err?.message || "Unable to compute job stats" });
     }
   }
   if (pathname === "/instances/save" && req.method === "POST") {
