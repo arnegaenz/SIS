@@ -744,6 +744,26 @@ function canonicalInstance(value) {
   return value.toString().trim().toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 
+function normalizeInstanceKey(value) {
+  const normalized = canonicalInstance(value);
+  return normalized || "unknown";
+}
+
+function makeFiInstanceKey(fiKey, instanceValue) {
+  return `${normalizeFiKey(fiKey)}__${normalizeInstanceKey(instanceValue)}`;
+}
+
+function normalizeFiInstanceKey(value) {
+  if (!value) return "";
+  const raw = value.toString().trim();
+  if (!raw) return "";
+  if (!raw.includes("__")) {
+    return makeFiInstanceKey(raw, "unknown");
+  }
+  const [fiPart, instPart] = raw.split("__");
+  return makeFiInstanceKey(fiPart, instPart);
+}
+
 function formatInstanceDisplay(value) {
   if (!value) return "unknown";
   const base = value
@@ -2148,10 +2168,10 @@ const server = http.createServer(async (req, res) => {
       return send(res, status, { error: err?.message || "Unable to test instances" });
     }
   }
-  if (pathname === "/sessions/jobs-stats") {
-    const startParam =
-      queryParams.get("start") ||
-      queryParams.get("startDate") ||
+	  if (pathname === "/sessions/jobs-stats") {
+	    const startParam =
+	      queryParams.get("start") ||
+	      queryParams.get("startDate") ||
       queryParams.get("date");
     const endParam =
       queryParams.get("end") ||
@@ -2168,14 +2188,24 @@ const server = http.createServer(async (req, res) => {
       return send(res, 400, { error: "start date must be on or before end date" });
     }
 
-    const includeTests = queryParams.get("includeTests") === "true";
-    const partnerFilter = queryParams.get("partner") || "";
-    const instanceFilter = queryParams.get("instance") || "";
-    const integrationFilter = queryParams.get("integration") || "";
-    const fiParam = queryParams.get("fi") || "";
-    const fiList = fiParam
-      ? fiParam
-          .split(",")
+	    const includeTests = queryParams.get("includeTests") === "true";
+	    const partnerFilter = queryParams.get("partner") || "";
+	    const instanceFilter = queryParams.get("instance") || "";
+	    const integrationFilter = queryParams.get("integration") || "";
+	    const fiInstancesParam =
+	      queryParams.get("fiInstances") || queryParams.get("fi_instances") || "";
+	    const fiInstanceSet = fiInstancesParam
+	      ? new Set(
+	          fiInstancesParam
+	            .split(",")
+	            .map((v) => normalizeFiInstanceKey(v))
+	            .filter(Boolean)
+	        )
+	      : null;
+	    const fiParam = queryParams.get("fi") || "";
+	    const fiList = fiParam
+	      ? fiParam
+	          .split(",")
           .map((v) => normalizeFiKey(v))
           .filter(Boolean)
       : [];
@@ -2186,28 +2216,34 @@ const server = http.createServer(async (req, res) => {
         loadFiRegistrySafe(),
         loadInstanceMetaMap(),
       ]);
-      const fiMeta = buildFiMetaMap(fiRegistry);
-      const days = daysBetween(startParam, endParam);
-      const freq = new Map();
-      let sessionsScanned = 0;
-      let sessionsWithJobs = 0;
-      let totalJobs = 0;
+	      const fiMeta = buildFiMetaMap(fiRegistry);
+	      const days = daysBetween(startParam, endParam);
+	      const freq = new Map();
+	      let daysWithSessionFiles = 0;
+	      let sessionsScanned = 0;
+	      let sessionsWithJobs = 0;
+	      let totalJobs = 0;
 
       const placementMap = new Map(); // empty; integration still resolved via session.source + registry
 
-      for (const day of days) {
-        const sessionsRaw = await readSessionDay(day);
-        if (!sessionsRaw || sessionsRaw.error) continue;
-        const sessions = Array.isArray(sessionsRaw.sessions) ? sessionsRaw.sessions : [];
-        for (const session of sessions) {
-          const entry = mapSessionToTroubleshootEntry(session, placementMap, fiMeta, instanceMeta);
-          sessionsScanned += 1;
-          if (!includeTests && entry.is_test) continue;
-          if (fiSet && !fiSet.has(normalizeFiKey(entry.fi_key))) continue;
-          if (partnerFilter && partnerFilter !== "(all)" && entry.partner !== partnerFilter) continue;
-          if (integrationFilter && integrationFilter !== "(all)" && entry.integration !== normalizeIntegration(integrationFilter)) continue;
-          if (
-            instanceFilter &&
+	      for (const day of days) {
+	        const sessionsRaw = await readSessionDay(day);
+	        if (!sessionsRaw || sessionsRaw.error) continue;
+	        daysWithSessionFiles += 1;
+	        const sessions = Array.isArray(sessionsRaw.sessions) ? sessionsRaw.sessions : [];
+	        for (const session of sessions) {
+	          const entry = mapSessionToTroubleshootEntry(session, placementMap, fiMeta, instanceMeta);
+	          sessionsScanned += 1;
+	          if (!includeTests && entry.is_test) continue;
+	          if (fiInstanceSet) {
+	            const key = makeFiInstanceKey(entry.fi_key, entry.instance);
+	            if (!fiInstanceSet.has(key)) continue;
+	          }
+	          if (fiSet && !fiSet.has(normalizeFiKey(entry.fi_key))) continue;
+	          if (partnerFilter && partnerFilter !== "(all)" && entry.partner !== partnerFilter) continue;
+	          if (integrationFilter && integrationFilter !== "(all)" && entry.integration !== normalizeIntegration(integrationFilter)) continue;
+	          if (
+	            instanceFilter &&
             instanceFilter !== "(all)" &&
             canonicalInstance(entry.instance) !== canonicalInstance(instanceFilter)
           ) {
@@ -2223,21 +2259,23 @@ const server = http.createServer(async (req, res) => {
       }
 
       const median = medianFromFrequencyMap(freq, sessionsWithJobs);
-      return send(res, 200, {
-        startDate: startParam,
-        endDate: endParam,
-        includeTests,
-        filters: {
-          fi: fiList,
-          partner: partnerFilter || null,
-          integration: integrationFilter || null,
-          instance: instanceFilter || null,
-        },
-        sessionsScanned,
-        sessionsWithJobs,
-        totalJobs,
-        medianJobsPerSessionWithJobs: median,
-      });
+	      return send(res, 200, {
+	        startDate: startParam,
+	        endDate: endParam,
+	        includeTests,
+	        filters: {
+	          fiInstances: fiInstanceSet ? Array.from(fiInstanceSet) : null,
+	          fi: fiList,
+	          partner: partnerFilter || null,
+	          integration: integrationFilter || null,
+	          instance: instanceFilter || null,
+	        },
+	        daysWithSessionFiles,
+	        sessionsScanned,
+	        sessionsWithJobs,
+	        totalJobs,
+	        medianJobsPerSessionWithJobs: median,
+	      });
     } catch (err) {
       const status = err?.status || 500;
       return send(res, status, { error: err?.message || "Unable to compute job stats" });

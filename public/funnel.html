@@ -3755,7 +3755,7 @@ function applyColumnTitles(root = document) {
 
       let lastMedianJobsRequestKey = null;
 
-	      async function updateMedianJobsCard(startDate, endDate) {
+	      async function updateMedianJobsCard(startDate, endDate, visibleRows = []) {
 	        const el = document.getElementById("convMetricMedianJobs");
 	        if (!el) return;
 	        el.removeAttribute("title");
@@ -3786,14 +3786,25 @@ function applyColumnTitles(root = document) {
         lastMedianJobsRequestKey = reqKey;
         el.textContent = "…";
 
-        const params = new URLSearchParams({
-          start: startDate,
-          end: endDate,
-          includeTests,
-        });
-        if (partner && partner !== "(all)") params.set("partner", partner);
-        if (integration && integration !== "(all)") params.set("integration", integration);
-        if (instance && instance !== "(all)") params.set("instance", instance);
+	        const params = new URLSearchParams({
+	          start: startDate,
+	          end: endDate,
+	          includeTests,
+	        });
+
+	        const fiInstanceKeys = Array.isArray(visibleRows)
+	          ? visibleRows
+	              .map((row) => {
+	                if (row?.key) return row.key;
+	                return makeFiInstanceKey(normalizeFiKey(row?.fi || ""), normalizeInstanceKey(row?.instance));
+	              })
+	              .filter(Boolean)
+	          : [];
+	        if (fiInstanceKeys.length) params.set("fiInstances", fiInstanceKeys.join(","));
+
+	        if (partner && partner !== "(all)") params.set("partner", partner);
+	        if (integration && integration !== "(all)") params.set("integration", integration);
+	        if (instance && instance !== "(all)") params.set("instance", instance);
 	        if (fis.length) params.set("fi", fis.join(","));
 
 	        try {
@@ -3814,6 +3825,12 @@ function applyColumnTitles(root = document) {
 	          if (lastMedianJobsRequestKey !== reqKey) return;
 	          if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
 	          const median = data?.medianJobsPerSessionWithJobs;
+	          if (data?.sessionsScanned === 0) {
+	            el.textContent = "—";
+	            el.title =
+	              "No raw sessions were found for this date range. Run Data Refresh so raw session files exist for median calculations.";
+	            return;
+	          }
 	          if (data?.sessionsWithJobs === 0) {
 	            el.textContent = "—";
 	            el.title = "No sessions with jobs found in this date range.";
@@ -5336,7 +5353,7 @@ function applyColumnTitles(root = document) {
         }
       }
 
-      async function applyFilters() {
+	      async function applyFilters() {
         // Clear placement details cache when filters change
         clearPlacementDetailsCache();
 
@@ -5361,9 +5378,9 @@ function applyColumnTitles(root = document) {
         renderBestWindows(best, visibleRows);
 
         // Calculate and render conversion metrics
-        const conversionMetrics = calculateConversionMetrics(startDate, endDate, visibleRows);
-        renderConversionAnalysis(conversionMetrics);
-        updateMedianJobsCard(startDate, endDate);
+	        const conversionMetrics = calculateConversionMetrics(startDate, endDate, visibleRows);
+	        renderConversionAnalysis(conversionMetrics);
+	        updateMedianJobsCard(startDate, endDate, visibleRows);
 
         renderTables(visibleRows, startDate, endDate, daySpan);
 
@@ -5385,7 +5402,7 @@ function applyColumnTitles(root = document) {
         };
       }
 
-      function rerenderFromCache() {
+	      function rerenderFromCache() {
         if (!lastRenderContext) return;
         // Compare current filter state with snapshot using shared state
         const shared = window.__FILTER_STATE;
@@ -5417,11 +5434,12 @@ function applyColumnTitles(root = document) {
         renderBestWindows(best, visibleRows);
 
         // Recalculate and render conversion metrics with new filters
-        const conversionMetrics = calculateConversionMetrics(startDate, endDate, visibleRows);
-        renderConversionAnalysis(conversionMetrics);
+	        const conversionMetrics = calculateConversionMetrics(startDate, endDate, visibleRows);
+	        renderConversionAnalysis(conversionMetrics);
+	        updateMedianJobsCard(startDate, endDate, visibleRows);
 
-        renderTables(visibleRows, startDate, endDate, daySpan);
-      }
+	        renderTables(visibleRows, startDate, endDate, daySpan);
+	      }
 
       async function init() {
         try {
