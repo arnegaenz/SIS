@@ -413,12 +413,42 @@
       .conversion-metric {
         background: var(--panel);
         border: 1px solid var(--border);
-        border-radius: 10px;
+        border-radius: 12px;
         padding: 14px;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 14px 34px rgba(0, 0, 0, 0.12);
+        transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+      }
+      .conversion-metric:hover {
+        transform: translateY(-1px);
+        border-color: var(--accent);
+        box-shadow: 0 18px 42px rgba(0, 0, 0, 0.16);
       }
       .conversion-metric.with-jobs-theme {
-        background: linear-gradient(135deg, var(--panel) 0%, #e8f4f8 100%);
-        border-color: #4a9eba;
+        --with-jobs-accent: #4a9eba;
+        background:
+          linear-gradient(
+            135deg,
+            rgba(74, 158, 186, 0.16) 0%,
+            rgba(74, 158, 186, 0.06) 55%,
+            rgba(74, 158, 186, 0) 100%
+          ),
+          var(--panel);
+        border-color: rgba(74, 158, 186, 0.55);
+      }
+      .conversion-metric.with-jobs-theme::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 4px;
+        background: linear-gradient(
+          180deg,
+          rgba(74, 158, 186, 0.95),
+          rgba(74, 158, 186, 0.15)
+        );
       }
       .metric-label {
         font-size: 0.75rem;
@@ -1091,13 +1121,13 @@
             <div class="metric-pct" id="convMetricNoJobsPct">-</div>
           </div>
           <div class="conversion-metric with-jobs-theme">
+            <div class="metric-label">Total Jobs</div>
+            <div class="metric-value" id="convMetricTotalJobs">-</div>
+          </div>
+          <div class="conversion-metric with-jobs-theme">
             <div class="metric-label">Sessions w/ Successful Jobs</div>
             <div class="metric-value" id="convMetricSuccessfulSessions">-</div>
             <div class="metric-pct" id="convMetricSuccessfulSessionsPct">-</div>
-          </div>
-          <div class="conversion-metric with-jobs-theme">
-            <div class="metric-label">Total Jobs</div>
-            <div class="metric-value" id="convMetricTotalJobs">-</div>
           </div>
           <div class="conversion-metric with-jobs-theme">
             <div class="metric-label">Sessions w/ Jobs</div>
