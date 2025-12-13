@@ -1091,14 +1091,18 @@
             <div class="metric-pct" id="convMetricNoJobsPct">-</div>
           </div>
           <div class="conversion-metric with-jobs-theme">
-            <div class="metric-label">Sessions w/ Jobs</div>
-            <div class="metric-value" id="convMetricWithJobs">-</div>
-            <div class="metric-pct" id="convMetricWithJobsPct">-</div>
-          </div>
-          <div class="conversion-metric with-jobs-theme">
             <div class="metric-label">Sessions w/ Successful Jobs</div>
             <div class="metric-value" id="convMetricSuccessfulSessions">-</div>
             <div class="metric-pct" id="convMetricSuccessfulSessionsPct">-</div>
+          </div>
+          <div class="conversion-metric with-jobs-theme">
+            <div class="metric-label">Total Jobs</div>
+            <div class="metric-value" id="convMetricTotalJobs">-</div>
+          </div>
+          <div class="conversion-metric with-jobs-theme">
+            <div class="metric-label">Sessions w/ Jobs</div>
+            <div class="metric-value" id="convMetricWithJobs">-</div>
+            <div class="metric-pct" id="convMetricWithJobsPct">-</div>
           </div>
           <div class="conversion-metric with-jobs-theme">
             <div class="metric-label">Avg Jobs Per Session</div>
@@ -3665,6 +3669,9 @@ function applyColumnTitles(root = document) {
         document.getElementById("convMetricSuccessfulSessionsPct").textContent = totalSessions > 0
           ? `(${((successfulSessions / totalSessions) * 100).toFixed(1)}%)`
           : "(0.0%)";
+
+        // Total jobs
+        document.getElementById("convMetricTotalJobs").textContent = totalJobs.toLocaleString();
 
         // Calculate and update average job metrics (for sessions with successful jobs only)
         const avgJobsPerSession = successfulSessions > 0
