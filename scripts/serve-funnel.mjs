@@ -1724,9 +1724,19 @@ const server = http.createServer(async (req, res) => {
       const files = await fs.readdir(DAILY_DIR).catch(() => []);
       const dailyFiles = files.filter(f => f.endsWith('.json')).sort();
 
-      // Create version from file list hash (stable across server restarts)
-      // Only changes when files are added/removed, not when directory is touched
-      const fileListHash = dailyFiles.join('|');
+      // Create version from file list + file stats.
+      // This invalidates the cache when daily files are rewritten (e.g. force refresh),
+      // not just when files are added/removed.
+      const statParts = [];
+      for (const name of dailyFiles) {
+        try {
+          const stat = await fs.stat(path.join(DAILY_DIR, name));
+          statParts.push(`${name}:${stat.size}:${stat.mtimeMs}`);
+        } catch {
+          statParts.push(`${name}:?`);
+        }
+      }
+      const fileListHash = statParts.join('|');
       let version = 0;
       for (let i = 0; i < fileListHash.length; i++) {
         version = ((version << 5) - version) + fileListHash.charCodeAt(i);
