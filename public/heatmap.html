@@ -7,12 +7,12 @@
   <link rel="stylesheet" href="./sis-shared.css?v=navfix" />
   <link rel="stylesheet" href="./assets/css/sis.css">
   <script defer src="./assets/js/sis.js"></script>
+  <script defer src="./assets/js/nav.js"></script>
   <script defer src="./assets/js/data-cache.js?v=3"></script>
   <script defer src="./assets/js/filters.js?v=shared"></script>
   <link rel="stylesheet" href="./assets/css/filters.css">
   <style>
     * { box-sizing: border-box; }
-    html, body { height: 100%; }
     body {
       margin: 0;
       padding: 0;
@@ -354,23 +354,15 @@
     <div class="sis-topbar">
       <div class="sis-title">Strivve Insights Service</div>
 
-            <nav class="sis-nav">
-        <a href="index.html">Overview</a>
-        <a href="funnel.html">FI Funnel</a>
-        <a href="sources.html">Sources</a>
-        <a href="heatmap.html">Merchant Heatmap</a>
-        <a href="watchlist.html">Alerts</a>
-        <a href="troubleshoot.html">Troubleshooting</a>
-        <a href="maintenance.html">Maintenance</a>
-        <a href="fi-api.html">FI API Data</a>
-        <a href="logs.html">Server Logs</a>
-      </nav>
+            <nav class="sis-nav" data-current></nav>
     </div>
 
-    <h1 class="sis-page-name">Merchant Reach &amp; Reliability</h1>
-    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-      <p class="sis-page-desc" style="flex:1 1 auto;">Track where cardholders succeed and struggle: traffic, health, and anomalies across your merchant footprint.</p>
-      <button class="theme-toggle" type="button" aria-pressed="false" style="flex:0 0 auto;">Light mode</button>
+    <div class="sis-page-header">
+      <h1 class="sis-page-title">Merchant Reach &amp; Reliability</h1>
+      <div class="sis-page-header-row">
+        <p class="sis-page-subtitle">Track where cardholders succeed and struggle: traffic, health, and anomalies across your merchant footprint.</p>
+        <button class="theme-toggle" type="button" aria-pressed="false">Light mode</button>
+      </div>
     </div>
   </header>
   <div class="sis-content">

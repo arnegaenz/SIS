@@ -8,11 +8,14 @@
   <link rel="stylesheet" href="./assets/css/sis.css">
   <link rel="stylesheet" href="./assets/css/filters.css">
   <script defer src="assets/js/sis.js"></script>
+  <script defer src="./assets/js/nav.js"></script>
   <script defer src="assets/js/data-cache.js?v=3"></script>
   <script defer src="assets/js/filters.js"></script>
   <script defer src="assets/js/sources.js"></script>
     <style>
       body {
+        margin: 0;
+        padding: 0;
         font-family: "Inter", "Segoe UI", ui-sans-serif, system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
         background: var(--bg);
         color: var(--ink);
@@ -457,17 +460,7 @@
       <div class="sis-topbar">
         <div class="sis-title">Strivve Insights Service</div>
 
-        <nav class="sis-nav">
-          <a href="index.html">Overview</a>
-          <a href="funnel.html">FI Funnel</a>
-          <a href="sources.html">Sources</a>
-          <a href="heatmap.html">Merchant Heatmap</a>
-          <a href="watchlist.html">Alerts</a>
-          <a href="troubleshoot.html">Troubleshooting</a>
-          <a href="maintenance.html">Maintenance</a>
-          <a href="fi-api.html">FI API Data</a>
-          <a href="logs.html">Server Logs</a>
-        </nav>
+        <nav class="sis-nav" data-current></nav>
       </div>
 
       <div class="sis-page-header">

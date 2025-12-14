@@ -6,7 +6,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="./sis-shared.css?v=navfix" />
   <link rel="stylesheet" href="./assets/css/sis.css">
+  <link rel="stylesheet" href="./assets/css/funnel.css">
   <script defer src="./assets/js/sis.js"></script>
+  <script defer src="./assets/js/nav.js"></script>
+  <script defer src="./assets/js/funnel.js"></script>
   <script defer src="./assets/js/data-cache.js?v=3"></script>
   <script defer src="./assets/js/filters.js?v=shared"></script>
   <link rel="stylesheet" href="./assets/css/filters.css">
@@ -1033,24 +1036,16 @@
       <div class="sis-topbar">
         <div class="sis-title">Strivve Insights Service</div>
 
-              <nav class="sis-nav">
-        <a href="index.html">Overview</a>
-        <a href="funnel.html">FI Funnel</a>
-        <a href="sources.html">Sources</a>
-        <a href="heatmap.html">Merchant Heatmap</a>
-        <a href="watchlist.html">Alerts</a>
-        <a href="troubleshoot.html">Troubleshooting</a>
-        <a href="maintenance.html">Maintenance</a>
-        <a href="fi-api.html">FI API Data</a>
-        <a href="logs.html">Server Logs</a>
-      </nav>
+              <nav class="sis-nav" data-current></nav>
       </div>
 
-    <h1 class="sis-page-name">Card Placement Funnel</h1>
-    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-      <p class="sis-page-desc" style="flex:1 1 auto;">Track Google Analytics events through sessions and placement data; spot where cardholders are gained or lost.</p>
-      <button class="theme-toggle" type="button" aria-pressed="false" style="flex:0 0 auto;">Light mode</button>
-    </div>
+      <div class="sis-page-header">
+        <h1 class="sis-page-title">Card Placement Funnel</h1>
+        <div class="sis-page-header-row">
+          <p class="sis-page-subtitle">Track Google Analytics events through sessions and placement data; spot where cardholders are gained or lost.</p>
+          <button class="theme-toggle" type="button" aria-pressed="false">Light mode</button>
+        </div>
+      </div>
   </header>
   <div class="sis-content">
   <main class="sis-main">
@@ -1134,9 +1129,28 @@
             <div class="metric-value" id="convMetricSuccessfulSessions">-</div>
             <div class="metric-pct" id="convMetricSuccessfulSessionsPct">-</div>
           </div>
-          <div class="conversion-metric with-jobs-theme">
-            <div class="metric-label">Median Jobs (sess w/ jobs)</div>
-            <div class="metric-value" id="convMetricMedianJobs">-</div>
+          <div class="conversion-metric with-jobs-theme funnel-dist-card">
+            <div class="funnel-dist-header">
+              <div class="metric-label">Merchant Attempts (sess w/ jobs)</div>
+              <button class="funnel-dist-toggle" id="toggle-distribution" type="button" aria-expanded="false" aria-label="Show distribution ▾">Show distribution ▾</button>
+            </div>
+            <div class="funnel-dist-row chips-row" aria-label="Merchant attempts stats">
+              <span class="funnel-dist-chip ui-chip" data-chip="median" title="Median jobs per session (sessions with jobs)" aria-label="Median jobs per session (sessions with jobs)"><b>MEDIAN</b><span class="funnel-dist-value" data-key="median">—</span></span>
+              <span class="funnel-dist-chip ui-chip" data-chip="avg" title="Average jobs per session (sessions with jobs)" aria-label="Average jobs per session (sessions with jobs)"><b>AVG</b><span class="funnel-dist-value" data-key="avg">—</span></span>
+              <span class="funnel-dist-chip ui-chip" data-chip="p75" title="75th percentile of jobs per session (sessions with jobs)" aria-label="75th percentile of jobs per session (sessions with jobs)"><b>P75</b><span class="funnel-dist-value" data-key="p75">—</span></span>
+            </div>
+            <div class="funnel-dist-panel" id="distribution-wrap" tabindex="-1" aria-label="Jobs per session distribution" hidden>
+              <table class="funnel-dist-table">
+                <thead>
+                  <tr>
+                    <th>Jobs per session</th>
+                    <th>Sessions</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+              <div class="funnel-dist-empty" hidden>No distribution available for current filters.</div>
+            </div>
           </div>
           <div class="conversion-metric with-jobs-theme">
             <div class="metric-label">Avg Successful Jobs Per Session</div>
@@ -3589,6 +3603,7 @@ function applyColumnTitles(root = document) {
           systemFailures: 0,
           uxFailures: 0,
           totalPlacements: 0,
+          sessionJobCounts: null,
         };
 
         // Aggregate from visible rows only (respects filters)
@@ -3601,6 +3616,62 @@ function applyColumnTitles(root = document) {
           metrics.successfulJobs += row.successful_jobs || 0;
         }
         metrics.sessionsWithoutJobs = metrics.totalSessions - metrics.sessionsWithJobs;
+
+        // Build per-session job counts (including zeros) from existing daily rollups, if available.
+        try {
+          const freq = new Map();
+          const datesForJobs = Object.keys(dailyData).sort();
+          for (const date of datesForJobs) {
+            if (!inRange(date, startDate, endDate)) continue;
+            const day = dailyData[date];
+            if (!day?.fi_instances) continue;
+            for (const fiInstanceKey in day.fi_instances) {
+              const fiInstanceData = day.fi_instances[fiInstanceKey];
+              const sessions = fiInstanceData?.sessions;
+              const jobDist = sessions?.job_distribution;
+              if (!jobDist || typeof jobDist !== "object") continue;
+
+              const fiName = fiInstanceData.fi_lookup_key || fiInstanceData.fi_name || "";
+              const instanceName = fiInstanceData.instance || "";
+
+              const isVisible = visibleRows.some((row) => {
+                const rowFi = normalizeFiKey(row.fi || "");
+                const dayFi = normalizeFiKey(fiName);
+                if (rowFi !== dayFi) return false;
+                const rowInstance = normalizeInstanceKey(row.instance);
+                const dayInstance = normalizeInstanceKey(instanceName);
+                if (rowInstance && rowInstance !== "any" && dayInstance !== rowInstance) return false;
+                return true;
+              });
+              if (!isVisible) continue;
+
+              for (const [kStr, count] of Object.entries(jobDist)) {
+                const k = Number.parseInt(kStr, 10);
+                if (!Number.isFinite(k)) continue;
+                if (k <= 0) continue;
+                const c = Number(count) || 0;
+                if (c <= 0) continue;
+                freq.set(k, (freq.get(k) || 0) + c);
+              }
+            }
+          }
+
+          const jobCounts = [];
+          const zeroCount = Math.max(0, metrics.sessionsWithoutJobs || 0);
+          for (let i = 0; i < zeroCount; i++) jobCounts.push(0);
+          const keys = Array.from(freq.keys()).sort((a, b) => a - b);
+          for (const k of keys) {
+            const c = freq.get(k) || 0;
+            for (let i = 0; i < c; i++) jobCounts.push(k);
+          }
+          metrics.sessionJobCounts = jobCounts;
+
+          window.SIS = window.SIS || {};
+          window.SIS.funnel = window.SIS.funnel || {};
+          window.SIS.funnel.sessionJobCounts = jobCounts;
+        } catch (err) {
+          // leave null
+        }
 
         // Now categorize placements by termination type
         // Use fi_instances instead of fi to get instance-specific placement data

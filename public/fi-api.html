@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="./sis-shared.css?v=navfix" />
   <link rel="stylesheet" href="./assets/css/sis.css">
   <script defer src="./assets/js/sis.js"></script>
+  <script defer src="./assets/js/nav.js"></script>
   <style>
     * { box-sizing: border-box; }
     body {
@@ -401,25 +402,15 @@
   <header class="sis-header">
     <div class="sis-topbar">
       <div class="sis-title">Strivve Insights Service</div>
-            <nav class="sis-nav">
-        <a href="index.html">Overview</a>
-        <a href="funnel.html">FI Funnel</a>
-        <a href="sources.html">Sources</a>
-        <a href="heatmap.html">Merchant Heatmap</a>
-        <a href="watchlist.html">Alerts</a>
-        <a href="troubleshoot.html">Troubleshooting</a>
-        <a href="maintenance.html">Maintenance</a>
-        <a href="fi-api.html">FI API Data</a>
-        <a href="logs.html">Server Logs</a>
-      </nav>
+      <nav class="sis-nav" data-current></nav>
     </div>
 
-    <h1 class="sis-page-name">Financial Institutions API</h1>
-    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-      <p class="sis-page-desc" style="flex:1 1 auto;">
-        Live FI data from the /financial_institutions endpoint across all instances
-      </p>
-      <button class="theme-toggle" type="button" aria-pressed="false">Light mode</button>
+    <div class="sis-page-header">
+      <h1 class="sis-page-title">Financial Institutions API</h1>
+      <div class="sis-page-header-row">
+        <p class="sis-page-subtitle">Live FI data from the API across configured instances with search and filtering.</p>
+        <button class="theme-toggle" type="button" aria-pressed="false">Light mode</button>
+      </div>
     </div>
   </header>
 

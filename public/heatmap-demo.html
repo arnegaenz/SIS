@@ -4,6 +4,10 @@
   <meta charset="utf-8"/>
   <title>Merchant Health Heatmap (90-day mock)</title>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <link rel="stylesheet" href="./sis-shared.css?v=navfix" />
+  <link rel="stylesheet" href="./assets/css/sis.css">
+  <script defer src="./assets/js/sis.js"></script>
+  <script defer src="./assets/js/nav.js"></script>
   <style>
     :root {
       --cell: 12px;           /* size of each day square */
@@ -37,9 +41,21 @@
   </style>
 </head>
 <body>
+  <header class="sis-header">
+    <div class="sis-topbar">
+      <div class="sis-title">Strivve Insights Service</div>
+      <nav class="sis-nav" data-current></nav>
+    </div>
+    <div class="sis-page-header">
+      <h1 class="sis-page-title">Merchant Health Heatmap (90-day mock)</h1>
+      <div class="sis-page-header-row">
+        <p class="sis-page-subtitle">Squares touch (no gutters). One row per merchant; one column per day. Colors reflect site health only.</p>
+        <button class="theme-toggle" type="button" aria-pressed="false">Light mode</button>
+      </div>
+    </div>
+  </header>
   <div class="wrap">
-    <h1>Merchant Health Heatmap (90-day mock)</h1>
-    <div class="sub">Squares touch (no gutters). One row per merchant; one column per day. Colors reflect <b>site health</b> only.</div>
+    <div class="sub"><b>Tip:</b> Toggle dark/light mode in the header to preview theme contrast.</div>
 
     <div class="legend">
       <span class="dot ok"></span><span>Healthy</span>
@@ -131,5 +147,6 @@
       });
     })();
   </script>
+  <script src="./theme-toggle.js"></script>
 </body>
 </html>
