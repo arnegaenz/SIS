@@ -75,6 +75,107 @@
   --sis-panel-bg: var(--panel);
 }
 
+/* ===== Funnel: Merchant Attempts popover + chips ===== */
+/* Attempts card container anchors the popover */
+.sis-attempts-card { position: relative; }
+
+/* Chip row */
+.sis-chip-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 6px; }
+.sis-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 10px; border-radius: 999px;
+  border: 1px solid var(--table-border, #2a3340);
+  background: var(--chip-bg, rgba(56, 189, 248, 0.12));
+  color: var(--chip-text, #0ea5e9);
+  font-size: 12px; line-height: 1;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
+  user-select: none;
+}
+.sis-chip[aria-disabled="true"] { opacity: 1; cursor: default; }
+.sis-chip .sis-chip-label { letter-spacing: .06em; font-weight: 700; font-size: 11px; text-transform: uppercase; opacity: 0.95; }
+.sis-chip .sis-chip-value { font-weight: 700; font-variant-numeric: tabular-nums; }
+.sis-chip-action {
+  cursor: pointer;
+  min-width: 160px;
+  justify-content: flex-start;
+  padding-right: 34px;
+  background: var(--panel, #ffffff);
+  color: var(--text, #0f172a);
+  border: 1px solid var(--input-border, #cbd5e1);
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
+  position: relative;
+}
+.sis-chip-action:hover { background: var(--panel-light, #f1f5f9); }
+.sis-chip-action:focus-visible {
+  outline: none;
+  border-color: var(--accent, #2563eb);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18), 0 6px 18px rgba(15, 23, 42, 0.08);
+}
+.sis-chip-action .sis-chip-label { letter-spacing: .02em; font-weight: 600; font-size: 12px; text-transform: none; opacity: 0.9; }
+.sis-chip-caret {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: auto;
+  text-align: center;
+  color: var(--muted, #475569);
+  pointer-events: none;
+}
+
+/* Popover shell */
+.sis-popover {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 40;
+  width: 360px;
+  max-width: min(90vw, 420px);
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity .12s ease, transform .12s ease;
+}
+.sis-attempts-card.popover-open .sis-popover {
+  pointer-events: auto;
+  opacity: 1;
+  transform: translateY(0);
+}
+.sis-popover-card {
+  background: var(--panel, #0f1622);
+  border: 1px solid var(--table-border, #2a3340);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.35);
+  overflow: hidden;
+}
+.sis-popover-header {
+  display:flex; align-items:center; justify-content:space-between;
+  padding: 10px 12px; border-bottom: 1px solid var(--table-border,#2a3340);
+}
+.sis-popover-title { font-weight:600; font-size:13px; }
+.sis-popover-close {
+  background: transparent; border: 0; color: var(--text,#e6edf3);
+  font-size:14px; cursor:pointer; opacity:.8;
+}
+.sis-popover-close:hover { opacity: 1; }
+.sis-popover-body { max-height: 320px; overflow:auto; }
+.sis-table.compact th, .sis-table.compact td {
+  padding: 8px 10px; font-size: 12px;
+}
+.t-right { text-align: right; }
+
+/* Ensure the card grid doesn’t shift on toggle */
+.sis-attempts-card { min-height: 84px; }
+
+/* HOTFIX: ensure attempts popover floats above cards/panels */
+.sis-attempts-card { z-index: 1; }
+.sis-attempts-card { overflow: visible; }
+/* funnel.html defines `.conversion-metric { overflow:hidden; }` in an inline <style>,
+   so we need higher specificity here to prevent the attempts popover from being clipped. */
+.conversion-metric.sis-attempts-card { overflow: visible; }
+.sis-popover { z-index: 999; }
+.sis-chip-action { min-width: 160px; }
+
 [data-theme="dark"] {
   /* Base colors */
   --bg: #0b0d10;
@@ -155,10 +256,60 @@
 .sis-header {
   background: var(--header-bg);
   border-bottom: 1px solid var(--border);
-  margin-bottom: 8px;
+  margin-bottom: 0;
   position: sticky;
   top: 0;
   z-index: 10;
+}
+
+/* Topbar: brand + navigation container */
+.sis-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 20px;
+  min-height: 48px;
+  border-bottom: 1px solid var(--border);
+}
+
+.sis-title {
+  font-weight: 700;
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+/* Page header: title + subtitle section */
+.sis-page-header {
+  padding: 12px 20px 6px;
+}
+
+.sis-page-title {
+  margin: 0 0 6px 0;
+  font-size: clamp(20px, 2.5vw, 26px);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--text);
+  line-height: 1.2;
+}
+
+.sis-page-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.sis-page-subtitle {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.5;
+  flex: 1;
+  min-width: 240px;
 }
 
 .sis-header__inner {
@@ -183,24 +334,24 @@
 
 .sis-nav {
   display: flex;
-  gap: 16px;
+  gap: 10px;
   margin-left: auto;
   justify-content: flex-end;
-  padding-top: 16px;
-  padding-bottom: 10px;
+  padding-top: 0;
+  padding-bottom: 0;
   align-items: center;
   flex-wrap: nowrap !important;
 }
 
 .sis-nav__item {
   text-decoration: none;
-  padding: 10px 22px;
+  padding: 6px 14px;
   border-radius: 999px;
   border: 1px solid transparent;
   color: var(--muted);
   font-weight: 600;
-  font-size: 0.88rem;
-  letter-spacing: 0.08em;
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   background: transparent;
   display: inline-flex;
@@ -251,8 +402,10 @@
   border-color: rgba(248, 250, 252, 0.18);
 }
 
-.sis-nav__item--active,
-.sis-nav__item[aria-current="page"] {
+.sis-nav-link.active,
+.sis-nav-link[aria-current="page"],
+.sis-nav-item.active,
+.sis-nav-item[aria-current="page"] {
   background: linear-gradient(120deg, var(--accent), var(--accent-2));
   color: var(--nav-pill-active-text) !important;
   font-weight: 800;
@@ -260,12 +413,18 @@
   box-shadow: 0 14px 34px rgba(37, 99, 235, 0.32), 0 0 0 1px rgba(255, 255, 255, 0.4);
   transform: translateY(-1px);
 }
-.sis-nav__item--active:visited,
-.sis-nav__item--active:hover,
-.sis-nav__item--active:active,
-.sis-nav__item[aria-current="page"]:visited,
-.sis-nav__item[aria-current="page"]:hover,
-.sis-nav__item[aria-current="page"]:active {
+.sis-nav-link.active:visited,
+.sis-nav-link.active:hover,
+.sis-nav-link.active:active,
+.sis-nav-link[aria-current="page"]:visited,
+.sis-nav-link[aria-current="page"]:hover,
+.sis-nav-link[aria-current="page"]:active,
+.sis-nav-item.active:visited,
+.sis-nav-item.active:hover,
+.sis-nav-item.active:active,
+.sis-nav-item[aria-current="page"]:visited,
+.sis-nav-item[aria-current="page"]:hover,
+.sis-nav-item[aria-current="page"]:active {
   color: var(--nav-pill-active-text) !important;
   background: linear-gradient(120deg, var(--accent), var(--accent-2)) !important;
   border-color: transparent !important;
@@ -285,6 +444,7 @@
   letter-spacing: 0.04em;
   cursor: pointer;
   text-transform: uppercase;
+  flex-shrink: 0;
 }
 
 .theme-toggle:hover {
@@ -363,6 +523,30 @@
 }
 
 @media (max-width: 720px) {
+  .sis-topbar {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 8px 16px;
+    min-height: auto;
+  }
+
+  .sis-page-header {
+    padding: 10px 16px 8px;
+  }
+
+  .sis-page-title {
+    font-size: clamp(18px, 4.5vw, 22px);
+  }
+
+  .sis-page-subtitle {
+    font-size: 0.85rem;
+  }
+
+  .sis-page-header-row {
+    flex-direction: column;
+    gap: 8px;
+  }
+
   .sis-header__inner {
     flex-direction: column;
     align-items: flex-start;
