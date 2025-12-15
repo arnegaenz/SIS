@@ -524,6 +524,53 @@
       padding: 7px 10px;
       height: 40px;
     }
+    .ga-service-card .instances-controls label {
+      min-width: 240px;
+      flex: 0 1 280px;
+    }
+    .ga-service-card .instances-controls select,
+    .ga-service-card .instances-controls input[type="file"] {
+      height: 40px;
+    }
+    .ga-service-card .instances-controls select {
+      min-width: 240px;
+      border-radius: 8px;
+      border: 1px solid var(--panel-border);
+      background: var(--input-bg);
+      color: var(--panel-title);
+      padding: 8px 10px;
+      font-size: 14px;
+    }
+    .ga-service-card .instances-controls input[type="file"] {
+      min-width: 320px;
+    }
+    .ga-service-card .instance-actions {
+      flex: 1 1 auto;
+      justify-content: flex-start;
+      gap: 10px;
+    }
+    .ga-json-editor {
+      width: 100%;
+      min-height: 240px;
+      border-radius: 12px;
+      border: 1px solid var(--panel-border);
+      background: var(--input-bg);
+      color: var(--panel-title);
+      padding: 12px 12px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+      font-size: 12px;
+      line-height: 1.35;
+      resize: vertical;
+      white-space: pre;
+      tab-size: 2;
+    }
+    .ga-json-editor:focus {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+    .ga-service-card .refresh-status {
+      border-radius: 12px;
+    }
     .instances-controls .instance-actions {
       display: flex;
       gap: 8px;
@@ -1044,7 +1091,7 @@
           </div>
           <div class="refresh-status">
             <p>Credential JSON (editable)</p>
-            <textarea id="gaCredJson" style="width:100%;min-height:220px;border-radius:10px;border:1px solid var(--panel-border);background:var(--input-bg);color:var(--panel-title);padding:10px 12px;font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, \"Liberation Mono\", monospace;font-size:12px;line-height:1.35;white-space:pre;resize:vertical;"></textarea>
+            <textarea id="gaCredJson" class="ga-json-editor"></textarea>
           </div>
           <div class="refresh-status">
             <p>Status</p>
