@@ -2094,7 +2094,7 @@
       let allSummaryText = "";
 
       function currentName() {
-        return (select.value || "prod").toString();
+        return (select.value || "").toString();
       }
 
       function setStatus(message, kind) {
@@ -2138,7 +2138,16 @@
         try {
           setStatus("Loading…");
           setMeta(allSummaryText || "");
-          const name = encodeURIComponent(currentName());
+          const selected = currentName();
+          if (!selected) {
+            setStatus('Select a credential, then paste JSON and click "Save JSON".', "");
+            jsonArea.value = "";
+            lastLoadedText = "";
+            if (testBtn) testBtn.disabled = true;
+            if (deleteBtn) deleteBtn.disabled = true;
+            return;
+          }
+          const name = encodeURIComponent(selected);
           const res = await fetch(`${apiBase}/ga/credential?name=${name}`, { cache: "no-store" });
           const data = res.ok ? await res.json() : null;
           if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
@@ -2168,6 +2177,28 @@
           const data = res.ok ? await res.json() : null;
           if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
           const list = Array.isArray(data.credentials) ? data.credentials : [];
+          const keep = currentName();
+          const allMissing = list.length > 0 && list.every((c) => !c.exists);
+          select.innerHTML = "";
+          if (allMissing) {
+            const opt = document.createElement("option");
+            opt.value = "";
+            opt.textContent = "<add new>";
+            select.appendChild(opt);
+          }
+          list.forEach((c) => {
+            const opt = document.createElement("option");
+            opt.value = c.name || "";
+            opt.textContent = `${c.label || c.name} (${c.exists ? "configured" : "missing"})`;
+            select.appendChild(opt);
+          });
+          if (keep && Array.from(select.options).some((o) => o.value === keep)) {
+            select.value = keep;
+          } else if (allMissing) {
+            select.value = "";
+          } else {
+            select.value = (list[0] && list[0].name) ? list[0].name : "prod";
+          }
           const lines = list.map((c) => {
             const base = `${c.label || c.name}: ${c.exists ? "configured" : "missing"}`;
             const when = c.updatedAt ? ` (${c.updatedAt})` : "";
@@ -2207,6 +2238,10 @@
 
       async function saveCredential() {
         try {
+          if (!currentName()) {
+            setStatus('Select a credential (Production/Test) before saving.', "");
+            return;
+          }
           setStatus("Saving…");
           const name = currentName();
           const jsonText = jsonArea.value || "";
@@ -2233,6 +2268,10 @@
 
       async function deleteCredential() {
         try {
+          if (!currentName()) {
+            setStatus('Select a credential (Production/Test) before deleting.', "");
+            return;
+          }
           setStatus("Deleting…");
           const name = currentName();
           const res = await fetch(`${apiBase}/ga/credential/delete`, {
@@ -2261,6 +2300,7 @@
           setTestStatus("Testing GA credential…");
           setTestLog("Running GA read-only report (this may take a few seconds)…");
           const name = currentName();
+          if (!name) throw new Error("Select a credential (Production/Test) first.");
           const res = await fetch(`${apiBase}/ga/credential/test`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
