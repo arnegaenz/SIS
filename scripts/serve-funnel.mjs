@@ -1396,7 +1396,6 @@ const server = http.createServer(async (req, res) => {
     const qsEnd = queryParams.get("end");
 
     if (!qsStart || !qsEnd) {
-      res.writeHead(400, { "Content-Type": "application/json" });
       return send(res, 400, { error: "Missing start or end date" });
     }
 
@@ -1432,11 +1431,9 @@ const server = http.createServer(async (req, res) => {
         }
       }
 
-      res.writeHead(200, { "Content-Type": "application/json" });
       return send(res, 200, { datesToRefetch, reasons });
     } catch (err) {
       console.error("[API] check-raw-data error:", err);
-      res.writeHead(500, { "Content-Type": "application/json" });
       return send(res, 500, { error: err.message });
     }
   }
