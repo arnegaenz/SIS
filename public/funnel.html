@@ -1477,6 +1477,11 @@
         return isoLocalYesterday();
       };
 
+      const getMaxSelectableDateIso = () => {
+        // Allow selecting through today; raw metadata + warnings handle incomplete data.
+        return isoLocalToday();
+      };
+
       function getReferenceDate() {
         const latestIso = getLatestUsableDateIso();
         return new Date(`${latestIso}T00:00:00Z`);
@@ -1484,7 +1489,7 @@
 
       function enforceEndDateBounds() {
         try {
-          const baseIso = getLatestUsableDateIso();
+          const baseIso = getMaxSelectableDateIso();
           if (endDateInput && endDateInput.value && endDateInput.value > baseIso) {
             endDateInput.value = baseIso;
           }
@@ -5592,7 +5597,7 @@ function applyColumnTitles(root = document) {
                 .sort();
               earliestDailyDate = sortedDates[0] || null;
               latestDailyDate = sortedDates[sortedDates.length - 1] || null;
-              const baseIso = getLatestUsableDateIso();
+              const baseIso = getMaxSelectableDateIso();
               if (endDateInput && (!endDateInput.value || endDateInput.value > baseIso)) {
                 endDateInput.value = baseIso;
               }
