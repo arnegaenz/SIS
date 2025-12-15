@@ -5481,7 +5481,17 @@ function applyColumnTitles(root = document) {
               // After fetch completes, reload daily data
               console.log('[FI Funnel] Auto-fetch complete, data will be reprocessed');
 
-              // Note: Daily data is regenerated server-side, so we continue with normal rendering
+              // Refresh in-memory daily data for the dates we refetched so rendering reflects updates.
+              try {
+                for (const dateStr of datesToRefetch) {
+                  const refreshed = await fetchDaily(dateStr);
+                  if (refreshed) {
+                    dailyData[dateStr] = refreshed;
+                  }
+                }
+              } catch (e) {
+                console.warn('[FI Funnel] Failed to refresh daily data after auto-fetch:', e);
+              }
             }
           } finally {
             if (applyBtn) {
@@ -5641,12 +5651,16 @@ function applyColumnTitles(root = document) {
                 // Store bulk cache for next time (using async set for IndexedDB)
                 if (Object.keys(dailyData).length > 0) {
                   console.log(`💾 Saving ${Object.keys(dailyData).length} days to bulk cache...`);
-                  const saved = await window.DataCache.set(bulkCacheKey, dailyData);
-                  if (saved) {
-                    console.log(`✓ Successfully cached ${Object.keys(dailyData).length} days in bulk cache`);
-                  } else {
-                    console.warn('⚠ Failed to save bulk cache');
-                  }
+                  // Fire-and-forget: do not block rendering on bulk cache writes.
+                  window.DataCache.set(bulkCacheKey, dailyData).then((saved) => {
+                    if (saved) {
+                      console.log(`✓ Successfully cached ${Object.keys(dailyData).length} days in bulk cache`);
+                    } else {
+                      console.warn('⚠ Failed to save bulk cache');
+                    }
+                  }).catch((err) => {
+                    console.warn('⚠ Failed to save bulk cache:', err);
+                  });
                 }
               }
             } else {

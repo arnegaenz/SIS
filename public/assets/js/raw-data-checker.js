@@ -50,10 +50,33 @@ export async function autoFetchIncompleteDates(dates) {
   );
 
   return new Promise((resolve, reject) => {
-    eventSource.addEventListener('complete', () => {
+    // Server emits "done" on success; keep "complete" for backward compatibility.
+    const onDone = () => {
       console.log('[Raw Checker] Auto-fetch complete');
       eventSource.close();
       resolve();
+    };
+
+    eventSource.addEventListener('complete', () => {
+      onDone();
+    });
+
+    eventSource.addEventListener('done', () => {
+      onDone();
+    });
+
+    eventSource.addEventListener('job_error', (event) => {
+      try {
+        const data = event && event.data ? JSON.parse(event.data) : null;
+        const msg = data && data.message ? data.message : 'Auto-fetch failed';
+        console.error('[Raw Checker] Auto-fetch job_error:', data || event);
+        eventSource.close();
+        reject(new Error(msg));
+      } catch (e) {
+        console.error('[Raw Checker] Auto-fetch job_error (parse failed):', e);
+        eventSource.close();
+        reject(e);
+      }
     });
 
     eventSource.addEventListener('error', (err) => {

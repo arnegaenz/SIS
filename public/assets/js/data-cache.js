@@ -180,6 +180,11 @@
       this.init();
     }
 
+    _shouldForceIndexedDB(key) {
+      // Avoid blocking JSON.stringify for known huge objects (e.g. bulk daily cache).
+      return typeof key === 'string' && key.indexOf('funnel_all_daily_data_v') === 0;
+    }
+
     /**
      * Initialize the cache by checking server data version (runs in background)
      */
@@ -297,6 +302,22 @@
       this.memoryCache.set(key, data);
 
       try {
+        if (this._shouldForceIndexedDB(key)) {
+          // Ensure any small/stale localStorage copy doesn't win reads.
+          try {
+            localStorage.removeItem(CACHE_PREFIX + key);
+          } catch (err) {
+            // Ignore localStorage errors
+          }
+
+          console.log(`Caching "${key}" in IndexedDB (forced)`);
+          const success = await this.indexedDB.set(key, data);
+          if (success) {
+            console.log(`Successfully cached "${key}" in IndexedDB`);
+          }
+          return success;
+        }
+
         const serialized = JSON.stringify(data);
         const size = serialized.length;
 
