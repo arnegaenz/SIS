@@ -2029,8 +2029,8 @@
       }
 
       const apiBase =
-        window.location.origin.includes("8787")
-          ? window.location.origin
+        window.location.protocol === "http:" || window.location.protocol === "https:"
+          ? ""
           : "http://localhost:8787";
 
       let lastLoadedText = "";
