@@ -5,14 +5,28 @@
   <title>Card Placement Funnel</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="./sis-shared.css?v=navfix" />
-  <link rel="stylesheet" href="./assets/css/sis.css">
-  <link rel="stylesheet" href="./assets/css/funnel.css">
-  <script defer src="./assets/js/sis.js"></script>
-  <script defer src="./assets/js/nav.js"></script>
-  <script defer src="./assets/js/funnel.js"></script>
-  <script defer src="./assets/js/data-cache.js?v=3"></script>
-  <script defer src="./assets/js/filters.js?v=shared"></script>
-  <link rel="stylesheet" href="./assets/css/filters.css">
+	  <link rel="stylesheet" href="./assets/css/sis.css">
+	  <link rel="stylesheet" href="./assets/css/funnel.css">
+	  <script defer src="./assets/js/sis.js"></script>
+	  <script defer src="./assets/js/nav.js"></script>
+	  <script type="module" defer src="./assets/js/funnel.data.js"></script>
+	  <script type="module" defer src="./assets/js/funnel.view.js"></script>
+	  <script type="module" defer src="./assets/js/funnel.js"></script>
+	  <script type="module" defer src="./assets/js/data-cache.js?v=3"></script>
+	  <script defer src="./assets/js/filters.js?v=shared"></script>
+	  <script>
+	    document.addEventListener("DOMContentLoaded", function(){
+	      if (window.renderHeaderNav && !window.__sisHeaderNav_funnel) {
+	        window.__sisHeaderNav_funnel = true;
+	        window.renderHeaderNav({
+	          currentId: "funnel",
+	          title: "FI Funnel",
+	          subtitle: "GA + SIS conversion funnel by FI, partner, integration, and date."
+	        });
+	      }
+	    });
+	  </script>
+	  <link rel="stylesheet" href="./assets/css/filters.css">
     <style>
       * {
         box-sizing: border-box;
@@ -1030,25 +1044,11 @@
         font-weight: 600;
       }
     </style>
-  </head>
-  <body>
-    <header class="sis-header">
-      <div class="sis-topbar">
-        <div class="sis-title">Strivve Insights Service</div>
-
-              <nav class="sis-nav" data-current></nav>
-      </div>
-
-      <div class="sis-page-header">
-        <h1 class="sis-page-title">Card Placement Funnel</h1>
-        <div class="sis-page-header-row">
-          <p class="sis-page-subtitle">Track Google Analytics events through sessions and placement data; spot where cardholders are gained or lost.</p>
-          <button class="theme-toggle" type="button" aria-pressed="false">Light mode</button>
-        </div>
-      </div>
-  </header>
-  <div class="sis-content">
-  <main class="sis-main">
+	  </head>
+	  <body>
+	    <div id="sis-header"></div>
+	  <div class="sis-content">
+	  <main class="sis-main">
       <section class="sis-panel">
         <div id="pageLoader" class="loading-banner">
           <div class="spinner" aria-hidden="true"></div>
@@ -1129,10 +1129,10 @@
             <div class="metric-value" id="convMetricSuccessfulSessions">-</div>
             <div class="metric-pct" id="convMetricSuccessfulSessionsPct">-</div>
           </div>
-          <div class="conversion-metric with-jobs-theme funnel-dist-card">
+          <div class="conversion-metric with-jobs-theme funnel-dist-card" data-sis-card="attempts">
             <div class="funnel-dist-header">
               <div class="metric-label">Merchant Attempts (sess w/ jobs)</div>
-              <button class="funnel-dist-toggle" id="toggle-distribution" type="button" aria-expanded="false" aria-label="Show distribution ▾">Show distribution ▾</button>
+              <button class="funnel-dist-toggle" id="toggle-distribution" data-sis-action="distribution" type="button" aria-expanded="false" aria-label="Show distribution ▾">Show distribution ▾</button>
             </div>
             <div class="funnel-dist-row chips-row" aria-label="Merchant attempts stats">
               <span class="funnel-dist-chip ui-chip" data-chip="median" title="Median jobs per session (sessions with jobs)" aria-label="Median jobs per session (sessions with jobs)"><b>MEDIAN</b><span class="funnel-dist-value" data-key="median">—</span></span>

@@ -8,7 +8,19 @@
   <link rel="stylesheet" href="./assets/css/sis.css">
   <script defer src="./assets/js/sis.js"></script>
   <script defer src="./assets/js/nav.js"></script>
-  <script defer src="./assets/js/data-cache.js?v=3"></script>
+  <script type="module" defer src="./assets/js/data-cache.js?v=3"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function(){
+      if (window.renderHeaderNav && !window.__sisHeaderNav_watchlist) {
+        window.__sisHeaderNav_watchlist = true;
+        window.renderHeaderNav({
+          currentId: "watchlist",
+          title: "Alerts & Watchlist",
+          subtitle: "Anomalies, traffic spikes/drops, and reliability changes."
+        });
+      }
+    });
+  </script>
   <style>
     body {
       margin: 0;
@@ -222,21 +234,7 @@
   </style>
 </head>
 <body>
-  <header class="sis-header">
-    <div class="sis-topbar">
-      <div class="sis-title">Strivve Insights Service</div>
-
-        <nav class="sis-nav" data-current></nav>
-      </div>
-
-      <div class="sis-page-header">
-        <h1 class="sis-page-title">Reliability &amp; Anomaly Watch</h1>
-        <div class="sis-page-header-row">
-          <p class="sis-page-subtitle">Highlight week-over-week anomalies and failure trends to catch system-level or cardholder pain early.</p>
-          <button class="theme-toggle" type="button" aria-pressed="false">Light mode</button>
-        </div>
-      </div>
-  </header>
+  <div id="sis-header"></div>
   <div class="sis-content">
     <main class="sis-main">
       <section class="sis-panel">

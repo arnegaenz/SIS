@@ -479,3 +479,64 @@
 
   console.log('DataCache module loaded and ready (localStorage + IndexedDB)');
 })();
+
+export const SIS_CACHE_VERSION = 2;
+
+export function getAttemptsDistribution(){
+const candidates = [window.job_distribution, window.jobs_distribution, window.attemptsDistribution, window.sisAttemptsDistribution];
+const arr = candidates.find(a => Array.isArray(a)) || [];
+/** @type {import('./types.js').DistributionRow[]} */
+const rows = arr.map(r => ({
+jobsPerSession: +((r.jobsPerSession ?? r.jobs_per_session ?? r.jobs ?? r.bucket) || 0),
+sessions: +((r.sessions ?? r.count ?? r.value) || 0)
+})).filter(r => Number.isFinite(r.jobsPerSession) && Number.isFinite(r.sessions) && r.sessions > 0)
+.sort((a,b)=>a.jobsPerSession - b.jobsPerSession);
+return rows;
+}
+
+export function coerceDailyRows(rows){
+const out = [];
+if (!Array.isArray(rows)) return out;
+for (const r of rows){
+const d = (r.date || '').toString();
+const okDate = /^\d{4}-\d{2}-\d{2}$/.test(d);
+const o = {
+date: okDate ? d : '',
+fi: (r.fi ?? r.FI ?? '').toString(),
+instance: (r.instance ?? r.env ?? r.slice ?? '').toString(),
+sessions: +r.sessions || 0,
+sessionsWithJobs: +(r.sessionsWithJobs ?? r.sessions_w_jobs ?? r.sess_jobs ?? 0),
+sessionsWithSuccess: +(r.sessionsWithSuccess ?? r.sessions_w_success ?? r.sess_success ?? 0),
+placements: +r.placements || 0
+};
+if (!okDate) continue;
+out.push(o);
+}
+if (rows.length && !out.length) { try { window.sisToast && window.sisToast('Some data was ignored due to format issues'); if (window.sisWarn) window.sisWarn('Some data was ignored due to format issues'); } catch(_){}}
+return out;
+}
+
+export function coerceFunnelSummary(obj){
+const o = obj || {};
+return {
+gaSelect: +o.gaSelect || 0,
+gaUser: +o.gaUser || 0,
+gaCred: +o.gaCred || 0,
+sessions: +o.sessions || 0,
+sessionsWithJobs: +(o.sessionsWithJobs ?? o.sess_jobs ?? 0),
+sessionsWithSuccess: +(o.sessionsWithSuccess ?? o.sess_success ?? 0),
+placements: +o.placements || 0
+};
+}
+
+(function cacheVersioning(){
+try {
+const k = 'SIS_CACHE_VERSION';
+const prev = +localStorage.getItem(k) || 0;
+if (prev !== SIS_CACHE_VERSION) {
+// If you have IndexedDB stores, bump their keys or clear here.
+localStorage.setItem(k, String(SIS_CACHE_VERSION));
+if (window.sisWarn) window.sisWarn('Cache reset due to schema version bump', {from: prev, to: SIS_CACHE_VERSION});
+}
+} catch(e){ /* no-op */ }
+})();

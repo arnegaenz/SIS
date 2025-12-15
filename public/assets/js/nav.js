@@ -1,298 +1,223 @@
-(function () {
-  var NAV_RENDER_ATTR = "data-nav-rendered";
-  var NAV_ABORT_KEY = "__sisNavAbortController";
+/*
+  SIS shared header navigation
+  Renders a consistent header with grouped dropdowns and page titles.
+  No dependencies beyond standard DOM APIs and existing sis-shared.css.
+*/
+(function(global){
+function h(tag, attrs, children){
+var el = document.createElement(tag);
+if (attrs) for (var k in attrs){ if (k === "class") el.className = attrs[k]; else el.setAttribute(k, attrs[k]); }
+if (children && children.length){
+for (var i=0;i<children.length;i++){
+var c = children[i];
+if (typeof c === "string") el.appendChild(document.createTextNode(c));
+else if (c) el.appendChild(c);
+}
+}
+return el;
+}
 
-  function safeLower(value) {
-    return String(value || "").trim().toLowerCase();
-  }
+// Default groups and pages. Keys match page ids we will pass from each page.
+var GROUPS = [
+{ label: "Conversions", items: [
+{ id:"overview", label:"Overview", href:"./index.html" },
+{ id:"funnel", label:"FI Funnel", href:"./funnel.html" },
+{ id:"sources", label:"Sources", href:"./sources.html" }
+]},
+{ label: "Reliability", items: [
+{ id:"heatmap", label:"Merchant Heatmap", href:"./heatmap.html" },
+{ id:"watchlist", label:"Alerts & Watchlist", href:"./watchlist.html" }
+]},
+{ label: "Ops", items: [
+{ id:"troubleshoot", label:"Troubleshoot", href:"./troubleshoot.html" },
+{ id:"maintenance", label:"Maintenance", href:"./maintenance.html" }
+]}
+];
 
-  function getNavMode() {
-    var fromBody = safeLower(document.body && document.body.dataset && document.body.dataset.navMode);
-    if (fromBody === "full" || fromBody === "restricted") return fromBody;
+function renderHeaderNav(opts){
+try{
+opts = opts || {};
+var currentId = opts.currentId || "";
+var title = opts.title || "";
+var subtitle = opts.subtitle || "";
+var mount = document.getElementById("sis-header");
+if (!mount){
+// If no placeholder, create one at top of body without disturbing existing content.
+mount = document.createElement("div");
+mount.id = "sis-header";
+if (document.body.firstChild) document.body.insertBefore(mount, document.body.firstChild);
+else document.body.appendChild(mount);
+}
+mount.innerHTML = "";
 
-    var fromWindow = safeLower(window.SIS_NAV_MODE);
-    if (fromWindow === "full" || fromWindow === "restricted") return fromWindow;
+// Header shell
+var header = h("header", { class:"sis-header" }, []);
 
-    return "full";
-  }
+// Title block
+var titleWrap = h("div", { class:"sis-titleblock" }, [
+h("h1", { class:"sis-page-title" }, [title]),
+subtitle ? h("div", { class:"sis-page-subtitle" }, [subtitle]) : null
+]);
 
-  function currentFilename() {
-    var p = String(window.location && window.location.pathname ? window.location.pathname : "");
-    var parts = p.split("/").filter(Boolean);
-    var last = (parts.length ? parts[parts.length - 1] : "") || "index.html";
-    if (!/\./.test(last)) last = "index.html";
-    return last.toLowerCase();
-  }
+// Nav groups (dropdowns)
+var nav = h("nav", { class:"sis-nav", "data-sis-nav":"1" }, []);
+var leftGroup = h("div", { class:"sis-nav-group" }, []);
+var spacer = h("div", { class:"sis-spacer" }, []);
+var rightGroup = h("div", { class:"sis-nav-group" }, []);
 
-  function filenameFromHref(href) {
-    var clean = String(href || "").split("#")[0].split("?")[0];
-    var parts = clean.split("/").filter(Boolean);
-    var last = (parts.length ? parts[parts.length - 1] : "") || "index.html";
-    if (!/\./.test(last)) last = "index.html";
-    return last.toLowerCase();
-  }
+function closeAllDropdowns(root){
+var hdr = root || header;
+var lists = hdr.querySelectorAll(".sis-menu");
+for (var i=0;i<lists.length;i++) lists[i].setAttribute("data-open","0");
+var btns = hdr.querySelectorAll(".sis-dropdown > button");
+for (var j=0;j<btns.length;j++) btns[j].setAttribute("aria-expanded","false");
+if (mount.__sisNavUpdateOpen) mount.__sisNavUpdateOpen();
+}
 
-  function navModel() {
-    return {
-      overview: { title: "Overview", href: "index.html", public: true },
-      groups: [
-        {
-          label: "Conversions",
-          public: true,
-          items: [{ title: "FI Funnel", href: "funnel.html", public: true }],
-        },
-        {
-          label: "Sources",
-          public: true,
-          items: [{ title: "Sources", href: "sources.html", public: true }],
-        },
-        {
-          label: "Merchant Health",
-          public: true,
-          items: [
-            { title: "Merchant Heatmap", href: "heatmap.html", public: true },
-            { title: "Alerts", href: "watchlist.html", public: true },
-          ],
-        },
-        {
-          label: "Operations",
-          public: false,
-          items: [
-            { title: "Troubleshooting", href: "troubleshoot.html", public: false },
-            { title: "Maintenance", href: "maintenance.html", public: false },
-          ],
-        },
-        {
-          label: "Data & Admin",
-          public: false,
-          items: [
-            { title: "FI API Data", href: "fi-api.html", public: false },
-            { title: "Server Logs", href: "logs.html", public: false },
-          ],
-        },
-      ],
-    };
-  }
+function addDropdown(group, targetWrap){
+var btn = h("button", { class:"sis-pill", type:"button", "aria-expanded":"false" }, [group.label]);
+var list = h("div", { class:"sis-menu", "data-open":"0" }, []);
+for (var i=0; i<group.items.length; i++){
+var item = group.items[i];
+var a = h("a", { href:item.href, class:("sis-nav-link" + (item.id===currentId ? " sis-active" : "")) }, [item.label]);
+list.appendChild(a);
+}
+btn.addEventListener("click", function(l, b){
+return function(e){
+e.preventDefault();
+var wasOpen = l.getAttribute("data-open")==="1";
+closeAllDropdowns(header);
+l.setAttribute("data-open", wasOpen ? "0" : "1");
+b.setAttribute("aria-expanded", wasOpen ? "false" : "true");
+if (mount.__sisNavUpdateOpen) mount.__sisNavUpdateOpen();
+};
+}(list, btn));
+var wrap = h("div", { class:"sis-dropdown" }, [btn, list]);
+targetWrap.appendChild(wrap);
+}
 
-  function createEl(tag, className) {
-    var node = document.createElement(tag);
-    if (className) node.className = className;
-    return node;
-  }
+for (var g=0; g<GROUPS.length; g++){
+var group = GROUPS[g];
+if (group.label === "Ops") addDropdown(group, rightGroup);
+else addDropdown(group, leftGroup);
+}
 
-  function placeNavMenu(triggerEl, menuEl) {
-    if (!triggerEl || !menuEl) return;
-    var prevDisplay = menuEl.style.display;
-    var needsDisplay =
-      window.getComputedStyle && window.getComputedStyle(menuEl).display === "none";
-    if (needsDisplay) menuEl.style.display = "block";
-
-    var trigRect = triggerEl.getBoundingClientRect();
-    var menuRect = menuEl.getBoundingClientRect();
-    var vw = window.innerWidth || (document.documentElement && document.documentElement.clientWidth) || 0;
-
-    if (trigRect.left + menuRect.width > vw - 16) menuEl.classList.add("align-right");
-    else menuEl.classList.remove("align-right");
-
-    menuEl.style.display = prevDisplay || "";
-  }
-
-  function closeAllNavMenus(navEl) {
-    if (!navEl) return;
-    navEl.querySelectorAll(".sis-nav-group.is-open").forEach(function (g) {
-      g.classList.remove("is-open");
-      var trig = g.querySelector(".sis-nav-trigger");
-      if (trig) trig.setAttribute("aria-expanded", "false");
-      var menu = g.querySelector(".sis-nav-menu");
-      if (menu) menu.setAttribute("hidden", "");
-    });
-  }
-
-  function applyActive(link, isActive) {
-    if (!link) return;
-    if (isActive) {
-      link.classList.add("active");
-      link.setAttribute("aria-current", "page");
-    } else {
-      link.classList.remove("active");
-      link.removeAttribute("aria-current");
-    }
-  }
-
-  function renderInto(navEl, abortSignal) {
-    var mode = getNavMode();
-    var model = navModel();
-    var current = currentFilename();
-
-    // Idempotent: fully own the placeholder.
-    navEl.innerHTML = "";
-    navEl.setAttribute(NAV_RENDER_ATTR, "true");
-
-    var root = createEl("div", "sis-nav-root");
-
-    var overview = document.createElement("a");
-    overview.className = "sis-nav-link";
-    overview.href = model.overview.href;
-    overview.textContent = model.overview.title;
-    applyActive(overview, filenameFromHref(model.overview.href) === current);
-    root.appendChild(overview);
-
-    var visibleGroups = model.groups.filter(function (g) {
-      return mode === "full" ? true : Boolean(g.public);
-    });
-
-    visibleGroups.forEach(function (group) {
-      var groupWrap = createEl("div", "sis-nav-group");
-      groupWrap.dataset.group = group.label;
-
-      var trigger = document.createElement("button");
-      trigger.type = "button";
-      trigger.className = "sis-nav-trigger";
-      trigger.setAttribute("aria-haspopup", "true");
-      trigger.setAttribute("aria-expanded", "false");
-      trigger.textContent = group.label;
-      groupWrap.appendChild(trigger);
-
-      var menu = createEl("div", "sis-nav-menu");
-      menu.setAttribute("hidden", "");
-      menu.setAttribute("role", "menu");
-
-      group.items.forEach(function (item) {
-        if (mode !== "full" && item.public === false) return;
-
-        var a = document.createElement("a");
-        a.href = item.href;
-        a.textContent = item.title;
-        a.className = "sis-nav-item";
-        a.setAttribute("role", "menuitem");
-        applyActive(a, filenameFromHref(item.href) === current);
-        menu.appendChild(a);
-      });
-
-      groupWrap.appendChild(menu);
-      root.appendChild(groupWrap);
-    });
-
-    navEl.appendChild(root);
-
-    // Trigger click: toggle only its own group; close others; compute edge-flip.
-    navEl.querySelectorAll(".sis-nav-trigger").forEach(function (trig) {
-      var group = trig.closest(".sis-nav-group");
-      var menu = group ? group.querySelector(".sis-nav-menu") : null;
-      if (!group || !menu) return;
-
-      trig.addEventListener(
-        "click",
-        function (e) {
-          e.preventDefault();
-          var willOpen = !group.classList.contains("is-open");
-
-          navEl.querySelectorAll(".sis-nav-group.is-open").forEach(function (g) {
-            if (g !== group) {
-              g.classList.remove("is-open");
-              var t = g.querySelector(".sis-nav-trigger");
-              if (t) t.setAttribute("aria-expanded", "false");
-              var m = g.querySelector(".sis-nav-menu");
-              if (m) m.setAttribute("hidden", "");
-            }
-          });
-
-          if (willOpen) {
-            group.classList.add("is-open");
-            trig.setAttribute("aria-expanded", "true");
-            menu.removeAttribute("hidden");
-            requestAnimationFrame(function () {
-              placeNavMenu(trig, menu);
-            });
-          } else {
-            group.classList.remove("is-open");
-            trig.setAttribute("aria-expanded", "false");
-            menu.setAttribute("hidden", "");
-          }
-        },
-        { signal: abortSignal }
-      );
-    });
-
-    // Close only nav menus when clicking outside the nav.
-    document.addEventListener(
-      "click",
-      function (e) {
-        if (e.target && e.target.closest && e.target.closest(".sis-nav")) return;
-        closeAllNavMenus(navEl);
-      },
-      { capture: false, signal: abortSignal }
-    );
-
-    // Clicking a menu item closes nav menus (nav-only).
-    navEl.querySelectorAll(".sis-nav-menu a").forEach(function (a) {
-      a.addEventListener(
-        "click",
-        function () {
-          closeAllNavMenus(navEl);
-        },
-        { signal: abortSignal }
-      );
-    });
-
-    // Escape closes only nav menus.
-    document.addEventListener(
-      "keydown",
-      function (e) {
-        if (e.key === "Escape") closeAllNavMenus(navEl);
-      },
-      { signal: abortSignal }
-    );
-
-    // Resize/orientation change closes only nav menus.
-    window.addEventListener(
-      "resize",
-      function () {
-        closeAllNavMenus(navEl);
-      },
-      { signal: abortSignal }
-    );
-    window.addEventListener(
-      "orientationchange",
-      function () {
-        closeAllNavMenus(navEl);
-      },
-      { signal: abortSignal }
-    );
-  }
-
-  function init() {
-    var placeholders = document.querySelectorAll("nav.sis-nav[data-current]");
-    if (!placeholders || !placeholders.length) return;
-
-    if (placeholders.length > 1) {
-      try {
-        console.warn(
-          "[nav.js] Multiple nav placeholders found; rendering into the first only:",
-          placeholders.length
-        );
-      } catch (e) {}
-    }
-
-    var navEl = placeholders[0];
-    // Ensure only one nav renders (clear any others).
-    for (var i = 1; i < placeholders.length; i++) {
-      placeholders[i].innerHTML = "";
-    }
-
-    // Idempotence: abort any prior listeners bound by nav.js, then rebuild.
-    try {
-      if (navEl[NAV_ABORT_KEY] && typeof navEl[NAV_ABORT_KEY].abort === "function") {
-        navEl[NAV_ABORT_KEY].abort();
-      }
-    } catch (e) {}
-    var controller = new AbortController();
-    navEl[NAV_ABORT_KEY] = controller;
-
-    renderInto(navEl, controller.signal);
-  }
-
+// Theme toggle is only exposed on the Maintenance page.
+if (currentId === "maintenance") {
+  var themeBtn = h("button", { class:"theme-toggle", type:"button", "aria-pressed":"false" }, ["Light mode"]);
+  rightGroup.appendChild(themeBtn);
   try {
-    init();
+    var root = document.documentElement;
+    var STORAGE_KEY = "sis-theme";
+    var setTheme = function (theme) {
+      var next = theme === "dark" ? "dark" : "light";
+      root.dataset.theme = next;
+      try { localStorage.setItem(STORAGE_KEY, next); } catch (e) {}
+      themeBtn.setAttribute("aria-pressed", next === "dark" ? "true" : "false");
+      themeBtn.textContent = next === "dark" ? "Dark mode" : "Light mode";
+      if (!themeBtn.querySelector(".theme-toggle__dot")) {
+        var dot = document.createElement("span");
+        dot.className = "theme-toggle__dot";
+        themeBtn.prepend(dot);
+      }
+    };
+    setTheme(root.dataset.theme === "dark" ? "dark" : "light");
+    if (!themeBtn.dataset.sisThemeBound) {
+      themeBtn.dataset.sisThemeBound = "1";
+      themeBtn.addEventListener("click", function () {
+        var current = root.dataset.theme === "dark" ? "dark" : "light";
+        setTheme(current === "dark" ? "light" : "dark");
+      });
+    }
   } catch (e) {}
-})();
+}
+nav.appendChild(leftGroup);
+nav.appendChild(spacer);
+nav.appendChild(rightGroup);
+
+header.appendChild(titleWrap);
+header.appendChild(nav);
+mount.appendChild(header);
+
+// Minimal styles fallback (only if classes not found). Harmless if CSS already exists.
+// We use inline style tweaks to avoid editing CSS files now.
+header.style.display = "flex";
+header.style.flexDirection = "row";
+header.style.flexWrap = "wrap";
+header.style.alignItems = "flex-end";
+header.style.justifyContent = "flex-start";
+header.style.gap = "12px";
+var titleEl = titleWrap.querySelector(".sis-page-title");
+if (titleEl) titleEl.style.margin = "0";
+if (subtitle){
+var st = titleWrap.querySelector(".sis-page-subtitle");
+if (st){ st.style.opacity = "0.85"; st.style.fontSize = "0.9rem"; }
+}
+titleWrap.style.maxWidth = "100%";
+titleWrap.style.flex = "1 1 420px";
+titleWrap.style.minWidth = "240px";
+nav.style.flex = "0 1 auto";
+nav.style.marginLeft = "auto";
+nav.style.justifyContent = "flex-end";
+nav.style.alignItems = "center";
+nav.style.marginTop = "0";
+var menus = header.querySelectorAll(".sis-menu");
+for (var k=0;k<menus.length;k++){
+menus[k].style.display = "none";
+}
+
+mount.__sisNavUpdateOpen = function(){
+var lists = header.querySelectorAll(".sis-menu");
+for (var m=0;m<lists.length;m++){
+lists[m].style.display = (lists[m].getAttribute("data-open")==="1") ? "block" : "none";
+}
+};
+mount.__sisNavUpdateOpen();
+
+if (!global.__sisHeaderNavDocBound){
+global.__sisHeaderNavDocBound = true;
+document.addEventListener("click", function(e){
+var activeMount = document.getElementById("sis-header");
+if (!activeMount) return;
+var hdr = activeMount.querySelector("header");
+if (!hdr) return;
+if (hdr.contains(e.target)) return;
+var lists = hdr.querySelectorAll(".sis-menu");
+for (var i=0;i<lists.length;i++) lists[i].setAttribute("data-open","0");
+var btns = hdr.querySelectorAll(".sis-dropdown > button");
+for (var j=0;j<btns.length;j++) btns[j].setAttribute("aria-expanded","false");
+if (activeMount.__sisNavUpdateOpen) activeMount.__sisNavUpdateOpen();
+});
+document.addEventListener("keydown", function(e){
+if (e.key!=="Escape") return;
+var activeMount = document.getElementById("sis-header");
+if (!activeMount) return;
+var hdr = activeMount.querySelector("header");
+if (!hdr) return;
+var lists = hdr.querySelectorAll(".sis-menu");
+for (var i=0;i<lists.length;i++) lists[i].setAttribute("data-open","0");
+var btns = hdr.querySelectorAll(".sis-dropdown > button");
+for (var j=0;j<btns.length;j++) btns[j].setAttribute("aria-expanded","false");
+if (activeMount.__sisNavUpdateOpen) activeMount.__sisNavUpdateOpen();
+});
+}
+
+// Update <title> and meta[name=description] if present
+try {
+if (title && document.title !== title) document.title = title;
+var metaDesc = document.querySelector('meta[name="description"]');
+if (!metaDesc && subtitle){
+metaDesc = document.createElement("meta");
+metaDesc.setAttribute("name","description");
+document.head.appendChild(metaDesc);
+}
+if (metaDesc && subtitle) metaDesc.setAttribute("content", subtitle);
+} catch(e){}
+} catch(e){
+(global.sisWarn || console.warn)("renderHeaderNav failed", e);
+}
+}
+
+// Expose
+global.renderHeaderNav = renderHeaderNav;
+})(window);

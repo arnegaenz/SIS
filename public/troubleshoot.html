@@ -9,6 +9,18 @@
   <script defer src="./assets/js/sis.js"></script>
   <script defer src="./assets/js/nav.js"></script>
   <script defer src="./assets/js/filters.js?v=shared"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function(){
+      if (window.renderHeaderNav && !window.__sisHeaderNav_troubleshoot) {
+        window.__sisHeaderNav_troubleshoot = true;
+        window.renderHeaderNav({
+          currentId: "troubleshoot",
+          title: "Troubleshoot",
+          subtitle: "Session and placement debugging with contextual details."
+        });
+      }
+    });
+  </script>
   <link rel="stylesheet" href="./assets/css/filters.css">
   <style>
     * { box-sizing: border-box; }
@@ -304,21 +316,7 @@
   </style>
 </head>
 <body>
-  <header class="sis-header">
-    <div class="sis-topbar">
-      <div class="sis-title">Strivve Insights Service</div>
-
-            <nav class="sis-nav" data-current></nav>
-    </div>
-
-    <div class="sis-page-header">
-      <h1 class="sis-page-title">Troubleshooting</h1>
-      <div class="sis-page-header-row">
-        <p class="sis-page-subtitle">Mirror the FI Funnel filters, then drill into every session and card placement for a single day. Spot bad terminations, job timing, and click patterns without leaving the browser.</p>
-        <button class="theme-toggle" type="button" aria-pressed="false">Light mode</button>
-      </div>
-    </div>
-  </header>
+  <div id="sis-header"></div>
   <div class="sis-content">
   <main class="sis-main">
     <section class="sis-panel">

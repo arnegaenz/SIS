@@ -9,6 +9,18 @@
   <script defer src="./assets/js/sis.js"></script>
   <script defer src="./assets/js/nav.js"></script>
   <script defer src="./assets/js/filters.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function(){
+      if (window.renderHeaderNav && !window.__sisHeaderNav_maintenance) {
+        window.__sisHeaderNav_maintenance = true;
+        window.renderHeaderNav({
+          currentId: "maintenance",
+          title: "Maintenance",
+          subtitle: "Data refresh, FI registry edits, merchant sites, and instances."
+        });
+      }
+    });
+  </script>
   <style>
     * { box-sizing: border-box; }
     body {
@@ -641,20 +653,7 @@
   </style>
 </head>
 <body>
-  <header class="sis-header">
-    <div class="sis-topbar">
-      <div class="sis-title">Strivve Insights Service</div>
-      <nav class="sis-nav" data-current></nav>
-    </div>
-
-    <div class="sis-page-header">
-      <h1 class="sis-page-title">Issuer Ops &amp; Data Health</h1>
-      <div class="sis-page-header-row">
-        <p class="sis-page-subtitle">Keep your issuer portfolio healthy: refresh data, confirm merchant availability, and edit FI metadata/credentials without tickets.</p>
-        <button class="theme-toggle" type="button" aria-pressed="false">Light mode</button>
-      </div>
-    </div>
-  </header>
+  <div id="sis-header"></div>
   <div class="sis-content">
   <main class="sis-main maintenance-main">
     <section class="sis-panel">

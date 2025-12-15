@@ -9,9 +9,21 @@
   <link rel="stylesheet" href="./assets/css/filters.css">
   <script defer src="assets/js/sis.js"></script>
   <script defer src="./assets/js/nav.js"></script>
-  <script defer src="assets/js/data-cache.js?v=3"></script>
+  <script type="module" defer src="assets/js/data-cache.js?v=3"></script>
   <script defer src="assets/js/filters.js"></script>
   <script defer src="assets/js/sources.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function(){
+      if (window.renderHeaderNav && !window.__sisHeaderNav_sources) {
+        window.__sisHeaderNav_sources = true;
+        window.renderHeaderNav({
+          currentId: "sources",
+          title: "Sources",
+          subtitle: "Traffic source analytics by FI, partner, integration, and instance."
+        });
+      }
+    });
+  </script>
     <style>
       body {
         margin: 0;
@@ -456,21 +468,7 @@
     </style>
   </head>
   <body>
-    <header class="sis-header">
-      <div class="sis-topbar">
-        <div class="sis-title">Strivve Insights Service</div>
-
-        <nav class="sis-nav" data-current></nav>
-      </div>
-
-      <div class="sis-page-header">
-        <h1 class="sis-page-title">Source Analysis</h1>
-        <div class="sis-page-header-row">
-          <p class="sis-page-subtitle">Compare SSO (CU2 + legacy) vs non-SSO traffic and conversion funnels for one FI with full end-to-end metrics.</p>
-          <button class="theme-toggle" type="button" aria-pressed="false">Light mode</button>
-        </div>
-      </div>
-    </header>
+    <div id="sis-header"></div>
 
     <div class="sis-content">
       <main class="sis-main">

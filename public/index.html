@@ -9,6 +9,18 @@
   <script defer src="./assets/js/sis.js"></script>
   <script defer src="./assets/js/nav.js"></script>
   <script defer src="./assets/js/filters.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function(){
+      if (window.renderHeaderNav && !window.__sisHeaderNav_overview) {
+        window.__sisHeaderNav_overview = true;
+        window.renderHeaderNav({
+          currentId: "overview",
+          title: "SIS Overview",
+          subtitle: "Quick links and snapshots for the primary reports."
+        });
+      }
+    });
+  </script>
   <style>
     * { box-sizing: border-box; }
     body {
@@ -109,21 +121,7 @@
   </style>
 </head>
 <body>
-  <header class="sis-header">
-    <div class="sis-topbar">
-      <div class="sis-title">Strivve Insights Service</div>
-
-      <nav class="sis-nav" data-current></nav>
-    </div>
-
-    <div class="sis-page-header">
-      <h1 class="sis-page-title">Strivve Insights Service</h1>
-      <div class="sis-page-header-row">
-        <p class="sis-page-subtitle">Performance and reliability intelligence for financial institutions—track card placement activity, merchant health, cardholder engagement, and maintain your Financial Institution Registry and credentials.</p>
-        <button class="theme-toggle" type="button" aria-pressed="false">Light mode</button>
-      </div>
-    </div>
-  </header>
+  <div id="sis-header"></div>
   <div class="sis-content">
     <main class="sis-main">
       <section class="sis-panel">

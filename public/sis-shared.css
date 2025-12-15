@@ -253,6 +253,128 @@
   --sis-panel-bg: var(--panel);
 }
 
+/* --- Header nav: wrap & no-bleed --- */
+[data-sis-nav] {
+  display: flex;
+  flex-wrap: wrap;            /* allow wrapping */
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  width: 100%;
+  overflow: hidden;           /* prevent horizontal bleed */
+}
+/* Allow dropdowns to overflow vertically while still preventing horizontal scroll */
+[data-sis-nav] {
+  overflow-x: hidden;
+  overflow-y: visible;
+}
+
+[data-sis-nav] .sis-nav-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 1 auto;             /* shrink if needed */
+  min-width: 0;               /* allow child truncation */
+}
+
+[data-sis-nav] .sis-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: var(--panel, rgba(255,255,255,0.04));
+  border: 1px solid var(--table-border, rgba(255,255,255,0.08));
+  white-space: nowrap;        /* pills stay intact */
+  max-width: 100%;
+}
+[data-sis-nav] .sis-pill,
+[data-sis-nav] .sis-pill:visited {
+  color: var(--text, #0f172a);
+  text-decoration: none;
+}
+[data-sis-nav] .sis-pill:hover {
+  filter: brightness(1.02);
+}
+[data-sis-nav] .sis-pill.sis-active {
+  border-color: var(--accent, #2563eb);
+}
+[data-sis-nav] button.sis-pill {
+  font: inherit;
+  cursor: pointer;
+}
+
+[data-sis-nav] .sis-spacer {
+  flex: 1 1 auto;             /* lets right-side groups stay visible */
+  min-width: 0;
+}
+
+/* Dropdown container & menu */
+.sis-dropdown {
+  position: relative;
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.sis-dropdown > .sis-menu {
+  position: absolute;
+  right: 0;                   /* anchor to the right edge */
+  top: calc(100% + 6px);
+  max-width: min(90vw, 480px);/* keep on-screen */
+  min-width: 220px;
+  max-height: min(60vh, 480px);
+  overflow-x: hidden;
+  overflow-y: auto;
+  z-index: 1000;
+  background: var(--panel, #0f1115);
+  border: 1px solid var(--table-border, rgba(255,255,255,0.12));
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+  padding: 6px;
+}
+
+/* Dropdown menu items: vertical list, no extra right padding */
+.sis-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.sis-menu .sis-nav-link,
+.sis-menu .sis-nav-link:visited {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border-radius: 8px;
+  color: var(--text, #0f172a);
+  text-decoration: none;
+  border: 1px solid transparent;
+}
+.sis-menu .sis-nav-link:hover {
+  background: var(--bg-subtle, rgba(0,0,0,0.03));
+  border-color: var(--hair, rgba(0,0,0,0.08));
+}
+.sis-menu .sis-nav-link.sis-active {
+  border-color: var(--accent, #2563eb);
+}
+
+/* Guard rail: never show horizontal scrollbar due to header */
+body, .page, [data-sis-page] {
+  overflow-x: hidden;
+}
+
+/* Tight screens: reduce gaps a bit */
+@media (max-width: 1200px) {
+  [data-sis-nav] { row-gap: 8px; }
+}
+
+/* Header layout A: title left, nav right */
+.sis-header [data-sis-nav] {
+  width: auto;
+  flex: 0 1 auto;
+  margin-left: auto;
+}
+
 .sis-header {
   background: var(--header-bg);
   border-bottom: 1px solid var(--border);
