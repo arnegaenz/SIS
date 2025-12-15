@@ -1101,7 +1101,7 @@
           </div>
           <div class="refresh-status">
             <p>Credential JSON (editable)</p>
-            <textarea id="gaCredJson" class="ga-json-editor"></textarea>
+            <textarea id="gaCredJson" class="ga-json-editor" placeholder="Paste GA service account JSON here, or choose a file above. Then click Save JSON."></textarea>
           </div>
           <div class="refresh-status">
             <p>Status</p>
@@ -2143,18 +2143,22 @@
           const data = res.ok ? await res.json() : null;
           if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
           if (data && data.exists) setStatus("Configured.", "success");
-          else setStatus("Not configured.", "");
+          else setStatus("Not configured. Upload a JSON file or paste JSON and click Save JSON.", "");
           const detail = summarize(data);
           setMeta(allSummaryText ? (allSummaryText + "\n\n" + detail) : detail);
           const txt = (data && typeof data.jsonText === "string") ? data.jsonText : "";
           jsonArea.value = txt;
           lastLoadedText = txt;
+          if (testBtn) testBtn.disabled = !(data && data.exists);
+          if (deleteBtn) deleteBtn.disabled = !(data && data.exists);
         } catch (err) {
           console.error("ga credential load failed", err);
           setStatus(err?.message || "Failed to load GA credential.", "error");
           setMeta("");
           jsonArea.value = "";
           lastLoadedText = "";
+          if (testBtn) testBtn.disabled = true;
+          if (deleteBtn) deleteBtn.disabled = true;
         }
       }
 
@@ -2262,7 +2266,7 @@
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ name }),
           });
-          const data = res.ok ? await res.json() : null;
+          const data = await res.json().catch(() => ({}));
           if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
           setTestStatus("GA access OK.", "success");
           setTestLog(JSON.stringify(data, null, 2));

@@ -2346,6 +2346,10 @@ const server = http.createServer(async (req, res) => {
           : yesterdayIsoDate();
       const propertyId = (payload?.propertyId || process.env.GA_PROPERTY_ID || "328054560").toString();
 
+      const summary = await readGaCredentialSummary("prod");
+      if (!summary.exists) {
+        return send(res, 400, { ok: false, error: "GA credential not configured. Upload JSON first." });
+      }
       const rows = await fetchGaRowsForDay({
         date,
         propertyId,
@@ -2414,6 +2418,10 @@ const server = http.createServer(async (req, res) => {
       const payload = rawBody ? JSON.parse(rawBody) : {};
       const name = payload?.name || "";
       const cfg = getGaCredentialConfig(name);
+      const summary = await readGaCredentialSummary(cfg.name);
+      if (!summary.exists) {
+        return send(res, 400, { ok: false, error: "GA credential not configured. Upload or paste JSON first." });
+      }
       const date =
         payload?.date && /^\d{4}-\d{2}-\d{2}$/.test(payload.date)
           ? payload.date
