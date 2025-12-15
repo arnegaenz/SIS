@@ -1401,6 +1401,7 @@ const server = http.createServer(async (req, res) => {
 
     try {
       const { checkRawDataStatus } = await import("../src/lib/rawStorage.mjs");
+      const dailySet = new Set((await listDaily()).map((f) => f.replace(/\.json$/i, "")));
       const datesToRefetch = [];
       const reasons = {};
 
@@ -1415,11 +1416,13 @@ const server = http.createServer(async (req, res) => {
         const sessionStatus = checkRawDataStatus("sessions", dateStr);
         const placementStatus = checkRawDataStatus("placements", dateStr);
         const gaStatus = checkRawDataStatus("ga", dateStr);
+        const dailyMissing = !dailySet.has(dateStr);
 
         const needsRefetch =
           sessionStatus.needsRefetch ||
           placementStatus.needsRefetch ||
-          gaStatus.needsRefetch;
+          gaStatus.needsRefetch ||
+          dailyMissing;
 
         if (needsRefetch) {
           datesToRefetch.push(dateStr);
@@ -1427,6 +1430,7 @@ const server = http.createServer(async (req, res) => {
             sessions: sessionStatus.reason,
             placements: placementStatus.reason,
             ga: gaStatus.reason,
+            daily: dailyMissing ? "Daily rollup missing" : "Daily rollup present",
           };
         }
       }
