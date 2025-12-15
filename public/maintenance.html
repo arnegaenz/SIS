@@ -520,6 +520,10 @@
       padding: 8px 10px;
       font-size: 14px;
     }
+    .instances-controls input[type="file"] {
+      padding: 7px 10px;
+      height: 40px;
+    }
     .instances-controls .instance-actions {
       display: flex;
       gap: 8px;
@@ -1010,6 +1014,28 @@
               <div class="status-line" id="instancesTestStatus"></div>
               <pre class="refresh-log" id="instancesTestLog">(click "Test Access" to run)</pre>
             </div>
+          </div>
+        </article>
+
+        <article class="maint-card ga-service-card">
+          <div>
+            <h2>Google Analytics Service Account</h2>
+            <p class="description">Upload the GA service account JSON used to query GA data (stored locally at secrets/ga-service-account.json).</p>
+          </div>
+          <div class="instances-controls">
+            <label>
+              Service account JSON
+              <input type="file" id="gaServiceFile" accept="application/json,.json" />
+            </label>
+            <div class="instance-actions">
+              <button class="btn secondary" id="gaServiceReloadBtn" type="button">Reload</button>
+              <button class="btn" id="gaServiceUploadBtn" type="button">Upload</button>
+            </div>
+          </div>
+          <div class="refresh-status">
+            <p>Current GA credential status</p>
+            <div class="status-line" id="gaServiceStatus">Loading…</div>
+            <pre class="refresh-log" id="gaServiceMeta"></pre>
           </div>
         </article>
       </div>
@@ -1963,6 +1989,100 @@
       deleteBtn.addEventListener("click", deleteEntry);
 
       loadRegistry();
+    })();
+
+    (function setupGaServiceAccountUploader() {
+      const fileInput = document.getElementById("gaServiceFile");
+      const reloadBtn = document.getElementById("gaServiceReloadBtn");
+      const uploadBtn = document.getElementById("gaServiceUploadBtn");
+      const statusLine = document.getElementById("gaServiceStatus");
+      const meta = document.getElementById("gaServiceMeta");
+      if (!fileInput || !reloadBtn || !uploadBtn || !statusLine || !meta) return;
+
+      const apiBase =
+        window.location.origin.includes("8787")
+          ? window.location.origin
+          : "http://localhost:8787";
+
+      function setStatus(message, kind) {
+        statusLine.textContent = message || "";
+        statusLine.className = "status-line " + (kind || "");
+      }
+
+      function setMeta(text) {
+        meta.textContent = text || "";
+        meta.scrollTop = meta.scrollHeight;
+      }
+
+      function summarize(data) {
+        if (!data) return "";
+        if (!data.exists) return "No GA service account JSON found.";
+        const s = data.summary || {};
+        const lines = [];
+        lines.push(`Path: ${data.path || ""}`);
+        if (data.updatedAt) lines.push(`Updated: ${data.updatedAt}`);
+        lines.push(`Type: ${s.type || ""}`);
+        lines.push(`Project: ${s.projectId || ""}`);
+        lines.push(`Client: ${s.clientEmail || ""}`);
+        lines.push(`Has private key: ${s.hasPrivateKey ? "yes" : "no"}`);
+        return lines.join("\n");
+      }
+
+      async function loadStatus() {
+        try {
+          setStatus("Loading…");
+          setMeta("");
+          const res = await fetch(`${apiBase}/ga/service-account`, { cache: "no-store" });
+          const data = res.ok ? await res.json() : null;
+          if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
+          if (data && data.exists) {
+            setStatus("Configured.", "success");
+          } else {
+            setStatus("Not configured.", "");
+          }
+          setMeta(summarize(data));
+        } catch (err) {
+          console.error("ga service account load failed", err);
+          setStatus(err?.message || "Failed to load GA credential.", "error");
+          setMeta("");
+        }
+      }
+
+      async function uploadSelectedFile() {
+        const f = fileInput.files && fileInput.files[0];
+        if (!f) {
+          setStatus("Choose a JSON file to upload.", "");
+          return;
+        }
+        try {
+          setStatus("Uploading…");
+          const text = await f.text();
+          const json = JSON.parse(text);
+          if (!json || typeof json !== "object") throw new Error("Invalid JSON object");
+          if ((json.type || "") !== "service_account") throw new Error("Expected type=service_account");
+          if (!json.client_email || !json.private_key) throw new Error("Missing client_email or private_key");
+
+          const res = await fetch(`${apiBase}/ga/service-account`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(json),
+          });
+          const data = res.ok ? await res.json() : null;
+          if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
+          setStatus("Uploaded.", "success");
+          setMeta(summarize(data));
+        } catch (err) {
+          console.error("ga service account upload failed", err);
+          setStatus(err?.message || "Upload failed.", "error");
+        } finally {
+          await loadStatus();
+        }
+      }
+
+      reloadBtn.addEventListener("click", loadStatus);
+      uploadBtn.addEventListener("click", uploadSelectedFile);
+
+      loadStatus();
     })();
 
     (function setupInstancesManager() {

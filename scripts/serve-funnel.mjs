@@ -35,6 +35,7 @@ const FI_REGISTRY_FILE = path.join(ROOT, "fi_registry.json");
 const INSTANCES_FILES = [
   path.join(ROOT, "secrets", "instances.json"),
 ];
+const GA_SERVICE_ACCOUNT_FILE = path.join(ROOT, "secrets", "ga-service-account.json");
 const PORT = 8787;
 const FI_ALL_VALUE = "__all__";
 const PARTNER_ALL_VALUE = "__all_partners__";
@@ -473,6 +474,57 @@ async function writeInstancesFile(entries) {
   }
   await fs.writeFile(target, JSON.stringify(sorted, null, 2) + "\n", "utf8");
   return { entries: sorted, path: target };
+}
+
+async function readGaServiceAccountSummary() {
+  try {
+    const raw = await fs.readFile(GA_SERVICE_ACCOUNT_FILE, "utf8");
+    const obj = JSON.parse(raw || "{}");
+    const stat = await fs.stat(GA_SERVICE_ACCOUNT_FILE).catch(() => null);
+    return {
+      exists: true,
+      path: GA_SERVICE_ACCOUNT_FILE,
+      updatedAt: stat ? stat.mtime.toISOString() : null,
+      summary: {
+        type: obj?.type || null,
+        projectId: obj?.project_id || null,
+        clientEmail: obj?.client_email || null,
+        hasPrivateKey: !!obj?.private_key,
+      },
+    };
+  } catch (err) {
+    if (err && (err.code === "ENOENT" || err.code === "ENOTDIR")) {
+      return { exists: false, path: GA_SERVICE_ACCOUNT_FILE, updatedAt: null, summary: null };
+    }
+    throw err;
+  }
+}
+
+async function writeGaServiceAccountFile(payload) {
+  if (!payload || typeof payload !== "object") {
+    throw Object.assign(new Error("Payload must be a JSON object"), { status: 400 });
+  }
+  const obj = payload.json && typeof payload.json === "object" ? payload.json : payload;
+  if (!obj || typeof obj !== "object") {
+    throw Object.assign(new Error("Missing JSON object"), { status: 400 });
+  }
+  const type = (obj.type || "").toString();
+  const clientEmail = (obj.client_email || "").toString();
+  const privateKey = (obj.private_key || "").toString();
+  if (type !== "service_account") {
+    throw Object.assign(new Error("Invalid GA credential: expected type=service_account"), {
+      status: 400,
+    });
+  }
+  if (!clientEmail || !privateKey) {
+    throw Object.assign(new Error("Invalid GA credential: missing client_email or private_key"), {
+      status: 400,
+    });
+  }
+
+  await fs.mkdir(path.dirname(GA_SERVICE_ACCOUNT_FILE), { recursive: true });
+  await fs.writeFile(GA_SERVICE_ACCOUNT_FILE, JSON.stringify(obj, null, 2) + "\n", "utf8");
+  return readGaServiceAccountSummary();
 }
 
 function pickSs01Instance(instances = []) {
@@ -2182,6 +2234,26 @@ const server = http.createServer(async (req, res) => {
       console.error("instances load failed", err);
       const status = err?.status || 500;
       return send(res, status, { error: err.message || "Unable to read instances" });
+    }
+  }
+  if (pathname === "/ga/service-account" && req.method === "GET") {
+    try {
+      const data = await readGaServiceAccountSummary();
+      return send(res, 200, data);
+    } catch (err) {
+      const status = err?.status || 500;
+      return send(res, status, { error: err?.message || "Unable to read GA credential" });
+    }
+  }
+  if (pathname === "/ga/service-account" && req.method === "POST") {
+    try {
+      const rawBody = await readRequestBody(req);
+      const payload = rawBody ? JSON.parse(rawBody) : {};
+      const saved = await writeGaServiceAccountFile(payload);
+      return send(res, 200, saved);
+    } catch (err) {
+      const status = err?.status || 500;
+      return send(res, status, { error: err?.message || "Unable to save GA credential" });
     }
   }
   if (pathname === "/instances/test" && req.method === "POST") {
