@@ -5460,32 +5460,31 @@ function applyColumnTitles(root = document) {
           const { checkDateRangeForRefetch, autoFetchIncompleteDates } = await import('./assets/js/raw-data-checker.js');
           const applyBtn = document.getElementById('applyBtn');
           const originalText = applyBtn ? applyBtn.textContent : '';
+          const originalDisabled = applyBtn ? applyBtn.disabled : false;
 
           console.log('[FI Funnel] Checking if raw data needs refetch...');
-          if (applyBtn) {
-            applyBtn.disabled = true;
-            applyBtn.textContent = 'Checking data...';
+          if (applyBtn) applyBtn.disabled = true;
+
+          try {
+            const datesToRefetch = await checkDateRangeForRefetch(startDate, endDate);
+
+            if (datesToRefetch.length > 0) {
+              console.log(`[FI Funnel] Auto-fetching ${datesToRefetch.length} incomplete dates`);
+
+              await autoFetchIncompleteDates(datesToRefetch);
+
+              // After fetch completes, reload daily data
+              console.log('[FI Funnel] Auto-fetch complete, data will be reprocessed');
+
+              // Note: Daily data is regenerated server-side, so we continue with normal rendering
+            }
+          } finally {
+            if (applyBtn) {
+              applyBtn.disabled = originalDisabled;
+              applyBtn.textContent = originalText;
+            }
           }
 
-          const datesToRefetch = await checkDateRangeForRefetch(startDate, endDate);
-
-          if (datesToRefetch.length > 0) {
-            console.log(`[FI Funnel] Auto-fetching ${datesToRefetch.length} incomplete dates`);
-            if (applyBtn) applyBtn.textContent = `Fetching ${datesToRefetch.length} days...`;
-
-            await autoFetchIncompleteDates(datesToRefetch);
-
-            // After fetch completes, reload daily data
-            console.log('[FI Funnel] Auto-fetch complete, data will be reprocessed');
-            if (applyBtn) applyBtn.textContent = 'Processing data...';
-
-            // Note: Daily data is regenerated server-side, so we continue with normal rendering
-          }
-
-          if (applyBtn) {
-            applyBtn.disabled = false;
-            applyBtn.textContent = originalText;
-          }
         } catch (err) {
           console.error('[FI Funnel] Auto-fetch check failed:', err);
           // Continue with normal rendering even if auto-fetch fails
