@@ -33,6 +33,8 @@
   background: var(--panel);
   border: 1px solid var(--table-border);
   color: var(--text);
+  min-width: 118px;
+  justify-content: space-between;
 }
 .funnel-dist-chip b { opacity:.8; font-size:.85em; letter-spacing:.03em; }
 .funnel-dist-panel {
