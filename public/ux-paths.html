@@ -1,0 +1,362 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>UX Success Paths • Strivve Insights</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="./sis-shared.css?v=navfix" />
+  <link rel="stylesheet" href="./assets/css/sis.css">
+  <link rel="stylesheet" href="./assets/css/filters.css">
+  <script defer src="./assets/js/sis.js"></script>
+  <script defer src="./assets/js/filters.js?v=shared"></script>
+  <script defer src="./assets/js/nav.js"></script>
+  <script defer src="./assets/js/ux-paths.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      background: radial-gradient(circle at top, rgba(37,99,235,.09), transparent 42%) var(--bg);
+      color: var(--text);
+      font-family: "Inter", "Segoe UI", ui-sans-serif, system-ui, -apple-system, Roboto, "Helvetica Neue", Arial;
+      --sis-panel-bg: var(--panel);
+    }
+
+    .path-metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    .metric-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      text-align: center;
+      box-shadow: var(--shadow);
+    }
+
+    .metric-value {
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: 4px;
+    }
+
+    .metric-label {
+      font-size: 0.75rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-weight: 600;
+    }
+
+    .metric-detail {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    .sis-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+    }
+
+    .sis-table th {
+      text-align: left;
+      padding: 12px;
+      background: var(--bg-subtle, rgba(0,0,0,0.03));
+      color: var(--text);
+      font-weight: 600;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border-bottom: 2px solid var(--border);
+    }
+
+    .sis-table td {
+      padding: 12px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+      font-size: 0.9rem;
+    }
+
+    .sis-table tbody tr:hover {
+      background: var(--bg-subtle, rgba(0,0,0,0.02));
+    }
+
+    .sis-table td strong {
+      color: var(--accent);
+      font-weight: 700;
+    }
+
+    .funnel-header {
+      margin-bottom: 8px;
+    }
+
+    .form-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: flex-end;
+    }
+
+    .form-grid--dates {
+      margin-top: 8px;
+    }
+
+    .form-field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      min-width: 160px;
+      min-height: 54px;
+    }
+
+    .form-field label {
+      font-size: 0.85rem;
+      color: var(--muted);
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      padding-left: 2px;
+    }
+
+    .form-input,
+    .form-select {
+      background: var(--input-bg);
+      border: 1px solid var(--input-border);
+      border-radius: 10px;
+      color: var(--text);
+      padding: 10px 12px;
+      font-size: 0.92rem;
+      min-width: 160px;
+      height: 42px;
+      line-height: 22px;
+      box-sizing: border-box;
+    }
+
+    .form-input:focus,
+    .form-select:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(37,99,235,0.2);
+    }
+
+    .form-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-top: 0;
+    }
+
+    .form-button {
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      padding: 10px 16px;
+      font-size: 0.92rem;
+      font-weight: 600;
+      cursor: pointer;
+      height: 42px;
+      transition: all 0.15s ease;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .form-button:hover {
+      filter: brightness(1.1);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+      transform: translateY(-1px);
+    }
+
+    .form-button:active {
+      transform: translateY(0);
+      box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+      filter: brightness(0.95);
+    }
+
+    .form-button.secondary {
+      background: var(--panel-light);
+      color: var(--text);
+      border: 1px solid var(--input-border);
+    }
+  </style>
+</head>
+<body>
+  <div id="sis-header"></div>
+
+  <div class="sis-content">
+    <main class="sis-main">
+
+      <!-- Filter Panel -->
+      <section class="sis-panel">
+        <div id="filter-bar"></div>
+        <div class="funnel-header">
+          <div class="form-grid form-grid--dates">
+            <div class="form-field">
+              <label for="datePreset">Range preset</label>
+              <select id="datePreset" class="form-select">
+                <option value="last7" selected>Last 7 days</option>
+                <option value="last14">Last 14 days</option>
+                <option value="last30">Last 30 days</option>
+                <option value="last60">Last 60 days</option>
+                <option value="last90">Last 90 days</option>
+                <option value="ytd">Year to date</option>
+                <option value="">Custom</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label for="startDate">Start date</label>
+              <input id="startDate" type="date" class="form-input" />
+            </div>
+            <div class="form-field">
+              <label for="endDate">End date</label>
+              <input id="endDate" type="date" class="form-input" />
+            </div>
+            <div class="form-field">
+              <label for="applyBtn">Actions</label>
+              <div class="form-actions">
+                <button id="applyBtn" class="form-button">Apply filters</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Success Overview Metrics -->
+      <section class="sis-panel">
+        <h2 class="sis-panel-title">Success Overview</h2>
+        <p class="sis-panel-subtitle">Showing only sessions with successful placements</p>
+        <div class="path-metrics-grid">
+          <div class="metric-card">
+            <div class="metric-value" id="successfulSessions">-</div>
+            <div class="metric-label">Successful Sessions</div>
+            <div class="metric-detail" id="totalSessionsDetail">-</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-value" id="avgJobsPerSession">-</div>
+            <div class="metric-label">Avg Jobs per Session</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-value" id="highPerformerCount">-</div>
+            <div class="metric-label">High Performers (3+ jobs)</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Successful Path Patterns -->
+      <section class="sis-panel">
+        <h2 class="sis-panel-title">Successful Path Patterns</h2>
+        <p class="sis-panel-subtitle">Journey patterns that lead to successful placements</p>
+        <table class="sis-table" id="pathPatternsTable">
+          <thead>
+            <tr>
+              <th>Path Pattern</th>
+              <th>Sessions</th>
+              <th>Avg Successful Jobs</th>
+              <th>Avg Duration</th>
+              <th>% of Successful Sessions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td colspan="5" style="text-align: center; padding: 20px; color: var(--muted);">
+                Loading data...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- High Performer Sessions -->
+      <section class="sis-panel">
+        <h2 class="sis-panel-title">High Performer Sessions (3+ Successful Jobs)</h2>
+        <p class="sis-panel-subtitle">Sessions with exceptional success rates</p>
+        <table class="sis-table" id="highPerformersTable">
+          <thead>
+            <tr>
+              <th>Session ID</th>
+              <th>Successful Jobs</th>
+              <th>Duration</th>
+              <th>Path Pattern</th>
+              <th>Pages Visited</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td colspan="5" style="text-align: center; padding: 20px; color: var(--muted);">
+                Loading data...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- Time Analysis for Successful Sessions -->
+      <section class="sis-panel">
+        <h2 class="sis-panel-title">Time Spent by Page (Successful Sessions Only)</h2>
+        <p class="sis-panel-subtitle">How long successful users spend at each step</p>
+        <table class="sis-table" id="timeAnalysisTable">
+          <thead>
+            <tr>
+              <th>Page</th>
+              <th>Avg Time</th>
+              <th>Median Time</th>
+              <th>90th Percentile</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td colspan="4" style="text-align: center; padding: 20px; color: var(--muted);">
+                Loading data...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- Retry Patterns in Successful Sessions -->
+      <section class="sis-panel">
+        <h2 class="sis-panel-title">Retry Patterns (Successful Sessions)</h2>
+        <p class="sis-panel-subtitle">How successful users navigate when they backtrack</p>
+        <table class="sis-table" id="retryPatternsTable">
+          <thead>
+            <tr>
+              <th>From Page</th>
+              <th>To Page</th>
+              <th>Count</th>
+              <th>Avg Jobs After Retry</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td colspan="4" style="text-align: center; padding: 20px; color: var(--muted);">
+                Loading data...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+    </main>
+  </div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", function(){
+      if (window.renderHeaderNav && !window.__sisHeaderNav_uxpaths) {
+        window.__sisHeaderNav_uxpaths = true;
+        window.renderHeaderNav({
+          currentId: "ux-paths",
+          title: "UX Success Paths",
+          subtitle: "Track user journey patterns and identify successful paths through the card placement flow."
+        });
+      }
+    });
+  </script>
+</body>
+</html>
