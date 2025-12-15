@@ -2244,9 +2244,26 @@ function applyColumnTitles(root = document) {
           const sharedFiSet = shared.fis
             ? new Set(Array.from(shared.fis).map((fi) => normalizeFiKey(fi)))
             : new Set();
+          const partnerFilter =
+            shared.partner && shared.partner !== "All" ? shared.partner : "";
+          const integrationFilter =
+            shared.integration && shared.integration !== "All" ? shared.integration : "";
           return Object.values(perFi).filter((row) => {
             if (!includeTests && row.is_test) return false;
             if (fiTouched && sharedFiSet.size === 0) return false;
+
+            // Check partner filter
+            if (partnerFilter) {
+              const rowPartner = row.partner || "Unknown";
+              if (rowPartner !== partnerFilter) return false;
+            }
+
+            // Check integration filter
+            if (integrationFilter) {
+              const rowIntegration = normalizeIntegrationKey(row.integration_type || "");
+              const filterIntegration = normalizeIntegrationKey(integrationFilter);
+              if (rowIntegration !== filterIntegration) return false;
+            }
 
             // Check instance filter
             if (shared.instance && shared.instance !== "All") {
