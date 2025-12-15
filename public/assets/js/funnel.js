@@ -29,9 +29,7 @@ import { renderFunnelView } from "./funnel.view.js";
 
   function formatJobs(v) {
     if (typeof v !== "number" || !Number.isFinite(v)) return "—";
-    const rounded = Math.round(v);
-    if (Math.abs(v - rounded) < 1e-9) return String(rounded);
-    return v.toFixed(1);
+    return v.toFixed(2);
   }
 
   function quantileSorted(arr, start, n, p) {
@@ -250,7 +248,15 @@ import { renderFunnelView } from "./funnel.view.js";
 
     function setOpen(isOpen) {
       pop.setAttribute("data-open", isOpen ? "1" : "0");
-      if (panel) panel.hidden = !isOpen;
+      if (panel) {
+        if (isOpen) {
+          try {
+            const top = (btn.offsetTop + btn.offsetHeight + 6) || 44;
+            card.style.setProperty("--sis-dist-top", top + "px");
+          } catch (_) {}
+        }
+        panel.hidden = !isOpen;
+      }
       if (!panel) pop.setAttribute("aria-hidden", isOpen ? "false" : "true");
       card.classList.toggle("popover-open", Boolean(isOpen) && !panel);
       btn.setAttribute("aria-expanded", isOpen ? "true" : "false");
