@@ -12,6 +12,7 @@ import {
   ensureRawDirs,
   rawExists,
   writeRaw,
+  writeRawWithMetadata,
   readRaw,
 } from "../src/lib/rawStorage.mjs";
 
@@ -369,7 +370,7 @@ export async function fetchRawRange({
       }
       try {
         const payload = await fetchGaRaw(date);
-        writeRaw("ga", date, payload);
+        writeRawWithMetadata("ga", date, payload);
         logWrite(date, "GA", `fetched ${payload.rows.length} rows`, onStatus);
       } catch (err) {
         const warnMsg = `[${date}] GA error: ${err.message || err}`;
@@ -378,7 +379,7 @@ export async function fetchRawRange({
         if (strict) {
           throw err;
         }
-        writeRaw("ga", date, {
+        writeRawWithMetadata("ga", date, {
           date,
           error: err.message || String(err),
           rows: [],
@@ -403,7 +404,7 @@ export async function fetchRawRange({
           strict,
         });
         const payload = { date, sessions, count: sessions.length };
-        writeRaw("sessions", date, payload);
+        writeRawWithMetadata("sessions", date, payload);
         logWrite(
           date,
           "Sessions",
@@ -417,7 +418,7 @@ export async function fetchRawRange({
         if (strict) {
           throw err;
         }
-        writeRaw("sessions", date, {
+        writeRawWithMetadata("sessions", date, {
           date,
           error: err.message || String(err),
           sessions: [],
@@ -445,7 +446,7 @@ export async function fetchRawRange({
           { strict }
         );
         const payload = { date, placements, errors, count: placements.length };
-        writeRaw("placements", date, payload);
+        writeRawWithMetadata("placements", date, payload);
         logWrite(
           date,
           "Placements",
@@ -459,7 +460,7 @@ export async function fetchRawRange({
         if (strict) {
           throw err;
         }
-        writeRaw("placements", date, {
+        writeRawWithMetadata("placements", date, {
           date,
           error: err.message || String(err),
           placements: [],

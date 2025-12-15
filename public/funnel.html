@@ -14,6 +14,7 @@
 	  <script type="module" defer src="./assets/js/funnel.js"></script>
 	  <script type="module" defer src="./assets/js/data-cache.js?v=3"></script>
 	  <script defer src="./assets/js/filters.js?v=shared"></script>
+	  <script type="module" defer src="./assets/js/raw-data-checker.js"></script>
 	  <script>
 	    document.addEventListener("DOMContentLoaded", function(){
 	      if (window.renderHeaderNav && !window.__sisHeaderNav_funnel) {
@@ -5436,6 +5437,43 @@ function applyColumnTitles(root = document) {
         await nextFrame(); // allow loader to render before heavy work
         const startDate = startDateInput.value || defaultStartDateStr;
         const endDate = endDateInput.value || defaultEndDateStr;
+
+        // Auto-fetch incomplete raw data if needed
+        try {
+          const { checkDateRangeForRefetch, autoFetchIncompleteDates } = await import('./assets/js/raw-data-checker.js');
+          const applyBtn = document.getElementById('applyBtn');
+          const originalText = applyBtn ? applyBtn.textContent : '';
+
+          console.log('[FI Funnel] Checking if raw data needs refetch...');
+          if (applyBtn) {
+            applyBtn.disabled = true;
+            applyBtn.textContent = 'Checking data...';
+          }
+
+          const datesToRefetch = await checkDateRangeForRefetch(startDate, endDate);
+
+          if (datesToRefetch.length > 0) {
+            console.log(`[FI Funnel] Auto-fetching ${datesToRefetch.length} incomplete dates`);
+            if (applyBtn) applyBtn.textContent = `Fetching ${datesToRefetch.length} days...`;
+
+            await autoFetchIncompleteDates(datesToRefetch);
+
+            // After fetch completes, reload daily data
+            console.log('[FI Funnel] Auto-fetch complete, data will be reprocessed');
+            if (applyBtn) applyBtn.textContent = 'Processing data...';
+
+            // Note: Daily data is regenerated server-side, so we continue with normal rendering
+          }
+
+          if (applyBtn) {
+            applyBtn.disabled = false;
+            applyBtn.textContent = originalText;
+          }
+        } catch (err) {
+          console.error('[FI Funnel] Auto-fetch check failed:', err);
+          // Continue with normal rendering even if auto-fetch fails
+        }
+
         const startDt = new Date(`${startDate}T00:00:00Z`);
         const endDt = new Date(`${endDate}T00:00:00Z`);
         const daySpan = Math.max(1, Math.floor((endDt - startDt) / (1000 * 60 * 60 * 24)) + 1);

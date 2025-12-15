@@ -1249,6 +1249,12 @@ const server = http.createServer(async (req, res) => {
       const qsStart = queryParams.get("start") || queryParams.get("startDate");
       const qsEnd = queryParams.get("end") || queryParams.get("endDate");
       const forceRaw = queryParams.get("forceRaw") === "true";
+      const autoRefetch = queryParams.get("autoRefetch") === "1";
+
+      if (autoRefetch) {
+        console.log("[SSE] Auto-refetch triggered for incomplete dates");
+      }
+
       startUpdateJobIfNeeded({ startDate: qsStart, endDate: qsEnd, forceRaw }).catch((err) => {
         console.error("Update job failed:", err);
       });
@@ -1259,6 +1265,57 @@ const server = http.createServer(async (req, res) => {
     });
 
     return;
+  }
+
+  // Check raw data metadata status
+  if (pathname === "/api/check-raw-data") {
+    const qsStart = queryParams.get("start");
+    const qsEnd = queryParams.get("end");
+
+    if (!qsStart || !qsEnd) {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      return send(res, 400, { error: "Missing start or end date" });
+    }
+
+    try {
+      const { checkRawDataStatus } = await import("../src/lib/rawStorage.mjs");
+      const datesToRefetch = [];
+      const reasons = {};
+
+      const start = new Date(qsStart);
+      const end = new Date(qsEnd);
+
+      // Enumerate dates in range
+      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+        const dateStr = d.toISOString().split("T")[0];
+
+        // Check all three types (sessions, placements, ga)
+        const sessionStatus = checkRawDataStatus("sessions", dateStr);
+        const placementStatus = checkRawDataStatus("placements", dateStr);
+        const gaStatus = checkRawDataStatus("ga", dateStr);
+
+        const needsRefetch =
+          sessionStatus.needsRefetch ||
+          placementStatus.needsRefetch ||
+          gaStatus.needsRefetch;
+
+        if (needsRefetch) {
+          datesToRefetch.push(dateStr);
+          reasons[dateStr] = {
+            sessions: sessionStatus.reason,
+            placements: placementStatus.reason,
+            ga: gaStatus.reason,
+          };
+        }
+      }
+
+      res.writeHead(200, { "Content-Type": "application/json" });
+      return send(res, 200, { datesToRefetch, reasons });
+    } catch (err) {
+      console.error("[API] check-raw-data error:", err);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      return send(res, 500, { error: err.message });
+    }
   }
 
   // Diagnostics
