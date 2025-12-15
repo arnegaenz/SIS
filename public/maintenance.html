@@ -1019,30 +1019,42 @@
 
         <article class="maint-card ga-service-card">
           <div>
-            <h2>Google Analytics Service Account</h2>
-            <p class="description">Upload the GA service account JSON used to query GA data (stored locally at secrets/ga-service-account.json).</p>
+            <h2>Google Analytics Credentials</h2>
+            <p class="description">Manage GA service account JSON credentials (production + test) used to query GA data.</p>
           </div>
           <div class="instances-controls">
             <label>
-              Service account JSON
-              <input type="file" id="gaServiceFile" accept="application/json,.json" />
+              Credential
+              <select id="gaCredSelect">
+                <option value="prod">Production (ga-service-account.json)</option>
+                <option value="test">Test (ga-test.json)</option>
+              </select>
+            </label>
+            <label>
+              Upload JSON file
+              <input type="file" id="gaCredFile" accept="application/json,.json" />
             </label>
             <div class="instance-actions">
-              <button class="btn secondary" id="gaServiceReloadBtn" type="button">Reload</button>
-              <button class="btn secondary" id="gaServiceTestBtn" type="button">Test Access</button>
-              <button class="btn" id="gaServiceUploadBtn" type="button">Upload</button>
-              <button class="btn danger" id="gaServiceDeleteBtn" type="button">Delete</button>
+              <button class="btn secondary" id="gaCredReloadBtn" type="button">Reload</button>
+              <button class="btn secondary" id="gaCredTestBtn" type="button">Test Access</button>
+              <button class="btn secondary" id="gaCredResetBtn" type="button">Reset</button>
+              <button class="btn" id="gaCredSaveBtn" type="button">Save JSON</button>
+              <button class="btn danger" id="gaCredDeleteBtn" type="button">Delete</button>
             </div>
           </div>
           <div class="refresh-status">
-            <p>Current GA credential status</p>
-            <div class="status-line" id="gaServiceStatus">Loading…</div>
-            <pre class="refresh-log" id="gaServiceMeta"></pre>
+            <p>Credential JSON (editable)</p>
+            <textarea id="gaCredJson" style="width:100%;min-height:220px;border-radius:10px;border:1px solid var(--panel-border);background:var(--input-bg);color:var(--panel-title);padding:10px 12px;font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, \"Liberation Mono\", monospace;font-size:12px;line-height:1.35;white-space:pre;resize:vertical;"></textarea>
           </div>
-          <div class="refresh-status instances-test-panel" id="gaServiceTestPanel" hidden>
+          <div class="refresh-status">
+            <p>Status</p>
+            <div class="status-line" id="gaCredStatus">Loading…</div>
+            <pre class="refresh-log" id="gaCredMeta"></pre>
+          </div>
+          <div class="refresh-status instances-test-panel" id="gaCredTestPanel" hidden>
             <p>GA credential test output</p>
-            <div class="status-line" id="gaServiceTestStatus"></div>
-            <pre class="refresh-log" id="gaServiceTestLog">(click "Test Access" to run)</pre>
+            <div class="status-line" id="gaCredTestStatus"></div>
+            <pre class="refresh-log" id="gaCredTestLog">(click "Test Access" to run)</pre>
           </div>
         </article>
       </div>
@@ -1998,27 +2010,44 @@
       loadRegistry();
     })();
 
-    (function setupGaServiceAccountUploader() {
-      const fileInput = document.getElementById("gaServiceFile");
-      const reloadBtn = document.getElementById("gaServiceReloadBtn");
-      const testBtn = document.getElementById("gaServiceTestBtn");
-      const uploadBtn = document.getElementById("gaServiceUploadBtn");
-      const deleteBtn = document.getElementById("gaServiceDeleteBtn");
-      const statusLine = document.getElementById("gaServiceStatus");
-      const meta = document.getElementById("gaServiceMeta");
-      const testPanel = document.getElementById("gaServiceTestPanel");
-      const testStatusLine = document.getElementById("gaServiceTestStatus");
-      const testLog = document.getElementById("gaServiceTestLog");
-      if (!fileInput || !reloadBtn || !uploadBtn || !statusLine || !meta) return;
+    (function setupGaCredentialsManager() {
+      const select = document.getElementById("gaCredSelect");
+      const fileInput = document.getElementById("gaCredFile");
+      const reloadBtn = document.getElementById("gaCredReloadBtn");
+      const testBtn = document.getElementById("gaCredTestBtn");
+      const resetBtn = document.getElementById("gaCredResetBtn");
+      const saveBtn = document.getElementById("gaCredSaveBtn");
+      const deleteBtn = document.getElementById("gaCredDeleteBtn");
+      const statusLine = document.getElementById("gaCredStatus");
+      const meta = document.getElementById("gaCredMeta");
+      const jsonArea = document.getElementById("gaCredJson");
+      const testPanel = document.getElementById("gaCredTestPanel");
+      const testStatusLine = document.getElementById("gaCredTestStatus");
+      const testLog = document.getElementById("gaCredTestLog");
+      if (!select || !fileInput || !reloadBtn || !saveBtn || !deleteBtn || !statusLine || !meta || !jsonArea) {
+        return;
+      }
 
       const apiBase =
         window.location.origin.includes("8787")
           ? window.location.origin
           : "http://localhost:8787";
 
+      let lastLoadedText = "";
+      let allSummaryText = "";
+
+      function currentName() {
+        return (select.value || "prod").toString();
+      }
+
       function setStatus(message, kind) {
         statusLine.textContent = message || "";
         statusLine.className = "status-line " + (kind || "");
+      }
+
+      function setMeta(text) {
+        meta.textContent = text || "";
+        meta.scrollTop = meta.scrollHeight;
       }
 
       function setTestStatus(message, kind) {
@@ -2033,18 +2062,14 @@
         testLog.scrollTop = testLog.scrollHeight;
       }
 
-      function setMeta(text) {
-        meta.textContent = text || "";
-        meta.scrollTop = meta.scrollHeight;
-      }
-
       function summarize(data) {
         if (!data) return "";
-        if (!data.exists) return "No GA service account JSON found.";
         const s = data.summary || {};
         const lines = [];
+        lines.push(`Name: ${data.label || data.name || ""}`);
         lines.push(`Path: ${data.path || ""}`);
         if (data.updatedAt) lines.push(`Updated: ${data.updatedAt}`);
+        if (!data.exists) return lines.concat(["Not configured."]).join("\n");
         lines.push(`Type: ${s.type || ""}`);
         lines.push(`Project: ${s.projectId || ""}`);
         lines.push(`Client: ${s.clientEmail || ""}`);
@@ -2052,75 +2077,119 @@
         return lines.join("\n");
       }
 
-      async function loadStatus() {
+      async function loadSelectedCredential() {
         try {
           setStatus("Loading…");
-          setMeta("");
-          const res = await fetch(`${apiBase}/ga/service-account`, { cache: "no-store" });
+          setMeta(allSummaryText || "");
+          const name = encodeURIComponent(currentName());
+          const res = await fetch(`${apiBase}/ga/credential?name=${name}`, { cache: "no-store" });
           const data = res.ok ? await res.json() : null;
           if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
-          if (data && data.exists) {
-            setStatus("Configured.", "success");
-          } else {
-            setStatus("Not configured.", "");
-          }
-          setMeta(summarize(data));
+          if (data && data.exists) setStatus("Configured.", "success");
+          else setStatus("Not configured.", "");
+          const detail = summarize(data);
+          setMeta(allSummaryText ? (allSummaryText + "\n\n" + detail) : detail);
+          const txt = (data && typeof data.jsonText === "string") ? data.jsonText : "";
+          jsonArea.value = txt;
+          lastLoadedText = txt;
         } catch (err) {
-          console.error("ga service account load failed", err);
+          console.error("ga credential load failed", err);
           setStatus(err?.message || "Failed to load GA credential.", "error");
           setMeta("");
+          jsonArea.value = "";
+          lastLoadedText = "";
         }
       }
 
-      async function uploadSelectedFile() {
+      async function reloadAllSummary() {
+        try {
+          const res = await fetch(`${apiBase}/ga/credentials`, { cache: "no-store" });
+          const data = res.ok ? await res.json() : null;
+          if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
+          const list = Array.isArray(data.credentials) ? data.credentials : [];
+          const lines = list.map((c) => {
+            const base = `${c.label || c.name}: ${c.exists ? "configured" : "missing"}`;
+            const when = c.updatedAt ? ` (${c.updatedAt})` : "";
+            return base + when;
+          });
+          allSummaryText = lines.join("\n");
+          setMeta(allSummaryText);
+        } catch (err) {
+          // ignore
+          allSummaryText = "";
+        }
+        await loadSelectedCredential();
+      }
+
+      function resetEditor() {
+        jsonArea.value = lastLoadedText || "";
+        setStatus("Reset.", "");
+      }
+
+      async function uploadFileIntoEditor() {
         const f = fileInput.files && fileInput.files[0];
         if (!f) {
           setStatus("Choose a JSON file to upload.", "");
           return;
         }
         try {
-          setStatus("Uploading…");
+          setStatus("Reading file…");
           const text = await f.text();
           const json = JSON.parse(text);
-          if (!json || typeof json !== "object") throw new Error("Invalid JSON object");
-          if ((json.type || "") !== "service_account") throw new Error("Expected type=service_account");
-          if (!json.client_email || !json.private_key) throw new Error("Missing client_email or private_key");
+          jsonArea.value = JSON.stringify(json, null, 2);
+          setStatus("Loaded file into editor. Click Save JSON to apply.", "");
+        } catch (err) {
+          console.error("ga file read failed", err);
+          setStatus(err?.message || "Invalid JSON file.", "error");
+        }
+      }
 
-          const res = await fetch(`${apiBase}/ga/service-account`, {
+      async function saveCredential() {
+        try {
+          setStatus("Saving…");
+          const name = currentName();
+          const jsonText = jsonArea.value || "";
+          JSON.parse(jsonText || "{}");
+          const res = await fetch(`${apiBase}/ga/credential/save`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(json),
+            body: JSON.stringify({ name, jsonText }),
           });
           const data = res.ok ? await res.json() : null;
           if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
-          setStatus("Uploaded.", "success");
+          setStatus("Saved.", "success");
           setMeta(summarize(data));
+          const txt = (data && typeof data.jsonText === "string") ? data.jsonText : jsonText;
+          jsonArea.value = txt;
+          lastLoadedText = txt;
         } catch (err) {
-          console.error("ga service account upload failed", err);
-          setStatus(err?.message || "Upload failed.", "error");
+          console.error("ga credential save failed", err);
+          setStatus(err?.message || "Save failed.", "error");
         } finally {
-          await loadStatus();
+          await loadSelectedCredential();
         }
       }
 
       async function deleteCredential() {
-        if (!deleteBtn) return;
         try {
           setStatus("Deleting…");
-          const res = await fetch(`${apiBase}/ga/service-account/delete`, {
+          const name = currentName();
+          const res = await fetch(`${apiBase}/ga/credential/delete`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: "{}",
+            body: JSON.stringify({ name }),
           });
           const data = res.ok ? await res.json() : null;
           if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
           setStatus("Deleted.", "success");
           setMeta(summarize(data));
+          jsonArea.value = "";
+          lastLoadedText = "";
         } catch (err) {
-          console.error("ga service account delete failed", err);
+          console.error("ga credential delete failed", err);
           setStatus(err?.message || "Delete failed.", "error");
         } finally {
-          await loadStatus();
+          await loadSelectedCredential();
         }
       }
 
@@ -2130,28 +2199,32 @@
           testPanel.hidden = false;
           setTestStatus("Testing GA credential…");
           setTestLog("Running GA read-only report (this may take a few seconds)…");
-          const res = await fetch(`${apiBase}/ga/service-account/test`, {
+          const name = currentName();
+          const res = await fetch(`${apiBase}/ga/credential/test`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({}),
+            body: JSON.stringify({ name }),
           });
           const data = res.ok ? await res.json() : null;
           if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
           setTestStatus("GA access OK.", "success");
           setTestLog(JSON.stringify(data, null, 2));
         } catch (err) {
-          console.error("ga service account test failed", err);
+          console.error("ga credential test failed", err);
           setTestStatus(err?.message || "GA test failed.", "error");
           setTestLog(err?.stack || String(err));
         }
       }
 
-      reloadBtn.addEventListener("click", loadStatus);
+      select.addEventListener("change", loadSelectedCredential);
+      reloadBtn.addEventListener("click", reloadAllSummary);
       testBtn && testBtn.addEventListener("click", testCredential);
-      uploadBtn.addEventListener("click", uploadSelectedFile);
-      deleteBtn && deleteBtn.addEventListener("click", deleteCredential);
+      resetBtn && resetBtn.addEventListener("click", resetEditor);
+      saveBtn.addEventListener("click", saveCredential);
+      deleteBtn.addEventListener("click", deleteCredential);
+      fileInput.addEventListener("change", uploadFileIntoEditor);
 
-      loadStatus();
+      reloadAllSummary();
     })();
 
     (function setupInstancesManager() {

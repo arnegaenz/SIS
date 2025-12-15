@@ -36,7 +36,24 @@ const FI_REGISTRY_FILE = path.join(ROOT, "fi_registry.json");
 const INSTANCES_FILES = [
   path.join(ROOT, "secrets", "instances.json"),
 ];
-const GA_SERVICE_ACCOUNT_FILE = path.join(ROOT, "secrets", "ga-service-account.json");
+const GA_CREDENTIALS = [
+  {
+    name: "prod",
+    label: "Production",
+    file: path.join(ROOT, "secrets", "ga-service-account.json"),
+    envProperty: "GA_PROPERTY_ID",
+    defaultProperty: "328054560",
+  },
+  {
+    name: "test",
+    label: "Test",
+    file: path.join(ROOT, "secrets", "ga-test.json"),
+    envProperty: "GA_TEST_PROPERTY_ID",
+    defaultProperty: process.env.GA_TEST_PROPERTY_ID || "",
+  },
+];
+// Backwards-compatible constant (older endpoints).
+const GA_SERVICE_ACCOUNT_FILE = GA_CREDENTIALS[0].file;
 const PORT = 8787;
 const FI_ALL_VALUE = "__all__";
 const PARTNER_ALL_VALUE = "__all_partners__";
@@ -477,35 +494,16 @@ async function writeInstancesFile(entries) {
   return { entries: sorted, path: target };
 }
 
-async function readGaServiceAccountSummary() {
-  try {
-    const raw = await fs.readFile(GA_SERVICE_ACCOUNT_FILE, "utf8");
-    const obj = JSON.parse(raw || "{}");
-    const stat = await fs.stat(GA_SERVICE_ACCOUNT_FILE).catch(() => null);
-    return {
-      exists: true,
-      path: GA_SERVICE_ACCOUNT_FILE,
-      updatedAt: stat ? stat.mtime.toISOString() : null,
-      summary: {
-        type: obj?.type || null,
-        projectId: obj?.project_id || null,
-        clientEmail: obj?.client_email || null,
-        hasPrivateKey: !!obj?.private_key,
-      },
-    };
-  } catch (err) {
-    if (err && (err.code === "ENOENT" || err.code === "ENOTDIR")) {
-      return { exists: false, path: GA_SERVICE_ACCOUNT_FILE, updatedAt: null, summary: null };
-    }
-    throw err;
+function getGaCredentialConfig(name) {
+  const key = (name || "").toString().trim().toLowerCase();
+  const cfg = GA_CREDENTIALS.find((c) => c.name === key) || null;
+  if (!cfg) {
+    throw Object.assign(new Error("Unknown GA credential name"), { status: 400 });
   }
+  return cfg;
 }
 
-async function writeGaServiceAccountFile(payload) {
-  if (!payload || typeof payload !== "object") {
-    throw Object.assign(new Error("Payload must be a JSON object"), { status: 400 });
-  }
-  const obj = payload.json && typeof payload.json === "object" ? payload.json : payload;
+function validateGaServiceAccountJson(obj) {
   if (!obj || typeof obj !== "object") {
     throw Object.assign(new Error("Missing JSON object"), { status: 400 });
   }
@@ -522,20 +520,82 @@ async function writeGaServiceAccountFile(payload) {
       status: 400,
     });
   }
-
-  await fs.mkdir(path.dirname(GA_SERVICE_ACCOUNT_FILE), { recursive: true });
-  await fs.writeFile(GA_SERVICE_ACCOUNT_FILE, JSON.stringify(obj, null, 2) + "\n", "utf8");
-  return readGaServiceAccountSummary();
+  return obj;
 }
 
-async function deleteGaServiceAccountFile() {
+async function readGaCredentialSummary(name) {
+  const cfg = getGaCredentialConfig(name);
   try {
-    await fs.unlink(GA_SERVICE_ACCOUNT_FILE);
+    const raw = await fs.readFile(cfg.file, "utf8");
+    const obj = JSON.parse(raw || "{}");
+    const stat = await fs.stat(cfg.file).catch(() => null);
+    return {
+      name: cfg.name,
+      label: cfg.label,
+      exists: true,
+      path: cfg.file,
+      updatedAt: stat ? stat.mtime.toISOString() : null,
+      summary: {
+        type: obj?.type || null,
+        projectId: obj?.project_id || null,
+        clientEmail: obj?.client_email || null,
+        hasPrivateKey: !!obj?.private_key,
+      },
+    };
   } catch (err) {
-    if (err && err.code === "ENOENT") return readGaServiceAccountSummary();
+    if (err && (err.code === "ENOENT" || err.code === "ENOTDIR")) {
+      return {
+        name: cfg.name,
+        label: cfg.label,
+        exists: false,
+        path: cfg.file,
+        updatedAt: null,
+        summary: null,
+      };
+    }
     throw err;
   }
-  return readGaServiceAccountSummary();
+}
+
+async function readGaCredentialContent(name) {
+  const cfg = getGaCredentialConfig(name);
+  const summary = await readGaCredentialSummary(name);
+  if (!summary.exists) return { ...summary, json: null, jsonText: "" };
+  const raw = await fs.readFile(cfg.file, "utf8");
+  const obj = JSON.parse(raw || "{}");
+  return { ...summary, json: obj, jsonText: JSON.stringify(obj, null, 2) };
+}
+
+async function writeGaCredentialFile(name, payload) {
+  if (!payload || typeof payload !== "object") {
+    throw Object.assign(new Error("Payload must be a JSON object"), { status: 400 });
+  }
+  const cfg = getGaCredentialConfig(name);
+
+  let obj = null;
+  if (payload.json && typeof payload.json === "object") {
+    obj = payload.json;
+  } else if (typeof payload.jsonText === "string") {
+    obj = JSON.parse(payload.jsonText || "{}");
+  } else {
+    obj = payload;
+  }
+  validateGaServiceAccountJson(obj);
+
+  await fs.mkdir(path.dirname(cfg.file), { recursive: true });
+  await fs.writeFile(cfg.file, JSON.stringify(obj, null, 2) + "\n", "utf8");
+  return readGaCredentialContent(cfg.name);
+}
+
+async function deleteGaCredentialFile(name) {
+  const cfg = getGaCredentialConfig(name);
+  try {
+    await fs.unlink(cfg.file);
+  } catch (err) {
+    if (err && err.code === "ENOENT") return readGaCredentialSummary(cfg.name);
+    throw err;
+  }
+  return readGaCredentialSummary(cfg.name);
 }
 
 function pickSs01Instance(instances = []) {
@@ -2249,7 +2309,7 @@ const server = http.createServer(async (req, res) => {
   }
   if (pathname === "/ga/service-account" && req.method === "GET") {
     try {
-      const data = await readGaServiceAccountSummary();
+      const data = await readGaCredentialSummary("prod");
       return send(res, 200, data);
     } catch (err) {
       const status = err?.status || 500;
@@ -2260,7 +2320,7 @@ const server = http.createServer(async (req, res) => {
     try {
       const rawBody = await readRequestBody(req);
       const payload = rawBody ? JSON.parse(rawBody) : {};
-      const saved = await writeGaServiceAccountFile(payload);
+      const saved = await writeGaCredentialFile("prod", payload);
       return send(res, 200, saved);
     } catch (err) {
       const status = err?.status || 500;
@@ -2269,7 +2329,7 @@ const server = http.createServer(async (req, res) => {
   }
   if (pathname === "/ga/service-account/delete" && req.method === "POST") {
     try {
-      const saved = await deleteGaServiceAccountFile();
+      const saved = await deleteGaCredentialFile("prod");
       return send(res, 200, saved);
     } catch (err) {
       const status = err?.status || 500;
@@ -2294,6 +2354,82 @@ const server = http.createServer(async (req, res) => {
       const fiSet = new Set((rows || []).map((r) => r && r.fi_key).filter(Boolean));
       return send(res, 200, {
         ok: true,
+        date,
+        propertyId,
+        rows: Array.isArray(rows) ? rows.length : 0,
+        fis: fiSet.size,
+        sample: Array.isArray(rows) ? rows.slice(0, 3) : [],
+      });
+    } catch (err) {
+      const status = err?.status || 500;
+      return send(res, status, { ok: false, error: err?.message || "GA test failed" });
+    }
+  }
+  if (pathname === "/ga/credentials" && req.method === "GET") {
+    try {
+      const credentials = await Promise.all(GA_CREDENTIALS.map((c) => readGaCredentialSummary(c.name)));
+      return send(res, 200, { credentials });
+    } catch (err) {
+      const status = err?.status || 500;
+      return send(res, status, { error: err?.message || "Unable to list GA credentials" });
+    }
+  }
+  if (pathname === "/ga/credential" && req.method === "GET") {
+    try {
+      const name = queryParams.get("name") || "";
+      const data = await readGaCredentialContent(name);
+      return send(res, 200, data);
+    } catch (err) {
+      const status = err?.status || 500;
+      return send(res, status, { error: err?.message || "Unable to read GA credential" });
+    }
+  }
+  if (pathname === "/ga/credential/save" && req.method === "POST") {
+    try {
+      const rawBody = await readRequestBody(req);
+      const payload = rawBody ? JSON.parse(rawBody) : {};
+      const name = payload?.name || "";
+      const saved = await writeGaCredentialFile(name, payload);
+      return send(res, 200, saved);
+    } catch (err) {
+      const status = err?.status || 500;
+      return send(res, status, { error: err?.message || "Unable to save GA credential" });
+    }
+  }
+  if (pathname === "/ga/credential/delete" && req.method === "POST") {
+    try {
+      const rawBody = await readRequestBody(req);
+      const payload = rawBody ? JSON.parse(rawBody) : {};
+      const name = payload?.name || "";
+      const saved = await deleteGaCredentialFile(name);
+      return send(res, 200, saved);
+    } catch (err) {
+      const status = err?.status || 500;
+      return send(res, status, { error: err?.message || "Unable to delete GA credential" });
+    }
+  }
+  if (pathname === "/ga/credential/test" && req.method === "POST") {
+    try {
+      const rawBody = await readRequestBody(req);
+      const payload = rawBody ? JSON.parse(rawBody) : {};
+      const name = payload?.name || "";
+      const cfg = getGaCredentialConfig(name);
+      const date =
+        payload?.date && /^\d{4}-\d{2}-\d{2}$/.test(payload.date)
+          ? payload.date
+          : yesterdayIsoDate();
+      const envPropertyId = process.env[cfg.envProperty] || "";
+      const propertyId = (payload?.propertyId || envPropertyId || cfg.defaultProperty || "328054560").toString();
+
+      const rows = await fetchGaRowsForDay({
+        date,
+        propertyId,
+        keyFile: cfg.file,
+      });
+      const fiSet = new Set((rows || []).map((r) => r && r.fi_key).filter(Boolean));
+      return send(res, 200, {
+        ok: true,
+        name: cfg.name,
         date,
         propertyId,
         rows: Array.isArray(rows) ? rows.length : 0,
