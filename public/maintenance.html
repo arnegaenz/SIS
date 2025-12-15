@@ -1029,13 +1029,20 @@
             </label>
             <div class="instance-actions">
               <button class="btn secondary" id="gaServiceReloadBtn" type="button">Reload</button>
+              <button class="btn secondary" id="gaServiceTestBtn" type="button">Test Access</button>
               <button class="btn" id="gaServiceUploadBtn" type="button">Upload</button>
+              <button class="btn danger" id="gaServiceDeleteBtn" type="button">Delete</button>
             </div>
           </div>
           <div class="refresh-status">
             <p>Current GA credential status</p>
             <div class="status-line" id="gaServiceStatus">Loading…</div>
             <pre class="refresh-log" id="gaServiceMeta"></pre>
+          </div>
+          <div class="refresh-status instances-test-panel" id="gaServiceTestPanel" hidden>
+            <p>GA credential test output</p>
+            <div class="status-line" id="gaServiceTestStatus"></div>
+            <pre class="refresh-log" id="gaServiceTestLog">(click "Test Access" to run)</pre>
           </div>
         </article>
       </div>
@@ -1994,9 +2001,14 @@
     (function setupGaServiceAccountUploader() {
       const fileInput = document.getElementById("gaServiceFile");
       const reloadBtn = document.getElementById("gaServiceReloadBtn");
+      const testBtn = document.getElementById("gaServiceTestBtn");
       const uploadBtn = document.getElementById("gaServiceUploadBtn");
+      const deleteBtn = document.getElementById("gaServiceDeleteBtn");
       const statusLine = document.getElementById("gaServiceStatus");
       const meta = document.getElementById("gaServiceMeta");
+      const testPanel = document.getElementById("gaServiceTestPanel");
+      const testStatusLine = document.getElementById("gaServiceTestStatus");
+      const testLog = document.getElementById("gaServiceTestLog");
       if (!fileInput || !reloadBtn || !uploadBtn || !statusLine || !meta) return;
 
       const apiBase =
@@ -2007,6 +2019,18 @@
       function setStatus(message, kind) {
         statusLine.textContent = message || "";
         statusLine.className = "status-line " + (kind || "");
+      }
+
+      function setTestStatus(message, kind) {
+        if (!testStatusLine) return;
+        testStatusLine.textContent = message || "";
+        testStatusLine.className = "status-line " + (kind || "");
+      }
+
+      function setTestLog(text) {
+        if (!testLog) return;
+        testLog.textContent = text || "";
+        testLog.scrollTop = testLog.scrollHeight;
       }
 
       function setMeta(text) {
@@ -2079,8 +2103,53 @@
         }
       }
 
+      async function deleteCredential() {
+        if (!deleteBtn) return;
+        try {
+          setStatus("Deleting…");
+          const res = await fetch(`${apiBase}/ga/service-account/delete`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: "{}",
+          });
+          const data = res.ok ? await res.json() : null;
+          if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
+          setStatus("Deleted.", "success");
+          setMeta(summarize(data));
+        } catch (err) {
+          console.error("ga service account delete failed", err);
+          setStatus(err?.message || "Delete failed.", "error");
+        } finally {
+          await loadStatus();
+        }
+      }
+
+      async function testCredential() {
+        if (!testBtn || !testPanel) return;
+        try {
+          testPanel.hidden = false;
+          setTestStatus("Testing GA credential…");
+          setTestLog("Running GA read-only report (this may take a few seconds)…");
+          const res = await fetch(`${apiBase}/ga/service-account/test`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({}),
+          });
+          const data = res.ok ? await res.json() : null;
+          if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
+          setTestStatus("GA access OK.", "success");
+          setTestLog(JSON.stringify(data, null, 2));
+        } catch (err) {
+          console.error("ga service account test failed", err);
+          setTestStatus(err?.message || "GA test failed.", "error");
+          setTestLog(err?.stack || String(err));
+        }
+      }
+
       reloadBtn.addEventListener("click", loadStatus);
+      testBtn && testBtn.addEventListener("click", testCredential);
       uploadBtn.addEventListener("click", uploadSelectedFile);
+      deleteBtn && deleteBtn.addEventListener("click", deleteCredential);
 
       loadStatus();
     })();

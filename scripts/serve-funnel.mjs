@@ -19,6 +19,7 @@ import {
   buildDailySeries,
   buildMerchantSeries,
 } from "../src/lib/analytics/sources.mjs";
+import { fetchGaRowsForDay } from "../src/ga.mjs";
 const { URLSearchParams } = url;
 
 const __filename = fileURLToPath(import.meta.url);
@@ -524,6 +525,16 @@ async function writeGaServiceAccountFile(payload) {
 
   await fs.mkdir(path.dirname(GA_SERVICE_ACCOUNT_FILE), { recursive: true });
   await fs.writeFile(GA_SERVICE_ACCOUNT_FILE, JSON.stringify(obj, null, 2) + "\n", "utf8");
+  return readGaServiceAccountSummary();
+}
+
+async function deleteGaServiceAccountFile() {
+  try {
+    await fs.unlink(GA_SERVICE_ACCOUNT_FILE);
+  } catch (err) {
+    if (err && err.code === "ENOENT") return readGaServiceAccountSummary();
+    throw err;
+  }
   return readGaServiceAccountSummary();
 }
 
@@ -2254,6 +2265,44 @@ const server = http.createServer(async (req, res) => {
     } catch (err) {
       const status = err?.status || 500;
       return send(res, status, { error: err?.message || "Unable to save GA credential" });
+    }
+  }
+  if (pathname === "/ga/service-account/delete" && req.method === "POST") {
+    try {
+      const saved = await deleteGaServiceAccountFile();
+      return send(res, 200, saved);
+    } catch (err) {
+      const status = err?.status || 500;
+      return send(res, status, { error: err?.message || "Unable to delete GA credential" });
+    }
+  }
+  if (pathname === "/ga/service-account/test" && req.method === "POST") {
+    try {
+      const rawBody = await readRequestBody(req);
+      const payload = rawBody ? JSON.parse(rawBody) : {};
+      const date =
+        payload?.date && /^\d{4}-\d{2}-\d{2}$/.test(payload.date)
+          ? payload.date
+          : yesterdayIsoDate();
+      const propertyId = (payload?.propertyId || process.env.GA_PROPERTY_ID || "328054560").toString();
+
+      const rows = await fetchGaRowsForDay({
+        date,
+        propertyId,
+        keyFile: GA_SERVICE_ACCOUNT_FILE,
+      });
+      const fiSet = new Set((rows || []).map((r) => r && r.fi_key).filter(Boolean));
+      return send(res, 200, {
+        ok: true,
+        date,
+        propertyId,
+        rows: Array.isArray(rows) ? rows.length : 0,
+        fis: fiSet.size,
+        sample: Array.isArray(rows) ? rows.slice(0, 3) : [],
+      });
+    } catch (err) {
+      const status = err?.status || 500;
+      return send(res, status, { ok: false, error: err?.message || "GA test failed" });
     }
   }
   if (pathname === "/instances/test" && req.method === "POST") {
