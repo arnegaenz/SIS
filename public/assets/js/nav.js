@@ -22,7 +22,8 @@ var GROUPS = [
 { label: "Conversions", items: [
 { id:"overview", label:"Overview", href:"./index.html" },
 { id:"funnel", label:"FI Funnel", href:"./funnel.html" },
-{ id:"sources", label:"Sources", href:"./sources.html" }
+{ id:"sources", label:"Sources", href:"./sources.html" },
+{ id:"ux-paths", label:"UX Paths", href:"./ux-paths.html" }
 ]},
 { label: "Reliability", items: [
 { id:"heatmap", label:"Merchant Heatmap", href:"./heatmap.html" },
@@ -30,7 +31,8 @@ var GROUPS = [
 ]},
 { label: "Ops", items: [
 { id:"troubleshoot", label:"Troubleshoot", href:"./troubleshoot.html" },
-{ id:"maintenance", label:"Maintenance", href:"./maintenance.html" }
+{ id:"maintenance", label:"Maintenance", href:"./maintenance.html" },
+{ id:"logs", label:"Server Logs", href:"./logs.html" }
 ]}
 ];
 

@@ -239,6 +239,29 @@
       border-color: rgba(100, 116, 139, 0.35);
       background: linear-gradient(135deg, rgba(148, 163, 184, 0.2), rgba(148, 163, 184, 0.06));
     }
+    .health-summary-head { margin-bottom: 4px; }
+    .health-sort-btn {
+      appearance: none;
+      -webkit-appearance: none;
+      border: 0;
+      background: transparent;
+      padding: 0;
+      margin: 0;
+      font: inherit;
+      color: var(--muted);
+      cursor: pointer;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+      display: inline;
+      white-space: pre;
+      line-height: inherit;
+    }
+    .health-sort-btn:hover { color: var(--ink); }
+    .health-sort-btn:focus-visible {
+      outline: 2px solid rgba(59, 130, 246, 0.6);
+      outline-offset: 2px;
+      border-radius: 6px;
+    }
     @media (max-width: 1100px) {
       .heatmap-tiles {
         grid-template-columns: 1fr;
@@ -806,6 +829,8 @@
     let registryEntries = [];
     let registryInstanceMap = new Map();
     let latestRenderedData = null;
+    let lastHealthSummaryMerchants = [];
+    let healthSummarySort = { key: "total", dir: "desc" };
 
     const normalizeFi = (val) => (val || "").toString().trim().toLowerCase();
     const normalizeInstance = (val) =>
@@ -1878,6 +1903,7 @@
 
     function renderHealthSummary(merchants = []) {
       if (!healthSummaryEl) return;
+      lastHealthSummaryMerchants = merchants;
       if (!Array.isArray(merchants) || merchants.length === 0) {
         healthSummaryEl.innerHTML = '<div class="muted tiny">No data.</div>';
         return;
@@ -1886,9 +1912,69 @@
       const summaries = merchants
         .filter((m) => !m.merchant || !m.merchant.toLowerCase().includes("synthetic"))
         .map((m) => summarizeMerchantHealth(m));
-      summaries.sort((a, b) => (b.total || 0) - (a.total || 0));
       const main = summaries.filter((s) => (s.total || 0) >= MIN_ATTEMPTS);
       const lowVol = summaries.length - main.length;
+
+      const key = healthSummarySort?.key || "total";
+      const dir = healthSummarySort?.dir === "asc" ? "asc" : "desc";
+      const sortValue = (s) => {
+        if (!s) return null;
+        if (key === "merchant") return (s.merchant || "").toString().toLowerCase();
+        if (key === "status") return (s.statusLabel || s.statusShort || "").toString().toLowerCase();
+        if (key === "billablePct") return s.total > 0 ? s.billable / s.total : null;
+        if (key === "healthPct") return Number.isFinite(s.healthPct) ? s.healthPct : null;
+        if (key === "uxPct") return Number.isFinite(s.uxPct) ? s.uxPct : null;
+        return s[key];
+      };
+      const cmp = (a, b) => {
+        const va = sortValue(a);
+        const vb = sortValue(b);
+        const aNull = va === null || va === undefined || (typeof va === "number" && !Number.isFinite(va));
+        const bNull = vb === null || vb === undefined || (typeof vb === "number" && !Number.isFinite(vb));
+        if (aNull && bNull) return 0;
+        if (aNull) return 1;
+        if (bNull) return -1;
+        if (typeof va === "string" || typeof vb === "string") {
+          return String(va).localeCompare(String(vb));
+        }
+        return Number(va) - Number(vb);
+      };
+      main.sort((a, b) => {
+        const c = cmp(a, b);
+        if (c !== 0) return dir === "asc" ? c : -c;
+        return (b.total || 0) - (a.total || 0);
+      });
+
+      const padRight = (s, width) => {
+        const str = (s ?? "").toString();
+        if (!width || width <= 0) return str;
+        if (str.length >= width) return str.slice(0, width);
+        return str + " ".repeat(width - str.length);
+      };
+      const labelWithArrow = (k, baseLabel, width) => {
+        const base = padRight(baseLabel, width);
+        const active = key === k;
+        const arrow = active ? (dir === "asc" ? "▲" : "▼") : " ";
+        if (width && width >= 1) return base.slice(0, width - 1) + arrow;
+        return base + (active ? (dir === "asc" ? " ▲" : " ▼") : "");
+      };
+      const sortBtn = (k, baseLabel, title, width) => {
+        const label = labelWithArrow(k, baseLabel, width);
+        return `<button type="button" class="health-sort-btn" data-key="${escapeHtml(k)}" title="${escapeHtml(title || "")}">${escapeHtml(label)}</button>`;
+      };
+      const statusPillHead = `<span class="status-pill unknown" title="Status">ST</span>`;
+      const warnSpanHead = `<span style="display:inline-block; min-width:18px; text-align:center;"></span>`;
+
+      const headHtml =
+        `<div class="mono health-summary-head" style="white-space:pre;">` +
+        `${statusPillHead} ` +
+        `${sortBtn("merchant", "merchant", "Sort by merchant", 22)}` +
+        ` | billable ${sortBtn("billable", "count", "Sort by billable count", 4)}` +
+        ` | total ${sortBtn("total", "cnt", "Sort by total attempts", 4)} (${sortBtn("billablePct", "bill%", "Sort by billable / total", 7)})` +
+        ` | health ⚪️ → ${sortBtn("healthPct", "health%", "Sort by health % (billable/(billable+site failures))", 7)}` +
+        ` | UX ${warnSpanHead}⚪️ → ${sortBtn("uxPct", "ux%", "Sort by UX % (user-flow issues / total)", 7)}` +
+        `</div>`;
+
       const linesHtml = main
         .map((s) => {
           const name = s.merchant.padEnd(22, " ");
@@ -1904,16 +1990,44 @@
           const healthArrow = s.healthArrow || " ";
           const uxArrow = s.uxArrow || " ";
           const warnSpan = `<span style="display:inline-block; min-width:18px; text-align:center;">${warningIcon}</span>`;
-          const statusPill = `<span class="status-pill ${s.statusCss || "unknown"}" title="${s.statusLabel || "Unknown"}">${s.statusShort || "?"}</span>`;
+          const statusPill = `<span class="status-pill ${s.statusCss || "unknown"}" title="${escapeHtml(s.statusLabel || "Unknown")}">${escapeHtml(s.statusShort || "?")}</span>`;
           return `<div class="mono" style="white-space:pre;">${statusPill} ${name} | billable ${billableText} | total ${totalText} (${billablePct}) | health ${healthEmoji} ${healthArrow} ${healthText} | UX ${warnSpan}${uxEmoji} ${uxArrow} ${uxText}</div>`;
         })
         .join("");
+
       healthSummaryEl.innerHTML = `
-        <div style="font-size:12px; line-height:1.4;">${linesHtml}</div>
+        <div style="font-size:12px; line-height:1.4;">
+          ${headHtml}
+          ${linesHtml}
+        </div>
         <div class="muted tiny" style="margin-top:6px;">
-          Sorted by total attempts; rows with &lt; ${MIN_ATTEMPTS} attempts (${lowVol} merchants) omitted. Arrows compare the latest day vs prior 6-day average.
+          Rows with &lt; ${MIN_ATTEMPTS} attempts (${lowVol} merchants) omitted. Click a header to sort; arrows compare the latest day vs prior 6-day average.
         </div>
       `;
+
+      if (!healthSummaryEl.__sisHealthSortBound) {
+        healthSummaryEl.__sisHealthSortBound = true;
+        const sortFromEl = (el) => {
+          const nextKey = el?.getAttribute("data-key");
+          if (!nextKey) return;
+          const isSame = healthSummarySort.key === nextKey;
+          const nextDir = isSame && healthSummarySort.dir === "desc" ? "asc" : "desc";
+          healthSummarySort = { key: nextKey, dir: nextDir };
+          renderHealthSummary(lastHealthSummaryMerchants);
+        };
+        healthSummaryEl.addEventListener("click", (e) => {
+          const el = e.target?.closest?.(".health-sort-btn[data-key]");
+          if (!el) return;
+          sortFromEl(el);
+        });
+        healthSummaryEl.addEventListener("keydown", (e) => {
+          if (e.key !== "Enter" && e.key !== " ") return;
+          const el = e.target?.closest?.(".health-sort-btn[data-key]");
+          if (!el) return;
+          e.preventDefault();
+          sortFromEl(el);
+        });
+      }
     }
 
     function showTooltip(ev, payload) {

@@ -2298,6 +2298,60 @@ const server = http.createServer(async (req, res) => {
       return send(res, status, { error: err?.message || "Unable to load troubleshooting data" });
     }
   }
+
+  // Raw sessions API (used by UX Paths page)
+  if (pathname === "/api/sessions/raw" && req.method === "GET") {
+    const startParam =
+      queryParams.get("start") ||
+      queryParams.get("startDate") ||
+      queryParams.get("date") ||
+      queryParams.get("day");
+    const endParam = queryParams.get("end") || queryParams.get("endDate") || startParam;
+    const isoRe = /^\d{4}-\d{2}-\d{2}$/;
+    if (!startParam || !isoRe.test(startParam)) {
+      return send(res, 400, { error: "start query param must be YYYY-MM-DD" });
+    }
+    if (!endParam || !isoRe.test(endParam)) {
+      return send(res, 400, { error: "end query param must be YYYY-MM-DD" });
+    }
+    const startDate = startParam;
+    const endDate = endParam;
+    if (new Date(`${startDate}T00:00:00Z`) > new Date(`${endDate}T00:00:00Z`)) {
+      return send(res, 400, { error: "start date must be on or before end date" });
+    }
+
+    const days = daysBetween(startDate, endDate);
+    // Guardrail: UX Paths is meant for short windows; prevent accidental huge payloads.
+    const maxDays = Number(queryParams.get("maxDays") || 120);
+    if (days.length > maxDays) {
+      return send(res, 413, {
+        error: `Requested ${days.length} days; maxDays=${maxDays}. Narrow the date range or pass a higher maxDays.`,
+        startDate,
+        endDate,
+        days: days.length,
+        maxDays,
+      });
+    }
+
+    try {
+      const sessions = [];
+      for (const day of days) {
+        const s = await readSessionDay(day);
+        if (s?.sessions) sessions.push(...s.sessions);
+      }
+      return send(res, 200, {
+        startDate,
+        endDate,
+        days,
+        count: sessions.length,
+        sessions,
+      });
+    } catch (err) {
+      const status = err?.status || 500;
+      return send(res, status, { error: err?.message || "Unable to load raw sessions" });
+    }
+  }
+
   if (pathname === "/instances") {
     try {
       const { entries, path: foundAt } = await readInstancesFile();
