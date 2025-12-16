@@ -104,18 +104,29 @@
       uxJsonState.open = false;
       modal.hidden = true;
       modal.setAttribute("aria-hidden", "true");
+      try { document.body.classList.remove("ux-modal-open"); } catch {}
     };
 
     const open = () => {
       uxJsonState.open = true;
       modal.hidden = false;
       modal.setAttribute("aria-hidden", "false");
+      try { document.body.classList.add("ux-modal-open"); } catch {}
       renderIfNeeded();
     };
 
     tabs.forEach((btn) => btn.addEventListener("click", () => setTab(btn.dataset.tab)));
     closeBtn?.addEventListener("click", close);
     modal.addEventListener("click", (e) => { if (e.target === modal) close(); });
+    // Prevent wheel on the backdrop from scrolling the page underneath.
+    modal.addEventListener(
+      "wheel",
+      (e) => {
+        if (!uxJsonState.open) return;
+        if (e.target === modal) e.preventDefault();
+      },
+      { passive: false }
+    );
     document.addEventListener("keydown", (e) => { if (uxJsonState.open && e.key === "Escape") close(); });
 
     copyBtn?.addEventListener("click", async () => {
