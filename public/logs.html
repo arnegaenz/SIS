@@ -8,6 +8,18 @@
   <link rel="stylesheet" href="./assets/css/sis.css">
   <script defer src="./assets/js/sis.js"></script>
   <script defer src="./assets/js/nav.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function(){
+      if (window.renderHeaderNav && !window.__sisHeaderNav_logs) {
+        window.__sisHeaderNav_logs = true;
+        window.renderHeaderNav({
+          currentId: "logs",
+          title: "Server Logs",
+          subtitle: "Live server output for debugging SIS scripts, endpoints, and data flows."
+        });
+      }
+    });
+  </script>
   <style>
     * { box-sizing: border-box; }
     body {
@@ -212,20 +224,7 @@
   </style>
 </head>
 <body>
-  <header class="sis-header">
-    <div class="sis-topbar">
-      <div class="sis-title">Strivve Insights Service</div>
-      <nav class="sis-nav" data-current></nav>
-    </div>
-
-    <div class="sis-page-header">
-      <h1 class="sis-page-title">Server Logs</h1>
-      <div class="sis-page-header-row">
-        <p class="sis-page-subtitle">Live server output for debugging SIS scripts, endpoints, and data flows.</p>
-        <button class="theme-toggle" type="button" aria-pressed="false">Light mode</button>
-      </div>
-    </div>
-  </header>
+  <div id="sis-header"></div>
 
   <div class="sis-content">
     <main class="sis-main">
