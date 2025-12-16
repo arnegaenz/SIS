@@ -106,19 +106,25 @@
   }
 
   let allowedInstances = null;
+  let allowedInstanceMap = null; // normalized -> display name (from /instances)
 
   async function loadInstanceAllowList() {
     try {
       const res = await fetch("/instances");
       if (!res.ok) return;
       const json = await res.json();
-      const names = (json.instances || [])
+      const rawNames = (json.instances || [])
         .map((inst) => inst.name || inst.instance || inst.id)
         .filter(Boolean)
-        .map((n) => normalizeInstanceKey(n));
-      if (names.length) {
-        allowedInstances = new Set(names);
-        console.log("[filters] instance allow-list loaded", names.length);
+        .map((n) => n.toString().trim())
+        .filter(Boolean);
+      if (rawNames.length) {
+        allowedInstanceMap = new Map();
+        for (const name of rawNames) {
+          allowedInstanceMap.set(normalizeInstanceKey(name), name);
+        }
+        allowedInstances = new Set(allowedInstanceMap.keys());
+        console.log("[filters] instance allow-list loaded", rawNames.length);
       }
     } catch (err) {
       console.warn("[filters] instance allow-list load failed", err);
@@ -196,9 +202,15 @@
       instanceActive &&
       (!instanceUniverse || instanceSet.size < instanceUniverse.length || instanceSet.size === 0);
 
+    // Only expose instances that exist in the Maintenance-managed instances list when available.
+    const baseRegistry =
+      allowedInstances && allowedInstances.size
+        ? registry.filter((r) => allowedInstances.has(normalizeInstanceKey(r.instance)))
+        : registry;
+
     const byPartner = usePartnerFilter
-      ? registry.filter((r) => partnerSet.has(r.partner))
-      : registry;
+      ? baseRegistry.filter((r) => partnerSet.has(r.partner) || r.partner === "Unknown")
+      : baseRegistry;
     const byIntegration = useIntegrationFilter
       ? byPartner.filter((r) => integrationSet.has(r.integration))
       : byPartner;
@@ -209,21 +221,17 @@
       ? byIntegration.filter((r) => normalizedTargets.has(normalizeInstanceKey(r.instance)))
       : byIntegration;
 
-    // Instance dropdown should include everything seen in the registry so that
-    // "uncheck one instance" only removes that instance’s FIs (no hidden drop).
-    // If an allow-list is present, treat it as a union (extra candidates), not a filter.
-    let instancesOut = unique(registry.map((r) => r.instance));
-    if (allowedInstances && allowedInstances.size) {
-      for (const inst of allowedInstances) {
-        // allowInstances entries are normalized; keep display list from registry,
-        // but at least expose the normalized name if it isn't already present.
-        if (!instancesOut.includes(inst)) instancesOut.push(inst);
-      }
-      instancesOut = unique(instancesOut);
+    // Instance dropdown should match Maintenance instances (via /instances) when available.
+    let instancesOut = [];
+    if (allowedInstanceMap && allowedInstanceMap.size) {
+      instancesOut = unique(Array.from(allowedInstanceMap.values()));
+    } else {
+      instancesOut = unique(baseRegistry.map((r) => r.instance));
     }
-    if (!instancesOut.includes("customer-dev")) instancesOut.push("customer-dev");
-    // Include Unknown/UNKNOWN so scoping doesn't unexpectedly drop "unknown" rows once touched.
-    const partners = unique(registry.map((r) => r.partner));
+
+    // Partner dropdown should not show Unknown (missing partner should not be user-selectable),
+    // but we keep Unknown rows included when scoping so they don't disappear unexpectedly.
+    const partners = unique(baseRegistry.map((r) => r.partner)).filter((p) => p !== "Unknown");
 
     // Create FI options with instance labels: "fi_name (instance)"
     const fiOptions = byInstance.map((r) => ({
@@ -237,7 +245,7 @@
 
     return {
       partners,
-      integrations: unique(registry.map((r) => r.integration)),
+      integrations: unique(baseRegistry.map((r) => r.integration)),
       fis: uniqueFiOptions,
       instances: instancesOut,
       currentSlice: byInstance,
