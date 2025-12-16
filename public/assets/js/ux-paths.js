@@ -171,6 +171,189 @@
     modal.__openUxJson();
   }
 
+  // ==================== Session Details (Troubleshoot-like) ====================
+  function escapeHtml(str) {
+    return (str || "").toString()
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  function formatDateTime(value) {
+    if (!value) return "";
+    const d = new Date(value);
+    if (Number.isNaN(d)) return String(value);
+    return d.toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  }
+
+  function formatDurationMs(ms) {
+    if (!Number.isFinite(ms) || ms < 0) return "";
+    if (ms < 1000) return ms + " ms";
+    const s = Math.round(ms / 1000);
+    if (s < 90) return s + "s";
+    const m = Math.floor(s / 60);
+    const rem = s % 60;
+    return rem ? `${m}m ${rem}s` : `${m}m`;
+  }
+
+  function jobBadgeClass(job) {
+    if (job && job.is_success) return "success";
+    if (job && job.severity === "ux") return "warn";
+    if (job && job.severity === "site-failure") return "fail";
+    return "neutral";
+  }
+
+  function renderClickstream(steps = []) {
+    if (!steps || !steps.length) return "";
+    const items = steps
+      .map((step) => `<span class="click-pill">${escapeHtml(step.url || step.page_title || "step")}</span>`)
+      .join("");
+    return `<div class="clickstream">${items}</div>`;
+  }
+
+  function renderJobs(jobs = []) {
+    if (!jobs || !jobs.length) {
+      return '<div class="job"><div class="job-meta">No placements/jobs recorded in this session.</div></div>';
+    }
+    return jobs
+      .map((job) => {
+        const badgeClass = jobBadgeClass(job);
+        return `
+          <div class="job">
+            <div class="job-header">
+              <div class="badge ${badgeClass}">${escapeHtml(job.termination_label || job.termination || "UNKNOWN")}</div>
+              <div class="chip muted">${escapeHtml(job.merchant || "merchant")}</div>
+              ${job.status ? `<div class="chip muted">${escapeHtml(job.status)}</div>` : ""}
+            </div>
+            <div class="job-meta">
+              ${job.created_on ? `<span>Created ${escapeHtml(formatDateTime(job.created_on))}</span>` : ""}
+              ${job.completed_on ? `<span>Completed ${escapeHtml(formatDateTime(job.completed_on))}</span>` : ""}
+              ${Number.isFinite(job.duration_ms) ? `<span>Duration ${escapeHtml(formatDurationMs(job.duration_ms))}</span>` : ""}
+              ${job.instance ? `<span>Instance ${escapeHtml(job.instance)}</span>` : ""}
+            </div>
+            ${job.status_message ? `<div class="job-meta">${escapeHtml(job.status_message)}</div>` : ""}
+          </div>
+        `;
+      })
+      .join("");
+  }
+
+  function renderSessionCard(session, { titlePrefix } = {}) {
+    if (!session) return '<div class="session-card"><div class="session-meta">Session not found.</div></div>';
+    const sid = String(pickSessionId(session) ?? "");
+    const jobs = Array.isArray(session.jobs) ? session.jobs : [];
+    const clickstream = Array.isArray(session.clickstream) ? session.clickstream : [];
+    const placementsRaw = Array.isArray(session.placements_raw) ? session.placements_raw : [];
+    const integrationLabel = session.integration_display || session.integration || session.integration_type || "Unknown integration";
+    const partnerLabel = session.partner || "Unknown";
+
+    const jobSuccess = jobs.filter((j) => j && j.is_success).length;
+    const jobCount = jobs.length;
+    const jobFailure = Math.max(0, jobCount - jobSuccess);
+
+    const headerTitle = titlePrefix ? `${titlePrefix} ${sid}` : `Session ${sid}`;
+
+    return `
+      <div class="session-card" data-session-id="${escapeHtml(sid)}">
+        <div class="session-top">
+          <div class="chip">${escapeHtml(session.fi_name || session.fi_key || "FI")}</div>
+          <div class="chip muted">${escapeHtml(session.instance || session._instance || "")}</div>
+          <div class="chip muted">${escapeHtml(integrationLabel)}</div>
+          <div class="chip muted">${escapeHtml(partnerLabel)}</div>
+          <button class="ux-link" type="button" data-ux-json="${escapeHtml(sid)}">Open JSON</button>
+        </div>
+        <div class="session-meta">
+          <span><strong>${escapeHtml(headerTitle)}</strong></span>
+          ${session.created_on ? `<span><strong>Opened</strong> ${escapeHtml(formatDateTime(session.created_on))}</span>` : ""}
+          ${session.closed_on ? `<span><strong>Closed</strong> ${escapeHtml(formatDateTime(session.closed_on))}</span>` : ""}
+          <span><strong>Jobs</strong> ${jobCount} (success ${jobSuccess} / fail ${jobFailure})</span>
+          ${session.fi_lookup_key ? `<span><strong>FI lookup key</strong> ${escapeHtml(session.fi_lookup_key)}</span>` : ""}
+          ${session.cuid ? `<span><strong>CUID</strong> ${escapeHtml(session.cuid)}</span>` : ""}
+        </div>
+        ${renderClickstream(clickstream)}
+        <div class="jobs">${renderJobs(jobs)}</div>
+        <details class="raw-details">
+          <summary>Raw session payload</summary>
+          <pre class="raw-block">${escapeHtml(safeStringify(session))}</pre>
+        </details>
+        ${
+          placementsRaw.length
+            ? `<details class="raw-details">
+                <summary>Raw placement payloads (${placementsRaw.length})</summary>
+                <pre class="raw-block">${escapeHtml(safeStringify(placementsRaw))}</pre>
+              </details>`
+            : ""
+        }
+      </div>
+    `;
+  }
+
+  function closeInlineDetails(tableEl) {
+    if (!tableEl) return;
+    const existing = tableEl.querySelectorAll("tr[data-ux-detail-row='1']");
+    existing.forEach((tr) => tr.remove());
+    const rows = tableEl.querySelectorAll("tr[data-ux-expanded='1']");
+    rows.forEach((tr) => tr.removeAttribute("data-ux-expanded"));
+  }
+
+  function toggleInlineSession(tableEl, rowEl, sessionId) {
+    if (!tableEl || !rowEl) return;
+    const sid = String(sessionId || "");
+    const tbody = rowEl.closest("tbody");
+    if (!tbody) return;
+
+    const next = rowEl.nextElementSibling;
+    if (rowEl.getAttribute("data-ux-expanded") === "1" && next && next.getAttribute("data-ux-detail-row") === "1") {
+      next.remove();
+      rowEl.removeAttribute("data-ux-expanded");
+      return;
+    }
+
+    closeInlineDetails(tableEl);
+
+    const session = uxJsonState.sessionsById.get(sid) || null;
+    const colCount = rowEl.children ? rowEl.children.length : 1;
+    const detailRow = document.createElement("tr");
+    detailRow.setAttribute("data-ux-detail-row", "1");
+    const td = document.createElement("td");
+    td.colSpan = colCount || 1;
+    td.innerHTML = renderSessionCard(session);
+    detailRow.appendChild(td);
+    rowEl.insertAdjacentElement("afterend", detailRow);
+    rowEl.setAttribute("data-ux-expanded", "1");
+  }
+
+  function toggleInlineSessionList(tableEl, rowEl, sessionIds, { title } = {}) {
+    if (!tableEl || !rowEl) return;
+    const tbody = rowEl.closest("tbody");
+    if (!tbody) return;
+
+    const next = rowEl.nextElementSibling;
+    if (rowEl.getAttribute("data-ux-expanded") === "1" && next && next.getAttribute("data-ux-detail-row") === "1") {
+      next.remove();
+      rowEl.removeAttribute("data-ux-expanded");
+      return;
+    }
+
+    closeInlineDetails(tableEl);
+
+    const ids = Array.isArray(sessionIds) ? sessionIds.slice(0, 3) : [];
+    const cards = ids
+      .map((sid) => renderSessionCard(uxJsonState.sessionsById.get(String(sid)), { titlePrefix: title ? `${title} • session` : "" }))
+      .join("");
+    const colCount = rowEl.children ? rowEl.children.length : 1;
+    const detailRow = document.createElement("tr");
+    detailRow.setAttribute("data-ux-detail-row", "1");
+    const td = document.createElement("td");
+    td.colSpan = colCount || 1;
+    td.innerHTML = `<div class="session-list">${cards || '<div class="session-card"><div class="session-meta">No example sessions available.</div></div>'}</div>`;
+    detailRow.appendChild(td);
+    rowEl.insertAdjacentElement("afterend", detailRow);
+    rowEl.setAttribute("data-ux-expanded", "1");
+  }
+
   // ==================== Data Parsing Functions ====================
 
   /**
@@ -814,6 +997,12 @@
           : null;
         if (!t) return;
         if (t.dataset.uxOpenSession) {
+          const row = t.closest("tr");
+          const table = t.closest("table");
+          if (row && table) {
+            toggleInlineSession(table, row, t.dataset.uxOpenSession);
+            return;
+          }
           openJsonExplorer({ sessionId: t.dataset.uxOpenSession, focus: "session" });
           return;
         }
@@ -823,8 +1012,12 @@
           const ids = stats && stats.examplesByPattern && stats.examplesByPattern.get
             ? stats.examplesByPattern.get(name)
             : null;
-          const sid = ids && ids.length ? ids[0] : null;
-          if (sid) openJsonExplorer({ sessionId: sid, focus: "session" });
+          const row = t.closest("tr");
+          const table = t.closest("table");
+          if (row && table) {
+            toggleInlineSessionList(table, row, ids || [], { title: `Pattern: ${name}` });
+            return;
+          }
           return;
         }
         if (t.dataset.uxOpenRetry) {
@@ -832,9 +1025,22 @@
           const ids = stats && stats.examplesByRetry && stats.examplesByRetry.get
             ? stats.examplesByRetry.get(key)
             : null;
-          const sid = ids && ids.length ? ids[0] : null;
-          if (sid) openJsonExplorer({ sessionId: sid, focus: "session" });
+          const row = t.closest("tr");
+          const table = t.closest("table");
+          if (row && table) {
+            toggleInlineSessionList(table, row, ids || [], { title: `Retry: ${key}` });
+            return;
+          }
         }
+      });
+    }
+
+    if (!document.__uxPathsJsonButtonDelegate) {
+      document.__uxPathsJsonButtonDelegate = true;
+      document.addEventListener("click", (e) => {
+        const btn = e.target && e.target.closest ? e.target.closest("[data-ux-json]") : null;
+        if (!btn) return;
+        openJsonExplorer({ sessionId: btn.getAttribute("data-ux-json"), focus: "session" });
       });
     }
 
