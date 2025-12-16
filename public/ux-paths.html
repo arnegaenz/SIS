@@ -94,6 +94,31 @@
       font-weight: 700;
     }
 
+    /* Highlight the row that owns an expanded details panel */
+    .sis-table tbody tr[data-ux-expanded="1"] {
+      background: rgba(37,99,235,0.10);
+    }
+    .sis-table tbody tr[data-ux-expanded="1"] td:first-child {
+      box-shadow: inset 3px 0 0 rgba(37,99,235,0.85);
+    }
+    .sis-table tbody tr[data-ux-detail-row="1"] td {
+      padding-top: 0;
+    }
+    /* Chevron indicator on expandable links */
+    button[data-ux-open-session]::before,
+    button[data-ux-open-pattern]::before,
+    button[data-ux-open-retry]::before {
+      content: "▸ ";
+      color: var(--muted);
+      font-weight: 900;
+    }
+    .sis-table tbody tr[data-ux-expanded="1"] button[data-ux-open-session]::before,
+    .sis-table tbody tr[data-ux-expanded="1"] button[data-ux-open-pattern]::before,
+    .sis-table tbody tr[data-ux-expanded="1"] button[data-ux-open-retry]::before {
+      content: "▾ ";
+      color: var(--accent);
+    }
+
     /* ===== Session Details (match troubleshoot.html) ===== */
     .session-list { display: flex; flex-direction: column; gap: 12px; margin-top: 10px; }
     .session-card {
