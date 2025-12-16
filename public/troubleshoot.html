@@ -362,6 +362,18 @@
             <option value="__all_merchants__">(all merchants)</option>
           </select>
         </div>
+        <div class="form-field">
+          <label for="binFilter">BIN</label>
+          <select id="binFilter" class="form-select">
+            <option value="__all_bins__">(all BINs)</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label for="subIdFilter">SubID</label>
+          <select id="subIdFilter" class="form-select">
+            <option value="__all_subids__">(all SubIDs)</option>
+          </select>
+        </div>
         <div class="form-button-group">
           <button class="btn secondary" id="clearViewFilters" type="button">Clear view filters</button>
         </div>
@@ -389,6 +401,8 @@
         sessions: document.getElementById("sessionList"),
         empty: document.getElementById("emptyState"),
         merchant: document.getElementById("merchantFilter"),
+        bin: document.getElementById("binFilter"),
+        subId: document.getElementById("subIdFilter"),
         clearFilters: document.getElementById("clearViewFilters"),
       };
 
@@ -399,6 +413,8 @@
         viewFilter: {
           summary: null,
           merchant: "__all_merchants__",
+          bin: "__all_bins__",
+          subId: "__all_subids__",
         },
       };
 
@@ -461,12 +477,26 @@
       }
 
       const MERCHANT_ALL_VALUE = "__all_merchants__";
+      const BIN_ALL_VALUE = "__all_bins__";
+      const SUBID_ALL_VALUE = "__all_subids__";
       const SUMMARY_FILTER_PREDICATES = {
         sessions_with_jobs: (session) => sessionJobStats(session).jobCount > 0,
         sessions_with_success: (session) => sessionJobStats(session).jobSuccess > 0,
         jobs_success: (session) => sessionJobStats(session).jobSuccess > 0,
         jobs_failure: (session) => sessionJobStats(session).jobFailure > 0,
       };
+
+      function parseOndotCuid(value) {
+        const cuid = (value || "").toString();
+        if (!cuid) return null;
+        const parts = cuid.split("_@_");
+        if (parts.length < 3) return null;
+        const bin = parts[0] || "";
+        const subId = parts[1] || "";
+        if (!/^\d{6}$/.test(bin)) return null;
+        if (!/^\d{8}$/.test(subId)) return null;
+        return { bin, subId };
+      }
 
       function normalizeMerchantName(value) {
         return (value || "").toString().trim();
@@ -850,10 +880,76 @@
         }
       }
 
+      function updateBinOptions(sessions = []) {
+        if (!els.bin) return;
+        const bins = new Set();
+        (sessions || []).forEach((session) => {
+          const parsed = parseOndotCuid(session?.cuid);
+          if (parsed?.bin) bins.add(parsed.bin);
+        });
+        const sorted = Array.from(bins).sort((a, b) => a.localeCompare(b));
+        const keepValue = els.bin.value || BIN_ALL_VALUE;
+        els.bin.innerHTML = "";
+        const add = (value, label) => {
+          const opt = document.createElement("option");
+          opt.value = value;
+          opt.textContent = label;
+          els.bin.appendChild(opt);
+        };
+        add(BIN_ALL_VALUE, "(all BINs)");
+        sorted.forEach((bin) => add(bin, bin));
+        if (keepValue && keepValue !== BIN_ALL_VALUE && bins.has(keepValue)) {
+          els.bin.value = keepValue;
+          state.viewFilter.bin = keepValue;
+        } else {
+          els.bin.value = BIN_ALL_VALUE;
+          state.viewFilter.bin = BIN_ALL_VALUE;
+        }
+      }
+
+      function updateSubIdOptions(sessions = []) {
+        if (!els.subId) return;
+        const subs = new Set();
+        (sessions || []).forEach((session) => {
+          const parsed = parseOndotCuid(session?.cuid);
+          if (parsed?.subId) subs.add(parsed.subId);
+        });
+        const sorted = Array.from(subs).sort((a, b) => a.localeCompare(b));
+        const keepValue = els.subId.value || SUBID_ALL_VALUE;
+        els.subId.innerHTML = "";
+        const add = (value, label) => {
+          const opt = document.createElement("option");
+          opt.value = value;
+          opt.textContent = label;
+          els.subId.appendChild(opt);
+        };
+        add(SUBID_ALL_VALUE, "(all SubIDs)");
+        sorted.forEach((subId) => add(subId, subId));
+        if (keepValue && keepValue !== SUBID_ALL_VALUE && subs.has(keepValue)) {
+          els.subId.value = keepValue;
+          state.viewFilter.subId = keepValue;
+        } else {
+          els.subId.value = SUBID_ALL_VALUE;
+          state.viewFilter.subId = SUBID_ALL_VALUE;
+        }
+      }
+
       function sessionMatchesMerchantFilter(session, merchantKey) {
         if (!merchantKey || merchantKey === MERCHANT_ALL_VALUE) return true;
         const stats = sessionJobStats(session);
         return stats.jobs.some((job) => normalizedMerchantValue(job.merchant) === merchantKey);
+      }
+
+      function sessionMatchesBinFilter(session, binValue) {
+        if (!binValue || binValue === BIN_ALL_VALUE) return true;
+        const parsed = parseOndotCuid(session?.cuid);
+        return !!parsed && parsed.bin === binValue;
+      }
+
+      function sessionMatchesSubIdFilter(session, subIdValue) {
+        if (!subIdValue || subIdValue === SUBID_ALL_VALUE) return true;
+        const parsed = parseOndotCuid(session?.cuid);
+        return !!parsed && parsed.subId === subIdValue;
       }
 
       function applyViewFiltersToSessions(sessions = []) {
@@ -866,6 +962,14 @@
         if (merchantKey && merchantKey !== MERCHANT_ALL_VALUE) {
           filtered = filtered.filter((session) => sessionMatchesMerchantFilter(session, merchantKey));
         }
+        const binValue = state.viewFilter.bin;
+        if (binValue && binValue !== BIN_ALL_VALUE) {
+          filtered = filtered.filter((session) => sessionMatchesBinFilter(session, binValue));
+        }
+        const subIdValue = state.viewFilter.subId;
+        if (subIdValue && subIdValue !== SUBID_ALL_VALUE) {
+          filtered = filtered.filter((session) => sessionMatchesSubIdFilter(session, subIdValue));
+        }
         return filtered;
       }
 
@@ -874,6 +978,14 @@
         if (els.merchant) {
           state.viewFilter.merchant = MERCHANT_ALL_VALUE;
           els.merchant.value = MERCHANT_ALL_VALUE;
+        }
+        if (els.bin) {
+          state.viewFilter.bin = BIN_ALL_VALUE;
+          els.bin.value = BIN_ALL_VALUE;
+        }
+        if (els.subId) {
+          state.viewFilter.subId = SUBID_ALL_VALUE;
+          els.subId.value = SUBID_ALL_VALUE;
         }
         applyFilters();
       }
@@ -1065,6 +1177,9 @@
           }
           return true;
         });
+        updateMerchantOptions(filtered);
+        updateBinOptions(filtered);
+        updateSubIdOptions(filtered);
         const viewFiltered = applyViewFiltersToSessions(filtered);
         const totals = summarizeTroubleshootSessions(viewFiltered);
         renderSummary(totals);
@@ -1113,7 +1228,6 @@
           });
           state.data = data;
           refreshFilterOptions();
-          updateMerchantOptions(data.sessions || []);
           setStatus(
             `Loaded ${data.sessions?.length || 0} sessions for ${data.startDate || start} → ${data.endDate || end}.`
           );
@@ -1231,6 +1345,14 @@
       });
       els.merchant?.addEventListener("change", () => {
         state.viewFilter.merchant = els.merchant.value || MERCHANT_ALL_VALUE;
+        applyFilters();
+      });
+      els.bin?.addEventListener("change", () => {
+        state.viewFilter.bin = els.bin.value || BIN_ALL_VALUE;
+        applyFilters();
+      });
+      els.subId?.addEventListener("change", () => {
+        state.viewFilter.subId = els.subId.value || SUBID_ALL_VALUE;
         applyFilters();
       });
       els.clearFilters?.addEventListener("click", () => {
