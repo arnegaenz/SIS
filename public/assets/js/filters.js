@@ -172,24 +172,28 @@
   }
 
   function deriveOptions(registry, state) {
-    const byPartner = state.partner === ALL ? registry : registry.filter((r) => r.partner === state.partner);
-    const byIntegration =
-      state.integration === ALL ? byPartner : byPartner.filter((r) => r.integration === state.integration);
-    const matchesInstance = (entry) => {
-      if (state.instance === ALL) return true;
-      const target = normalizeInstanceKey(state.instance);
-      const list = [].concat(entry.instance || []);
-      if (!list.length) return false;
-      return list.map(normalizeInstanceKey).includes(target);
-    };
-    const byInstance = byIntegration.filter(matchesInstance);
-    const currentSlice = byInstance;
-    let instancesOut = unique(byInstance.map((r) => r.instance));
+    // Multi-select sets (Partner/Integration/Instance) are used ONLY to scope the FI list.
+    // To avoid breaking page-level behavior, we keep state.partner/state.integration/state.instance as strings.
+    const partnerSet = state.partnerSet instanceof Set && state.partnerSet.size ? state.partnerSet : null;
+    const integrationSet =
+      state.integrationSet instanceof Set && state.integrationSet.size ? state.integrationSet : null;
+    const instanceSet = state.instanceSet instanceof Set && state.instanceSet.size ? state.instanceSet : null;
+
+    const byPartner = partnerSet ? registry.filter((r) => partnerSet.has(r.partner)) : registry;
+    const byIntegration = integrationSet ? byPartner.filter((r) => integrationSet.has(r.integration)) : byPartner;
+    const normalizedTargets = instanceSet
+      ? new Set(Array.from(instanceSet).map((v) => normalizeInstanceKey(v)))
+      : null;
+    const byInstance = normalizedTargets
+      ? byIntegration.filter((r) => normalizedTargets.has(normalizeInstanceKey(r.instance)))
+      : byIntegration;
+
+    let instancesOut = unique(registry.map((r) => r.instance));
     if (allowedInstances && allowedInstances.size) {
       instancesOut = instancesOut.filter((inst) => allowedInstances.has(normalizeInstanceKey(inst)));
     }
     if (!instancesOut.includes("customer-dev")) instancesOut.push("customer-dev");
-    const partners = unique(currentSlice.map((r) => r.partner)).filter((p) => p !== "Unknown");
+    const partners = unique(registry.map((r) => r.partner)).filter((p) => p !== "Unknown");
 
     // Create FI options with instance labels: "fi_name (instance)"
     const fiOptions = byInstance.map((r) => ({
@@ -203,11 +207,16 @@
 
     return {
       partners,
-      integrations: unique(byInstance.map((r) => r.integration)),
+      integrations: unique(registry.map((r) => r.integration)),
       fis: uniqueFiOptions,
       instances: instancesOut,
-      currentSlice,
+      currentSlice: byInstance,
     };
+  }
+
+  function computeEffectiveStringFromSet(selectedSet, allValue = ALL) {
+    if (!(selectedSet instanceof Set) || selectedSet.size !== 1) return allValue;
+    return Array.from(selectedSet)[0] || allValue;
   }
 
   function renderMultiSelect(container, values, state) {
@@ -311,28 +320,135 @@
     });
   }
 
+  function renderMultiSelectSet(container, values, state, setKey, opts = {}) {
+    const btn = container.querySelector("button");
+    const panel = container.querySelector(".panel");
+    if (!btn || !panel) return;
+
+    const touchedKey = `__${setKey}Touched`;
+    const title = opts.title || setKey;
+    const allLabel = opts.allLabel || `All ${title}`;
+    const noneLabel = opts.noneLabel || `No ${title}`;
+
+    // Setup open/close handlers once
+    if (!btn.dataset.handlersAttached) {
+      const openPanel = () => {
+        panel.removeAttribute("hidden");
+        container.dataset.open = "true";
+      };
+      const closePanel = () => {
+        panel.setAttribute("hidden", "hidden");
+        container.dataset.open = "false";
+      };
+      btn.addEventListener("click", (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        const open = panel.hasAttribute("hidden") ? false : true;
+        if (open) closePanel();
+        else openPanel();
+      });
+      btn.dataset.handlersAttached = "true";
+    }
+
+    panel.innerHTML = "";
+    const options = Array.isArray(values) ? values.filter(Boolean) : [];
+    if (!options.length) {
+      btn.textContent = noneLabel;
+      state[setKey] = new Set();
+      return;
+    }
+
+    const selected = state[setKey] instanceof Set ? state[setKey] : new Set();
+    const shouldSelectAll = !state[touchedKey];
+    const nextSelected = shouldSelectAll ? new Set(options) : new Set(selected);
+    // Drop selections that no longer exist
+    for (const v of Array.from(nextSelected)) {
+      if (!options.includes(v)) nextSelected.delete(v);
+    }
+    if (shouldSelectAll && nextSelected.size === 0) {
+      state[setKey] = new Set(options);
+    } else {
+      state[setKey] = nextSelected;
+    }
+
+    const updateLabel = () => {
+      const count = state[setKey].size;
+      const total = options.length;
+      const allSelected = count && count === total;
+      btn.textContent = allSelected ? `${allLabel} (${total})` : count ? `${count} selected` : noneLabel;
+    };
+
+    // Toggle all row
+    const toggleLabel = document.createElement("label");
+    const toggleCb = document.createElement("input");
+    toggleCb.type = "checkbox";
+    toggleCb.value = "__toggle_all__";
+    toggleCb.checked = state[setKey].size === options.length;
+    toggleLabel.appendChild(toggleCb);
+    toggleLabel.appendChild(document.createTextNode(" (select/deselect all)"));
+    panel.appendChild(toggleLabel);
+
+    options.forEach((val) => {
+      const id = `${setKey}-${val}`;
+      const label = document.createElement("label");
+      const cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.value = val;
+      cb.id = id;
+      cb.checked = state[setKey].has(val);
+      label.appendChild(cb);
+      label.appendChild(document.createTextNode(" " + val));
+      panel.appendChild(label);
+    });
+
+    updateLabel();
+
+    if (!panel.dataset.changeHandlerAttached) {
+      panel.addEventListener("change", (ev) => {
+        if (!ev.target || !ev.target.value) return;
+        state[touchedKey] = true;
+        if (ev.target.value === "__toggle_all__") {
+          const checkAll = ev.target.checked;
+          state[setKey] = checkAll ? new Set(options) : new Set();
+          panel.querySelectorAll('input[type="checkbox"]').forEach((cb) => {
+            if (cb.value !== "__toggle_all__") cb.checked = checkAll;
+          });
+          updateLabel();
+          return;
+        }
+        if (ev.target.checked) state[setKey].add(ev.target.value);
+        else state[setKey].delete(ev.target.value);
+        // sync toggle-all checkbox
+        const toggle = panel.querySelector('input[value="__toggle_all__"]');
+        if (toggle) toggle.checked = state[setKey].size === options.length;
+        updateLabel();
+      });
+      panel.dataset.changeHandlerAttached = "true";
+    }
+  }
+
   function renderFilterBar(container, state, options, applyCb) {
     container.innerHTML = `
       <div class="filter-group">
         <label for="filter-instance">Instance</label>
-        <select id="filter-instance">
-          <option value="${ALL}">All</option>
-          ${options.instances.map((p) => `<option value="${p}">${p}</option>`).join("")}
-        </select>
+        <div class="multi-select" id="filter-instance">
+          <button type="button" id="filter-instance-button">All Instances</button>
+          <div class="panel" hidden></div>
+        </div>
       </div>
       <div class="filter-group">
         <label for="filter-partner">Partner</label>
-        <select id="filter-partner">
-          <option value="${ALL}">All</option>
-          ${options.partners.map((p) => `<option value="${p}">${p}</option>`).join("")}
-        </select>
+        <div class="multi-select" id="filter-partner">
+          <button type="button" id="filter-partner-button">All Partners</button>
+          <div class="panel" hidden></div>
+        </div>
       </div>
       <div class="filter-group">
         <label for="filter-integration">Integration</label>
-        <select id="filter-integration">
-          <option value="${ALL}">All</option>
-          ${options.integrations.map((p) => `<option value="${p}">${p}</option>`).join("")}
-        </select>
+        <div class="multi-select" id="filter-integration">
+          <button type="button" id="filter-integration-button">All Integrations</button>
+          <div class="panel" hidden></div>
+        </div>
       </div>
       <div class="filter-group">
         <label for="filter-fi-button">FI</label>
@@ -345,51 +461,75 @@
         <button type="button" id="filter-clear">Clear filters</button>
       </div>
     `;
-    const selPartner = container.querySelector("#filter-partner");
-    const selIntegration = container.querySelector("#filter-integration");
-    const selInstance = container.querySelector("#filter-instance");
-    const ms = container.querySelector("#filter-fi");
+    const msInstance = container.querySelector("#filter-instance");
+    const msPartner = container.querySelector("#filter-partner");
+    const msIntegration = container.querySelector("#filter-integration");
+    const msFi = container.querySelector("#filter-fi");
 
-    selPartner.value = state.partner;
-    selIntegration.value = state.integration;
-    selInstance.value = state.instance;
-    renderMultiSelect(ms, options.fis, state);
+    renderMultiSelectSet(msInstance, options.instances, state, "instanceSet", {
+      title: "Instances",
+      allLabel: "All Instances",
+      noneLabel: "No Instances",
+    });
+    renderMultiSelectSet(msPartner, options.partners, state, "partnerSet", {
+      title: "Partners",
+      allLabel: "All Partners",
+      noneLabel: "No Partners",
+    });
+    renderMultiSelectSet(msIntegration, options.integrations, state, "integrationSet", {
+      title: "Integrations",
+      allLabel: "All Integrations",
+      noneLabel: "No Integrations",
+    });
+    renderMultiSelect(msFi, options.fis, state);
+
+    // Backwards-compatible fields used by pages: only set if exactly one chosen.
+    state.partner = computeEffectiveStringFromSet(state.partnerSet);
+    state.integration = computeEffectiveStringFromSet(state.integrationSet);
+    state.instance = computeEffectiveStringFromSet(state.instanceSet);
     if (state.disableFi) {
-      selPartner.disabled = true;
-      selIntegration.disabled = true;
-      ms.querySelector("button").disabled = true;
-      ms.title = "Filtering unavailable on this view";
-      selPartner.title = selIntegration.title = ms.title;
+      msPartner.querySelector("button").disabled = true;
+      msIntegration.querySelector("button").disabled = true;
+      msInstance.querySelector("button").disabled = true;
+      msFi.querySelector("button").disabled = true;
+      msFi.title = "Filtering unavailable on this view";
+      msPartner.title = msIntegration.title = msInstance.title = msFi.title;
     } else {
-      selPartner.disabled = false;
-      selIntegration.disabled = false;
-      ms.querySelector("button").disabled = false;
-      selPartner.removeAttribute("title");
-      selIntegration.removeAttribute("title");
-      ms.removeAttribute("title");
+      msPartner.querySelector("button").disabled = false;
+      msIntegration.querySelector("button").disabled = false;
+      msInstance.querySelector("button").disabled = false;
+      msFi.querySelector("button").disabled = false;
+      msPartner.removeAttribute("title");
+      msIntegration.removeAttribute("title");
+      msInstance.removeAttribute("title");
+      msFi.removeAttribute("title");
     }
 
     const refreshOptions = () => {
       const next = deriveOptions(options.registry, state);
-      selPartner.innerHTML = `<option value="${ALL}">All</option>${next.partners
-        .map((p) => `<option value="${p}">${p}</option>`)
-        .join("")}`;
-      selIntegration.innerHTML = `<option value="${ALL}">All</option>${next.integrations
-        .map((p) => `<option value="${p}">${p}</option>`)
-        .join("")}`;
-      selInstance.innerHTML = `<option value="${ALL}">All</option>${next.instances
-        .map((p) => `<option value="${p}">${p}</option>`)
-        .join("")}`;
-      selPartner.value = state.partner;
-      selIntegration.value = state.integration;
-      selInstance.value = state.instance;
-      renderMultiSelect(ms, next.fis, state);
+      renderMultiSelectSet(msInstance, next.instances, state, "instanceSet", {
+        title: "Instances",
+        allLabel: "All Instances",
+        noneLabel: "No Instances",
+      });
+      renderMultiSelectSet(msPartner, next.partners, state, "partnerSet", {
+        title: "Partners",
+        allLabel: "All Partners",
+        noneLabel: "No Partners",
+      });
+      renderMultiSelectSet(msIntegration, next.integrations, state, "integrationSet", {
+        title: "Integrations",
+        allLabel: "All Integrations",
+        noneLabel: "No Integrations",
+      });
+      renderMultiSelect(msFi, next.fis, state);
     };
 
     const onScopeChange = debounce(() => {
-      state.partner = selPartner.value || ALL;
-      state.integration = selIntegration.value || ALL;
-      state.instance = selInstance.value || ALL;
+      // Scope selectors only influence the FI list; keep exported strings backwards compatible.
+      state.partner = computeEffectiveStringFromSet(state.partnerSet);
+      state.integration = computeEffectiveStringFromSet(state.integrationSet);
+      state.instance = computeEffectiveStringFromSet(state.instanceSet);
       state.fis.clear();
       state.__fiTouched = false;
       writeQuery(state);
@@ -398,21 +538,11 @@
       applyCb();
     }, 50);
 
-    selPartner.addEventListener("change", () => {
-      state.fis.clear();
-      state.integration = ALL;
-      state.instance = ALL;
-      state.__fiTouched = false;
-      onScopeChange();
-    });
-    selIntegration.addEventListener("change", () => {
-      state.fis.clear();
-      state.instance = ALL;
-      state.__fiTouched = false;
-      onScopeChange();
-    });
-    selInstance.addEventListener("change", onScopeChange);
-    ms.querySelector(".panel").addEventListener("change", () => {
+    msInstance.querySelector(".panel").addEventListener("change", onScopeChange);
+    msPartner.querySelector(".panel").addEventListener("change", onScopeChange);
+    msIntegration.querySelector(".panel").addEventListener("change", onScopeChange);
+
+    msFi.querySelector(".panel").addEventListener("change", () => {
       writeQuery(state);
       writeStorage(state);
       applyCb();
@@ -421,8 +551,14 @@
       state.partner = ALL;
       state.integration = ALL;
       state.instance = ALL;
+      state.partnerSet = new Set();
+      state.integrationSet = new Set();
+      state.instanceSet = new Set();
       state.fis.clear();
       state.__fiTouched = false;  // Reset touched flag so checkboxes re-check
+      state.__partnerSetTouched = false;
+      state.__integrationSetTouched = false;
+      state.__instanceSetTouched = false;
       refreshOptions();
       applyCb();
       writeQuery(state);
@@ -455,10 +591,16 @@
       partner: ALL,
       integration: ALL,
       instance: ALL,
+      partnerSet: new Set(),
+      integrationSet: new Set(),
+      instanceSet: new Set(),
       fis: new Set(),
       page: pageId,
       disableFi: false,
       __fiTouched: false,
+      __partnerSetTouched: false,
+      __integrationSetTouched: false,
+      __instanceSetTouched: false,
     };
     // Always start fresh on load (same as pressing "Clear filters")
     state.partner = ALL;
@@ -484,6 +626,10 @@
     options.registry = registry;
 
     const apply = () => {
+      // Keep string fields stable for existing pages.
+      state.partner = computeEffectiveStringFromSet(state.partnerSet);
+      state.integration = computeEffectiveStringFromSet(state.integrationSet);
+      state.instance = computeEffectiveStringFromSet(state.instanceSet);
       const canonicalFiInstances =
         state.fis.size > 0
           ? new Set(
