@@ -748,10 +748,8 @@
       function currentFilterSelection() {
         const shared = window.__FILTER_STATE;
         if (shared && shared.page === "troubleshoot") {
-          const fi =
-            shared.fis && shared.fis.size === 1
-              ? Array.from(shared.fis)[0]
-              : FI_ALL_VALUE;
+          const fis = shared.fis && shared.fis.size ? Array.from(shared.fis) : [];
+          const fi = fis.length === 1 ? fis[0] : FI_ALL_VALUE;
           return {
             fi,
             integration:
@@ -781,11 +779,10 @@
         if (els.startDate.value) params.set("start", els.startDate.value);
         if (els.endDate.value) params.set("end", els.endDate.value);
         const filters = currentFilterSelection();
-        // Only the FI list should drive data filtering; force other filters to "(all)".
         params.set("fi", filters.fi || FI_ALL_VALUE);
         params.set("integration", "(all)");
         params.set("partner", PARTNER_ALL_VALUE);
-        params.set("instance", INSTANCE_ALL_VALUE);
+        params.set("instance", filters.instance || INSTANCE_ALL_VALUE);
         // Always include test data so TEST instances (e.g., customer-dev) return results.
         params.set("includeTests", "true");
         return params.toString();
@@ -1038,34 +1035,33 @@
         return totals;
       }
 
-      function currentFilterFiSet() {
+      function currentSharedFilter() {
         const shared = window.__FILTER_STATE;
-        if (!shared || shared.page !== "troubleshoot") return null;
-        if (shared.canonicalFiInstances && shared.canonicalFiInstances.size) {
-          return new Set(
-            Array.from(shared.canonicalFiInstances).map((key) => key.split("__")[0])
-          );
+        if (!shared || shared.page !== "troubleshoot") {
+          return { fiSet: null, instanceKey: null };
         }
-        if (!shared.fis || shared.fis.size === 0) return null;
-        // Only the explicit FI selection should drive filtering; ignore partner/integration/instance.
-        return new Set(shared.fis);
+        const fiSet =
+          shared.fis && shared.fis.size
+            ? new Set(Array.from(shared.fis).map((fi) => normalizeFiKey(fi)).filter(Boolean))
+            : null;
+        const instanceKey =
+          shared.instance && shared.instance !== "All"
+            ? normalizeInstanceKey(shared.instance)
+            : null;
+        return { fiSet, instanceKey };
       }
 
       function applyFilters() {
         if (!state.data || !Array.isArray(state.data.sessions)) return;
-        const sharedFiSet = currentFilterFiSet();
-        const filters = currentFilterSelection();
-        const hasLocalFi = filters.fi && filters.fi !== FI_ALL_VALUE;
-        const localFiKey = hasLocalFi ? normalizeFiKey(filters.fi) : null;
-
+        const { fiSet, instanceKey } = currentSharedFilter();
         const filtered = (state.data.sessions || []).filter((s) => {
-          if (sharedFiSet && sharedFiSet.size) {
-            const sharedKey = (s.fi_lookup_key || s.fi_key || s.fi || "").toString();
-            if (!sharedFiSet.has(sharedKey)) return false;
-          }
-          if (hasLocalFi) {
+          if (fiSet && fiSet.size) {
             const fiKey = normalizeFiKey(s.fi_lookup_key || s.fi_key || s.fi || "");
-            if (fiKey !== localFiKey) return false;
+            if (!fiSet.has(fiKey)) return false;
+          }
+          if (instanceKey) {
+            const instKey = normalizeInstanceKey(s.instance || s._instance || "");
+            if (instKey !== instanceKey) return false;
           }
           return true;
         });
@@ -1073,7 +1069,18 @@
         const totals = summarizeTroubleshootSessions(viewFiltered);
         renderSummary(totals);
         renderSessions(viewFiltered);
+
+        if (state.loading) return;
+        const range = `${els.startDate.value || "?"} → ${els.endDate.value || els.startDate.value || "?"}`;
+        const scopeParts = [];
+        if (fiSet && fiSet.size) scopeParts.push(`${fiSet.size} FI${fiSet.size === 1 ? "" : "s"}`);
+        if (instanceKey) scopeParts.push(`instance ${instanceKey}`);
+        const scope = scopeParts.length ? ` (${scopeParts.join(", ")})` : "";
+        setStatus(`Showing ${viewFiltered.length} sessions for ${range}${scope}.`);
       }
+
+      // Expose for assets/js/filters.js integration.
+      window.applyFilters = applyFilters;
 
       async function loadDay() {
         const start = els.startDate.value;
