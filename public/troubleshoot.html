@@ -493,8 +493,11 @@
         if (parts.length < 3) return null;
         const bin = parts[0] || "";
         const subId = parts[1] || "";
-        if (!/^\d{6}$/.test(bin)) return null;
-        if (!/^\d{8}$/.test(subId)) return null;
+        // OnDot: <BIN>_@_<SubID>_@_<unique number>
+        // In practice we see variable lengths across partners/environments, so only
+        // require numeric segments (and the delimiter) rather than fixed widths.
+        if (!/^\d+$/.test(bin)) return null;
+        if (!/^\d+$/.test(subId)) return null;
         return { bin, subId };
       }
 
