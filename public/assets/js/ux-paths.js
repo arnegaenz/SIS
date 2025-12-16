@@ -6,6 +6,171 @@
 (function() {
   'use strict';
 
+  // ==================== JSON Explorer (lazy) ====================
+  const uxJsonState = {
+    open: false,
+    currentTab: "session",
+    currentSessionId: null,
+    sessionsById: new Map(),
+    lastRangeLabel: "",
+    rendered: {
+      session: null,
+      jobs: null,
+      clickstream: null,
+      placements: null,
+    },
+  };
+
+  function safeStringify(value) {
+    try {
+      return JSON.stringify(value, null, 2);
+    } catch (err) {
+      return JSON.stringify(
+        { error: "Unable to stringify JSON", message: err?.message || String(err) },
+        null,
+        2
+      );
+    }
+  }
+
+  function pickSessionId(session) {
+    return (
+      session?.id ??
+      session?.agent_session_id ??
+      session?.session_id ??
+      session?.cuid ??
+      null
+    );
+  }
+
+  function normalizeKey(value) {
+    return (value || "").toString().trim().toLowerCase();
+  }
+
+  function wireJsonExplorer() {
+    const modal = document.getElementById("uxJsonModal");
+    if (!modal || modal.__wired) return;
+    modal.__wired = true;
+
+    const pre = document.getElementById("uxJsonPre");
+    const subtitle = document.getElementById("uxJsonSubtitle");
+    const closeBtn = document.getElementById("uxJsonClose");
+    const copyBtn = document.getElementById("uxJsonCopy");
+    const downloadBtn = document.getElementById("uxJsonDownload");
+    const tabs = Array.from(modal.querySelectorAll(".ux-tab[data-tab]"));
+
+    const currentSession = () => {
+      const sid = uxJsonState.currentSessionId;
+      if (!sid) return null;
+      return uxJsonState.sessionsById.get(String(sid)) || null;
+    };
+
+    const buildTabJson = (tab, session) => {
+      if (!session) return { error: "Session not loaded" };
+      if (tab === "jobs") return Array.isArray(session.jobs) ? session.jobs : [];
+      if (tab === "clickstream") return Array.isArray(session.clickstream) ? session.clickstream : [];
+      if (tab === "placements") return Array.isArray(session.placements_raw) ? session.placements_raw : [];
+      const { jobs, clickstream, placements_raw, ...rest } = session;
+      return rest;
+    };
+
+    const renderIfNeeded = () => {
+      if (!uxJsonState.open) return;
+      const session = currentSession();
+      const tab = uxJsonState.currentTab;
+      if (!session) {
+        pre.textContent = "No session selected.";
+        subtitle.textContent = uxJsonState.lastRangeLabel ? `Range: ${uxJsonState.lastRangeLabel}` : "Select a session from a table.";
+        return;
+      }
+      const sid = String(uxJsonState.currentSessionId);
+      subtitle.textContent = `Session: ${sid}${uxJsonState.lastRangeLabel ? ` • Range: ${uxJsonState.lastRangeLabel}` : ""}`;
+      if (uxJsonState.rendered[tab] && uxJsonState.rendered[tab].sid === sid) {
+        pre.textContent = uxJsonState.rendered[tab].text;
+        return;
+      }
+      const text = safeStringify(buildTabJson(tab, session));
+      uxJsonState.rendered[tab] = { sid, text };
+      pre.textContent = text;
+    };
+
+    const setTab = (tab) => {
+      uxJsonState.currentTab = tab;
+      tabs.forEach((t) => t.setAttribute("aria-selected", t.dataset.tab === tab ? "true" : "false"));
+      renderIfNeeded();
+    };
+
+    const close = () => {
+      uxJsonState.open = false;
+      modal.hidden = true;
+      modal.setAttribute("aria-hidden", "true");
+    };
+
+    const open = () => {
+      uxJsonState.open = true;
+      modal.hidden = false;
+      modal.setAttribute("aria-hidden", "false");
+      renderIfNeeded();
+    };
+
+    tabs.forEach((btn) => btn.addEventListener("click", () => setTab(btn.dataset.tab)));
+    closeBtn?.addEventListener("click", close);
+    modal.addEventListener("click", (e) => { if (e.target === modal) close(); });
+    document.addEventListener("keydown", (e) => { if (uxJsonState.open && e.key === "Escape") close(); });
+
+    copyBtn?.addEventListener("click", async () => {
+      const text = pre?.textContent || "";
+      if (!text) return;
+      try {
+        await navigator.clipboard.writeText(text);
+      } catch {
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        ta.style.position = "fixed";
+        ta.style.left = "-9999px";
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand("copy"); } catch {}
+        document.body.removeChild(ta);
+      }
+    });
+
+    downloadBtn?.addEventListener("click", () => {
+      const session = currentSession();
+      if (!session) return;
+      const sid = String(uxJsonState.currentSessionId);
+      const payload = buildTabJson(uxJsonState.currentTab, session);
+      const blob = new Blob([safeStringify(payload)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `session_${sid}_${uxJsonState.currentTab}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    });
+
+    modal.__openUxJson = open;
+    modal.__closeUxJson = close;
+    modal.__setUxTab = setTab;
+  }
+
+  function openJsonExplorer({ sessionId, focus } = {}) {
+    wireJsonExplorer();
+    const modal = document.getElementById("uxJsonModal");
+    if (!modal) return;
+    if (sessionId != null) {
+      uxJsonState.currentSessionId = String(sessionId);
+      uxJsonState.rendered = { session: null, jobs: null, clickstream: null, placements: null };
+    }
+    const tab = focus || "session";
+    uxJsonState.currentTab = tab;
+    const tabs = Array.from(modal.querySelectorAll(".ux-tab[data-tab]"));
+    tabs.forEach((t) => t.setAttribute("aria-selected", t.dataset.tab === tab ? "true" : "false"));
+    modal.__openUxJson();
+  }
+
   // ==================== Data Parsing Functions ====================
 
   /**
@@ -13,11 +178,13 @@
    */
   function parseClickstream(session) {
     const pages = [];
-    const clickstream = session.clickstream || [];
+    const clickstream = Array.isArray(session.clickstream) ? session.clickstream : [];
 
     for (const click of clickstream) {
       const url = click.url || '';
-      const timestamp = new Date(click.timestamp);
+      const at = click.at || click.timestamp || click.time || null;
+      const timestamp = at ? new Date(at) : null;
+      if (!timestamp || Number.isNaN(timestamp)) continue;
 
       let pageType = null;
       if (url.includes('/select-merchants')) pageType = 'SELECT_MERCHANTS';
@@ -105,18 +272,18 @@
 
   // ==================== Statistical Helper Functions ====================
 
-  function median(values) {
+  function median(values, alreadySorted = false) {
     if (!values || values.length === 0) return 0;
-    const sorted = [...values].sort((a, b) => a - b);
+    const sorted = alreadySorted ? values : [...values].sort((a, b) => a - b);
     const mid = Math.floor(sorted.length / 2);
     return sorted.length % 2 === 0
       ? (sorted[mid - 1] + sorted[mid]) / 2
       : sorted[mid];
   }
 
-  function percentile(values, p) {
+  function percentile(values, p, alreadySorted = false) {
     if (!values || values.length === 0) return 0;
-    const sorted = [...values].sort((a, b) => a - b);
+    const sorted = alreadySorted ? values : [...values].sort((a, b) => a - b);
     const index = Math.ceil(sorted.length * (p / 100)) - 1;
     return sorted[Math.max(0, index)];
   }
@@ -124,6 +291,24 @@
   function avg(values) {
     if (!values || values.length === 0) return 0;
     return values.reduce((sum, v) => sum + v, 0) / values.length;
+  }
+
+  const MAX_DURATION_SAMPLES = 50000;
+  function addDurationSamples(bucket, values, seenCounter, key) {
+    if (!bucket || !values || !values.length) return;
+    const seen = seenCounter || (seenCounter = {});
+    if (!Number.isFinite(seen[key])) seen[key] = 0;
+    for (const v of values) {
+      if (!Number.isFinite(v) || v < 0) continue;
+      seen[key] += 1;
+      if (bucket.length < MAX_DURATION_SAMPLES) {
+        bucket.push(v);
+      } else {
+        // Reservoir sampling to avoid unbounded memory usage.
+        const j = Math.floor(Math.random() * seen[key]);
+        if (j < MAX_DURATION_SAMPLES) bucket[j] = v;
+      }
+    }
   }
 
   function formatDuration(seconds) {
@@ -157,48 +342,71 @@
 
     console.log(`Loading sessions from ${startStr} to ${endStr}...`);
 
-    // Fetch raw session data from the new API endpoint
-    const response = await fetch(`/api/sessions/raw?start=${startStr}&end=${endStr}`);
+    // Fetch sessions from the same dataset used by Troubleshoot (includes jobs + placements + normalized clickstream).
+    // If the shared filter state is narrow enough (single FI), pass it to the server to reduce payload size.
+    const qs = new URLSearchParams();
+    qs.set("start", startStr);
+    qs.set("end", endStr);
+    qs.set("includeTests", "true");
+
+    const shared = filterState || null;
+    const fis = shared && shared.fis ? Array.from(shared.fis) : [];
+    const singleFi = fis.length === 1 ? fis[0] : "__all__";
+    const partner = shared && shared.partner && shared.partner !== "All" ? shared.partner : "__all_partners__";
+    const integration = shared && shared.integration && shared.integration !== "All" ? shared.integration : "(all)";
+    const instance = shared && shared.instance && shared.instance !== "All" ? shared.instance : "__all_instances__";
+    qs.set("fi", singleFi);
+    qs.set("partner", partner);
+    qs.set("integration", integration);
+    qs.set("instance", instance);
+
+    const response = await fetch(`/troubleshoot/day?${qs.toString()}`);
     if (!response.ok) {
       throw new Error(`Failed to fetch sessions: ${response.status} ${response.statusText}`);
     }
     const data = await response.json();
-    let allSessions = data.sessions || [];
+    let allSessions = Array.isArray(data.sessions) ? data.sessions : [];
     console.log(`Loaded ${allSessions.length} total sessions`);
 
-    // Apply FI/Instance filter if available.
-    // IMPORTANT: Do not use canonicalFiInstances membership here because filters.js
-    // encodes "All" instance as "__any", which is a wildcard and will never match
-    // real raw session instance keys. Mirror the FI-Funnel behavior instead.
-    console.log('[UX Paths] Filter state:', {
-      hasFilterState: !!filterState,
-      fisSize: filterState && filterState.fis ? filterState.fis.size : 0,
-      instance: filterState ? filterState.instance : null
-    });
+    // Cache for JSON explorer (raw dataset returned from troubleshoot endpoint).
+    uxJsonState.sessionsById = new Map();
+    for (const s of allSessions) {
+      const sid = pickSessionId(s);
+      if (sid != null) uxJsonState.sessionsById.set(String(sid), s);
+    }
+    uxJsonState.lastRangeLabel = `${startStr} → ${endStr}`;
 
+    // Apply client-side filters (FI multiselect + instance/partner/integration when not pushed down).
     const fiSet =
-      filterState && filterState.fis && filterState.fis.size > 0
-        ? new Set(Array.from(filterState.fis).map(v => (v || '').toString().trim().toLowerCase()).filter(Boolean))
+      shared && shared.fis && shared.fis.size > 0
+        ? new Set(Array.from(shared.fis).map((v) => normalizeKey(v)).filter(Boolean))
         : null;
-    const instanceFilter =
-      filterState && filterState.instance && filterState.instance !== 'All'
-        ? (filterState.instance || '').toString().trim().toLowerCase()
-        : '';
+    const instFilter = shared && shared.instance && shared.instance !== "All" ? normalizeKey(shared.instance) : "";
+    const partnerFilter = shared && shared.partner && shared.partner !== "All" ? shared.partner : "";
+    const integrationFilter = shared && shared.integration && shared.integration !== "All" ? shared.integration : "";
 
-    if (fiSet && fiSet.size > 0) {
-      const beforeFilterCount = allSessions.length;
-      allSessions = allSessions.filter(session => {
-        const fi = (session.financial_institution_lookup_key || '').toString().trim().toLowerCase();
-        if (!fiSet.has(fi)) return false;
-        if (instanceFilter) {
-          const inst = (session._instance || '').toString().trim().toLowerCase();
-          if (inst !== instanceFilter) return false;
+    if (fiSet || instFilter || partnerFilter || integrationFilter) {
+      const before = allSessions.length;
+      allSessions = allSessions.filter((session) => {
+        if (fiSet && fiSet.size) {
+          const fk = normalizeKey(session.fi_key || session.fi_lookup_key || session.financial_institution_lookup_key || "");
+          if (!fiSet.has(fk)) return false;
+        }
+        if (instFilter) {
+          const inst = normalizeKey(session.instance || session._instance || "");
+          if (inst !== instFilter) return false;
+        }
+        if (partnerFilter) {
+          const p = session.partner || "";
+          if (p !== partnerFilter) return false;
+        }
+        if (integrationFilter) {
+          const i = session.integration_display || session.integration || session.integration_type || "";
+          if (i !== integrationFilter) return false;
         }
         return true;
       });
-      console.log(`[UX Paths] Filtered ${beforeFilterCount} sessions to ${allSessions.length} based on FI selection`);
-    } else {
-      console.log('[UX Paths] No FI filter applied - showing all sessions');
+      console.log(`[UX Paths] Filtered ${before} sessions → ${allSessions.length} with shared filters`);
     }
 
     // Filter to ONLY successful sessions
@@ -219,8 +427,16 @@
         USER_DATA: [],
         CREDENTIAL_ENTRY: []
       },
+      pageDurationSeen: {
+        SELECT_MERCHANTS: 0,
+        USER_DATA: 0,
+        CREDENTIAL_ENTRY: 0,
+      },
       retryPatterns: {},
-      highPerformers: []
+      highPerformers: [],
+      examplesByPattern: new Map(),
+      examplesByRetry: new Map(),
+      examplesByPage: new Map(),
     };
 
     // Analyze each successful session
@@ -230,9 +446,19 @@
       const durations = calculatePageDurations(pages);
       const sessionRetries = detectRetries(pages);
 
-      const createdOn = new Date(session.created_on);
-      const closedOn = new Date(session.closed_on);
-      const sessionDuration = (closedOn - createdOn) / 1000; // seconds
+      let sessionDuration = null;
+      if (pages.length >= 2) {
+        const first = pages[0].timestamp;
+        const last = pages[pages.length - 1].timestamp;
+        const d = (last - first) / 1000;
+        if (Number.isFinite(d) && d >= 0) sessionDuration = d;
+      }
+      if (sessionDuration === null) {
+        const createdOn = new Date(session.created_on);
+        const closedOn = new Date(session.closed_on);
+        const d = (closedOn - createdOn) / 1000;
+        sessionDuration = Number.isFinite(d) && d >= 0 ? d : 0;
+      }
 
       stats.totalSuccessfulJobs += session.successful_jobs || 0;
 
@@ -248,8 +474,14 @@
       stats.patterns[pattern].count++;
       stats.patterns[pattern].totalSuccessfulJobs += session.successful_jobs || 0;
       stats.patterns[pattern].totalDuration += sessionDuration;
+      const sessionId = pickSessionId(session);
+      if (sessionId != null) {
+        if (!stats.examplesByPattern.has(pattern)) stats.examplesByPattern.set(pattern, []);
+        const list = stats.examplesByPattern.get(pattern);
+        if (list.length < 50) list.push(String(sessionId));
+      }
       stats.patterns[pattern].sessions.push({
-        id: session.id,
+        id: sessionId,
         jobs: session.successful_jobs,
         duration: sessionDuration,
         pages: pages
@@ -258,7 +490,16 @@
       // Aggregate page durations
       for (const [page, times] of Object.entries(durations)) {
         if (stats.pageDurations[page]) {
-          stats.pageDurations[page].push(...times);
+          addDurationSamples(stats.pageDurations[page], times, stats.pageDurationSeen, page);
+        }
+        if (times && times.length) {
+          const sid = pickSessionId(session);
+          if (sid != null) {
+            if (!stats.examplesByPage.has(page)) stats.examplesByPage.set(page, []);
+            const list = stats.examplesByPage.get(page);
+            const sidStr = String(sid);
+            if (list.length < 50 && !list.includes(sidStr)) list.push(sidStr);
+          }
         }
       }
 
@@ -275,12 +516,18 @@
         }
         stats.retryPatterns[key].count++;
         stats.retryPatterns[key].totalJobsAfter += session.successful_jobs || 0;
+        const sid = pickSessionId(session);
+        if (sid != null) {
+          if (!stats.examplesByRetry.has(key)) stats.examplesByRetry.set(key, []);
+          const list = stats.examplesByRetry.get(key);
+          if (list.length < 50) list.push(String(sid));
+        }
       }
 
       // Track high performers (3+ successful jobs)
       if (session.successful_jobs >= 3) {
         stats.highPerformers.push({
-          id: session.id,
+          id: pickSessionId(session),
           jobs: session.successful_jobs,
           duration: sessionDuration,
           path: pattern,
@@ -327,7 +574,7 @@
 
       const row = document.createElement('tr');
       row.innerHTML = `
-        <td><strong>${patternName}</strong></td>
+        <td><button class="ux-link" type="button" data-ux-open-pattern="${patternName}">${patternName}</button></td>
         <td>${data.count}</td>
         <td>${avgJobs}</td>
         <td>${avgDuration}</td>
@@ -352,8 +599,9 @@
     for (const session of sorted) {
       const pagesVisited = session.pages.length;
       const row = document.createElement('tr');
+      const sid = session.id != null ? String(session.id) : '';
       row.innerHTML = `
-        <td>${session.id}</td>
+        <td><button class="ux-link" type="button" data-ux-open-session="${sid}">${sid}</button></td>
         <td><strong>${session.jobs}</strong></td>
         <td>${formatDuration(session.duration)}</td>
         <td>${session.path}</td>
@@ -363,7 +611,7 @@
     }
   }
 
-  function renderTimeAnalysisTable(pageDurations) {
+  function renderTimeAnalysisTable(pageDurations, examplesByPage) {
     const tbody = document.querySelector('#timeAnalysisTable tbody');
     tbody.innerHTML = '';
 
@@ -379,12 +627,20 @@
       if (times.length > 0) {
         hasData = true;
         const avgTime = formatDuration(avg(times));
-        const medianTime = formatDuration(median(times));
-        const p90Time = formatDuration(percentile(times, 90));
+        const sorted = [...times].sort((a, b) => a - b);
+        const medianTime = formatDuration(median(sorted, true));
+        const p90Time = formatDuration(percentile(sorted, 90, true));
+        const examples =
+          examplesByPage && examplesByPage.get ? (examplesByPage.get(pageType) || []) : [];
+        const example = examples.length ? String(examples[0]) : '';
 
         const row = document.createElement('tr');
         row.innerHTML = `
-          <td><strong>${pageLabels[pageType] || pageType}</strong></td>
+          <td>${
+            example
+              ? `<button class="ux-link" type="button" data-ux-open-session="${example}">${pageLabels[pageType] || pageType}</button>`
+              : `<strong>${pageLabels[pageType] || pageType}</strong>`
+          }</td>
           <td>${avgTime}</td>
           <td>${medianTime}</td>
           <td>${p90Time}</td>
@@ -426,17 +682,18 @@
         <td>${fromLabel}</td>
         <td>${toLabel}</td>
         <td>${data.count}</td>
-        <td><strong>${avgJobsAfter}</strong></td>
+        <td><button class="ux-link" type="button" data-ux-open-retry="${key}"><strong>${avgJobsAfter}</strong></button></td>
       `;
       tbody.appendChild(row);
     }
   }
 
   function renderAllTables(stats) {
+    window.__UX_PATHS_LAST_STATS = stats;
     renderMetrics(stats);
     renderPathPatternsTable(stats.patterns, stats.totalSuccessfulSessions);
     renderHighPerformersTable(stats.highPerformers);
-    renderTimeAnalysisTable(stats.pageDurations);
+    renderTimeAnalysisTable(stats.pageDurations, stats.examplesByPage);
     renderRetryPatternsTable(stats.retryPatterns);
   }
 
@@ -547,6 +804,40 @@
   function init() {
     console.log('UX Success Paths page initialized');
 
+    wireJsonExplorer();
+
+    if (!document.__uxPathsJsonDelegate) {
+      document.__uxPathsJsonDelegate = true;
+      document.addEventListener("click", (e) => {
+        const t = e.target && e.target.closest
+          ? e.target.closest("[data-ux-open-session],[data-ux-open-pattern],[data-ux-open-retry]")
+          : null;
+        if (!t) return;
+        if (t.dataset.uxOpenSession) {
+          openJsonExplorer({ sessionId: t.dataset.uxOpenSession, focus: "session" });
+          return;
+        }
+        const stats = window.__UX_PATHS_LAST_STATS || null;
+        if (t.dataset.uxOpenPattern) {
+          const name = t.dataset.uxOpenPattern;
+          const ids = stats && stats.examplesByPattern && stats.examplesByPattern.get
+            ? stats.examplesByPattern.get(name)
+            : null;
+          const sid = ids && ids.length ? ids[0] : null;
+          if (sid) openJsonExplorer({ sessionId: sid, focus: "session" });
+          return;
+        }
+        if (t.dataset.uxOpenRetry) {
+          const key = t.dataset.uxOpenRetry;
+          const ids = stats && stats.examplesByRetry && stats.examplesByRetry.get
+            ? stats.examplesByRetry.get(key)
+            : null;
+          const sid = ids && ids.length ? ids[0] : null;
+          if (sid) openJsonExplorer({ sessionId: sid, focus: "session" });
+        }
+      });
+    }
+
     // Initialize FI filter system
     if (window.initFilters) {
       window.initFilters('ux-paths');
@@ -606,7 +897,7 @@
     }
 
     // Load initial data
-    refreshData(getDefaultDateRange());
+    refreshData(getDefaultDateRange(), window.__FILTER_STATE || null);
   }
 
   // Wait for DOM and dependencies to load

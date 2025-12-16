@@ -185,6 +185,110 @@
       color: var(--text);
       border: 1px solid var(--input-border);
     }
+
+    /* ===== JSON Explorer Modal ===== */
+    .ux-modal[hidden] { display: none; }
+    .ux-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      display: grid;
+      place-items: center;
+      padding: 18px;
+      background: rgba(0,0,0,0.55);
+      backdrop-filter: blur(3px);
+    }
+    .ux-modal-card {
+      width: min(1100px, 96vw);
+      max-height: min(86vh, 900px);
+      overflow: hidden;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      box-shadow: 0 22px 70px rgba(0,0,0,0.35);
+      display: flex;
+      flex-direction: column;
+    }
+    .ux-modal-top {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(180deg, rgba(37,99,235,0.08), transparent);
+    }
+    .ux-modal-title {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 0;
+    }
+    .ux-modal-title h3 {
+      margin: 0;
+      font-size: 14px;
+      letter-spacing: 0.2px;
+    }
+    .ux-modal-title .muted { color: var(--muted); font-size: 12px; }
+    .ux-modal-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .ux-pill {
+      border: 1px solid var(--border);
+      background: var(--panel-light);
+      color: var(--text);
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-size: 12px;
+      font-weight: 650;
+      cursor: pointer;
+    }
+    .ux-pill.primary { background: linear-gradient(120deg, var(--accent), var(--accent-2)); color: #f8fafc; border: 0; }
+    .ux-pill.ghost { background: transparent; }
+    .ux-modal-body {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+      padding: 12px 14px;
+      overflow: auto;
+    }
+    .ux-tabs { display:flex; gap: 8px; flex-wrap: wrap; }
+    .ux-tab {
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-size: 12px;
+      font-weight: 650;
+      cursor: pointer;
+    }
+    .ux-tab[aria-selected="true"]{
+      color: var(--text);
+      border-color: rgba(37,99,235,0.35);
+      background: rgba(37,99,235,0.10);
+    }
+    .ux-json-pre {
+      margin: 0;
+      padding: 12px;
+      background: rgba(2,6,23,0.55);
+      border: 1px solid rgba(148,163,184,0.18);
+      border-radius: 12px;
+      color: #e6edf3;
+      font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      white-space: pre;
+      overflow: auto;
+      max-height: 60vh;
+    }
+    .ux-link {
+      background: transparent;
+      border: 0;
+      padding: 0;
+      margin: 0;
+      color: var(--accent);
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
   </style>
 </head>
 <body>
@@ -229,7 +333,7 @@
       </section>
 
       <!-- Success Overview Metrics -->
-      <section class="sis-panel">
+      <section class="sis-panel" id="uxSuccessOverview">
         <h2 class="sis-panel-title">Success Overview</h2>
         <p class="sis-panel-subtitle">Showing only sessions with successful placements</p>
         <div class="path-metrics-grid">
@@ -250,7 +354,7 @@
       </section>
 
       <!-- Successful Path Patterns -->
-      <section class="sis-panel">
+      <section class="sis-panel" id="uxPathPatterns">
         <h2 class="sis-panel-title">Successful Path Patterns</h2>
         <p class="sis-panel-subtitle">Journey patterns that lead to successful placements</p>
         <table class="sis-table" id="pathPatternsTable">
@@ -274,7 +378,7 @@
       </section>
 
       <!-- High Performer Sessions -->
-      <section class="sis-panel">
+      <section class="sis-panel" id="uxHighPerformers">
         <h2 class="sis-panel-title">High Performer Sessions (3+ Successful Jobs)</h2>
         <p class="sis-panel-subtitle">Sessions with exceptional success rates</p>
         <table class="sis-table" id="highPerformersTable">
@@ -298,7 +402,7 @@
       </section>
 
       <!-- Time Analysis for Successful Sessions -->
-      <section class="sis-panel">
+      <section class="sis-panel" id="uxTimeByPage">
         <h2 class="sis-panel-title">Time Spent by Page (Successful Sessions Only)</h2>
         <p class="sis-panel-subtitle">How long successful users spend at each step</p>
         <table class="sis-table" id="timeAnalysisTable">
@@ -321,7 +425,7 @@
       </section>
 
       <!-- Retry Patterns in Successful Sessions -->
-      <section class="sis-panel">
+      <section class="sis-panel" id="uxRetryPatterns">
         <h2 class="sis-panel-title">Retry Patterns (Successful Sessions)</h2>
         <p class="sis-panel-subtitle">How successful users navigate when they backtrack</p>
         <table class="sis-table" id="retryPatternsTable">
@@ -344,6 +448,32 @@
       </section>
 
     </main>
+  </div>
+
+  <!-- JSON Explorer Modal (lazy rendered) -->
+  <div id="uxJsonModal" class="ux-modal" hidden aria-hidden="true">
+    <div class="ux-modal-card" role="dialog" aria-modal="true" aria-labelledby="uxJsonTitle">
+      <div class="ux-modal-top">
+        <div class="ux-modal-title">
+          <h3 id="uxJsonTitle">Session JSON Explorer</h3>
+          <div class="muted" id="uxJsonSubtitle">Select a tab to load JSON.</div>
+        </div>
+        <div class="ux-modal-actions">
+          <button type="button" class="ux-pill ghost" id="uxJsonClose">Close</button>
+          <button type="button" class="ux-pill" id="uxJsonCopy">Copy JSON</button>
+          <button type="button" class="ux-pill" id="uxJsonDownload">Download</button>
+        </div>
+      </div>
+      <div class="ux-modal-body">
+        <div class="ux-tabs" role="tablist" aria-label="JSON Tabs">
+          <button type="button" class="ux-tab" role="tab" data-tab="session" aria-selected="true">Session</button>
+          <button type="button" class="ux-tab" role="tab" data-tab="jobs" aria-selected="false">Jobs</button>
+          <button type="button" class="ux-tab" role="tab" data-tab="clickstream" aria-selected="false">Clickstream</button>
+          <button type="button" class="ux-tab" role="tab" data-tab="placements" aria-selected="false">Placements</button>
+        </div>
+        <pre class="ux-json-pre" id="uxJsonPre">Select a tab to load JSON…</pre>
+      </div>
+    </div>
   </div>
 
   <script>
