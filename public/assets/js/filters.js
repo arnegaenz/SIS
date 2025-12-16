@@ -209,12 +209,21 @@
       ? byIntegration.filter((r) => normalizedTargets.has(normalizeInstanceKey(r.instance)))
       : byIntegration;
 
+    // Instance dropdown should include everything seen in the registry so that
+    // "uncheck one instance" only removes that instance’s FIs (no hidden drop).
+    // If an allow-list is present, treat it as a union (extra candidates), not a filter.
     let instancesOut = unique(registry.map((r) => r.instance));
     if (allowedInstances && allowedInstances.size) {
-      instancesOut = instancesOut.filter((inst) => allowedInstances.has(normalizeInstanceKey(inst)));
+      for (const inst of allowedInstances) {
+        // allowInstances entries are normalized; keep display list from registry,
+        // but at least expose the normalized name if it isn't already present.
+        if (!instancesOut.includes(inst)) instancesOut.push(inst);
+      }
+      instancesOut = unique(instancesOut);
     }
     if (!instancesOut.includes("customer-dev")) instancesOut.push("customer-dev");
-    const partners = unique(registry.map((r) => r.partner)).filter((p) => p !== "Unknown");
+    // Include Unknown/UNKNOWN so scoping doesn't unexpectedly drop "unknown" rows once touched.
+    const partners = unique(registry.map((r) => r.partner));
 
     // Create FI options with instance labels: "fi_name (instance)"
     const fiOptions = byInstance.map((r) => ({
