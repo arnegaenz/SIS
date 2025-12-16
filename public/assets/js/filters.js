@@ -174,14 +174,35 @@
   function deriveOptions(registry, state) {
     // Multi-select sets (Partner/Integration/Instance) are used ONLY to scope the FI list.
     // To avoid breaking page-level behavior, we keep state.partner/state.integration/state.instance as strings.
-    const partnerSet = state.partnerSet instanceof Set && state.partnerSet.size ? state.partnerSet : null;
-    const integrationSet =
-      state.integrationSet instanceof Set && state.integrationSet.size ? state.integrationSet : null;
-    const instanceSet = state.instanceSet instanceof Set && state.instanceSet.size ? state.instanceSet : null;
+    const partnerUniverse = Array.isArray(state.partnerSetUniverse) ? state.partnerSetUniverse : null;
+    const integrationUniverse = Array.isArray(state.integrationSetUniverse) ? state.integrationSetUniverse : null;
+    const instanceUniverse = Array.isArray(state.instanceSetUniverse) ? state.instanceSetUniverse : null;
 
-    const byPartner = partnerSet ? registry.filter((r) => partnerSet.has(r.partner)) : registry;
-    const byIntegration = integrationSet ? byPartner.filter((r) => integrationSet.has(r.integration)) : byPartner;
-    const normalizedTargets = instanceSet
+    const partnerSet = state.partnerSet instanceof Set ? state.partnerSet : new Set();
+    const integrationSet = state.integrationSet instanceof Set ? state.integrationSet : new Set();
+    const instanceSet = state.instanceSet instanceof Set ? state.instanceSet : new Set();
+
+    const partnerActive = !!state.__partnerSetTouched;
+    const integrationActive = !!state.__integrationSetTouched;
+    const instanceActive = !!state.__instanceSetTouched;
+
+    const usePartnerFilter =
+      partnerActive &&
+      (!partnerUniverse || partnerSet.size < partnerUniverse.length || partnerSet.size === 0);
+    const useIntegrationFilter =
+      integrationActive &&
+      (!integrationUniverse || integrationSet.size < integrationUniverse.length || integrationSet.size === 0);
+    const useInstanceFilter =
+      instanceActive &&
+      (!instanceUniverse || instanceSet.size < instanceUniverse.length || instanceSet.size === 0);
+
+    const byPartner = usePartnerFilter
+      ? registry.filter((r) => partnerSet.has(r.partner))
+      : registry;
+    const byIntegration = useIntegrationFilter
+      ? byPartner.filter((r) => integrationSet.has(r.integration))
+      : byPartner;
+    const normalizedTargets = useInstanceFilter
       ? new Set(Array.from(instanceSet).map((v) => normalizeInstanceKey(v)))
       : null;
     const byInstance = normalizedTargets
@@ -226,6 +247,7 @@
     // Setup event handlers (only if not already set up)
     if (!btn.dataset.handlersAttached) {
       const openPanel = () => {
+        closeAllMultiSelectPanels(container);
         panel.removeAttribute("hidden");
         container.dataset.open = "true";
       };
@@ -320,6 +342,25 @@
     });
   }
 
+  function closeAllMultiSelectPanels(exceptContainer) {
+    document.querySelectorAll(".multi-select .panel").forEach((p) => {
+      const parent = p.closest(".multi-select");
+      if (exceptContainer && parent === exceptContainer) return;
+      p.setAttribute("hidden", "hidden");
+      if (parent) parent.dataset.open = "false";
+    });
+  }
+
+  if (!document.__sisMultiSelectCloseBound) {
+    document.__sisMultiSelectCloseBound = true;
+    document.addEventListener("click", (e) => {
+      const target = e.target;
+      const inside = target && target.closest ? target.closest(".multi-select") : null;
+      if (inside) return;
+      closeAllMultiSelectPanels(null);
+    });
+  }
+
   function renderMultiSelectSet(container, values, state, setKey, opts = {}) {
     const btn = container.querySelector("button");
     const panel = container.querySelector(".panel");
@@ -333,6 +374,7 @@
     // Setup open/close handlers once
     if (!btn.dataset.handlersAttached) {
       const openPanel = () => {
+        closeAllMultiSelectPanels(container);
         panel.removeAttribute("hidden");
         container.dataset.open = "true";
       };
@@ -352,6 +394,8 @@
 
     panel.innerHTML = "";
     const options = Array.isArray(values) ? values.filter(Boolean) : [];
+    // Track universe for deriveOptions "all selected means wildcard" behavior.
+    state[setKey + "Universe"] = options.slice();
     if (!options.length) {
       btn.textContent = noneLabel;
       state[setKey] = new Set();
@@ -375,7 +419,7 @@
       const count = state[setKey].size;
       const total = options.length;
       const allSelected = count && count === total;
-      btn.textContent = allSelected ? `${allLabel} (${total})` : count ? `${count} selected` : noneLabel;
+      btn.textContent = allSelected || !state[touchedKey] ? `${allLabel} (${total})` : count ? `${count} selected` : noneLabel;
     };
 
     // Toggle all row
