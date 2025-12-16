@@ -29,7 +29,8 @@
     if (!fi) return null;
     const normalizePartner = (val) => {
       const s = (val || "").toString().trim();
-      if (!s) return "Unknown";
+      if (!s) return "Other";
+      if (s.toLowerCase() === "unknown") return "Other";
       if (s.toLowerCase() === "direct" || s.toLowerCase() === "direct ss01") return "Direct ss01";
       return s;
     };
@@ -209,7 +210,9 @@
         : registry;
 
     const byPartner = usePartnerFilter
-      ? baseRegistry.filter((r) => partnerSet.has(r.partner) || r.partner === "Unknown")
+      ? partnerSet.size
+        ? baseRegistry.filter((r) => partnerSet.has(r.partner))
+        : []
       : baseRegistry;
     const byIntegration = useIntegrationFilter
       ? byPartner.filter((r) => integrationSet.has(r.integration))
@@ -229,9 +232,8 @@
       instancesOut = unique(baseRegistry.map((r) => r.instance));
     }
 
-    // Partner dropdown should not show Unknown (missing partner should not be user-selectable),
-    // but we keep Unknown rows included when scoping so they don't disappear unexpectedly.
-    const partners = unique(baseRegistry.map((r) => r.partner)).filter((p) => p !== "Unknown");
+    // Always include "Other" so missing/unknown partners are user-selectable.
+    const partners = unique([...baseRegistry.map((r) => r.partner), "Other"]);
 
     // Create FI options with instance labels: "fi_name (instance)"
     const fiOptions = byInstance.map((r) => ({
