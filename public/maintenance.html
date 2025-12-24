@@ -11,6 +11,8 @@
   <script src="./assets/js/config.js"></script>
   <script defer src="./assets/js/nav.js"></script>
   <script defer src="./assets/js/filters.js"></script>
+  <script type="module" defer src="./assets/js/global-thresholds.js"></script>
+  <script type="module" defer src="./assets/js/global-thresholds.maintenance.js"></script>
   <script>
     document.addEventListener("DOMContentLoaded", function(){
       if (window.renderHeaderNav && !window.__sisHeaderNav_maintenance) {
@@ -57,6 +59,61 @@
       color: var(--muted);
       line-height: 1.5;
       font-size: 14px;
+    }
+    .admin-access {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 18px 20px;
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 16px;
+      box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+      flex-wrap: wrap;
+    }
+    .admin-access h2 {
+      margin: 0 0 6px;
+      font-size: 16px;
+    }
+    .admin-access .description {
+      margin: 0;
+      font-size: 13px;
+    }
+    .admin-controls {
+      display: flex;
+      align-items: flex-end;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .admin-controls label {
+      display: flex;
+      flex-direction: column;
+      font-size: 12px;
+      text-transform: uppercase;
+      color: var(--muted);
+      gap: 4px;
+      min-width: 220px;
+    }
+    .admin-controls input {
+      width: 100%;
+      border-radius: 8px;
+      border: 1px solid var(--panel-border);
+      background: var(--input-bg);
+      color: var(--panel-title);
+      padding: 8px 10px;
+      font-size: 14px;
+      height: 40px;
+      line-height: 22px;
+    }
+    .admin-actions {
+      display: flex;
+      gap: 8px;
+    }
+    .admin-status {
+      font-size: 12px;
+      color: var(--muted);
+      min-width: 140px;
     }
     .refresh-status {
       background: var(--log-bg);
@@ -490,6 +547,53 @@
       font-size: 12px;
       color: var(--muted);
     }
+    .thresholds-card .registry-editor {
+      gap: 14px;
+    }
+    .thresholds-note {
+      margin-top: 8px;
+    }
+    .thresholds-toggle-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      padding: 12px;
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+      background: var(--surface);
+    }
+    .thresholds-toggle-row label {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      text-transform: none;
+      color: var(--panel-title);
+      font-size: 13px;
+      letter-spacing: 0;
+    }
+    .thresholds-toggle-row input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--accent);
+    }
+    .thresholds-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .thresholds-actions label.btn.secondary {
+      min-width: 170px;
+    }
+    .thresholds-actions input[type="file"] {
+      display: none;
+    }
+    .thresholds-help {
+      font-size: 12px;
+      color: var(--muted);
+      margin: 0;
+    }
     .refresh-card {
       grid-column: 1 / -1;
     }
@@ -720,6 +824,23 @@
   <div class="sis-content">
   <main class="sis-main maintenance-main">
     <section class="sis-panel">
+      <div class="admin-access">
+        <div>
+          <h2>Admin Access</h2>
+          <p class="description">Enter the admin key to unlock refresh + credential actions (stored in session only).</p>
+        </div>
+        <div class="admin-controls">
+          <label>
+            Admin Key
+            <input type="password" id="adminKeyInput" placeholder="Enter admin key" autocomplete="off" />
+          </label>
+          <div class="admin-actions">
+            <button class="btn secondary" id="adminKeySave" type="button">Save</button>
+            <button class="btn secondary" id="adminKeyClear" type="button">Clear</button>
+          </div>
+          <div class="admin-status" id="adminKeyStatus">Not set.</div>
+        </div>
+      </div>
 
       <div class="maintenance-grid" style="padding-right: 10px;">
         <article class="maint-card refresh-card" id="refreshCard">
@@ -1076,6 +1197,78 @@
           </div>
         </article>
 
+        <article class="maint-card thresholds-card" id="globalThresholdsCard">
+          <div>
+            <h2>Global KPI Thresholds</h2>
+            <p class="description">Global thresholds apply to all FIs and partners. Stored locally in your browser.</p>
+            <p class="description thresholds-note">Enter percentages (e.g. 10 means 10%).</p>
+          </div>
+          <div class="registry-editor">
+            <div class="thresholds-toggle-row">
+              <label for="thEnableViewsPerCardholderColoring">
+                <input type="checkbox" id="thEnableViewsPerCardholderColoring" />
+                Enable views-per-cardholder coloring
+              </label>
+              <p class="thresholds-help">Colors Unique CardUpdatr Views by views per cardholder when cardholders are known.</p>
+            </div>
+            <fieldset>
+              <label>
+                Views per cardholder: bad &lt; (%)
+                <input id="thViewsPerCardholderBadMaxPct" type="number" min="0" max="100" step="0.001" inputmode="decimal" />
+              </label>
+              <label>
+                Views per cardholder: warn &lt; (%)
+                <input id="thViewsPerCardholderWarnMaxPct" type="number" min="0" max="100" step="0.001" inputmode="decimal" />
+              </label>
+
+              <label>
+                Sessions w/ Jobs: bad &lt; (%)
+                <input id="thSessionsWithJobsBadMaxPct" type="number" min="0" max="100" step="0.01" inputmode="decimal" />
+              </label>
+              <label>
+                Sessions w/ Jobs: warn &lt; (%)
+                <input id="thSessionsWithJobsWarnMaxPct" type="number" min="0" max="100" step="0.01" inputmode="decimal" />
+              </label>
+
+              <label>
+                Sessions w/ Successful Jobs: bad &lt; (%)
+                <input id="thSessionsWithSuccessBadMaxPct" type="number" min="0" max="100" step="0.01" inputmode="decimal" />
+              </label>
+              <label>
+                Sessions w/ Successful Jobs: warn &lt; (%)
+                <input id="thSessionsWithSuccessWarnMaxPct" type="number" min="0" max="100" step="0.01" inputmode="decimal" />
+              </label>
+
+              <label>
+                Abandon rate good ≤ (%)
+                <input id="thAbandonGoodMaxPct" type="number" min="0" max="100" step="0.01" inputmode="decimal" />
+              </label>
+              <label>
+                Abandon rate warn ≤ (%)
+                <input id="thAbandonWarnMaxPct" type="number" min="0" max="100" step="0.01" inputmode="decimal" />
+              </label>
+
+              <label>
+                GA coverage: bad &lt; (%)
+                <input id="thGaCoverageBadMaxPct" type="number" min="0" max="100" step="0.01" inputmode="decimal" />
+              </label>
+              <label>
+                GA coverage: warn &lt; (%)
+                <input id="thGaCoverageWarnMaxPct" type="number" min="0" max="100" step="0.01" inputmode="decimal" />
+              </label>
+            </fieldset>
+
+            <div class="thresholds-actions">
+              <button class="btn" id="thresholdsSaveBtn" type="button">Save</button>
+              <button class="btn secondary" id="thresholdsResetBtn" type="button">Reset to defaults</button>
+              <button class="btn secondary" id="thresholdsExportBtn" type="button">Export JSON</button>
+              <label class="btn secondary" for="thresholdsImportFile" style="cursor:pointer;">Import JSON</label>
+              <input id="thresholdsImportFile" type="file" accept="application/json,.json" />
+            </div>
+            <div class="editor-meta" id="thresholdsMeta"></div>
+          </div>
+        </article>
+
         <article class="maint-card ga-service-card">
           <div>
             <h2>Google Analytics Credentials</h2>
@@ -1123,6 +1316,82 @@
 
   <script src="./theme-toggle.js"></script>
   <script>
+    const ADMIN_KEY_STORAGE = "sis_admin_key";
+
+    function resolveApiBase() {
+      if (typeof window.SIS_API_BASE === "string" && window.SIS_API_BASE) {
+        return window.SIS_API_BASE.replace(/\/+$/, "");
+      }
+      if (window.location.protocol === "http:" || window.location.protocol === "https:") {
+        return window.location.origin;
+      }
+      return "http://localhost:8787";
+    }
+
+    function getAdminKey() {
+      try {
+        return sessionStorage.getItem(ADMIN_KEY_STORAGE) || "";
+      } catch (e) {}
+      return "";
+    }
+
+    function setAdminKey(value) {
+      try {
+        if (value) sessionStorage.setItem(ADMIN_KEY_STORAGE, value);
+        else sessionStorage.removeItem(ADMIN_KEY_STORAGE);
+      } catch (e) {}
+    }
+
+    function withAdminHeaders(init) {
+      const next = init ? { ...init } : {};
+      const headers = new Headers(init && init.headers ? init.headers : undefined);
+      const key = getAdminKey();
+      if (key) headers.set("X-SIS-ADMIN-KEY", key);
+      if (key || (init && init.headers)) next.headers = headers;
+      return next;
+    }
+
+    function fetchAdmin(url, init) {
+      return fetch(url, withAdminHeaders(init));
+    }
+
+    function appendAdminKeyToUrl(url) {
+      const key = getAdminKey();
+      if (!key) return url;
+      const base = window.location.origin || "http://localhost";
+      const next = new URL(url, base);
+      next.searchParams.set("adminKey", key);
+      return next.pathname + next.search;
+    }
+
+    (function setupAdminKeyUi() {
+      const input = document.getElementById("adminKeyInput");
+      const saveBtn = document.getElementById("adminKeySave");
+      const clearBtn = document.getElementById("adminKeyClear");
+      const status = document.getElementById("adminKeyStatus");
+      if (!input || !saveBtn || !clearBtn || !status) return;
+
+      function updateStatus() {
+        status.textContent = getAdminKey() ? "Admin key set." : "Not set.";
+      }
+
+      saveBtn.addEventListener("click", () => {
+        const value = (input.value || "").trim();
+        if (!value) return;
+        setAdminKey(value);
+        input.value = "";
+        updateStatus();
+      });
+
+      clearBtn.addEventListener("click", () => {
+        setAdminKey("");
+        input.value = "";
+        updateStatus();
+      });
+
+      updateStatus();
+    })();
+
     (function setupRefreshPanel() {
       const button = document.getElementById("refreshBtn");
       const statusEl = document.getElementById("refreshStatus");
@@ -1132,6 +1401,7 @@
       const presetSelect = document.getElementById("refreshPreset");
       const forceCheckbox = document.getElementById("refreshForceRaw");
       const freshnessEl = document.getElementById("dataFreshness");
+      const apiBase = resolveApiBase();
       let source = null;
 
       const iso = (d) => {
@@ -1264,6 +1534,10 @@
           source.close();
           source = null;
         }
+        if (!getAdminKey()) {
+          setStatus("Admin key required to refresh data.");
+          return;
+        }
         const resolvedRange = validRangeOrFallback(range);
         if (!resolvedRange) {
           setStatus("Start date must be on or before end date.");
@@ -1308,7 +1582,8 @@
           });
 
           logEl.textContent = "";
-          source = new EventSource(`/run-update/stream?${params.toString()}`);
+          const streamUrl = `${apiBase}/run-update/stream?${params.toString()}`;
+          source = new EventSource(appendAdminKeyToUrl(streamUrl));
         } catch (err) {
           console.error('[Maintenance] Check incomplete dates failed:', err);
           setStatus("Error checking data status. See console for details.", "error");
@@ -1423,7 +1698,11 @@
         setDefaultRange();
         loadFreshness();
         try {
-          const res = await fetch("/run-update/status");
+          const res = await fetchAdmin("/run-update/status");
+          if (res.status === 401) {
+            setStatus("Admin key required to view refresh status.");
+            return;
+          }
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           const data = await res.json();
           // Ignore server-provided default ranges; stick to our preset defaults
@@ -1795,6 +2074,10 @@
         setStatus("Scanning data for new FI + instance combos…");
         tableBody.innerHTML = "<tr><td colspan='7'>Scanning…</td></tr>";
         try {
+          if (!getAdminKey()) {
+            setStatus("Admin key required to update registry.", "error");
+            return;
+          }
           const normalizeFiKey = (val) =>
             val ? val.toString().trim().toLowerCase() : "";
           const normalizeInstanceKey = (val) => {
@@ -1883,7 +2166,7 @@
           setStatus(`Adding ${newEntries.length} new FI instances…`);
           for (const [key, payload] of newEntries) {
             try {
-              await fetch("/fi-registry/update", {
+              await fetchAdmin("/fi-registry/update", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ key, updates: payload }),
@@ -1929,6 +2212,10 @@
 
       async function saveEntry() {
         if (!selectedKey || saving) return;
+        if (!getAdminKey()) {
+          setStatus("Admin key required to save registry changes.", "error");
+          return;
+        }
         saving = true;
         saveBtn.disabled = true;
         deleteBtn.disabled = true;
@@ -1938,7 +2225,7 @@
             key: selectedKey,
             updates: gatherFormUpdates(),
           };
-          const res = await fetch("/fi-registry/update", {
+          const res = await fetchAdmin("/fi-registry/update", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload),
@@ -1967,6 +2254,10 @@
 
       async function deleteEntry() {
         if (!selectedKey || saving) return;
+        if (!getAdminKey()) {
+          setStatus("Admin key required to delete registry entries.", "error");
+          return;
+        }
         const entry = getEntryByKey(selectedKey);
         const label = entry ? `${entry.fi_name} (${entry.instance})` : selectedKey;
         if (!window.confirm(`Delete ${label}? This cannot be undone.`)) {
@@ -1978,7 +2269,7 @@
         deleteBtn.disabled = true;
         setStatus("Deleting entry…");
         try {
-          const res = await fetch("/fi-registry/delete", {
+          const res = await fetchAdmin("/fi-registry/delete", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ key: selectedKey }),
@@ -2087,12 +2378,7 @@
         return;
       }
 
-      const apiBase =
-        typeof window.SIS_API_BASE === "string" && window.SIS_API_BASE
-          ? window.SIS_API_BASE.replace(/\/+$/, "")
-          : window.location.protocol === "http:" || window.location.protocol === "https:"
-          ? window.location.origin
-          : "http://localhost:8787";
+      const apiBase = resolveApiBase();
 
       let lastLoadedText = "";
       let allSummaryText = "";
@@ -2142,6 +2428,14 @@
         try {
           setStatus("Loading…");
           setMeta(allSummaryText || "");
+          if (!getAdminKey()) {
+            setStatus("Admin key required to view GA credentials.", "error");
+            jsonArea.value = "";
+            lastLoadedText = "";
+            if (testBtn) testBtn.disabled = true;
+            if (deleteBtn) deleteBtn.disabled = true;
+            return;
+          }
           const selected = currentName();
           if (!selected) {
             setStatus('Select a credential, then paste JSON and click "Save JSON".', "");
@@ -2152,7 +2446,7 @@
             return;
           }
           const name = encodeURIComponent(selected);
-          const res = await fetch(`${apiBase}/ga/credential?name=${name}`, { cache: "no-store" });
+          const res = await fetchAdmin(`${apiBase}/ga/credential?name=${name}`, { cache: "no-store" });
           const data = res.ok ? await res.json() : null;
           if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
           if (data && data.exists) setStatus("Configured.", "success");
@@ -2177,7 +2471,14 @@
 
       async function reloadAllSummary() {
         try {
-          const res = await fetch(`${apiBase}/ga/credentials`, { cache: "no-store" });
+          if (!getAdminKey()) {
+            setStatus("Admin key required to view GA credentials.", "error");
+            setMeta("");
+            jsonArea.value = "";
+            lastLoadedText = "";
+            return;
+          }
+          const res = await fetchAdmin(`${apiBase}/ga/credentials`, { cache: "no-store" });
           const data = res.ok ? await res.json() : null;
           if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
           const list = Array.isArray(data.credentials) ? data.credentials : [];
@@ -2242,6 +2543,10 @@
 
       async function saveCredential() {
         try {
+          if (!getAdminKey()) {
+            setStatus("Admin key required to save GA credentials.", "error");
+            return;
+          }
           if (!currentName()) {
             setStatus('Select a credential (Production/Test) before saving.', "");
             return;
@@ -2250,7 +2555,7 @@
           const name = currentName();
           const jsonText = jsonArea.value || "";
           JSON.parse(jsonText || "{}");
-          const res = await fetch(`${apiBase}/ga/credential/save`, {
+          const res = await fetchAdmin(`${apiBase}/ga/credential/save`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ name, jsonText }),
@@ -2272,13 +2577,17 @@
 
       async function deleteCredential() {
         try {
+          if (!getAdminKey()) {
+            setStatus("Admin key required to delete GA credentials.", "error");
+            return;
+          }
           if (!currentName()) {
             setStatus('Select a credential (Production/Test) before deleting.', "");
             return;
           }
           setStatus("Deleting…");
           const name = currentName();
-          const res = await fetch(`${apiBase}/ga/credential/delete`, {
+          const res = await fetchAdmin(`${apiBase}/ga/credential/delete`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ name }),
@@ -2300,12 +2609,16 @@
       async function testCredential() {
         if (!testBtn || !testPanel) return;
         try {
+          if (!getAdminKey()) {
+            setTestStatus("Admin key required to test GA credentials.", "error");
+            return;
+          }
           testPanel.hidden = false;
           setTestStatus("Testing GA credential…");
           setTestLog("Running GA read-only report (this may take a few seconds)…");
           const name = currentName();
           if (!name) throw new Error("Select a credential (Production/Test) first.");
-          const res = await fetch(`${apiBase}/ga/credential/test`, {
+          const res = await fetchAdmin(`${apiBase}/ga/credential/test`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ name }),
@@ -2347,12 +2660,7 @@
       const saveBtn = document.getElementById("instanceSaveBtn");
       const resetBtn = document.getElementById("instanceResetBtn");
       const deleteBtn = document.getElementById("instanceDeleteBtn");
-      const apiBase =
-        typeof window.SIS_API_BASE === "string" && window.SIS_API_BASE
-          ? window.SIS_API_BASE.replace(/\/+$/, "")
-          : window.location.origin.includes("8787")
-          ? window.location.origin
-          : "http://localhost:8787";
+      const apiBase = resolveApiBase();
       const inputs = {
         name: document.getElementById("instanceName"),
         app: document.getElementById("instanceApp"),
@@ -2373,6 +2681,9 @@
         USERNAME: entry.USERNAME?.trim() || "",
         PASSWORD: entry.PASSWORD?.trim() || "",
         API_KEY: entry.API_KEY?.trim() || "",
+        has_username: Boolean(entry.has_username),
+        has_password: Boolean(entry.has_password),
+        has_api_key: Boolean(entry.has_api_key),
       });
 
       function setStatus(message, kind = "") {
@@ -2390,6 +2701,12 @@
         if (!testLog) return;
         testLog.textContent = text || "";
         testLog.scrollTop = testLog.scrollHeight;
+      }
+
+      function ensureAdminKey(message) {
+        if (getAdminKey()) return true;
+        setStatus(message || "Admin key required for this action.", "error");
+        return false;
       }
 
       function getEntry(name) {
@@ -2486,7 +2803,7 @@
         setStatus("Loading instances…");
         tableBody.innerHTML = "<tr><td colspan='3'>Loading…</td></tr>";
         try {
-          const res = await fetch("/instances");
+          const res = await fetchAdmin("/instances");
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           const payload = await res.json();
           const list = Array.isArray(payload?.instances) ? payload.instances : payload;
@@ -2497,8 +2814,10 @@
           populateForm(selectedName ? getEntry(selectedName) : null);
           renderTable();
           const pathLabel = payload?.path ? ` (${payload.path})` : "";
+          const redacted = Boolean(payload?.redacted);
+          const redactedLabel = redacted ? " (redacted - admin key required)" : "";
           metaLine.textContent = instances.length
-            ? `${instances.length} instance${instances.length === 1 ? "" : "s"} stored in instances.json${pathLabel}`
+            ? `${instances.length} instance${instances.length === 1 ? "" : "s"} stored in instances.json${pathLabel}${redactedLabel}`
             : `No instances defined yet${pathLabel}.`;
           setStatus("Instances loaded.", "success");
         } catch (err) {
@@ -2533,6 +2852,7 @@
       async function saveInstance() {
         if (saving) return;
         if (form.reportValidity && !form.reportValidity()) return;
+        if (!ensureAdminKey("Admin key required to save instances.")) return;
         saving = true;
         updateSaveState();
         const isNew = !selectedName;
@@ -2543,7 +2863,7 @@
             originalName: selectedName,
             entry: gatherFormEntry(),
           };
-          const res = await fetch("/instances/save", {
+          const res = await fetchAdmin("/instances/save", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload),
@@ -2576,6 +2896,7 @@
 
       async function testInstanceAccess() {
         if (saving) return;
+        if (!ensureAdminKey("Admin key required to test instances.")) return;
         saving = true;
         updateSaveState();
         if (testPanel) testPanel.hidden = false;
@@ -2586,7 +2907,7 @@
           const today = new Date();
           const yesterday = new Date(today.getTime() - 86400000);
           const date = yesterday.toISOString().slice(0, 10);
-          const res = await fetch(`${apiBase}/instances/test`, {
+          const res = await fetchAdmin(`${apiBase}/instances/test`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ date }),
@@ -2643,6 +2964,7 @@
 
       async function deleteInstance() {
         if (!selectedName || saving) return;
+        if (!ensureAdminKey("Admin key required to delete instances.")) return;
         const confirmDelete = window.confirm(
           `Delete instance "${selectedName}" from instances.json?`
         );
@@ -2651,7 +2973,7 @@
         updateSaveState();
         setStatus(`Deleting ${selectedName}…`);
         try {
-          const res = await fetch("/instances/delete", {
+          const res = await fetchAdmin("/instances/delete", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ name: selectedName }),

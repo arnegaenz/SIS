@@ -282,7 +282,7 @@ const mime = (ext) =>
 const setCors = (res) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, X-SIS-ADMIN-KEY");
 };
 
 const send = (res, code, body, type) => {
@@ -296,6 +296,55 @@ const send = (res, code, body, type) => {
     res.end(body);
   }
 };
+
+const ADMIN_KEY = process.env.SIS_ADMIN_KEY || "";
+const ADMIN_HEADER = "x-sis-admin-key";
+
+function getAdminKey(req, queryParams) {
+  const headerKey = req?.headers?.[ADMIN_HEADER] || "";
+  const paramKey =
+    queryParams?.get?.("adminKey") ||
+    queryParams?.get?.("admin_key") ||
+    queryParams?.get?.("admin") ||
+    "";
+  return (headerKey || paramKey || "").toString();
+}
+
+function isAdminAuthorized(req, queryParams) {
+  if (!ADMIN_KEY) return true;
+  return getAdminKey(req, queryParams) === ADMIN_KEY;
+}
+
+function requireAdmin(req, res, queryParams) {
+  if (isAdminAuthorized(req, queryParams)) return true;
+  send(res, 401, { error: "Admin key required" });
+  return false;
+}
+
+function redactInstanceEntry(entry = {}) {
+  return {
+    name: entry.name || "",
+    CARDSAVR_INSTANCE: entry.CARDSAVR_INSTANCE || "",
+    APP_NAME: entry.APP_NAME || "",
+    has_username: Boolean(entry.USERNAME),
+    has_password: Boolean(entry.PASSWORD),
+    has_api_key: Boolean(entry.API_KEY),
+  };
+}
+
+function redactQueryForLogs(search = "") {
+  if (!search) return "";
+  try {
+    const params = new URLSearchParams(search);
+    ["adminKey", "admin_key", "admin"].forEach((k) => {
+      if (params.has(k)) params.set(k, "[redacted]");
+    });
+    const qs = params.toString();
+    return qs ? `?${qs}` : "";
+  } catch {
+    return search;
+  }
+}
 
 const readRequestBody = (req) =>
   new Promise((resolve, reject) => {
@@ -1363,15 +1412,17 @@ const server = http.createServer(async (req, res) => {
   // Log all HTTP requests (except asset/static files to reduce noise)
   const skipLogging = pathname.match(/\.(css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$/);
   if (!skipLogging && pathname !== "/server-logs") {
-    const queryStr = search ? search : '';
+    const queryStr = redactQueryForLogs(search);
     console.log(`${req.method} ${pathname}${queryStr}`);
   }
 
   if (pathname === "/run-update/status") {
+    if (!requireAdmin(req, res, queryParams)) return;
     return send(res, 200, currentUpdateSnapshot());
   }
 
   if (pathname === "/run-update/stream") {
+    if (!requireAdmin(req, res, queryParams)) return;
     setCors(res);
     res.writeHead(200, {
       "Content-Type": "text/event-stream",
@@ -1569,6 +1620,7 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (pathname === "/server-logs") {
+    if (!requireAdmin(req, res, queryParams)) return;
     try {
       const query = new URLSearchParams(parsedUrl.searchParams);
       const limit = parseInt(query.get('limit')) || 500;
@@ -2011,6 +2063,7 @@ const server = http.createServer(async (req, res) => {
     }
   }
   if (pathname === "/fi-registry/update" && req.method === "POST") {
+    if (!requireAdmin(req, res, queryParams)) return;
     try {
       const rawBody = await readRequestBody(req);
       const payload = JSON.parse(rawBody || "{}");
@@ -2197,6 +2250,7 @@ const server = http.createServer(async (req, res) => {
     }
   }
   if (pathname === "/fi-registry/delete" && req.method === "POST") {
+    if (!requireAdmin(req, res, queryParams)) return;
     try {
       const rawBody = await readRequestBody(req);
       const payload = JSON.parse(rawBody || "{}");
@@ -2372,7 +2426,9 @@ const server = http.createServer(async (req, res) => {
   if (pathname === "/instances") {
     try {
       const { entries, path: foundAt } = await readInstancesFile();
-      return send(res, 200, { instances: entries, path: foundAt });
+      const isAdmin = isAdminAuthorized(req, queryParams);
+      const payload = isAdmin ? entries : entries.map(redactInstanceEntry);
+      return send(res, 200, { instances: payload, path: foundAt, redacted: !isAdmin });
     } catch (err) {
       console.error("instances load failed", err);
       const status = err?.status || 500;
@@ -2380,6 +2436,7 @@ const server = http.createServer(async (req, res) => {
     }
   }
   if (pathname === "/ga/service-account" && req.method === "GET") {
+    if (!requireAdmin(req, res, queryParams)) return;
     try {
       const data = await readGaCredentialSummary("prod");
       return send(res, 200, data);
@@ -2389,6 +2446,7 @@ const server = http.createServer(async (req, res) => {
     }
   }
   if (pathname === "/ga/service-account" && req.method === "POST") {
+    if (!requireAdmin(req, res, queryParams)) return;
     try {
       const rawBody = await readRequestBody(req);
       const payload = rawBody ? JSON.parse(rawBody) : {};
@@ -2400,6 +2458,7 @@ const server = http.createServer(async (req, res) => {
     }
   }
   if (pathname === "/ga/service-account/delete" && req.method === "POST") {
+    if (!requireAdmin(req, res, queryParams)) return;
     try {
       const saved = await deleteGaCredentialFile("prod");
       return send(res, 200, saved);
@@ -2409,6 +2468,7 @@ const server = http.createServer(async (req, res) => {
     }
   }
   if (pathname === "/ga/service-account/test" && req.method === "POST") {
+    if (!requireAdmin(req, res, queryParams)) return;
     try {
       const rawBody = await readRequestBody(req);
       const payload = rawBody ? JSON.parse(rawBody) : {};
@@ -2442,6 +2502,7 @@ const server = http.createServer(async (req, res) => {
     }
   }
   if (pathname === "/ga/credentials" && req.method === "GET") {
+    if (!requireAdmin(req, res, queryParams)) return;
     try {
       const credentials = await Promise.all(GA_CREDENTIALS.map((c) => readGaCredentialSummary(c.name)));
       return send(res, 200, { credentials });
@@ -2451,6 +2512,7 @@ const server = http.createServer(async (req, res) => {
     }
   }
   if (pathname === "/ga/credential" && req.method === "GET") {
+    if (!requireAdmin(req, res, queryParams)) return;
     try {
       const name = queryParams.get("name") || "";
       const data = await readGaCredentialContent(name);
@@ -2461,6 +2523,7 @@ const server = http.createServer(async (req, res) => {
     }
   }
   if (pathname === "/ga/credential/save" && req.method === "POST") {
+    if (!requireAdmin(req, res, queryParams)) return;
     try {
       const rawBody = await readRequestBody(req);
       const payload = rawBody ? JSON.parse(rawBody) : {};
@@ -2473,6 +2536,7 @@ const server = http.createServer(async (req, res) => {
     }
   }
   if (pathname === "/ga/credential/delete" && req.method === "POST") {
+    if (!requireAdmin(req, res, queryParams)) return;
     try {
       const rawBody = await readRequestBody(req);
       const payload = rawBody ? JSON.parse(rawBody) : {};
@@ -2485,6 +2549,7 @@ const server = http.createServer(async (req, res) => {
     }
   }
   if (pathname === "/ga/credential/test" && req.method === "POST") {
+    if (!requireAdmin(req, res, queryParams)) return;
     try {
       const rawBody = await readRequestBody(req);
       const payload = rawBody ? JSON.parse(rawBody) : {};
@@ -2522,6 +2587,7 @@ const server = http.createServer(async (req, res) => {
     }
   }
   if (pathname === "/instances/test" && req.method === "POST") {
+    if (!requireAdmin(req, res, queryParams)) return;
     try {
       const rawBody = await readRequestBody(req);
       const payload = rawBody ? JSON.parse(rawBody) : {};
@@ -2676,6 +2742,7 @@ const server = http.createServer(async (req, res) => {
     }
   }
   if (pathname === "/instances/save" && req.method === "POST") {
+    if (!requireAdmin(req, res, queryParams)) return;
     try {
       const rawBody = await readRequestBody(req);
       const payload = JSON.parse(rawBody || "{}");
@@ -2711,6 +2778,7 @@ const server = http.createServer(async (req, res) => {
     }
   }
   if (pathname === "/instances/delete" && req.method === "POST") {
+    if (!requireAdmin(req, res, queryParams)) return;
     try {
       const rawBody = await readRequestBody(req);
       const payload = JSON.parse(rawBody || "{}");
