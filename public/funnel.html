@@ -5609,9 +5609,9 @@ function applyColumnTitles(root = document) {
         // Calculate and render conversion metrics
 	        const conversionMetrics = calculateConversionMetrics(startDate, endDate, visibleRows);
 	        renderConversionAnalysis(conversionMetrics);
-	        updateMedianJobsCard(startDate, endDate, visibleRows);
 
         renderTables(visibleRows, startDate, endDate, daySpan);
+        updateMedianJobsCard(startDate, endDate, latestVisibleRows);
 
         lastRenderContext = {
           perFi,
@@ -5665,9 +5665,9 @@ function applyColumnTitles(root = document) {
         // Recalculate and render conversion metrics with new filters
 	        const conversionMetrics = calculateConversionMetrics(startDate, endDate, visibleRows);
 	        renderConversionAnalysis(conversionMetrics);
-	        updateMedianJobsCard(startDate, endDate, visibleRows);
 
 	        renderTables(visibleRows, startDate, endDate, daySpan);
+        updateMedianJobsCard(startDate, endDate, latestVisibleRows);
 	      }
 
       async function init() {
