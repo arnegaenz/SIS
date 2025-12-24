@@ -2270,6 +2270,11 @@ function applyColumnTitles(root = document) {
             shared.partner && shared.partner !== "All" ? shared.partner : "";
           const integrationFilter =
             shared.integration && shared.integration !== "All" ? shared.integration : "";
+          const instanceSet =
+            shared.instanceSetNormalized instanceof Set
+              ? shared.instanceSetNormalized
+              : null;
+          const instanceSetActive = Boolean(shared.__instanceSetTouched);
           return Object.values(perFi).filter((row) => {
             if (!includeTests && row.is_test) return false;
             if (fiTouched && sharedFiSet.size === 0) return false;
@@ -2288,7 +2293,12 @@ function applyColumnTitles(root = document) {
             }
 
             // Check instance filter
-            if (shared.instance && shared.instance !== "All") {
+            if (instanceSetActive) {
+              if (!instanceSet || instanceSet.size === 0) return false;
+              const rowInstanceKey = normalizeInstanceKey(row.instance);
+              if (!instanceSet.has(rowInstanceKey)) return false;
+            }
+            if (!instanceSetActive && shared.instance && shared.instance !== "All") {
               const rowInstanceKey = normalizeInstanceKey(row.instance);
               const filterInstanceKey = normalizeInstanceKey(shared.instance);
               if (rowInstanceKey !== filterInstanceKey) return false;

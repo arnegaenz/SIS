@@ -1155,26 +1155,36 @@
       function currentSharedFilter() {
         const shared = window.__FILTER_STATE;
         if (!shared || shared.page !== "troubleshoot") {
-          return { fiSet: null, instanceKey: null };
+          return { fiSet: null, instanceKey: null, instanceSet: null, instanceSetActive: false };
         }
         const fiSet =
           shared.fis && shared.fis.size
             ? new Set(Array.from(shared.fis).map((fi) => normalizeFiKey(fi)).filter(Boolean))
             : null;
+        const instanceSet =
+          shared.instanceSetNormalized instanceof Set
+            ? shared.instanceSetNormalized
+            : null;
+        const instanceSetActive = Boolean(shared.__instanceSetTouched);
         const instanceKey =
-          shared.instance && shared.instance !== "All"
+          !instanceSetActive && shared.instance && shared.instance !== "All"
             ? normalizeInstanceKey(shared.instance)
             : null;
-        return { fiSet, instanceKey };
+        return { fiSet, instanceKey, instanceSet, instanceSetActive };
       }
 
       function applyFilters() {
         if (!state.data || !Array.isArray(state.data.sessions)) return;
-        const { fiSet, instanceKey } = currentSharedFilter();
+        const { fiSet, instanceKey, instanceSet, instanceSetActive } = currentSharedFilter();
         const filtered = (state.data.sessions || []).filter((s) => {
           if (fiSet && fiSet.size) {
             const fiKey = normalizeFiKey(s.fi_lookup_key || s.fi_key || s.fi || "");
             if (!fiSet.has(fiKey)) return false;
+          }
+          if (instanceSetActive) {
+            if (!instanceSet || instanceSet.size === 0) return false;
+            const instKey = normalizeInstanceKey(s.instance || s._instance || "");
+            if (!instanceSet.has(instKey)) return false;
           }
           if (instanceKey) {
             const instKey = normalizeInstanceKey(s.instance || s._instance || "");

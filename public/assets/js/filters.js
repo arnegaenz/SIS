@@ -717,9 +717,13 @@
                 .map((fiKey) => `${fiKey}__${normalizeInstanceKey(state.instance)}`)
             )
           : null;
+      const instanceSetNormalized =
+        state.__instanceSetTouched && state.instanceSet instanceof Set
+          ? new Set(Array.from(state.instanceSet).map((v) => normalizeInstanceKey(v)))
+          : null;
       state.canonicalFiInstances = canonicalFiInstances;
 
-      window.__FILTER_STATE = { ...state, canonicalFiInstances };
+      window.__FILTER_STATE = { ...state, canonicalFiInstances, instanceSetNormalized };
       window.__FILTER_REGISTRY = registry;
       window.__FILTER_LAST_APPLIED = Date.now();
       if (pageId === "funnel" && typeof window.applyFilters === "function") {
