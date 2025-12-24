@@ -2719,6 +2719,13 @@ const server = http.createServer(async (req, res) => {
       }
 
       const median = medianFromFrequencyMap(freq, sessionsWithJobs);
+      const distribution = Array.from(freq.entries())
+        .sort((a, b) => a[0] - b[0])
+        .map(([jobsPerSession, sessions]) => ({
+          jobsPerSession,
+          sessions,
+        }));
+      const sessionsWithoutJobs = Math.max(0, sessionsScanned - sessionsWithJobs);
 	      return send(res, 200, {
 	        startDate: startParam,
 	        endDate: endParam,
@@ -2733,7 +2740,9 @@ const server = http.createServer(async (req, res) => {
 	        daysWithSessionFiles,
 	        sessionsScanned,
 	        sessionsWithJobs,
+          sessionsWithoutJobs,
 	        totalJobs,
+          distribution,
 	        medianJobsPerSessionWithJobs: median,
 	      });
     } catch (err) {

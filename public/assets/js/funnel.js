@@ -145,6 +145,10 @@ import { renderFunnelView } from "./funnel.view.js";
     if (empty) empty.hidden = distRows.length > 0;
   }
 
+  if (window && !window.SIS_updateAttemptsStats) {
+    window.SIS_updateAttemptsStats = updateAttemptsStatsAndDistribution;
+  }
+
   function buildPopoverContent(popEl) {
     if (!popEl) return;
 

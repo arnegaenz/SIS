@@ -3955,6 +3955,27 @@ function applyColumnTitles(root = document) {
 	          const data = await res.json().catch(() => ({}));
 	          if (lastMedianJobsRequestKey !== reqKey) return;
 	          if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
+	          if (Array.isArray(data?.distribution)) {
+	            const zeroCount = Math.max(
+	              0,
+	              Number(
+	                data.sessionsWithoutJobs ??
+	                  (Number(data.sessionsScanned || 0) - Number(data.sessionsWithJobs || 0))
+	              ) || 0
+	            );
+	            const jobCounts = [];
+	            for (let i = 0; i < zeroCount; i++) jobCounts.push(0);
+	            data.distribution.forEach((row) => {
+	              const jobs = Number(row?.jobsPerSession);
+	              const count = Number(row?.sessions);
+	              if (!Number.isFinite(jobs) || !Number.isFinite(count) || count <= 0) return;
+	              for (let i = 0; i < count; i++) jobCounts.push(jobs);
+	            });
+	            window.SIS = window.SIS || {};
+	            window.SIS.funnel = window.SIS.funnel || {};
+	            window.SIS.funnel.sessionJobCounts = jobCounts;
+	            if (window.SIS_updateAttemptsStats) window.SIS_updateAttemptsStats();
+	          }
 	          const median = data?.medianJobsPerSessionWithJobs;
 	          if (data?.sessionsScanned === 0) {
 	            el.textContent = "—";
