@@ -11,6 +11,8 @@
   <script src="./assets/js/passcode-gate.js"></script>
 	  <script defer src="./assets/js/sis.js"></script>
 	  <script defer src="./assets/js/nav.js"></script>
+	  <script type="module" defer src="./assets/js/global-thresholds.js"></script>
+	  <script type="module" defer src="./assets/js/funnel.kpi-status.js"></script>
 	  <script type="module" defer src="./assets/js/funnel.data.js"></script>
 	  <script type="module" defer src="./assets/js/funnel.view.js"></script>
 	  <script type="module" defer src="./assets/js/funnel.js"></script>
@@ -3619,6 +3621,7 @@ function applyColumnTitles(root = document) {
         const metrics = {
           totalGaSelect: 0,
           totalSessions: 0,
+          cardholderCount: null,
           sessionsWithoutJobs: 0,
           sessionsWithJobs: 0,
           sessionsWithSuccessfulJobs: 0,
@@ -3632,6 +3635,8 @@ function applyColumnTitles(root = document) {
         };
 
         // Aggregate from visible rows only (respects filters)
+        let cardholderSum = 0;
+        let sawCardholders = false;
         for (const row of visibleRows) {
           metrics.totalGaSelect += row.ga_select || 0;
           metrics.totalSessions += row.sessions || 0;
@@ -3639,8 +3644,13 @@ function applyColumnTitles(root = document) {
           metrics.sessionsWithSuccessfulJobs += row.sess_with_success || 0;
           metrics.totalJobs += row.total_jobs || 0;
           metrics.successfulJobs += row.successful_jobs || 0;
+          if (typeof row.cardholders === "number" && Number.isFinite(row.cardholders)) {
+            cardholderSum += row.cardholders;
+            sawCardholders = true;
+          }
         }
         metrics.sessionsWithoutJobs = metrics.totalSessions - metrics.sessionsWithJobs;
+        metrics.cardholderCount = sawCardholders && cardholderSum > 0 ? cardholderSum : null;
 
         // Build per-session job counts (including zeros) from existing daily rollups, if available.
         try {
@@ -3846,6 +3856,13 @@ function applyColumnTitles(root = document) {
           panel.style.display = "block";
         } else {
           panel.style.display = "none";
+        }
+
+        // Apply global KPI status accents (safe no-op if helper missing).
+        try {
+          if (window.SIS_applyFunnelKpiStatuses) window.SIS_applyFunnelKpiStatuses(metrics);
+        } catch (e) {
+          console.warn("[SIS] KPI status render failed.", e);
         }
       }
 
@@ -5834,6 +5851,7 @@ function applyColumnTitles(root = document) {
         };
         if (window.initFilters) return run();
         const candidates = [
+          "./assets/js/filters.js?v=shared-fallback",
           "/assets/js/filters.js?v=shared-fallback",
           "/public/assets/js/filters.js?v=shared-fallback",
         ];
