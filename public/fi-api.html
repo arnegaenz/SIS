@@ -802,7 +802,13 @@
         exportBtn.disabled = true;
 
         try {
-          const eventSource = new EventSource("/fi-api-data-stream");
+          const apiBase =
+            window.SIS_API_BASE && window.SIS_API_BASE.trim()
+              ? window.SIS_API_BASE.replace(/\/+$/, "")
+              : window.location.origin.includes("8787")
+                ? window.location.origin
+                : "http://localhost:8787";
+          const eventSource = new EventSource(`${apiBase}/fi-api-data-stream`);
 
           eventSource.onmessage = (event) => {
             const msg = JSON.parse(event.data);
