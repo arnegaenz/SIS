@@ -4,6 +4,59 @@
   No dependencies beyond standard DOM APIs and existing sis-shared.css.
 */
 (function(global){
+var API_BASE = "";
+
+function normalizeApiBase(value) {
+  if (!value) return "";
+  var trimmed = value.toString().trim();
+  if (!trimmed) return "";
+  if (trimmed.endsWith("/")) trimmed = trimmed.slice(0, -1);
+  return trimmed;
+}
+
+function resolveApiBase() {
+  var fromGlobal = global && typeof global.SIS_API_BASE === "string" ? global.SIS_API_BASE : "";
+  if (fromGlobal) return normalizeApiBase(fromGlobal);
+  var meta = document.querySelector('meta[name="sis-api-base"]');
+  if (meta && meta.content) return normalizeApiBase(meta.content);
+  return "";
+}
+
+function withApiBase(url) {
+  if (!API_BASE) return url;
+  if (!url) return url;
+  var str = url.toString();
+  if (/^[a-z]+:\/\//i.test(str)) return str;
+  if (str.startsWith("data:") || str.startsWith("blob:")) return str;
+  if (str.startsWith("//")) return str;
+  if (str.startsWith("/")) return API_BASE + str;
+  return str;
+}
+
+function wrapFetch() {
+  if (!global || !global.fetch || global.__sisFetchWrapped) return;
+  API_BASE = resolveApiBase();
+  if (!API_BASE) return;
+  global.__sisFetchWrapped = true;
+  var origFetch = global.fetch.bind(global);
+  global.fetch = function (input, init) {
+    try {
+      if (typeof input === "string") {
+        return origFetch(withApiBase(input), init);
+      }
+      if (input && typeof input === "object" && input.url) {
+        var nextUrl = withApiBase(input.url);
+        if (nextUrl === input.url) return origFetch(input, init);
+        return origFetch(new Request(nextUrl, input), init);
+      }
+    } catch (err) {
+      // fall through to original fetch
+    }
+    return origFetch(input, init);
+  };
+}
+
+wrapFetch();
 function h(tag, attrs, children){
 var el = document.createElement(tag);
 if (attrs) for (var k in attrs){ if (k === "class") el.className = attrs[k]; else el.setAttribute(k, attrs[k]); }

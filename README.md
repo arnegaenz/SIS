@@ -127,6 +127,91 @@ Open your browser to **http://localhost:8787** and explore:
 
 Press `Ctrl+C` to stop the server.
 
+## Deployment (AWS Lightsail + GitHub Pages)
+
+SIS has two distinct parts:
+- **Backend API + data** (Node server + `raw/` + `data/` + `fi_registry.json` + `secrets/`) -> **AWS Lightsail**
+- **Frontend UI** (static files in `public/`) -> **GitHub Pages**
+
+GitHub Pages cannot run the Node server or host dynamic data, so the UI must call your AWS API.
+
+### 1) AWS Lightsail (backend)
+
+1. Create a Lightsail instance (Ubuntu 22.04, 2GB+ recommended).
+2. SSH in and install Node 18+:
+   ```bash
+   curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+   sudo apt-get install -y nodejs
+   ```
+3. Clone the repo and install deps:
+   ```bash
+   git clone https://github.com/arnegaenz/SIS.git strivve-metrics
+   cd strivve-metrics
+   npm install
+   ```
+4. Add secrets + configs on the server:
+   - `secrets/instances.json`
+   - `secrets/ga-service-account.json` (optional)
+   - `secrets/ga-test.json` (optional)
+   - `fi_registry.json`
+5. Fetch data and build daily rollups:
+   ```bash
+   node scripts/fetch-raw.mjs 2020-01-01 2025-12-12
+   node scripts/build-daily-from-raw.mjs 2020-01-01 2025-12-12
+   ```
+6. Run the API server (pick one):
+   - **PM2 (recommended)**:
+     ```bash
+     sudo npm install -g pm2
+     pm2 start scripts/serve-funnel.mjs --name sis-api
+     pm2 save
+     pm2 startup
+     ```
+   - **Systemd**: create a service that runs `node scripts/serve-funnel.mjs`.
+7. Open port `8787` in the Lightsail firewall.
+
+Your backend API base will be: `http://YOUR_LIGHTSAIL_IP:8787`
+
+### 2) GitHub Pages (frontend)
+
+1. Set the API base URL in `public/assets/js/config.js`:
+   ```js
+   // public/assets/js/config.js
+   // Set this to your Lightsail public URL:
+   // global.SIS_API_BASE = "http://YOUR_LIGHTSAIL_IP:8787";
+   ```
+2. Deploy `public/` to GitHub Pages. A GitHub Actions workflow is recommended (see below).
+
+### GitHub Pages workflow (optional)
+
+Create `.github/workflows/gh-pages.yml`:
+
+```yaml
+name: Deploy GH Pages
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+      - uses: actions/deploy-pages@v4
+```
+
+Then enable GitHub Pages in your repo settings to use **GitHub Actions**.
+
 ### Common Issues
 
 **"No data showing in dashboards"**

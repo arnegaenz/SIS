@@ -279,7 +279,14 @@ const mime = (ext) =>
     ".txt": "text/plain; charset=utf-8",
   }[ext] || "application/octet-stream");
 
+const setCors = (res) => {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+};
+
 const send = (res, code, body, type) => {
+  setCors(res);
   res.statusCode = code;
   if (type) res.setHeader("Content-Type", type);
   if (typeof body === "object" && !(body instanceof Uint8Array)) {
@@ -316,6 +323,7 @@ async function fileExists(fp) {
 async function serveFile(res, fp) {
   try {
     const buf = await fs.readFile(fp);
+    setCors(res);
     res.writeHead(200, {
       "Content-Type": mime(path.extname(fp)),
       "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
@@ -1345,6 +1353,13 @@ const server = http.createServer(async (req, res) => {
   const search = parsedUrl.search;
   const queryParams = new URLSearchParams(search || "");
 
+  if (req.method === "OPTIONS") {
+    setCors(res);
+    res.writeHead(204);
+    res.end();
+    return;
+  }
+
   // Log all HTTP requests (except asset/static files to reduce noise)
   const skipLogging = pathname.match(/\.(css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$/);
   if (!skipLogging && pathname !== "/server-logs") {
@@ -1357,6 +1372,7 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (pathname === "/run-update/stream") {
+    setCors(res);
     res.writeHead(200, {
       "Content-Type": "text/event-stream",
       "Cache-Control": "no-cache",
@@ -1525,6 +1541,7 @@ const server = http.createServer(async (req, res) => {
 
   if (pathname === "/fi-api-data-stream") {
     try {
+      setCors(res);
       res.writeHead(200, {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',
@@ -2748,6 +2765,7 @@ const server = http.createServer(async (req, res) => {
     const end = parseIso(query.end, endDefault);
 
     try {
+      setCors(res);
       const payload = await buildGlobalMerchantHeatmap(start, end);
       res.writeHead(200, {
         "Content-Type": "application/json",
@@ -2755,6 +2773,7 @@ const server = http.createServer(async (req, res) => {
       });
       res.end(JSON.stringify(payload));
     } catch (e) {
+      setCors(res);
       res.writeHead(500, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ error: e?.message || String(e) }));
     }
