@@ -146,6 +146,14 @@
     try {
       var params = new URLSearchParams(window.location.search || "");
       if (params.get("sis-reset") === "1") {
+        params.delete("sis-reset");
+        try {
+          var nextUrl = window.location.pathname;
+          var qs = params.toString();
+          if (qs) nextUrl += "?" + qs;
+          if (window.location.hash) nextUrl += window.location.hash;
+          window.history.replaceState({}, "", nextUrl);
+        } catch (e) {}
         sessionStorage.removeItem(STORAGE_KEY);
         sessionStorage.removeItem(ACCESS_KEY);
       }
