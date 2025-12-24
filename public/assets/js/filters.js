@@ -55,6 +55,12 @@
   }
 
   async function loadRegistry() {
+    const apiBase =
+      typeof window !== "undefined" &&
+      typeof window.SIS_API_BASE === "string" &&
+      window.SIS_API_BASE.trim()
+        ? window.SIS_API_BASE.replace(/\/+$/, "")
+        : "";
     if (Array.isArray(window.FI_Registry)) {
       console.log("[filters] using window.FI_Registry");
       return window.FI_Registry.map(normalizeRegistryEntry).filter(Boolean);
@@ -76,6 +82,8 @@
     };
 
     const sources = [
+      apiBase ? `${apiBase}/fi-registry` : "",
+      apiBase ? `${apiBase}/fi_registry.json` : "",
       "assets/data/fi_registry.json", // relative to page
       "/assets/data/fi_registry.json", // site root
       "/public/assets/data/fi_registry.json", // fallback for some dev servers
@@ -83,7 +91,7 @@
       "/fi_registry.json",
       "fi-registry",
       "/fi-registry",
-    ];
+    ].filter(Boolean);
     for (const url of sources) {
       const found = await tryFetch(url);
       if (found.length) return found;
@@ -111,7 +119,14 @@
 
   async function loadInstanceAllowList() {
     try {
-      const res = await fetch("/instances");
+      const apiBase =
+        typeof window !== "undefined" &&
+        typeof window.SIS_API_BASE === "string" &&
+        window.SIS_API_BASE.trim()
+          ? window.SIS_API_BASE.replace(/\/+$/, "")
+          : "";
+      const url = apiBase ? `${apiBase}/instances` : "/instances";
+      const res = await fetch(url);
       if (!res.ok) return;
       const json = await res.json();
       const rawNames = (json.instances || [])
