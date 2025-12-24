@@ -3939,7 +3939,14 @@ function applyColumnTitles(root = document) {
 	        if (filteredFis.length) params.set("fi", filteredFis.join(","));
 
 	        try {
-	          const res = await fetch(`/sessions/jobs-stats?${params.toString()}`, {
+            const apiBase =
+              typeof window.SIS_API_BASE === "string" && window.SIS_API_BASE
+                ? window.SIS_API_BASE.replace(/\/+$/, "")
+                : window.location.origin.includes("8787")
+                ? window.location.origin
+                : "http://localhost:8787";
+            const url = `${apiBase}/sessions/jobs-stats?${params.toString()}`;
+	          const res = await fetch(url, {
 	            cache: "no-store",
 	          });
 	          const contentType = (res.headers.get("content-type") || "").toLowerCase();
