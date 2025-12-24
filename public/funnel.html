@@ -3883,8 +3883,14 @@ function applyColumnTitles(root = document) {
 
 	      async function updateMedianJobsCard(startDate, endDate, visibleRows = []) {
 	        const el = document.getElementById("convMetricMedianJobs");
-	        if (!el) return;
-	        el.removeAttribute("title");
+          const attemptsCard =
+            document.querySelector('[data-sis-card="attempts"]') ||
+            document.querySelector(".funnel-dist-card");
+	        if (!el && !attemptsCard) return;
+	        if (el) {
+	          el.removeAttribute("title");
+	          el.textContent = "…";
+	        }
 	        const shared = window.__FILTER_STATE;
 	        const fis =
 	          shared && shared.page === "funnel" && shared.fis && shared.fis.size
@@ -3910,7 +3916,6 @@ function applyColumnTitles(root = document) {
           fis.slice().sort().join(","),
         ].join("|");
         lastMedianJobsRequestKey = reqKey;
-        el.textContent = "…";
 
 	        const params = new URLSearchParams({
 	          start: startDate,
@@ -3985,27 +3990,35 @@ function applyColumnTitles(root = document) {
 	          }
 	          const median = data?.medianJobsPerSessionWithJobs;
 	          if (data?.sessionsScanned === 0) {
-	            el.textContent = "—";
-	            el.title =
-	              "No raw sessions were found for this date range. Run Data Refresh so raw session files exist for median calculations.";
+	            if (el) {
+	              el.textContent = "—";
+	              el.title =
+	                "No raw sessions were found for this date range. Run Data Refresh so raw session files exist for median calculations.";
+	            }
 	            return;
 	          }
 	          if (data?.sessionsWithJobs === 0) {
-	            el.textContent = "—";
-	            el.title = "No sessions with jobs found in this date range.";
+	            if (el) {
+	              el.textContent = "—";
+	              el.title = "No sessions with jobs found in this date range.";
+	            }
 	            return;
 	          }
-	          el.textContent =
-	            typeof median === "number" && Number.isFinite(median)
-	              ? median.toFixed(median % 1 ? 1 : 0)
-	              : "—";
+	          if (el) {
+	            el.textContent =
+	              typeof median === "number" && Number.isFinite(median)
+	                ? median.toFixed(median % 1 ? 1 : 0)
+	                : "—";
+	          }
 	        } catch (err) {
 	          if (lastMedianJobsRequestKey !== reqKey) return;
 	          console.warn("median jobs fetch failed", err);
-	          el.textContent = "—";
-	          el.title =
-	            err?.message ||
-	            "Unable to load Median Jobs. Ensure the SIS server is running and restart it after updates.";
+	          if (el) {
+	            el.textContent = "—";
+	            el.title =
+	              err?.message ||
+	              "Unable to load Median Jobs. Ensure the SIS server is running and restart it after updates.";
+	          }
 	        }
 	      }
 
