@@ -89,6 +89,32 @@ var GROUPS = [
 ]}
 ];
 
+function getAccessLevel() {
+  try {
+    var level = sessionStorage.getItem("sis_access_level");
+    if (level === "full" || level === "limited") return level;
+    if (sessionStorage.getItem("sis_passcode_ok") === "1") return "full";
+  } catch (e) {}
+  return "";
+}
+
+function getGroupsForAccess() {
+  var access = getAccessLevel();
+  if (access !== "limited") return GROUPS;
+  var allowed = { funnel: true, troubleshoot: true };
+  var next = [];
+  for (var g = 0; g < GROUPS.length; g++) {
+    var group = GROUPS[g];
+    var items = [];
+    for (var i = 0; i < group.items.length; i++) {
+      var item = group.items[i];
+      if (allowed[item.id]) items.push(item);
+    }
+    if (items.length) next.push({ label: group.label, items: items });
+  }
+  return next;
+}
+
 function renderHeaderNav(opts){
 try{
 opts = opts || {};
@@ -151,8 +177,9 @@ var wrap = h("div", { class:"sis-dropdown" }, [btn, list]);
 targetWrap.appendChild(wrap);
 }
 
-for (var g=0; g<GROUPS.length; g++){
-var group = GROUPS[g];
+var navGroups = getGroupsForAccess();
+for (var g=0; g<navGroups.length; g++){
+var group = navGroups[g];
 addDropdown(group, rightGroup);
 }
 

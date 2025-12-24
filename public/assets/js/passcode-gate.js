@@ -1,14 +1,50 @@
 (function (global) {
-  var PASSCODE = "12345678";
+  var FULL_PASSCODE = "12345678";
+  var LIMITED_PASSCODE = "1234";
   var STORAGE_KEY = "sis_passcode_ok";
+  var ACCESS_KEY = "sis_access_level";
+  var LIMITED_PAGES = ["funnel.html", "troubleshoot.html"];
 
-  function unlock() {
+  function getPageName() {
+    try {
+      var path = window.location.pathname || "";
+      var parts = path.split("/");
+      return parts[parts.length - 1] || "index.html";
+    } catch (e) {}
+    return "index.html";
+  }
+
+  function isLimitedAllowedPage() {
+    var page = getPageName().toLowerCase();
+    if (page === "" || page === "/") page = "index.html";
+    for (var i = 0; i < LIMITED_PAGES.length; i++) {
+      if (page === LIMITED_PAGES[i]) return true;
+    }
+    return false;
+  }
+
+  function getAccessLevel() {
+    try {
+      var level = sessionStorage.getItem(ACCESS_KEY);
+      if (level === "full" || level === "limited") return level;
+      if (sessionStorage.getItem(STORAGE_KEY) === "1") return "full";
+    } catch (e) {}
+    return "";
+  }
+
+  function unlock(level) {
     try {
       sessionStorage.setItem(STORAGE_KEY, "1");
+      if (level) sessionStorage.setItem(ACCESS_KEY, level);
     } catch (e) {}
     document.documentElement.style.visibility = "";
     var gate = document.getElementById("sis-passcode-gate");
     if (gate) gate.remove();
+    if (level === "limited" && !isLimitedAllowedPage()) {
+      window.location.href = "./funnel.html";
+      return;
+    }
+    window.location.reload();
   }
 
   function showGate() {
@@ -78,8 +114,10 @@
     button.style.cursor = "pointer";
 
     function attempt() {
-      if (input.value === PASSCODE) {
-        unlock();
+      if (input.value === FULL_PASSCODE) {
+        unlock("full");
+      } else if (input.value === LIMITED_PASSCODE) {
+        unlock("limited");
       } else {
         error.textContent = "Incorrect code.";
         input.value = "";
@@ -106,7 +144,14 @@
 
   function init() {
     try {
-      if (sessionStorage.getItem(STORAGE_KEY) === "1") return;
+      var params = new URLSearchParams(window.location.search || "");
+      if (params.get("sis-reset") === "1") {
+        sessionStorage.removeItem(STORAGE_KEY);
+        sessionStorage.removeItem(ACCESS_KEY);
+      }
+    } catch (e) {}
+    try {
+      if (getAccessLevel()) return;
     } catch (e) {}
     showGate();
   }
