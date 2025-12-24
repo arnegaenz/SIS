@@ -1155,12 +1155,31 @@
       function currentSharedFilter() {
         const shared = window.__FILTER_STATE;
         if (!shared || shared.page !== "troubleshoot") {
-          return { fiSet: null, instanceKey: null, instanceSet: null, instanceSetActive: false };
+          return {
+            fiSet: null,
+            partnerSet: null,
+            integrationSet: null,
+            instanceKey: null,
+            instanceSet: null,
+            partnerSetActive: false,
+            integrationSetActive: false,
+            instanceSetActive: false,
+          };
         }
         const fiSet =
           shared.fis && shared.fis.size
             ? new Set(Array.from(shared.fis).map((fi) => normalizeFiKey(fi)).filter(Boolean))
             : null;
+        const partnerSet =
+          shared.partnerSetNormalized instanceof Set
+            ? shared.partnerSetNormalized
+            : null;
+        const integrationSet =
+          shared.integrationSetNormalized instanceof Set
+            ? shared.integrationSetNormalized
+            : null;
+        const partnerSetActive = Boolean(shared.__partnerSetTouched);
+        const integrationSetActive = Boolean(shared.__integrationSetTouched);
         const instanceSet =
           shared.instanceSetNormalized instanceof Set
             ? shared.instanceSetNormalized
@@ -1170,16 +1189,47 @@
           !instanceSetActive && shared.instance && shared.instance !== "All"
             ? normalizeInstanceKey(shared.instance)
             : null;
-        return { fiSet, instanceKey, instanceSet, instanceSetActive };
+        return {
+          fiSet,
+          partnerSet,
+          integrationSet,
+          instanceKey,
+          instanceSet,
+          partnerSetActive,
+          integrationSetActive,
+          instanceSetActive,
+        };
       }
 
       function applyFilters() {
         if (!state.data || !Array.isArray(state.data.sessions)) return;
-        const { fiSet, instanceKey, instanceSet, instanceSetActive } = currentSharedFilter();
+        const {
+          fiSet,
+          partnerSet,
+          integrationSet,
+          instanceKey,
+          instanceSet,
+          partnerSetActive,
+          integrationSetActive,
+          instanceSetActive,
+        } = currentSharedFilter();
         const filtered = (state.data.sessions || []).filter((s) => {
           if (fiSet && fiSet.size) {
             const fiKey = normalizeFiKey(s.fi_lookup_key || s.fi_key || s.fi || "");
             if (!fiSet.has(fiKey)) return false;
+          }
+          if (partnerSetActive && (!partnerSet || partnerSet.size === 0)) return false;
+          if (integrationSetActive && (!integrationSet || integrationSet.size === 0)) return false;
+          if (partnerSetActive && partnerSet && partnerSet.size) {
+            const rowPartner = s.partner || s.partner_name || "Unknown";
+            if (!partnerSet.has(rowPartner)) return false;
+          }
+          if (integrationSetActive && integrationSet && integrationSet.size) {
+            const rowIntegration = normalizeIntegrationKey(s.integration || s.integration_type || "");
+            const allowed = new Set(
+              Array.from(integrationSet).map((v) => normalizeIntegrationKey(v))
+            );
+            if (!allowed.has(rowIntegration)) return false;
           }
           if (instanceSetActive) {
             if (!instanceSet || instanceSet.size === 0) return false;

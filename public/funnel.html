@@ -2266,6 +2266,16 @@ function applyColumnTitles(root = document) {
           const sharedFiSet = shared.fis
             ? new Set(Array.from(shared.fis).map((fi) => normalizeFiKey(fi)))
             : new Set();
+          const partnerSet =
+            shared.partnerSetNormalized instanceof Set
+              ? shared.partnerSetNormalized
+              : null;
+          const integrationSet =
+            shared.integrationSetNormalized instanceof Set
+              ? shared.integrationSetNormalized
+              : null;
+          const partnerSetActive = Boolean(shared.__partnerSetTouched);
+          const integrationSetActive = Boolean(shared.__integrationSetTouched);
           const partnerFilter =
             shared.partner && shared.partner !== "All" ? shared.partner : "";
           const integrationFilter =
@@ -2278,14 +2288,27 @@ function applyColumnTitles(root = document) {
           return Object.values(perFi).filter((row) => {
             if (!includeTests && row.is_test) return false;
             if (fiTouched && sharedFiSet.size === 0) return false;
+            if (partnerSetActive && (!partnerSet || partnerSet.size === 0)) return false;
+            if (integrationSetActive && (!integrationSet || integrationSet.size === 0)) return false;
 
             // Check partner filter
+            if (partnerSetActive && partnerSet && partnerSet.size) {
+              const rowPartner = row.partner || "Unknown";
+              if (!partnerSet.has(rowPartner)) return false;
+            }
             if (partnerFilter) {
               const rowPartner = row.partner || "Unknown";
               if (rowPartner !== partnerFilter) return false;
             }
 
             // Check integration filter
+            if (integrationSetActive && integrationSet && integrationSet.size) {
+              const rowIntegration = normalizeIntegrationKey(row.integration_type || "");
+              const allowed = new Set(
+                Array.from(integrationSet).map((v) => normalizeIntegrationKey(v))
+              );
+              if (!allowed.has(rowIntegration)) return false;
+            }
             if (integrationFilter) {
               const rowIntegration = normalizeIntegrationKey(row.integration_type || "");
               const filterIntegration = normalizeIntegrationKey(integrationFilter);

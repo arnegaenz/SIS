@@ -717,13 +717,27 @@
                 .map((fiKey) => `${fiKey}__${normalizeInstanceKey(state.instance)}`)
             )
           : null;
+      const partnerSetNormalized =
+        state.__partnerSetTouched && state.partnerSet instanceof Set
+          ? new Set(Array.from(state.partnerSet).map((v) => (v || "").toString()))
+          : null;
+      const integrationSetNormalized =
+        state.__integrationSetTouched && state.integrationSet instanceof Set
+          ? new Set(Array.from(state.integrationSet).map((v) => (v || "").toString()))
+          : null;
       const instanceSetNormalized =
         state.__instanceSetTouched && state.instanceSet instanceof Set
           ? new Set(Array.from(state.instanceSet).map((v) => normalizeInstanceKey(v)))
           : null;
       state.canonicalFiInstances = canonicalFiInstances;
 
-      window.__FILTER_STATE = { ...state, canonicalFiInstances, instanceSetNormalized };
+      window.__FILTER_STATE = {
+        ...state,
+        canonicalFiInstances,
+        partnerSetNormalized,
+        integrationSetNormalized,
+        instanceSetNormalized,
+      };
       window.__FILTER_REGISTRY = registry;
       window.__FILTER_LAST_APPLIED = Date.now();
       if (pageId === "funnel" && typeof window.applyFilters === "function") {
