@@ -3896,26 +3896,15 @@ function applyColumnTitles(root = document) {
 	          shared && shared.page === "funnel" && shared.fis && shared.fis.size
 	            ? Array.from(shared.fis)
             : [];
-        const partner =
+        const partnerRaw =
           shared && shared.page === "funnel" ? (shared.partner || "") : "";
-        const integration =
+        const integrationRaw =
           shared && shared.page === "funnel"
             ? (shared.integration || "")
             : integrationSelect?.value || "";
-        const instance =
+        const instanceRaw =
           shared && shared.page === "funnel" ? (shared.instance || "") : "";
         const includeTests = includeTestCheckbox?.checked ? "true" : "false";
-
-        const reqKey = [
-          startDate,
-          endDate,
-          includeTests,
-          partner,
-          integration,
-          instance,
-          fis.slice().sort().join(","),
-        ].join("|");
-        lastMedianJobsRequestKey = reqKey;
 
 	        const params = new URLSearchParams({
 	          start: startDate,
@@ -3933,13 +3922,28 @@ function applyColumnTitles(root = document) {
 	          : [];
 	        if (fiInstanceKeys.length) params.set("fiInstances", fiInstanceKeys.join(","));
 
-	        if (partner && partner !== "(all)" && partner !== PARTNER_ALL_VALUE) {
-	          params.set("partner", partner);
-	        }
-	        if (integration && integration !== "(all)") params.set("integration", integration);
-	        if (instance && instance !== "(all)" && instance !== INSTANCE_ALL_VALUE) {
-	          params.set("instance", instance);
-	        }
+        const partner =
+          partnerRaw && partnerRaw !== "(all)" && partnerRaw !== PARTNER_ALL_VALUE && partnerRaw !== "All"
+            ? partnerRaw
+            : "";
+        const integration =
+          integrationRaw && integrationRaw !== "(all)" && integrationRaw !== "All"
+            ? integrationRaw
+            : "";
+        const instance =
+          instanceRaw && instanceRaw !== "(all)" && instanceRaw !== INSTANCE_ALL_VALUE && instanceRaw !== "All"
+            ? instanceRaw
+            : "";
+        const reqKey = [
+          startDate,
+          endDate,
+          includeTests,
+          partner,
+          integration,
+          instance,
+          fis.slice().sort().join(","),
+        ].join("|");
+        lastMedianJobsRequestKey = reqKey;
 	        const filteredFis = fis.filter((v) => v && v !== FI_ALL_VALUE);
 	        if (filteredFis.length) params.set("fi", filteredFis.join(","));
 
