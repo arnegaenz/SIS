@@ -2742,6 +2742,34 @@ const server = http.createServer(async (req, res) => {
       return send(res, 404, { error: "daily not found", date: dateStr });
     }
   }
+  if (pathname === "/daily-range") {
+    const start = queryParams.get("start");
+    const end = queryParams.get("end");
+    const isoRe = /^\d{4}-\d{2}-\d{2}$/;
+    if (!start || !isoRe.test(start)) {
+      return send(res, 400, { error: "start query param must be YYYY-MM-DD" });
+    }
+    if (!end || !isoRe.test(end)) {
+      return send(res, 400, { error: "end query param must be YYYY-MM-DD" });
+    }
+    if (new Date(`${start}T00:00:00Z`) > new Date(`${end}T00:00:00Z`)) {
+      return send(res, 400, { error: "start date must be on or before end date" });
+    }
+    try {
+      const days = daysBetween(start, end);
+      const entries = {};
+      for (const day of days) {
+        try {
+          entries[day] = await loadDaily(day);
+        } catch {
+          // Skip missing days.
+        }
+      }
+      return send(res, 200, { start, end, days, entries });
+    } catch (e) {
+      return send(res, 500, { error: e?.message || "Unable to load daily range" });
+    }
+  }
   if (pathname.startsWith("/daily/") && pathname.endsWith(".json")) {
     try {
       const dateStr = path.basename(pathname).replace(".json", "");

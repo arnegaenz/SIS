@@ -2133,6 +2133,19 @@ function applyColumnTitles(root = document) {
         return result;
       }
 
+      async function fetchDailyRange(startDate, endDate) {
+        if (!startDate || !endDate) return null;
+        try {
+          console.log(`→ Fetching daily range ${startDate} → ${endDate}`);
+          const payload = await fetchJson(`/daily-range?start=${startDate}&end=${endDate}`);
+          if (!payload || payload.error) return null;
+          return payload.entries || null;
+        } catch (err) {
+          console.warn("Failed to load daily range:", err);
+          return null;
+        }
+      }
+
       function getCardholderMap() {
         // Cardholders come from fi_registry metadata only now.
         return {};
@@ -5650,21 +5663,31 @@ function applyColumnTitles(root = document) {
                 dailyData = cachedBulk;
                 console.log(`✓ Loaded ${Object.keys(dailyData).length} days from bulk cache`);
               } else {
-                // No bulk cache, load individually
+                // No bulk cache; try range fetch first, then fall back to per-day.
                 console.log('→ Bulk cache empty, loading from server...');
                 const totalDays = dailyFiles.length;
                 let loadedDays = 0;
-                for (const file of dailyFiles) {
-                  const date = file.replace(".json", "");
+                if (earliestDailyDate && latestDailyDate) {
                   setLoaderMessage(`Loading daily data… ${loadedDays}/${totalDays}`);
-                  const data = await fetchDaily(date);
-                  if (data) {
-                    dailyData[date] = data;
+                  const rangeEntries = await fetchDailyRange(earliestDailyDate, latestDailyDate);
+                  if (rangeEntries && typeof rangeEntries === "object") {
+                    dailyData = rangeEntries;
+                    loadedDays = Object.keys(dailyData).length;
                   }
-                  loadedDays += 1;
+                }
+                if (loadedDays === 0) {
+                  for (const file of dailyFiles) {
+                    const date = file.replace(".json", "");
+                    setLoaderMessage(`Loading daily data… ${loadedDays}/${totalDays}`);
+                    const data = await fetchDaily(date);
+                    if (data) {
+                      dailyData[date] = data;
+                    }
+                    loadedDays += 1;
+                  }
                 }
                 if (totalDays) {
-                  setLoaderMessage(`Loading daily data… ${totalDays}/${totalDays}`);
+                  setLoaderMessage(`Loading daily data… ${Math.min(loadedDays, totalDays)}/${totalDays}`);
                 }
 
                 // Store bulk cache for next time (using async set for IndexedDB)
