@@ -3950,9 +3950,20 @@ function applyColumnTitles(root = document) {
                 : window.location.origin.includes("8787")
                 ? window.location.origin
                 : "http://localhost:8787";
-            const url = `${apiBase}/sessions/jobs-stats?${params.toString()}`;
-	          const res = await fetch(url, {
+	          const res = await fetch(`${apiBase}/sessions/jobs-stats`, {
+	            method: "POST",
+	            headers: { "Content-Type": "application/json" },
 	            cache: "no-store",
+              body: JSON.stringify({
+                start: startDate,
+                end: endDate,
+                includeTests,
+                fiInstances: fiInstanceKeys,
+                partner,
+                integration,
+                instance,
+                fi: filteredFis,
+              }),
 	          });
 	          const contentType = (res.headers.get("content-type") || "").toLowerCase();
 	          if (!contentType.includes("application/json")) {

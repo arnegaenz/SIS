@@ -2629,11 +2629,22 @@ const server = http.createServer(async (req, res) => {
     }
   }
 	  if (pathname === "/sessions/jobs-stats") {
+      let payload = null;
+      if (req.method === "POST") {
+        try {
+          const rawBody = await readRequestBody(req);
+          payload = rawBody ? JSON.parse(rawBody) : {};
+        } catch (err) {
+          return send(res, 400, { error: "Invalid JSON payload" });
+        }
+      }
 	    const startParam =
+	      (payload?.start || payload?.startDate || payload?.date) ||
 	      queryParams.get("start") ||
 	      queryParams.get("startDate") ||
       queryParams.get("date");
     const endParam =
+      (payload?.end || payload?.endDate) ||
       queryParams.get("end") ||
       queryParams.get("endDate") ||
       startParam;
@@ -2648,12 +2659,18 @@ const server = http.createServer(async (req, res) => {
       return send(res, 400, { error: "start date must be on or before end date" });
     }
 
-	    const includeTests = queryParams.get("includeTests") === "true";
-	    const partnerFilter = queryParams.get("partner") || "";
-	    const instanceFilter = queryParams.get("instance") || "";
-	    const integrationFilter = queryParams.get("integration") || "";
+	    const includeTests =
+        (payload?.includeTests === true) ||
+        (payload?.includeTests === "true") ||
+        queryParams.get("includeTests") === "true";
+	    const partnerFilter = (payload?.partner || queryParams.get("partner") || "").toString();
+	    const instanceFilter = (payload?.instance || queryParams.get("instance") || "").toString();
+	    const integrationFilter = (payload?.integration || queryParams.get("integration") || "").toString();
 	    const fiInstancesParam =
-	      queryParams.get("fiInstances") || queryParams.get("fi_instances") || "";
+	      (Array.isArray(payload?.fiInstances) ? payload.fiInstances.join(",") : payload?.fiInstances) ||
+        queryParams.get("fiInstances") ||
+        queryParams.get("fi_instances") ||
+        "";
 	    const fiInstanceSet = fiInstancesParam
 	      ? new Set(
 	          fiInstancesParam
@@ -2662,7 +2679,7 @@ const server = http.createServer(async (req, res) => {
 	            .filter(Boolean)
 	        )
 	      : null;
-	    const fiParam = queryParams.get("fi") || "";
+	    const fiParam = (payload?.fi || queryParams.get("fi") || "").toString();
 	    const fiList = fiParam
 	      ? fiParam
 	          .split(",")
