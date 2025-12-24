@@ -153,8 +153,7 @@ targetWrap.appendChild(wrap);
 
 for (var g=0; g<GROUPS.length; g++){
 var group = GROUPS[g];
-if (group.label === "Ops") addDropdown(group, rightGroup);
-else addDropdown(group, leftGroup);
+addDropdown(group, rightGroup);
 }
 
 // Theme toggle is only exposed on the Maintenance page.
