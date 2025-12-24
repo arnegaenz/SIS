@@ -2088,7 +2088,9 @@
       }
 
       const apiBase =
-        window.location.protocol === "http:" || window.location.protocol === "https:"
+        typeof window.SIS_API_BASE === "string" && window.SIS_API_BASE
+          ? window.SIS_API_BASE.replace(/\/+$/, "")
+          : window.location.protocol === "http:" || window.location.protocol === "https:"
           ? window.location.origin
           : "http://localhost:8787";
 
@@ -2346,7 +2348,9 @@
       const resetBtn = document.getElementById("instanceResetBtn");
       const deleteBtn = document.getElementById("instanceDeleteBtn");
       const apiBase =
-        window.location.origin.includes("8787")
+        typeof window.SIS_API_BASE === "string" && window.SIS_API_BASE
+          ? window.SIS_API_BASE.replace(/\/+$/, "")
+          : window.location.origin.includes("8787")
           ? window.location.origin
           : "http://localhost:8787";
       const inputs = {
@@ -2716,7 +2720,9 @@
       };
       const statusOrder = { up: 0, limited: 1, unknown: 2, down: 3 };
       const apiBase =
-        window.location.origin.includes("8787")
+        typeof window.SIS_API_BASE === "string" && window.SIS_API_BASE
+          ? window.SIS_API_BASE.replace(/\/+$/, "")
+          : window.location.origin.includes("8787")
           ? window.location.origin
           : "http://localhost:8787";
 
