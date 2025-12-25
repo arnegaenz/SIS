@@ -340,7 +340,7 @@ table {
 
   .funnel-dist-table th,
   .funnel-dist-table td {
-    padding: 8px 6px !important;
+    padding: 8px 4px !important;
     white-space: nowrap;
   }
 
@@ -378,6 +378,13 @@ table {
   button {
     width: 100%;
     max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* Ensure form fields don't overflow their containers */
+  .form-field input,
+  .form-field select {
+    box-sizing: border-box;
   }
 
   .date-range-inputs {
