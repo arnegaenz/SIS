@@ -75,6 +75,15 @@
   --sis-panel-bg: var(--panel);
 }
 
+html, body {
+  width: 100%;
+  max-width: 100%;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
 /* ===== Horizontal table scroll on narrow screens ===== */
 .table-scroll {
   max-width: 100%;
@@ -377,6 +386,36 @@
 /* Guard rail: never show horizontal scrollbar due to header */
 body, .page, [data-sis-page] {
   overflow-x: hidden;
+}
+
+@media (max-width: 720px) {
+  input,
+  select,
+  textarea {
+    max-width: 100%;
+  }
+
+  .form-input,
+  .form-select,
+  .filter-group select,
+  .multi-select button,
+  .instance-multi-select button,
+  .sis-nav-menu {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .form-field,
+  .filter-group,
+  .logs-controls label,
+  .fi-api-controls label,
+  .instances-controls label,
+  .registry-controls label,
+  .admin-controls label {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
 }
 
 /* Tight screens: reduce gaps a bit */

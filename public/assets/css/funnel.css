@@ -83,3 +83,33 @@
   display: block;
 }
 #distribution-wrap[hidden] { display: none !important; }
+
+/* KPI status accents (FI Funnel → Session Conversion & Failure Analysis) */
+.conversion-metric.kpi-good,
+.conversion-metric.kpi-warn,
+.conversion-metric.kpi-bad,
+.conversion-metric.kpi-neutral {
+  --sis-kpi-accent: rgba(148, 163, 184, 0.0);
+  --sis-kpi-glow: rgba(148, 163, 184, 0.0);
+}
+.conversion-metric.kpi-good {
+  --sis-kpi-accent: rgba(34, 197, 94, 0.55);
+  --sis-kpi-glow: rgba(34, 197, 94, 0.18);
+}
+.conversion-metric.kpi-warn {
+  --sis-kpi-accent: rgba(245, 158, 11, 0.6);
+  --sis-kpi-glow: rgba(245, 158, 11, 0.18);
+}
+.conversion-metric.kpi-bad {
+  --sis-kpi-accent: rgba(239, 68, 68, 0.62);
+  --sis-kpi-glow: rgba(239, 68, 68, 0.2);
+}
+.conversion-metric.kpi-good,
+.conversion-metric.kpi-warn,
+.conversion-metric.kpi-bad {
+  border-color: var(--sis-kpi-accent) !important;
+  box-shadow:
+    0 14px 34px rgba(0, 0, 0, 0.12),
+    0 0 0 1px var(--sis-kpi-accent),
+    0 0 18px var(--sis-kpi-glow);
+}

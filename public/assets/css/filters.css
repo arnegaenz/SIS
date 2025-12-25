@@ -133,3 +133,18 @@ header nav a.active {
 .legacy-filters {
   display: none !important;
 }
+
+@media (max-width: 720px) {
+  #filter-bar {
+    align-items: stretch;
+  }
+  .filter-group {
+    flex: 1 1 100%;
+  }
+  .filter-group select,
+  .multi-select button {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+}

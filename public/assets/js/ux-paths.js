@@ -216,10 +216,102 @@
     return "neutral";
   }
 
-  function renderClickstream(steps = []) {
+  function getClickstreamJobColors(step, jobs, stepIndex, allSteps) {
+    // Only color credential-entry pages
+    const url = step.url || '';
+    const isCredentialEntry = url.includes('/credential-entry');
+
+    if (!isCredentialEntry || !jobs || !jobs.length) return [];
+
+    // Find jobs created after this credential-entry visit
+    const stepTime = new Date(step.at || step.timestamp || step.time);
+    if (!stepTime || isNaN(stepTime)) return [];
+
+    // Find the last credential-entry page in the clickstream
+    let lastCredentialEntryStep = null;
+    for (let i = allSteps.length - 1; i >= 0; i--) {
+      const s = allSteps[i];
+      if ((s.url || '').includes('/credential-entry')) {
+        const sTime = new Date(s.at || s.timestamp || s.time);
+        if (sTime && !isNaN(sTime)) {
+          lastCredentialEntryStep = s;
+          break;
+        }
+      }
+    }
+
+    // For each job, find which credential-entry page is closest in time BEFORE the job
+    const relatedJobs = jobs.filter(job => {
+      const createdTime = job.created_on ? new Date(job.created_on) : null;
+      if (!createdTime) return false;
+
+      // Find the closest credential-entry page before this job was created
+      let closestStep = null;
+      let closestTimeDiff = Infinity;
+
+      for (let i = 0; i < allSteps.length; i++) {
+        const otherStep = allSteps[i];
+        const otherUrl = otherStep.url || '';
+        if (!otherUrl.includes('/credential-entry')) continue;
+
+        const otherStepTime = new Date(otherStep.at || otherStep.timestamp || otherStep.time);
+        if (!otherStepTime || isNaN(otherStepTime)) continue;
+
+        const timeDiff = createdTime - otherStepTime;
+
+        // Only consider credential-entry pages that happened before the job
+        // and within the time window (30 seconds to 5 minutes)
+        const minWindow = 30 * 1000;
+        const maxWindow = 5 * 60 * 1000;
+
+        if (timeDiff >= minWindow && timeDiff <= maxWindow) {
+          if (timeDiff < closestTimeDiff) {
+            closestStep = otherStep;
+            closestTimeDiff = timeDiff;
+          }
+        }
+      }
+
+      // If no match found within time window, use the last credential-entry page
+      if (!closestStep && lastCredentialEntryStep) {
+        closestStep = lastCredentialEntryStep;
+      }
+
+      // Only show this job on the closest credential-entry page
+      return closestStep === step;
+    });
+
+    if (!relatedJobs.length) return [];
+
+    // Return color class for each job
+    return relatedJobs.map(job => {
+      const badgeClass = jobBadgeClass(job);
+      if (badgeClass === 'fail') return 'fail';
+      if (badgeClass === 'warn') return 'warn';
+      if (badgeClass === 'success') return 'success';
+      return 'neutral';
+    });
+  }
+
+  function renderClickstream(steps = [], jobs = []) {
     if (!steps || !steps.length) return "";
     const items = steps
-      .map((step) => `<span class="click-pill">${escapeHtml(step.url || step.page_title || "step")}</span>`)
+      .map((step, index) => {
+        const jobColors = getClickstreamJobColors(step, jobs, index, steps);
+        const baseClass = 'click-pill';
+
+        if (!jobColors.length) {
+          // No jobs - default styling
+          return `<span class="${baseClass}">${escapeHtml(step.url || step.page_title || "step")}</span>`;
+        }
+
+        // Multiple jobs - show colored dots for each
+        const colorDots = jobColors.map(color => {
+          return `<span class="job-dot job-dot-${color}"></span>`;
+        }).join('');
+
+        return `<span class="${baseClass} has-jobs">${escapeHtml(step.url || step.page_title || "step")}${colorDots}</span>`;
+      })
       .join("");
     return `<div class="clickstream">${items}</div>`;
   }
@@ -283,20 +375,12 @@
           ${session.fi_lookup_key ? `<span><strong>FI lookup key</strong> ${escapeHtml(session.fi_lookup_key)}</span>` : ""}
           ${session.cuid ? `<span><strong>CUID</strong> ${escapeHtml(session.cuid)}</span>` : ""}
         </div>
-        ${renderClickstream(clickstream)}
+        ${renderClickstream(clickstream, jobs)}
         <div class="jobs">${renderJobs(jobs)}</div>
         <details class="raw-details">
           <summary>Raw session payload</summary>
           <pre class="raw-block">${escapeHtml(safeStringify(session))}</pre>
         </details>
-        ${
-          placementsRaw.length
-            ? `<details class="raw-details">
-                <summary>Raw placement payloads (${placementsRaw.length})</summary>
-                <pre class="raw-block">${escapeHtml(safeStringify(placementsRaw))}</pre>
-              </details>`
-            : ""
-        }
       </div>
     `;
   }
@@ -336,33 +420,81 @@
     rowEl.setAttribute("data-ux-expanded", "1");
   }
 
-  function toggleInlineSessionList(tableEl, rowEl, sessionIds, { title } = {}) {
+  function toggleInlineSessionList(tableEl, rowEl, sessionIds, { title, isLoadMore = false } = {}) {
     if (!tableEl || !rowEl) return;
     const tbody = rowEl.closest("tbody");
     if (!tbody) return;
 
     const next = rowEl.nextElementSibling;
-    if (rowEl.getAttribute("data-ux-expanded") === "1" && next && next.getAttribute("data-ux-detail-row") === "1") {
+    const isExpanded = rowEl.getAttribute("data-ux-expanded") === "1";
+
+    // If clicking on the row itself (not load more button), toggle collapse
+    if (isExpanded && !isLoadMore) {
       next.remove();
       rowEl.removeAttribute("data-ux-expanded");
+      delete rowEl.__paginationState; // Reset pagination state
       return;
     }
 
-    closeInlineDetails(tableEl);
+    // Only close other details if this is a fresh expand (not loading more)
+    if (!isLoadMore) {
+      closeInlineDetails(tableEl);
+    }
 
-    const ids = Array.isArray(sessionIds) ? sessionIds.slice(0, 3) : [];
-    const cards = ids
+    const ids = Array.isArray(sessionIds) ? sessionIds : [];
+    const INITIAL_BATCH = 10;
+    const LOAD_MORE_BATCH = 10;
+
+    // Track pagination state in row
+    if (!rowEl.__paginationState) {
+      rowEl.__paginationState = { loaded: 0 };
+    }
+
+    const state = rowEl.__paginationState;
+    const toLoad = state.loaded === 0 ? INITIAL_BATCH : state.loaded + LOAD_MORE_BATCH;
+    const visibleIds = ids.slice(0, toLoad);
+    const hasMore = toLoad < ids.length;
+    const remaining = ids.length - toLoad;
+
+    state.loaded = toLoad;
+
+    const cards = visibleIds
       .map((sid) => renderSessionCard(uxJsonState.sessionsById.get(String(sid)), { titlePrefix: title ? `${title} • session` : "" }))
       .join("");
+
+    const loadMoreButton = hasMore
+      ? `<button class="ux-load-more-btn" data-load-more="true">Load more (${remaining} remaining)</button>`
+      : '';
+
     const colCount = rowEl.children ? rowEl.children.length : 1;
-    const detailRow = document.createElement("tr");
-    detailRow.setAttribute("data-ux-detail-row", "1");
-    const td = document.createElement("td");
-    td.colSpan = colCount || 1;
-    td.innerHTML = `<div class="session-list">${cards || '<div class="session-card"><div class="session-meta">No example sessions available.</div></div>'}</div>`;
-    detailRow.appendChild(td);
-    rowEl.insertAdjacentElement("afterend", detailRow);
-    rowEl.setAttribute("data-ux-expanded", "1");
+
+    // If loading more, update existing row; otherwise create new row
+    if (isLoadMore && next) {
+      const td = next.querySelector('td');
+      td.innerHTML = `<div class="session-list">${cards || '<div class="session-card"><div class="session-meta">No example sessions available.</div></div>'}${loadMoreButton}</div>`;
+    } else {
+      const detailRow = document.createElement("tr");
+      detailRow.setAttribute("data-ux-detail-row", "1");
+      const td = document.createElement("td");
+      td.colSpan = colCount || 1;
+      td.innerHTML = `<div class="session-list">${cards || '<div class="session-card"><div class="session-meta">No example sessions available.</div></div>'}${loadMoreButton}</div>`;
+      detailRow.appendChild(td);
+      rowEl.insertAdjacentElement("afterend", detailRow);
+      rowEl.setAttribute("data-ux-expanded", "1");
+    }
+
+    // Attach click handler for load more button
+    if (hasMore) {
+      const detailRow = rowEl.nextElementSibling;
+      const btn = detailRow.querySelector('[data-load-more]');
+      if (btn) {
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          toggleInlineSessionList(tableEl, rowEl, sessionIds, { title, isLoadMore: true });
+        });
+      }
+    }
   }
 
   // ==================== Data Parsing Functions ====================
@@ -601,6 +733,24 @@
         return true;
       });
       console.log(`[UX Paths] Filtered ${before} sessions → ${allSessions.length} with shared filters`);
+    }
+
+    // Exclude customer-dev instances and TEST integration type
+    const beforeExclude = allSessions.length;
+    allSessions = allSessions.filter((session) => {
+      const inst = (session.instance || session._instance || "").toLowerCase();
+      const integrationType = (session.integration_display || session.integration || session.integration_type || "").toLowerCase();
+
+      // Exclude customer-dev instance
+      if (inst === "customer-dev") return false;
+
+      // Exclude TEST integration type
+      if (integrationType === "test") return false;
+
+      return true;
+    });
+    if (beforeExclude !== allSessions.length) {
+      console.log(`[UX Paths] Excluded customer-dev/TEST: ${beforeExclude} → ${allSessions.length} sessions`);
     }
 
     // Filter to ONLY successful sessions

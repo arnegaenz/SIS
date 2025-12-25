@@ -247,7 +247,9 @@
     .merchant-sites-table-wrapper {
       border: 1px solid var(--panel-border);
       border-radius: 10px;
-      overflow: hidden;
+      overflow-x: auto;
+      overflow-y: hidden;
+      -webkit-overflow-scrolling: touch;
       max-height: 420px;
       background: var(--surface);
       display: flex;
