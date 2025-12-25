@@ -168,6 +168,53 @@
       font-size: 0.8rem;
       color: var(--muted);
     }
+    .click-pill.has-jobs {
+      position: relative;
+      padding-right: 6px;
+    }
+    .job-dot {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      margin-left: 2px;
+      vertical-align: middle;
+    }
+    .job-dot-success {
+      background: var(--badge-success, #16a34a);
+      box-shadow: 0 0 0 1px rgba(22,163,74,0.3);
+    }
+    .job-dot-warn {
+      background: var(--badge-warn, #f59e0b);
+      box-shadow: 0 0 0 1px rgba(245,158,11,0.4);
+    }
+    .job-dot-fail {
+      background: var(--badge-fail, #dc2626);
+      box-shadow: 0 0 0 1px rgba(220,38,38,0.3);
+    }
+    .job-dot-neutral {
+      background: var(--muted, #94a3b8);
+      box-shadow: 0 0 0 1px rgba(148,163,184,0.3);
+    }
+    .ux-load-more-btn {
+      display: block;
+      width: 100%;
+      margin-top: 12px;
+      padding: 10px 16px;
+      background: var(--panel-light);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .ux-load-more-btn:hover {
+      background: var(--panel);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
     .jobs { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
     .job { border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; background: var(--panel-light); }
     .job-header { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 6px; }
@@ -457,94 +504,102 @@
       <section class="sis-panel" id="uxPathPatterns">
         <h2 class="sis-panel-title">Successful Path Patterns</h2>
         <p class="sis-panel-subtitle">Journey patterns that lead to successful placements</p>
-        <table class="sis-table" id="pathPatternsTable">
-          <thead>
-            <tr>
-              <th>Path Pattern</th>
-              <th>Sessions</th>
-              <th>Avg Successful Jobs</th>
-              <th>Avg Duration</th>
-              <th>% of Successful Sessions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td colspan="5" style="text-align: center; padding: 20px; color: var(--muted);">
-                Loading data...
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        <div class="table-scroll">
+          <table class="sis-table" id="pathPatternsTable">
+            <thead>
+              <tr>
+                <th>Path Pattern</th>
+                <th>Sessions</th>
+                <th>Avg Successful Jobs</th>
+                <th>Avg Duration</th>
+                <th>% of Successful Sessions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td colspan="5" style="text-align: center; padding: 20px; color: var(--muted);">
+                  Loading data...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </section>
 
       <!-- High Performer Sessions -->
       <section class="sis-panel" id="uxHighPerformers">
         <h2 class="sis-panel-title">High Performer Sessions (3+ Successful Jobs)</h2>
         <p class="sis-panel-subtitle">Sessions with exceptional success rates</p>
-        <table class="sis-table" id="highPerformersTable">
-          <thead>
-            <tr>
-              <th>Session ID</th>
-              <th>Successful Jobs</th>
-              <th>Duration</th>
-              <th>Path Pattern</th>
-              <th>Pages Visited</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td colspan="5" style="text-align: center; padding: 20px; color: var(--muted);">
-                Loading data...
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        <div class="table-scroll">
+          <table class="sis-table" id="highPerformersTable">
+            <thead>
+              <tr>
+                <th>Session ID</th>
+                <th>Successful Jobs</th>
+                <th>Duration</th>
+                <th>Path Pattern</th>
+                <th>Pages Visited</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td colspan="5" style="text-align: center; padding: 20px; color: var(--muted);">
+                  Loading data...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </section>
 
       <!-- Time Analysis for Successful Sessions -->
       <section class="sis-panel" id="uxTimeByPage">
         <h2 class="sis-panel-title">Time Spent by Page (Successful Sessions Only)</h2>
         <p class="sis-panel-subtitle">How long successful users spend at each step</p>
-        <table class="sis-table" id="timeAnalysisTable">
-          <thead>
-            <tr>
-              <th>Page</th>
-              <th>Avg Time</th>
-              <th>Median Time</th>
-              <th>90th Percentile</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td colspan="4" style="text-align: center; padding: 20px; color: var(--muted);">
-                Loading data...
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        <div class="table-scroll">
+          <table class="sis-table" id="timeAnalysisTable">
+            <thead>
+              <tr>
+                <th>Page</th>
+                <th>Avg Time</th>
+                <th>Median Time</th>
+                <th>90th Percentile</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td colspan="4" style="text-align: center; padding: 20px; color: var(--muted);">
+                  Loading data...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </section>
 
       <!-- Retry Patterns in Successful Sessions -->
       <section class="sis-panel" id="uxRetryPatterns">
         <h2 class="sis-panel-title">Retry Patterns (Successful Sessions)</h2>
         <p class="sis-panel-subtitle">How successful users navigate when they backtrack</p>
-        <table class="sis-table" id="retryPatternsTable">
-          <thead>
-            <tr>
-              <th>From Page</th>
-              <th>To Page</th>
-              <th>Count</th>
-              <th>Avg Jobs After Retry</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td colspan="4" style="text-align: center; padding: 20px; color: var(--muted);">
-                Loading data...
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        <div class="table-scroll">
+          <table class="sis-table" id="retryPatternsTable">
+            <thead>
+              <tr>
+                <th>From Page</th>
+                <th>To Page</th>
+                <th>Count</th>
+                <th>Avg Jobs After Retry</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td colspan="4" style="text-align: center; padding: 20px; color: var(--muted);">
+                  Loading data...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </section>
 
     </main>

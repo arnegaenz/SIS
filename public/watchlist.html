@@ -796,21 +796,23 @@
           </tr>`;
         })
         .join("");
-      return `
+        return `
         <div class="card">
           <h2>${title}</h2>
           ${subtitle ? `<div class="subhead">${subtitle}</div>` : ""}
           <div class="card-body">
-            <table class="watch-table">
-              <thead>
-                ${isReliability
-                  ? `<tr><th>${isFiLevel ? "Financial Institution" : "Merchant"}</th><th class="num">Last 7d</th><th class="num">Prev 7d</th><th class="num">Site-fail%</th><th class="num">Site-fail Δ</th><th class="num">Health Δ</th></tr>`
-                  : isTraffic
-                  ? `<tr><th>${isFiLevel ? "Financial Institution" : "Merchant"}</th><th class="num">Last 7d</th><th class="num">Prev 7d</th><th class="num">Traffic Δ</th><th class="num">Avg/wk (90d)</th></tr>`
-                  : `<tr><th>${isFiLevel ? "Financial Institution" : "Merchant"}</th><th class="num">Last 7d</th><th class="num">Prev 7d</th><th class="num">Traffic Δ</th><th class="num">Health Δ</th><th class="num">UX Δ</th></tr>`}
-              </thead>
-              <tbody>${body}</tbody>
-            </table>
+            <div class="table-scroll">
+              <table class="watch-table">
+                <thead>
+                  ${isReliability
+                    ? `<tr><th>${isFiLevel ? "Financial Institution" : "Merchant"}</th><th class="num">Last 7d</th><th class="num">Prev 7d</th><th class="num">Site-fail%</th><th class="num">Site-fail Δ</th><th class="num">Health Δ</th></tr>`
+                    : isTraffic
+                    ? `<tr><th>${isFiLevel ? "Financial Institution" : "Merchant"}</th><th class="num">Last 7d</th><th class="num">Prev 7d</th><th class="num">Traffic Δ</th><th class="num">Avg/wk (90d)</th></tr>`
+                    : `<tr><th>${isFiLevel ? "Financial Institution" : "Merchant"}</th><th class="num">Last 7d</th><th class="num">Prev 7d</th><th class="num">Traffic Δ</th><th class="num">Health Δ</th><th class="num">UX Δ</th></tr>`}
+                </thead>
+                <tbody>${body}</tbody>
+              </table>
+            </div>
           </div>
         </div>
       `;

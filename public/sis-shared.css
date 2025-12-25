@@ -75,6 +75,22 @@
   --sis-panel-bg: var(--panel);
 }
 
+/* ===== Horizontal table scroll on narrow screens ===== */
+.table-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.table-scroll > table {
+  width: 100%;
+  border-collapse: collapse;
+}
+@media (max-width: 900px) {
+  .table-scroll > table {
+    min-width: 900px;
+  }
+}
+
 /* ===== Funnel: Merchant Attempts popover + chips ===== */
 /* Attempts card container anchors the popover */
 .sis-attempts-card { position: relative; }

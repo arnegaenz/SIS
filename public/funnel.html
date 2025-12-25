@@ -1253,6 +1253,7 @@
       <div id="multiFiView">
       <div class="group-block" data-group="SSO">
         <div class="group-header">SSO</div>
+        <div class="table-scroll">
         <table id="table-SSO">
         <thead>
           <tr>
@@ -1277,10 +1278,12 @@
         </thead>
         <tbody></tbody>
         </table>
+        </div>
       </div>
 
       <div class="group-block" data-group="NON-SSO">
         <div class="group-header">NON-SSO</div>
+        <div class="table-scroll">
         <table id="table-NON-SSO">
         <thead>
           <tr>
@@ -1305,10 +1308,12 @@
         </thead>
         <tbody></tbody>
         </table>
+        </div>
       </div>
 
       <div class="group-block" data-group="CardSavr">
         <div class="group-header">CardSavr</div>
+        <div class="table-scroll">
         <table id="table-CardSavr">
         <thead>
           <tr>
@@ -1333,10 +1338,12 @@
         </thead>
         <tbody></tbody>
         </table>
+        </div>
       </div>
 
       <div class="group-block" data-group="TEST">
         <div class="group-header">TEST</div>
+        <div class="table-scroll">
         <table id="table-TEST">
         <thead>
           <tr>
@@ -1361,10 +1368,12 @@
         </thead>
         <tbody></tbody>
         </table>
+        </div>
       </div>
 
       <div class="group-block" data-group="UNKNOWN">
         <div class="group-header">UNKNOWN</div>
+        <div class="table-scroll">
         <table id="table-UNKNOWN">
         <thead>
           <tr>
@@ -1389,6 +1398,7 @@
         </thead>
         <tbody></tbody>
         </table>
+        </div>
       </div>
       </div>
 
@@ -1917,37 +1927,39 @@ function applyColumnTitles(root = document) {
         const totalPct = percent(total.sess_with_success, total.sessions);
         box.innerHTML = `
           <h3>Past 4 quarters</h3>
-          <table>
-            <thead>
-              <tr>
-                <th>Quarter</th>
-                <th>Dates</th>
-                <th>GA select</th>
-                <th>GA user</th>
-                <th>GA cred</th>
-                <th>Sessions</th>
-                <th>Sessions w/success</th>
-                <th>sess→success %</th>
-                <th>Placements</th>
-                <th>Cardholders</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${rowsHtml}
-              <tr>
-                <th>Total</th>
-                <td>4Q aggregate</td>
-                <td>${total.ga_select || 0}</td>
-                <td>${total.ga_user || 0}</td>
-                <td>${total.ga_cred || 0}</td>
-                <td>${total.sessions || 0}</td>
-                <td>${total.sess_with_success || 0}</td>
-                <td>${totalPct}</td>
-                <td>${total.placements || 0}</td>
-                <td>${total.cardholders || 0}</td>
-              </tr>
-            </tbody>
-          </table>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Quarter</th>
+                  <th>Dates</th>
+                  <th>GA select</th>
+                  <th>GA user</th>
+                  <th>GA cred</th>
+                  <th>Sessions</th>
+                  <th>Sessions w/success</th>
+                  <th>sess→success %</th>
+                  <th>Placements</th>
+                  <th>Cardholders</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rowsHtml}
+                <tr>
+                  <th>Total</th>
+                  <td>4Q aggregate</td>
+                  <td>${total.ga_select || 0}</td>
+                  <td>${total.ga_user || 0}</td>
+                  <td>${total.ga_cred || 0}</td>
+                  <td>${total.sessions || 0}</td>
+                  <td>${total.sess_with_success || 0}</td>
+                  <td>${totalPct}</td>
+                  <td>${total.placements || 0}</td>
+                  <td>${total.cardholders || 0}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         `;
         box.style.display = "";
       }
@@ -4922,7 +4934,10 @@ function applyColumnTitles(root = document) {
         });
 
         table.appendChild(tbody);
-        bestWindowsDiv.appendChild(table);
+        const wrapper = document.createElement("div");
+        wrapper.className = "table-scroll";
+        wrapper.appendChild(table);
+        bestWindowsDiv.appendChild(wrapper);
         applyColumnTitles(bestWindowsDiv);
       }
 
@@ -5081,39 +5096,41 @@ function applyColumnTitles(root = document) {
         partnerSummaryBox.innerHTML = `
           <h3>${summaryData.partner} integration mix</h3>
           <p>Comparing ${summaryData.instanceCount} FI instances over ${summaryData.daySpan || 0}-day window.</p>
-          <table class="partner-summary__table">
-            <thead>
-              <tr>
-                <th>Integration</th>
-                <th>FIs</th>
-                <th>GA select</th>
-                <th>Sel→success %</th>
-                <th>Sessions</th>
-                <th>Sessions w/success</th>
-                <th>Sessions→success %</th>
-                <th>Cardholders</th>
-                <th>Cardholder mix %</th>
-                <th>Monthly reach %</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${integrationRows}
-            </tbody>
-            <tfoot>
-              <tr>
-                <td>Total</td>
-                <td>${totals.fiCount || 0}</td>
-                <td>${formatNumber(totals.ga_select || 0)}</td>
-                <td>${formatPercent(totals.selSuccessPct)}</td>
-                <td>${formatNumber(totals.sessions || 0)}</td>
-                <td>${formatNumber(totals.sess_with_success || 0)}</td>
-                <td>${formatPercent(totals.sessionSuccessPct)}</td>
-                <td>${formatCardholders(totals.cardholders || 0)}</td>
-                <td>${formatPercent(totals.cardholderMixPct)}</td>
-                <td>${formatPercent(totals.reachPct)}</td>
-              </tr>
-            </tfoot>
-          </table>
+          <div class="table-scroll">
+            <table class="partner-summary__table">
+              <thead>
+                <tr>
+                  <th>Integration</th>
+                  <th>FIs</th>
+                  <th>GA select</th>
+                  <th>Sel→success %</th>
+                  <th>Sessions</th>
+                  <th>Sessions w/success</th>
+                  <th>Sessions→success %</th>
+                  <th>Cardholders</th>
+                  <th>Cardholder mix %</th>
+                  <th>Monthly reach %</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${integrationRows}
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td>Total</td>
+                  <td>${totals.fiCount || 0}</td>
+                  <td>${formatNumber(totals.ga_select || 0)}</td>
+                  <td>${formatPercent(totals.selSuccessPct)}</td>
+                  <td>${formatNumber(totals.sessions || 0)}</td>
+                  <td>${formatNumber(totals.sess_with_success || 0)}</td>
+                  <td>${formatPercent(totals.sessionSuccessPct)}</td>
+                  <td>${formatCardholders(totals.cardholders || 0)}</td>
+                  <td>${formatPercent(totals.cardholderMixPct)}</td>
+                  <td>${formatPercent(totals.reachPct)}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
         `;
         partnerSummaryBox.style.display = "";
       }
@@ -5298,7 +5315,10 @@ function applyColumnTitles(root = document) {
         table.appendChild(tbody);
         table.id = tableId;
         attachSortHandlers(table, tableId, "single");
-        return table;
+        const wrapper = document.createElement("div");
+        wrapper.className = "table-scroll";
+        wrapper.appendChild(table);
+        return wrapper;
       }
 
       function renderSingleFiRow(row) {
