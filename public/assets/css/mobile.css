@@ -273,22 +273,61 @@ table {
 /* ===== Popovers and dropdowns ===== */
 
 @media (max-width: 768px) {
-  /* Force all dropdowns/popovers to fit within viewport */
-  .funnel-dist-panel,
-  .sis-attempts-panel,
-  [class*="popover"],
-  [class*="dropdown"],
-  [class*="-panel"] {
+  /* Navigation dropdowns - full-width mobile panels */
+  .sis-dropdown > .sis-menu,
+  .sis-nav-menu,
+  [data-sis-nav] .sis-menu {
     position: fixed !important;
-    max-width: calc(100vw - 16px) !important;
     left: 8px !important;
     right: 8px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    max-height: 70vh !important;
+    overflow-y: auto !important;
+    border-radius: 16px !important;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.3) !important;
     width: auto !important;
+    z-index: 1000 !important;
     margin: 0 !important;
   }
 
+  /* Multi-select filter panels */
+  .multi-select .panel,
+  .instance-multi-select .panel {
+    position: fixed !important;
+    left: 8px !important;
+    right: 8px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    max-height: 70vh !important;
+    overflow-y: auto !important;
+    z-index: 900 !important;
+    border-radius: 12px !important;
+  }
+
+  /* Distribution panels (funnel page) */
+  .funnel-dist-panel,
+  .sis-attempts-panel {
+    position: fixed !important;
+    left: 8px !important;
+    right: 8px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    width: auto !important;
+    max-width: none !important;
+    max-height: 70vh !important;
+    overflow-y: auto !important;
+    z-index: 800 !important;
+    border-radius: 12px !important;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.3) !important;
+  }
+
   #distribution-wrap {
-    max-height: 300px;
+    max-height: 60vh !important;
+    overflow-y: auto !important;
   }
 
   /* Distribution table - compact columns on mobile */
@@ -490,12 +529,15 @@ table {
     align-items: center;
   }
 
-  /* Exception for chips and small badges */
+  /* Update chips and badges to have better touch targets */
   .chip,
   .badge,
   .sis-chip,
   .tag {
-    min-height: unset;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 12px;
   }
 }
 
@@ -521,10 +563,88 @@ table {
 @media (max-width: 768px) {
   .modal,
   .overlay,
-  .dialog {
-    max-width: calc(100vw - 32px);
-    max-height: calc(100vh - 64px);
-    margin: 32px 16px;
+  .dialog,
+  .ux-modal-card,
+  .modal-card,
+  [class*="modal"] > [class*="card"] {
+    width: calc(100vw - 16px) !important;
+    max-width: calc(100vw - 16px);
+    max-height: calc(100vh - 16px);
+    margin: 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .ux-modal-card,
+  .modal-card,
+  [class*="modal"] > [class*="card"] {
+    width: calc(100vw - 12px) !important;
+    margin: 6px;
+    padding: 16px 12px !important;
+  }
+}
+
+/* ===== Table scroll affordances ===== */
+
+@media (max-width: 768px) {
+  /* Table scroll containers with visual indicators */
+  .table-scroll {
+    position: relative;
+  }
+
+  /* Right shadow - always visible to indicate scrollability */
+  .table-scroll::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 30px;
+    background: linear-gradient(to left, rgba(0,0,0,0.15), transparent);
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  /* Left shadow - shows when scrolled (add data-scrolled="true" via JS) */
+  .table-scroll[data-scrolled="true"]::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 30px;
+    background: linear-gradient(to right, rgba(0,0,0,0.15), transparent);
+    pointer-events: none;
+    z-index: 1;
+  }
+}
+
+/* ===== Navigation scroll affordances ===== */
+
+@media (max-width: 768px) {
+  /* Add fade gradient to horizontal scrolling nav */
+  .sis-nav,
+  [data-sis-nav] {
+    position: relative;
+  }
+
+  .sis-nav::after,
+  [data-sis-nav]::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 30px;
+    background: linear-gradient(to left, var(--bg, #f6f8fb), transparent);
+    pointer-events: none;
+    z-index: 5;
+  }
+
+  /* Dark mode gradient */
+  [data-theme="dark"] .sis-nav::after,
+  [data-theme="dark"] [data-sis-nav]::after {
+    background: linear-gradient(to left, var(--bg, #0b0d10), transparent);
   }
 }
 

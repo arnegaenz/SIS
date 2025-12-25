@@ -154,7 +154,7 @@ html, body {
   top: calc(100% + 8px);
   right: 0;
   z-index: 40;
-  width: 360px;
+  width: min(360px, calc(100vw - 40px));
   max-width: min(90vw, 420px);
   pointer-events: none;
   opacity: 0;
@@ -388,7 +388,7 @@ body, .page, [data-sis-page] {
   overflow-x: hidden;
 }
 
-@media (max-width: 720px) {
+@media (max-width: 768px) {
   input,
   select,
   textarea {
@@ -699,7 +699,7 @@ body, .page, [data-sis-page] {
   filter: brightness(1.05);
 }
 
-@media (max-width: 720px) {
+@media (max-width: 768px) {
   .sis-topbar {
     flex-direction: column;
     align-items: flex-start;

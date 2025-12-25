@@ -41,7 +41,7 @@
   position: absolute;
   right: 0;
   top: var(--sis-dist-top, 44px);
-  width: 420px;
+  width: min(420px, calc(100vw - 40px));
   max-width: min(90vw, 520px);
   margin-top: 0;
   border: 1px solid var(--table-border);
