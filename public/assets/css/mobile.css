@@ -301,10 +301,16 @@ table {
     overflow-y: auto !important;
     border-radius: 12px !important;
     box-shadow: 0 10px 30px rgba(0,0,0,0.25) !important;
-    width: min(100%, calc(100vw - 16px)) !important;
+    width: min(92vw, 360px) !important;
     max-width: 100vw !important;
+    min-width: 0 !important;
     z-index: 1000 !important;
     margin: 0 !important;
+  }
+
+  .sis-nav .sis-dropdown:first-child > .sis-menu {
+    left: 0 !important;
+    right: auto !important;
   }
 
   /* Multi-select filter panels */
