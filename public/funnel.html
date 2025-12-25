@@ -92,6 +92,25 @@
         border-color: var(--accent);
         box-shadow: 0 0 0 3px rgba(37,99,235,0.2);
       }
+      @media (max-width: 767px) {
+        .funnel-header .form-grid,
+        .funnel-header .form-grid--dates {
+          display: grid;
+          grid-template-columns: 1fr;
+        }
+        .funnel-header .form-field {
+          min-width: 0;
+          width: 100%;
+        }
+        .funnel-header .form-input,
+        .funnel-header .form-select,
+        #startDate,
+        #endDate {
+          width: 100%;
+          min-width: 0;
+          max-width: 100%;
+        }
+      }
       .form-actions {
         display: flex;
         gap: 8px;
