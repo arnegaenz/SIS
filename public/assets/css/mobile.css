@@ -45,7 +45,10 @@ section {
     display: none; /* Chrome/Safari */
   }
 
-  .sis-nav a {
+  .sis-nav a,
+  .sis-nav > *,
+  .sis-dropdown,
+  .sis-nav-group {
     white-space: nowrap;
     flex-shrink: 0;
   }
