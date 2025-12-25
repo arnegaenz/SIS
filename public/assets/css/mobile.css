@@ -57,14 +57,30 @@ section {
   }
 }
 
-@media (max-width: 480px) {
+/* Reduce side padding dramatically on mobile to maximize screen space */
+@media (max-width: 768px) {
   :root {
-    --page-x: 16px;
-    --page-y: 16px;
+    --page-x: 8px;
+    --page-y: 12px;
   }
 
   .sis-header {
     padding: 12px var(--page-x);
+  }
+
+  .sis-content {
+    padding: 4px var(--page-x) 0;
+  }
+}
+
+@media (max-width: 480px) {
+  :root {
+    --page-x: 6px;
+    --page-y: 10px;
+  }
+
+  .sis-header {
+    padding: 10px var(--page-x);
   }
 
   .sis-content {
