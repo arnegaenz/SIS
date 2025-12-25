@@ -483,6 +483,37 @@ table {
   }
 }
 
+@media (max-width: 768px) {
+  .funnel-dist-panel {
+    width: calc(100vw - 24px);
+    max-width: calc(100vw - 24px);
+    overflow-x: hidden;
+  }
+
+  .funnel-dist-table {
+    width: 100%;
+    table-layout: fixed;
+  }
+
+  .funnel-dist-table th,
+  .funnel-dist-table td {
+    padding: 6px 8px;
+    font-size: 12px;
+    white-space: normal;
+  }
+
+  .funnel-dist-table th:first-child,
+  .funnel-dist-table td:first-child {
+    width: 58%;
+  }
+
+  .funnel-dist-table th:last-child,
+  .funnel-dist-table td:last-child {
+    width: 42%;
+    text-align: right;
+  }
+}
+
 /* ===== Raw JSON blocks ===== */
 
 @media (max-width: 768px) {
