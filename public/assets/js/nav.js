@@ -155,6 +155,35 @@ for (var j=0;j<btns.length;j++) btns[j].setAttribute("aria-expanded","false");
 if (mount.__sisNavUpdateOpen) mount.__sisNavUpdateOpen();
 }
 
+function isMobileNav(){
+return window.matchMedia && window.matchMedia("(max-width: 768px)").matches;
+}
+
+function positionMenu(list, btn){
+if (!list || !btn) return;
+if (!isMobileNav()){
+list.style.position = "";
+list.style.left = "";
+list.style.right = "";
+list.style.top = "";
+list.style.bottom = "";
+list.style.width = "";
+list.style.maxHeight = "";
+list.style.transform = "";
+return;
+}
+var rect = btn.getBoundingClientRect();
+var top = Math.max(0, Math.round(rect.bottom + 2));
+list.style.position = "fixed";
+list.style.left = "8px";
+list.style.right = "8px";
+list.style.top = top + "px";
+list.style.bottom = "auto";
+list.style.width = "auto";
+list.style.transform = "none";
+list.style.maxHeight = "calc(100vh - " + (top + 8) + "px)";
+}
+
 function addDropdown(group, targetWrap){
 var btn = h("button", { class:"sis-pill", type:"button", "aria-expanded":"false" }, [group.label]);
 var list = h("div", { class:"sis-menu", "data-open":"0" }, []);
@@ -170,6 +199,7 @@ var wasOpen = l.getAttribute("data-open")==="1";
 closeAllDropdowns(header);
 l.setAttribute("data-open", wasOpen ? "0" : "1");
 b.setAttribute("aria-expanded", wasOpen ? "false" : "true");
+if (!wasOpen) positionMenu(l, b);
 if (mount.__sisNavUpdateOpen) mount.__sisNavUpdateOpen();
 };
 }(list, btn));
@@ -218,6 +248,18 @@ var menus = header.querySelectorAll(".sis-menu");
 for (var k=0;k<menus.length;k++){
 menus[k].style.display = "none";
 }
+
+mount.__sisNavUpdateOpen = function(){
+if (!isMobileNav()) return;
+var open = header.querySelectorAll(".sis-menu[data-open=\"1\"]");
+for (var i=0;i<open.length;i++){
+var list = open[i];
+var btn = list.parentNode && list.parentNode.querySelector("button");
+positionMenu(list, btn);
+}
+};
+window.addEventListener("resize", function(){ if (mount.__sisNavUpdateOpen) mount.__sisNavUpdateOpen(); });
+window.addEventListener("scroll", function(){ if (mount.__sisNavUpdateOpen) mount.__sisNavUpdateOpen(); }, true);
 
 mount.__sisNavUpdateOpen = function(){
 var lists = header.querySelectorAll(".sis-menu");
