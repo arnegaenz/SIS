@@ -79,7 +79,7 @@ section {
   /* Remove extra padding from main and panels */
   .sis-main {
     padding: 0 !important;
-    margin: 12px 0 16px;
+    margin: 0 0 16px;
   }
 
   .sis-panel {
@@ -113,7 +113,7 @@ section {
   /* Even tighter on small phones */
   .sis-main {
     padding: 0 !important;
-    margin: 8px 0 12px;
+    margin: 0 0 12px;
   }
 
   .sis-panel {
@@ -538,8 +538,8 @@ table {
   }
 
   .sis-page-header {
-    margin-top: 12px;
-    margin-bottom: 16px;
+    margin-top: 4px;
+    margin-bottom: 12px;
   }
 }
 
