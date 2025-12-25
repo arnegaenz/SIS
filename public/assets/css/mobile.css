@@ -331,11 +331,14 @@ table {
   #distribution-wrap {
     max-height: 60vh !important;
     overflow-y: auto !important;
+    overflow-x: hidden !important;
   }
 
   /* Distribution table - compact columns on mobile */
   .funnel-dist-table {
     font-size: 12px;
+    table-layout: fixed;
+    width: 100%;
   }
 
   .funnel-dist-table th,
