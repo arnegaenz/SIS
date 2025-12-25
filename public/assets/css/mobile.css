@@ -71,6 +71,17 @@ section {
   .sis-content {
     padding: 4px var(--page-x) 0;
   }
+
+  /* Remove extra padding from main and panels */
+  .sis-main {
+    padding: 0 !important;
+    margin: 12px 0 16px;
+  }
+
+  .sis-panel {
+    padding: 16px 12px !important;
+    border-radius: 12px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -93,6 +104,17 @@ section {
 
   .sis-page-desc {
     font-size: 14px;
+  }
+
+  /* Even tighter on small phones */
+  .sis-main {
+    padding: 0 !important;
+    margin: 8px 0 12px;
+  }
+
+  .sis-panel {
+    padding: 12px 8px !important;
+    border-radius: 10px;
   }
 }
 
@@ -251,18 +273,47 @@ table {
 /* ===== Popovers and dropdowns ===== */
 
 @media (max-width: 768px) {
+  /* Force all dropdowns/popovers to fit within viewport */
   .funnel-dist-panel,
   .sis-attempts-panel,
   [class*="popover"],
-  [class*="dropdown"] {
-    max-width: calc(100vw - 32px) !important;
-    left: 16px !important;
-    right: 16px !important;
+  [class*="dropdown"],
+  [class*="-panel"] {
+    position: fixed !important;
+    max-width: calc(100vw - 16px) !important;
+    left: 8px !important;
+    right: 8px !important;
     width: auto !important;
+    margin: 0 !important;
   }
 
   #distribution-wrap {
     max-height: 300px;
+  }
+
+  /* Distribution table - compact columns on mobile */
+  .funnel-dist-table {
+    font-size: 12px;
+  }
+
+  .funnel-dist-table th,
+  .funnel-dist-table td {
+    padding: 8px 6px !important;
+    white-space: nowrap;
+  }
+
+  /* Make distribution table columns narrower */
+  .funnel-dist-table th:first-child,
+  .funnel-dist-table td:first-child {
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .funnel-dist-table th:not(:first-child),
+  .funnel-dist-table td:not(:first-child) {
+    text-align: right;
+    min-width: 50px;
   }
 }
 
