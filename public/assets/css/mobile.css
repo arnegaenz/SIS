@@ -196,6 +196,26 @@ section {
   }
 }
 
+@media (max-width: 767px) {
+  .funnel-header .form-grid,
+  .funnel-header .form-grid--dates {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+  }
+
+  .funnel-header .form-field {
+    flex: 1 1 100% !important;
+    min-width: 0 !important;
+    width: 100% !important;
+  }
+
+  #startDate,
+  #endDate {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+}
+
 /* ===== Cards and panels ===== */
 
 /* Ensure all cards and metrics fit within viewport */
