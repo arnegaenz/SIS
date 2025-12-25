@@ -1,0 +1,494 @@
+/* ===== Mobile Responsive Styles ===== */
+/* Applied across all SIS pages for consistent mobile experience */
+
+/* Ensure proper viewport behavior */
+html {
+  overflow-x: hidden;
+  width: 100%;
+}
+
+body {
+  overflow-x: hidden;
+  width: 100%;
+  min-width: 320px;
+}
+
+/* Prevent horizontal overflow on all major containers */
+.sis-header,
+.sis-content,
+.sis-page-header,
+main,
+section {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/* ===== Mobile breakpoints ===== */
+/* Small phones: < 480px */
+/* Phones: 480px - 768px */
+/* Tablets: 768px - 1024px */
+/* Desktop: > 1024px */
+
+/* ===== Navigation adjustments ===== */
+@media (max-width: 768px) {
+  /* Make nav scrollable horizontally on small screens */
+  .sis-nav {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE/Edge */
+    flex-wrap: nowrap;
+    padding-bottom: 4px;
+  }
+
+  .sis-nav::-webkit-scrollbar {
+    display: none; /* Chrome/Safari */
+  }
+
+  .sis-nav a {
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .sis-topbar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  :root {
+    --page-x: 16px;
+    --page-y: 16px;
+  }
+
+  .sis-header {
+    padding: 12px var(--page-x);
+  }
+
+  .sis-content {
+    padding: 4px var(--page-x) 0;
+  }
+
+  .sis-page-name {
+    font-size: 20px;
+  }
+
+  .sis-page-desc {
+    font-size: 14px;
+  }
+}
+
+/* ===== Grid systems - make all grids responsive ===== */
+
+/* Conversion grid (4 columns → 2 → 1) */
+@media (max-width: 768px) {
+  .conversion-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px;
+  }
+}
+
+/* Breakdown grid (similar pattern) */
+.breakdown-grid {
+  display: grid;
+  gap: 16px;
+}
+
+@media (min-width: 1024px) {
+  .breakdown-grid {
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  }
+}
+
+@media (max-width: 1023px) {
+  .breakdown-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Form grids */
+.form-grid {
+  display: grid;
+  gap: 12px;
+}
+
+@media (min-width: 768px) {
+  .form-grid {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  }
+}
+
+@media (max-width: 767px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .form-grid--dates {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ===== Cards and panels ===== */
+
+/* Ensure all cards and metrics fit within viewport */
+.conversion-metric,
+.breakdown-card,
+.sis-panel,
+.metric-card,
+[class*="card"],
+[class*="panel"] {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+@media (max-width: 768px) {
+  .conversion-metric {
+    min-width: unset;
+  }
+
+  /* Reduce padding on mobile */
+  .conversion-metric,
+  .breakdown-card {
+    padding: 12px;
+  }
+
+  /* Make metric values scale better */
+  .metric-value,
+  .conversion-value {
+    font-size: clamp(1.5rem, 8vw, 2.5rem);
+  }
+
+  .metric-label {
+    font-size: 0.85rem;
+  }
+}
+
+/* ===== Tables - horizontal scroll wrapper ===== */
+
+/* Make all tables scrollable on mobile */
+table {
+  max-width: 100%;
+}
+
+@media (max-width: 900px) {
+  /* Wrap tables that aren't already in table-scroll */
+  table:not(.table-scroll table) {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    white-space: nowrap;
+  }
+
+  table:not(.table-scroll table) thead,
+  table:not(.table-scroll table) tbody,
+  table:not(.table-scroll table) tr {
+    display: table;
+    width: 100%;
+  }
+
+  /* Ensure minimum width for readability */
+  .table-scroll > table,
+  table {
+    min-width: 600px;
+  }
+}
+
+/* ===== Chips and tags ===== */
+
+@media (max-width: 768px) {
+  .sis-chip-row,
+  .chips-row,
+  .funnel-dist-row {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .sis-chip,
+  .funnel-dist-chip,
+  .ui-chip,
+  .metric-chip {
+    font-size: 11px;
+    padding: 5px 8px;
+    min-width: unset;
+  }
+
+  .sis-chip-action {
+    min-width: 140px;
+  }
+}
+
+@media (max-width: 480px) {
+  .sis-chip-row,
+  .chips-row {
+    gap: 4px;
+  }
+
+  .sis-chip,
+  .funnel-dist-chip {
+    font-size: 10px;
+    padding: 4px 6px;
+  }
+}
+
+/* ===== Popovers and dropdowns ===== */
+
+@media (max-width: 768px) {
+  .funnel-dist-panel,
+  .sis-attempts-panel,
+  [class*="popover"],
+  [class*="dropdown"] {
+    max-width: calc(100vw - 32px) !important;
+    left: 16px !important;
+    right: 16px !important;
+    width: auto !important;
+  }
+
+  #distribution-wrap {
+    max-height: 300px;
+  }
+}
+
+/* ===== Filters ===== */
+
+@media (max-width: 768px) {
+  .filters-container,
+  .filter-row {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .filter-group {
+    width: 100%;
+  }
+
+  select,
+  input[type="date"],
+  input[type="text"],
+  button {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .date-range-inputs {
+    flex-direction: column;
+  }
+}
+
+/* ===== Session cards (troubleshoot, ux-paths) ===== */
+
+@media (max-width: 768px) {
+  .session-card,
+  .job,
+  .clickstream {
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .session-top,
+  .session-meta {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .chip,
+  .badge {
+    font-size: 11px;
+    padding: 4px 8px;
+  }
+
+  .clickstream {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .click-pill {
+    font-size: 11px;
+    padding: 4px 8px;
+    white-space: nowrap;
+  }
+}
+
+/* ===== Raw JSON blocks ===== */
+
+@media (max-width: 768px) {
+  .raw-block,
+  pre {
+    font-size: 11px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    max-width: 100%;
+  }
+
+  details summary {
+    font-size: 13px;
+  }
+}
+
+/* ===== Tab panels ===== */
+
+@media (max-width: 768px) {
+  .tab-buttons,
+  .tabs-nav {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    flex-wrap: nowrap;
+  }
+
+  .tab-button,
+  .tab-nav-item {
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+}
+
+/* ===== Heatmap and visualizations ===== */
+
+@media (max-width: 768px) {
+  .heatmap-container,
+  .chart-container,
+  canvas {
+    max-width: 100%;
+    height: auto !important;
+  }
+
+  .heatmap-grid {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* ===== Buttons and actions ===== */
+
+@media (max-width: 480px) {
+  button,
+  .btn {
+    padding: 10px 14px;
+    font-size: 14px;
+  }
+
+  .btn-group {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .btn-group button {
+    width: 100%;
+  }
+}
+
+/* ===== Load more buttons ===== */
+
+@media (max-width: 768px) {
+  .ux-load-more-btn {
+    padding: 8px 12px;
+    font-size: 0.85rem;
+  }
+}
+
+/* ===== Spacing adjustments ===== */
+
+@media (max-width: 768px) {
+  /* Reduce margins and padding on mobile */
+  h1, h2, h3, h4, h5, h6 {
+    margin-top: 1rem;
+    margin-bottom: 0.75rem;
+  }
+
+  section,
+  .section {
+    margin-bottom: 1.5rem;
+  }
+
+  .sis-page-header {
+    margin-top: 12px;
+    margin-bottom: 16px;
+  }
+}
+
+/* ===== Touch targets ===== */
+
+/* Ensure all interactive elements are at least 44px tall for touch */
+@media (max-width: 768px) {
+  button,
+  a,
+  input,
+  select,
+  .clickable,
+  [role="button"] {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  /* Exception for chips and small badges */
+  .chip,
+  .badge,
+  .sis-chip,
+  .tag {
+    min-height: unset;
+  }
+}
+
+/* ===== Prevent text overflow ===== */
+
+@media (max-width: 768px) {
+  * {
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+  }
+
+  /* But keep code blocks as-is with scroll */
+  code,
+  pre,
+  .raw-block {
+    overflow-wrap: normal;
+    word-wrap: normal;
+  }
+}
+
+/* ===== Modal and overlay fixes ===== */
+
+@media (max-width: 768px) {
+  .modal,
+  .overlay,
+  .dialog {
+    max-width: calc(100vw - 32px);
+    max-height: calc(100vh - 64px);
+    margin: 32px 16px;
+  }
+}
+
+/* ===== Accessibility: Reduce motion ===== */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ===== Print styles ===== */
+
+@media print {
+  .sis-nav,
+  .filters-container,
+  button,
+  .no-print {
+    display: none !important;
+  }
+
+  .sis-content {
+    padding: 0;
+  }
+
+  .conversion-grid,
+  .breakdown-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
