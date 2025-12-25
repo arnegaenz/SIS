@@ -5,12 +5,15 @@
 html {
   overflow-x: hidden;
   width: 100%;
+  touch-action: manipulation;
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
   overflow-x: hidden;
   width: 100%;
   min-width: 320px;
+  touch-action: manipulation;
 }
 
 /* Prevent horizontal overflow on all major containers */

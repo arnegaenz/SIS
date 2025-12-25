@@ -3424,39 +3424,7 @@
       loadSites();
     })();
 
-    // Theme toggle functionality
-    document.addEventListener("DOMContentLoaded", function() {
-      const themeBtn = document.getElementById("themeToggle");
-      if (!themeBtn) {
-        console.error("Theme toggle button not found!");
-        return;
-      }
-
-      const root = document.documentElement;
-      const STORAGE_KEY = "sis-theme";
-
-      function setTheme(theme) {
-        const next = theme === "dark" ? "dark" : "light";
-        root.setAttribute("data-theme", next);
-        try { localStorage.setItem(STORAGE_KEY, next); } catch (e) {}
-        themeBtn.setAttribute("aria-pressed", next === "dark" ? "true" : "false");
-        themeBtn.innerHTML = `<span class="theme-toggle__dot"></span>${next === "dark" ? "Dark mode" : "Light mode"}`;
-        console.log("Theme set to:", next);
-      }
-
-      // Initialize from localStorage or current state
-      const saved = localStorage.getItem(STORAGE_KEY);
-      const initial = saved || root.getAttribute("data-theme") || "light";
-      console.log("Initial theme:", initial, "from saved:", saved);
-      setTheme(initial);
-
-      themeBtn.addEventListener("click", function (e) {
-        e.preventDefault();
-        const current = root.getAttribute("data-theme") === "dark" ? "dark" : "light";
-        console.log("Toggle clicked, current theme:", current);
-        setTheme(current === "dark" ? "light" : "dark");
-      });
-    });
+    // Theme toggle is handled by theme-toggle.js
   </script>
 </body>
 </html>
