@@ -3425,7 +3425,7 @@
     })();
 
     // Theme toggle functionality
-    (function() {
+    document.addEventListener("DOMContentLoaded", function() {
       const themeBtn = document.getElementById("themeToggle");
       if (!themeBtn) return;
 
@@ -3448,7 +3448,7 @@
         const current = root.dataset.theme === "dark" ? "dark" : "light";
         setTheme(current === "dark" ? "light" : "dark");
       });
-    })();
+    });
   </script>
 </body>
 </html>
