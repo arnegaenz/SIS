@@ -175,11 +175,24 @@ section {
 
 @media (max-width: 767px) {
   .form-grid {
-    grid-template-columns: 1fr;
+    display: grid !important;
+    grid-template-columns: 1fr !important;
   }
 
   .form-grid--dates {
-    grid-template-columns: 1fr;
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+  }
+
+  .form-field {
+    min-width: 0 !important;
+    width: 100%;
+  }
+
+  .form-input,
+  .form-select {
+    min-width: 0 !important;
+    width: 100%;
   }
 }
 
