@@ -340,8 +340,20 @@ table {
 
   .funnel-dist-table th,
   .funnel-dist-table td {
-    padding: 8px 4px !important;
+    padding: 8px 2px !important;
     white-space: nowrap;
+  }
+
+  /* Further reduce first column padding */
+  .funnel-dist-table th:first-child,
+  .funnel-dist-table td:first-child {
+    padding-left: 6px !important;
+  }
+
+  /* Further reduce last column padding */
+  .funnel-dist-table th:last-child,
+  .funnel-dist-table td:last-child {
+    padding-right: 6px !important;
   }
 
   /* Make distribution table columns narrower */
