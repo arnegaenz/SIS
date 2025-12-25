@@ -62,6 +62,10 @@ section {
     align-items: flex-start;
     gap: 12px;
   }
+
+  .sis-nav-menu {
+    top: calc(100% + 2px);
+  }
 }
 
 /* Reduce side padding dramatically on mobile to maximize screen space */
