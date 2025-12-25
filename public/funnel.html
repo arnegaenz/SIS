@@ -92,15 +92,29 @@
         border-color: var(--accent);
         box-shadow: 0 0 0 3px rgba(37,99,235,0.2);
       }
+      .form-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .form-field-actions {
+        min-width: 200px;
+      }
       @media (max-width: 767px) {
         .funnel-header .form-grid,
         .funnel-header .form-grid--dates {
-          display: grid;
-          grid-template-columns: 1fr;
+          display: flex;
+          flex-direction: column;
+          width: 100%;
+          max-width: 100%;
         }
         .funnel-header .form-field {
           min-width: 0;
           width: 100%;
+        }
+        .funnel-header .form-field-actions {
+          min-width: 0;
         }
         .funnel-header .form-input,
         .funnel-header .form-select,
@@ -108,14 +122,8 @@
         #endDate {
           width: 100%;
           min-width: 0;
-          max-width: 100%;
+          max-width: calc(100vw - 32px);
         }
-      }
-      .form-actions {
-        display: flex;
-        gap: 8px;
-        flex-wrap: wrap;
-        align-items: center;
       }
       .form-checkbox label {
         display: flex;
@@ -1102,7 +1110,7 @@
               <label for="endDate">End date</label>
               <input id="endDate" type="date" class="form-input" />
             </div>
-            <div class="form-field" style="min-width: 200px">
+            <div class="form-field form-field-actions">
               <label for="applyBtn">Actions</label>
               <div class="form-actions">
                 <button id="applyBtn" class="form-button">Apply filters</button>
