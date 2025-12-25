@@ -66,6 +66,10 @@ section {
   .sis-nav-menu {
     top: calc(100% + 2px);
   }
+
+  .sis-dropdown > .sis-menu {
+    top: calc(100% + 2px);
+  }
 }
 
 /* Reduce side padding dramatically on mobile to maximize screen space */
