@@ -359,15 +359,18 @@ table {
   /* Make distribution table columns narrower */
   .funnel-dist-table th:first-child,
   .funnel-dist-table td:first-child {
-    max-width: 120px;
+    max-width: 80px;
     overflow: hidden;
     text-overflow: ellipsis;
+    font-size: 11px;
   }
 
   .funnel-dist-table th:not(:first-child),
   .funnel-dist-table td:not(:first-child) {
     text-align: right;
-    min-width: 50px;
+    max-width: 60px;
+    min-width: unset;
+    font-size: 11px;
   }
 }
 
