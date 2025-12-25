@@ -61,6 +61,28 @@
 .funnel-dist-table th, .funnel-dist-table td { padding:10px 12px; border-bottom:1px solid var(--table-border); text-align:left; }
 .funnel-dist-empty { padding:12px; opacity:.7; }
 
+@media (max-width: 768px) {
+  .funnel-dist-table {
+    table-layout: fixed;
+  }
+  .funnel-dist-table th,
+  .funnel-dist-table td {
+    padding: 4px 6px;
+    font-size: 11px;
+    white-space: normal;
+    word-break: break-word;
+  }
+  .funnel-dist-table th:first-child,
+  .funnel-dist-table td:first-child {
+    width: 55%;
+  }
+  .funnel-dist-table th:last-child,
+  .funnel-dist-table td:last-child {
+    width: 45%;
+    text-align: right;
+  }
+}
+
 .ui-chip,
 .metric-chip {
   border-radius: 9999px;
