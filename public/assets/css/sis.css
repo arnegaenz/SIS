@@ -207,6 +207,12 @@ button, .btn{ cursor:pointer; }
   z-index: 60;
 }
 
+@media (max-width: 720px) {
+  .sis-nav-menu {
+    top: calc(100% + 2px);
+  }
+}
+
 .sis-nav-menu a{
   display:block;
   white-space: nowrap;
