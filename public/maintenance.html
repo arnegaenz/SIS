@@ -845,6 +845,19 @@
         </div>
       </div>
 
+      <div class="admin-access" style="margin-top: 24px;">
+        <div>
+          <h2>Theme Settings</h2>
+          <p class="description">Choose between light and dark mode for the interface.</p>
+        </div>
+        <div class="admin-controls">
+          <button class="btn secondary theme-toggle" id="themeToggle" type="button" aria-pressed="false">
+            <span class="theme-toggle__dot"></span>
+            Light mode
+          </button>
+        </div>
+      </div>
+
       <div class="maintenance-grid" style="padding-right: 10px;">
         <article class="maint-card refresh-card" id="refreshCard">
           <div>
@@ -3409,6 +3422,32 @@
       });
 
       loadSites();
+    })();
+
+    // Theme toggle functionality
+    (function() {
+      const themeBtn = document.getElementById("themeToggle");
+      if (!themeBtn) return;
+
+      const root = document.documentElement;
+      const STORAGE_KEY = "sis-theme";
+
+      function setTheme(theme) {
+        const next = theme === "dark" ? "dark" : "light";
+        root.dataset.theme = next;
+        try { localStorage.setItem(STORAGE_KEY, next); } catch (e) {}
+        themeBtn.setAttribute("aria-pressed", next === "dark" ? "true" : "false");
+        themeBtn.innerHTML = `<span class="theme-toggle__dot"></span>${next === "dark" ? "Dark mode" : "Light mode"}`;
+      }
+
+      // Initialize from localStorage or current state
+      const saved = localStorage.getItem(STORAGE_KEY);
+      setTheme(saved || (root.dataset.theme === "dark" ? "dark" : "light"));
+
+      themeBtn.addEventListener("click", function () {
+        const current = root.dataset.theme === "dark" ? "dark" : "light";
+        setTheme(current === "dark" ? "light" : "dark");
+      });
     })();
   </script>
 </body>

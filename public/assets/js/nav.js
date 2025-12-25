@@ -183,33 +183,7 @@ var group = navGroups[g];
 addDropdown(group, rightGroup);
 }
 
-// Theme toggle - available on all pages
-var themeBtn = h("button", { class:"theme-toggle", type:"button", "aria-pressed":"false" }, ["Light mode"]);
-rightGroup.appendChild(themeBtn);
-try {
-  var root = document.documentElement;
-  var STORAGE_KEY = "sis-theme";
-  var setTheme = function (theme) {
-    var next = theme === "dark" ? "dark" : "light";
-    root.dataset.theme = next;
-    try { localStorage.setItem(STORAGE_KEY, next); } catch (e) {}
-    themeBtn.setAttribute("aria-pressed", next === "dark" ? "true" : "false");
-    themeBtn.textContent = next === "dark" ? "Dark mode" : "Light mode";
-    if (!themeBtn.querySelector(".theme-toggle__dot")) {
-      var dot = document.createElement("span");
-      dot.className = "theme-toggle__dot";
-      themeBtn.prepend(dot);
-    }
-  };
-  setTheme(root.dataset.theme === "dark" ? "dark" : "light");
-  if (!themeBtn.dataset.sisThemeBound) {
-    themeBtn.dataset.sisThemeBound = "1";
-    themeBtn.addEventListener("click", function () {
-      var current = root.dataset.theme === "dark" ? "dark" : "light";
-      setTheme(current === "dark" ? "light" : "dark");
-    });
-  }
-} catch (e) {}
+// Theme toggle removed from header - now in maintenance page body only
 nav.appendChild(leftGroup);
 nav.appendChild(spacer);
 nav.appendChild(rightGroup);
