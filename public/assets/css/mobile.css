@@ -288,20 +288,20 @@ table {
 /* ===== Popovers and dropdowns ===== */
 
 @media (max-width: 768px) {
-  /* Navigation dropdowns - full-width mobile panels */
+  /* Navigation dropdowns - keep close to trigger */
   .sis-dropdown > .sis-menu,
   .sis-nav-menu,
   [data-sis-nav] .sis-menu {
-    position: fixed !important;
-    left: 8px !important;
-    right: 8px !important;
-    top: 50% !important;
-    transform: translateY(-50%) !important;
-    max-height: 70vh !important;
+    position: absolute !important;
+    left: auto !important;
+    right: 0 !important;
+    top: calc(100% + 2px) !important;
+    transform: none !important;
+    max-height: min(60vh, 480px) !important;
     overflow-y: auto !important;
-    border-radius: 16px !important;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.3) !important;
-    width: auto !important;
+    border-radius: 12px !important;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.25) !important;
+    width: min(92vw, 480px) !important;
     z-index: 1000 !important;
     margin: 0 !important;
   }
