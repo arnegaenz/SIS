@@ -17,7 +17,7 @@ chmod +x ./lightsail-bootstrap.sh
 ./lightsail-bootstrap.sh
 ```
 
-This installs Node, clones the repo, installs deps, and starts the server via PM2.
+This installs Node, clones the repo, installs deps, starts the server via PM2, and sets up a daily cron job to refresh yesterday's data at 12:05 AM UTC.
 
 Step 2: Upload secrets and registry
 
@@ -45,4 +45,43 @@ Set your API base in `public/assets/js/config.js`:
 
 ```js
 global.SIS_API_BASE = "http://YOUR_LIGHTSAIL_IP:8787";
+```
+
+---
+
+## Daily Data Refresh
+
+The bootstrap script automatically sets up a daily cron job that:
+- Runs at **12:05 AM UTC** each day
+- Fetches yesterday's raw data (GA, placements, sessions)
+- Builds daily rollups from the raw data
+- Logs output to `/var/log/strivve-metrics/daily-refresh.log`
+
+### Managing the cron job
+
+**View the cron job:**
+```bash
+crontab -l
+```
+
+**View refresh logs:**
+```bash
+tail -f /var/log/strivve-metrics/daily-refresh.log
+```
+
+**Manually trigger a refresh:**
+```bash
+cd ~/strivve-metrics
+node scripts/refresh-yesterday.mjs
+```
+
+**Manually set up cron (if needed):**
+```bash
+cd ~/strivve-metrics
+./scripts/setup-cron.sh
+```
+
+**Remove the cron job:**
+```bash
+crontab -l | grep -v refresh-yesterday.mjs | crontab -
 ```
