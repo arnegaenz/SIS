@@ -1333,6 +1333,7 @@
   <script src="./theme-toggle.js"></script>
   <script>
     const ADMIN_KEY_STORAGE = "sis_admin_key";
+    const ADMIN_KEY_VALID_STORAGE = "sis_admin_key_valid";
 
     function resolveApiBase() {
       if (typeof window.SIS_API_BASE === "string" && window.SIS_API_BASE) {
@@ -1351,10 +1352,24 @@
       return "";
     }
 
+    function isAdminKeyValid() {
+      try {
+        return sessionStorage.getItem(ADMIN_KEY_VALID_STORAGE) === "1";
+      } catch (e) {}
+      return false;
+    }
+
     function setAdminKey(value) {
       try {
         if (value) sessionStorage.setItem(ADMIN_KEY_STORAGE, value);
         else sessionStorage.removeItem(ADMIN_KEY_STORAGE);
+      } catch (e) {}
+    }
+
+    function setAdminKeyValid(isValid) {
+      try {
+        if (isValid) sessionStorage.setItem(ADMIN_KEY_VALID_STORAGE, "1");
+        else sessionStorage.setItem(ADMIN_KEY_VALID_STORAGE, "0");
       } catch (e) {}
     }
 
@@ -1380,6 +1395,25 @@
       return next.pathname + next.search;
     }
 
+    async function validateAdminKey(candidateKey) {
+      if (!candidateKey) return false;
+      try {
+        const headers = new Headers();
+        headers.set("X-SIS-ADMIN-KEY", candidateKey);
+        const res = await fetch(`${apiBase}/server-logs?limit=1`, {
+          headers,
+          cache: "no-store",
+        });
+        if (res.ok) return true;
+        if (res.status === 401) return false;
+        console.warn("Admin key validation failed", res.status);
+        return null;
+      } catch (err) {
+        console.warn("Admin key validation error", err);
+        return null;
+      }
+    }
+
     (function setupAdminKeyUi() {
       const input = document.getElementById("adminKeyInput");
       const saveBtn = document.getElementById("adminKeySave");
@@ -1388,19 +1422,41 @@
       if (!input || !saveBtn || !clearBtn || !status) return;
 
       function updateStatus() {
-        status.textContent = getAdminKey() ? "Admin key set." : "Not set.";
+        const key = getAdminKey();
+        if (!key) {
+          status.textContent = "Not set.";
+          return;
+        }
+        status.textContent = isAdminKeyValid() ? "Admin key set." : "Admin key not validated.";
       }
 
-      saveBtn.addEventListener("click", () => {
+      saveBtn.addEventListener("click", async () => {
         const value = (input.value || "").trim();
         if (!value) return;
-        setAdminKey(value);
-        input.value = "";
-        updateStatus();
+        status.textContent = "Validating admin key...";
+        saveBtn.disabled = true;
+        clearBtn.disabled = true;
+        const result = await validateAdminKey(value);
+        if (result === true) {
+          setAdminKey(value);
+          setAdminKeyValid(true);
+          status.textContent = "Admin key set.";
+          input.value = "";
+        } else if (result === false) {
+          setAdminKey("");
+          setAdminKeyValid(false);
+          status.textContent = "Invalid admin key.";
+        } else {
+          setAdminKeyValid(false);
+          status.textContent = "Unable to validate admin key. Is the server running?";
+        }
+        saveBtn.disabled = false;
+        clearBtn.disabled = false;
       });
 
       clearBtn.addEventListener("click", () => {
         setAdminKey("");
+        setAdminKeyValid(false);
         input.value = "";
         updateStatus();
       });
