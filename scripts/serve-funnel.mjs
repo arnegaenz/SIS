@@ -1569,19 +1569,19 @@ const server = http.createServer(async (req, res) => {
       const incompleteDates = [];
 
       for (const dateStr of allRawDates) {
-        const sessionStatus = checkRawDataStatus("sessions", dateStr);
-        const placementStatus = checkRawDataStatus("placements", dateStr);
+        // Read metadata directly to check isComplete flag
+        const { readRawWithMetadata } = await import("../src/lib/rawStorage.mjs");
+        const { metadata: sessionMeta } = readRawWithMetadata("sessions", dateStr);
+        const { metadata: placementMeta } = readRawWithMetadata("placements", dateStr);
 
-        // A date is complete if both sessions and placements are complete
-        const isComplete =
-          sessionStatus.exists &&
-          !sessionStatus.needsRefetch &&
-          placementStatus.exists &&
-          !placementStatus.needsRefetch;
+        // A date is complete if both sessions and placements have isComplete: true
+        const sessionComplete = sessionMeta && sessionMeta.isComplete === true;
+        const placementComplete = placementMeta && placementMeta.isComplete === true;
+        const isComplete = sessionComplete && placementComplete;
 
         if (isComplete) {
           completeDates.push(dateStr);
-        } else if (sessionStatus.exists || placementStatus.exists) {
+        } else if (sessionMeta || placementMeta) {
           incompleteDates.push(dateStr);
         }
       }
