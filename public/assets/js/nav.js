@@ -85,6 +85,7 @@ var GROUPS = [
 { label: "Ops", items: [
 { id:"troubleshoot", label:"Troubleshoot", href:"./troubleshoot.html" },
 { id:"maintenance", label:"Maintenance", href:"./maintenance.html" },
+{ id:"fi-api", label:"FI API", href:"./fi-api.html" },
 { id:"logs", label:"Server Logs", href:"./logs.html" }
 ]}
 ];
@@ -315,4 +316,141 @@ if (metaDesc && subtitle) metaDesc.setAttribute("content", subtitle);
 
 // Expose
 global.renderHeaderNav = renderHeaderNav;
+
+function renderInlineNav(opts){
+try{
+opts = opts || {};
+var nav = opts.nav;
+if (!nav || nav.__sisNavRendered) return;
+var currentId = opts.currentId || "";
+nav.__sisNavRendered = true;
+nav.setAttribute("data-sis-nav","1");
+nav.innerHTML = "";
+
+var leftGroup = h("div", { class:"sis-nav-group" }, []);
+var spacer = h("div", { class:"sis-spacer" }, []);
+var rightGroup = h("div", { class:"sis-nav-group" }, []);
+
+function closeAllDropdowns(root){
+var container = root || nav;
+var lists = container.querySelectorAll(".sis-menu");
+for (var i=0;i<lists.length;i++) lists[i].setAttribute("data-open","0");
+var btns = container.querySelectorAll(".sis-dropdown > button");
+for (var j=0;j<btns.length;j++) btns[j].setAttribute("aria-expanded","false");
+if (nav.__sisNavUpdateOpen) nav.__sisNavUpdateOpen();
+}
+
+function isMobileNav(){
+return window.matchMedia && window.matchMedia("(max-width: 768px)").matches;
+}
+
+function positionMenu(list, btn){
+if (!list || !btn) return;
+if (!isMobileNav()){
+list.style.position = "";
+list.style.left = "";
+list.style.right = "";
+list.style.top = "";
+list.style.bottom = "";
+list.style.width = "";
+list.style.maxHeight = "";
+list.style.transform = "";
+return;
+}
+var rect = btn.getBoundingClientRect();
+var top = Math.max(0, Math.round(rect.bottom + 2));
+list.style.position = "fixed";
+list.style.left = "8px";
+list.style.right = "8px";
+list.style.top = top + "px";
+list.style.bottom = "auto";
+list.style.width = "auto";
+list.style.transform = "none";
+list.style.maxHeight = "calc(100vh - " + (top + 8) + "px)";
+}
+
+function addDropdown(group, targetWrap){
+var btn = h("button", { class:"sis-pill", type:"button", "aria-expanded":"false" }, [group.label]);
+var list = h("div", { class:"sis-menu", "data-open":"0" }, []);
+for (var i=0; i<group.items.length; i++){
+var item = group.items[i];
+var a = h("a", { href:item.href, class:("sis-nav-link" + (item.id===currentId ? " sis-active" : "")) }, [item.label]);
+list.appendChild(a);
+}
+btn.addEventListener("click", function(l, b){
+return function(e){
+e.preventDefault();
+var wasOpen = l.getAttribute("data-open")==="1";
+closeAllDropdowns(nav);
+l.setAttribute("data-open", wasOpen ? "0" : "1");
+b.setAttribute("aria-expanded", wasOpen ? "false" : "true");
+if (!wasOpen) positionMenu(l, b);
+if (nav.__sisNavUpdateOpen) nav.__sisNavUpdateOpen();
+};
+}(list, btn));
+var wrap = h("div", { class:"sis-dropdown" }, [btn, list]);
+targetWrap.appendChild(wrap);
+}
+
+var navGroups = getGroupsForAccess();
+for (var g=0; g<navGroups.length; g++){
+var group = navGroups[g];
+addDropdown(group, rightGroup);
+}
+
+nav.appendChild(leftGroup);
+nav.appendChild(spacer);
+nav.appendChild(rightGroup);
+
+nav.__sisNavUpdateOpen = function(){
+var lists = nav.querySelectorAll(".sis-menu");
+for (var m=0;m<lists.length;m++){
+lists[m].style.display = (lists[m].getAttribute("data-open")==="1") ? "block" : "none";
+}
+};
+nav.__sisNavUpdateOpen();
+
+window.addEventListener("resize", function(){ if (nav.__sisNavUpdateOpen) nav.__sisNavUpdateOpen(); });
+window.addEventListener("scroll", function(){ if (nav.__sisNavUpdateOpen) nav.__sisNavUpdateOpen(); }, true);
+
+if (!global.__sisHeaderNavDocBound){
+global.__sisHeaderNavDocBound = true;
+document.addEventListener("click", function(e){
+var activeNav = document.querySelector(".sis-nav[data-sis-nav]");
+if (!activeNav) return;
+if (activeNav.contains(e.target)) return;
+var lists = activeNav.querySelectorAll(".sis-menu");
+for (var i=0;i<lists.length;i++) lists[i].setAttribute("data-open","0");
+var btns = activeNav.querySelectorAll(".sis-dropdown > button");
+for (var j=0;j<btns.length;j++) btns[j].setAttribute("aria-expanded","false");
+if (activeNav.__sisNavUpdateOpen) activeNav.__sisNavUpdateOpen();
+});
+document.addEventListener("keydown", function(e){
+if (e.key!=="Escape") return;
+var activeNav = document.querySelector(".sis-nav[data-sis-nav]");
+if (!activeNav) return;
+var lists = activeNav.querySelectorAll(".sis-menu");
+for (var i=0;i<lists.length;i++) lists[i].setAttribute("data-open","0");
+var btns = activeNav.querySelectorAll(".sis-dropdown > button");
+for (var j=0;j<btns.length;j++) btns[j].setAttribute("aria-expanded","false");
+if (activeNav.__sisNavUpdateOpen) activeNav.__sisNavUpdateOpen();
+});
+}
+} catch(e){
+(global.sisWarn || console.warn)("renderInlineNav failed", e);
+}
+}
+
+global.renderInlineNav = renderInlineNav;
+
+document.addEventListener("DOMContentLoaded", function(){
+var inlineNavs = document.querySelectorAll('nav.sis-nav[data-current]');
+for (var i=0; i<inlineNavs.length; i++){
+var nav = inlineNavs[i];
+var currentId = nav.getAttribute("data-current") || "";
+if (!currentId) continue;
+if (nav.getAttribute("data-sis-nav")) continue;
+renderInlineNav({ nav: nav, currentId: currentId });
+}
+});
 })(window);
