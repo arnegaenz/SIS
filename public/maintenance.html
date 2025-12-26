@@ -1530,20 +1530,23 @@
           }
         } else {
           // Legacy format (old API) - show simplified view
-          // Note: Old API doesn't provide start dates, so we show "Latest" instead
           if (data.rawLatest) {
             const age = data.rawAgeDays ?? null;
             const ageStr = Number.isFinite(age) ? ` (${age} day${age === 1 ? "" : "s"} old)` : "";
-            lines.push(`Latest raw data: ${data.rawLatest}${ageStr}`);
+            lines.push(`Raw data: through ${data.rawLatest}${ageStr}`);
           }
-          if (data.dailyLatest) {
+
+          // Show daily rollups with start date if available
+          if (data.dailyStart && data.dailyEnd && data.dailyCount) {
+            const age = data.dailyAgeDays ?? null;
+            const ageStr = Number.isFinite(age) ? ` (${age} day${age === 1 ? "" : "s"} old)` : "";
+            lines.push(`Daily rollups: ${data.dailyStart} through ${data.dailyEnd} (${data.dailyCount} days)${ageStr}`);
+          } else if (data.dailyLatest) {
             const age = data.dailyAgeDays ?? null;
             const ageStr = Number.isFinite(age) ? ` (${age} day${age === 1 ? "" : "s"} old)` : "";
             const cleaned = data.dailyLatest.replace(/\.json$/i, "");
-            lines.push(`Latest daily rollup: ${cleaned}${ageStr}`);
+            lines.push(`Daily rollups: through ${cleaned}${ageStr}`);
           }
-          lines.push("");
-          lines.push("⚠️ Update Lightsail server for detailed date ranges");
         }
 
         return lines.join("\n");
@@ -1555,6 +1558,29 @@
           const res = await fetch("/data-freshness");
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           const data = await res.json();
+
+          // If old API format, fetch start dates from /list-daily
+          const hasNewFormat = data.complete || data.incomplete || data.overall || data.daily;
+          if (!hasNewFormat && data.dailyLatest) {
+            try {
+              const listRes = await fetch("/list-daily");
+              if (listRes.ok) {
+                const listData = await listRes.json();
+                const days = listData.days || [];
+                if (days.length > 0) {
+                  const firstDay = days[0].replace(/\.json$/i, "");
+                  const lastDay = days[days.length - 1].replace(/\.json$/i, "");
+                  // Enhance data with start/end info
+                  data.dailyStart = firstDay;
+                  data.dailyEnd = lastDay;
+                  data.dailyCount = days.length;
+                }
+              }
+            } catch (err) {
+              console.warn("Could not fetch daily list:", err);
+            }
+          }
+
           const label = labelFromFreshness(data);
           freshnessEl.textContent = label || "Latest data not available.";
           freshnessEl.style.whiteSpace = "pre-line";
