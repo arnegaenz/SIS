@@ -1058,6 +1058,14 @@
     return `${year}-${month}-${day}`;
   }
 
+  function isoLocalToday() {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+
   function applyDatePreset(preset) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -1103,11 +1111,58 @@
     return { startDate: start, endDate: end };
   }
 
+  async function checkAndRefreshIncompleteDates(startDate, endDate) {
+    try {
+      // Check which dates need refetching
+      const response = await fetch(`/api/check-raw-data?start=${startDate}&end=${endDate}`);
+      if (!response.ok) {
+        console.warn('[UX Paths] Could not check raw data status');
+        return;
+      }
+
+      const { datesToRefetch } = await response.json();
+
+      if (datesToRefetch.length > 0) {
+        console.log(`[UX Paths] Auto-fetching ${datesToRefetch.length} incomplete dates:`, datesToRefetch);
+
+        // Trigger refresh via SSE endpoint
+        const eventSource = new EventSource(
+          `/run-update/stream?start=${startDate}&end=${endDate}&autoRefetch=1`
+        );
+
+        eventSource.addEventListener('complete', () => {
+          console.log('[UX Paths] Auto-refresh complete');
+          eventSource.close();
+        });
+
+        eventSource.addEventListener('error', (e) => {
+          console.error('[UX Paths] Auto-refresh error:', e);
+          eventSource.close();
+        });
+
+        // Wait for the refresh to complete
+        await new Promise((resolve) => {
+          eventSource.addEventListener('complete', resolve);
+          eventSource.addEventListener('error', resolve);
+        });
+      }
+    } catch (err) {
+      console.error('[UX Paths] Error checking incomplete dates:', err);
+    }
+  }
+
   async function refreshData(dateRange, filterState) {
     console.log('Refreshing UX Success Paths data for range:', dateRange);
 
+    const range = dateRange || getDefaultDateRange();
+    const startStr = formatDateForInput(range.startDate);
+    const endStr = formatDateForInput(range.endDate);
+
+    // Check and refresh incomplete dates first
+    await checkAndRefreshIncompleteDates(startStr, endStr);
+
     try {
-      const stats = await analyzeSessions(dateRange || getDefaultDateRange(), filterState);
+      const stats = await analyzeSessions(range, filterState);
       renderAllTables(stats);
     } catch (err) {
       console.error('Error analyzing sessions:', err);

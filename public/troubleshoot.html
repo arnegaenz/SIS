@@ -421,18 +421,25 @@
         },
       };
 
-      function latestAllowedEndIso() {
+      function isoLocalToday() {
         const now = new Date();
-        const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 1));
-        return d.toISOString().slice(0, 10);
+        const y = now.getFullYear();
+        const m = String(now.getMonth() + 1).padStart(2, '0');
+        const d = String(now.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+      }
+
+      function getMaxSelectableDateIso() {
+        // Allow selecting through today; data refresh handles incomplete data
+        return isoLocalToday();
       }
 
       function renderDateWarning() {
         if (!els.dateWarning || !els.endDate) return;
-        const latest = latestAllowedEndIso();
+        const today = isoLocalToday();
         const chosen = els.endDate.value;
-        if (chosen && chosen > latest) {
-          els.dateWarning.textContent = `Heads up: data normally only covers through ${latest}. You selected ${chosen}.`;
+        if (chosen && chosen > today) {
+          els.dateWarning.textContent = `Heads up: you selected a future date (${chosen}). Data may not be available yet.`;
           els.dateWarning.style.display = "block";
         } else {
           els.dateWarning.textContent = "";
@@ -766,11 +773,12 @@
           }
 
           const defaultDay = data.defaultDate || "";
+          const today = isoLocalToday();
           if (data.days && data.days.length) {
             els.startDate.min = data.days[0];
-            els.startDate.max = data.days[data.days.length - 1];
+            els.startDate.max = today;  // Allow through today
             els.endDate.min = data.days[0];
-            els.endDate.max = data.days[data.days.length - 1];
+            els.endDate.max = today;    // Allow through today
           }
           applyPreset("last1");
           refreshFilterOptions();
@@ -1263,6 +1271,47 @@
       // Expose for assets/js/filters.js integration.
       window.applyFilters = applyFilters;
 
+      async function checkAndRefreshIncompleteDates(startDate, endDate) {
+        try {
+          // Check which dates need refetching
+          const response = await fetch(`/api/check-raw-data?start=${startDate}&end=${endDate}`);
+          if (!response.ok) {
+            console.warn('[Troubleshoot] Could not check raw data status');
+            return;
+          }
+
+          const { datesToRefetch } = await response.json();
+
+          if (datesToRefetch.length > 0) {
+            console.log(`[Troubleshoot] Auto-fetching ${datesToRefetch.length} incomplete dates:`, datesToRefetch);
+
+            // Trigger refresh via SSE endpoint
+            const eventSource = new EventSource(
+              `/run-update/stream?start=${startDate}&end=${endDate}&autoRefetch=1`
+            );
+
+            eventSource.addEventListener('complete', () => {
+              console.log('[Troubleshoot] Auto-refresh complete, reloading data...');
+              eventSource.close();
+              // Note: loadDay() will be called after this function returns
+            });
+
+            eventSource.addEventListener('error', (e) => {
+              console.error('[Troubleshoot] Auto-refresh error:', e);
+              eventSource.close();
+            });
+
+            // Wait for the refresh to complete
+            await new Promise((resolve) => {
+              eventSource.addEventListener('complete', resolve);
+              eventSource.addEventListener('error', resolve);
+            });
+          }
+        } catch (err) {
+          console.error('[Troubleshoot] Error checking incomplete dates:', err);
+        }
+      }
+
       async function loadDay() {
         const start = els.startDate.value;
         const end = els.endDate.value || start;
@@ -1274,6 +1323,10 @@
           setStatus("Start date must be on or before end date.", "error");
           return;
         }
+
+        // Check and refresh incomplete dates first
+        await checkAndRefreshIncompleteDates(start, end);
+
         state.loading = true;
         els.applyBtn.disabled = true;
         setStatus("Loading sessions…");
@@ -1340,7 +1393,6 @@
             .slice(0, 10);
 
         const todayMidnight = startOfDay(today);
-        const yesterday = new Date(todayMidnight.getTime() - 86400000);
         const maxBound = els.endDate.max ? startOfDay(parseLocalIso(els.endDate.max)) : null;
         const minBound = els.startDate.min ? startOfDay(parseLocalIso(els.startDate.min)) : null;
         const clamp = (d) => {
@@ -1349,9 +1401,9 @@
           if (maxBound && t > maxBound.getTime()) t = maxBound.getTime();
           return startOfDay(new Date(t));
         };
-        // Use the lesser of yesterday or data max as the end anchor
+        // Use the lesser of today or data max as the end anchor
         const endAnchor = clamp(
-          maxBound ? new Date(Math.min(maxBound.getTime(), yesterday.getTime())) : yesterday
+          maxBound ? new Date(Math.min(maxBound.getTime(), todayMidnight.getTime())) : todayMidnight
         );
         const dayMs = 86400000;
         const daysBeforeEnd = (n) => new Date(endAnchor.getTime() - n * dayMs);

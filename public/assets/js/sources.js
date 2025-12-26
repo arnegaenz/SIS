@@ -109,6 +109,12 @@
     return new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
   }
 
+  function yesterdayUTC() {
+    const now = new Date();
+    now.setDate(now.getDate() - 1);
+    return new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+  }
+
   function formatDateISO(value) {
     if (!(value instanceof Date)) return "";
     return value.toISOString().slice(0, 10);
@@ -182,7 +188,7 @@
   }
 
   function initDefaultRange() {
-    const end = todayUTC();
+    const end = yesterdayUTC();  // Default to yesterday, not today
     const start = new Date(end);
     start.setUTCDate(end.getUTCDate() - 29);
     setPresetDates(start, end, "last_30");
@@ -779,6 +785,46 @@
     }
   }
 
+  async function checkAndRefreshIncompleteDates(startDate, endDate) {
+    try {
+      // Check which dates need refetching
+      const response = await fetch(`/api/check-raw-data?start=${startDate}&end=${endDate}`);
+      if (!response.ok) {
+        console.warn('[Sources] Could not check raw data status');
+        return;
+      }
+
+      const { datesToRefetch } = await response.json();
+
+      if (datesToRefetch.length > 0) {
+        console.log(`[Sources] Auto-fetching ${datesToRefetch.length} incomplete dates:`, datesToRefetch);
+
+        // Trigger refresh via SSE endpoint
+        const eventSource = new EventSource(
+          `/run-update/stream?start=${startDate}&end=${endDate}&autoRefetch=1`
+        );
+
+        eventSource.addEventListener('complete', () => {
+          console.log('[Sources] Auto-refresh complete');
+          eventSource.close();
+        });
+
+        eventSource.addEventListener('error', (e) => {
+          console.error('[Sources] Auto-refresh error:', e);
+          eventSource.close();
+        });
+
+        // Wait for the refresh to complete
+        await new Promise((resolve) => {
+          eventSource.addEventListener('complete', resolve);
+          eventSource.addEventListener('error', resolve);
+        });
+      }
+    } catch (err) {
+      console.error('[Sources] Error checking incomplete dates:', err);
+    }
+  }
+
   async function fetchSources() {
     const { gate, ready } = syncApplyEnabled();
     if (!gate.ok || !ready) {
@@ -800,6 +846,10 @@
       setStatus("Start date must be on or before end date.");
       return;
     }
+
+    // Check and refresh incomplete dates first
+    await checkAndRefreshIncompleteDates(start, end);
+
     clearDisplay();
     setLoading(true, "Loading data…");
     abortFetch();

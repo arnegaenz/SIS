@@ -521,6 +521,10 @@
       d.setDate(d.getDate() - 1);
       return isoLocalFromDate(d);
     }
+    function isoLocalToday() {
+      const now = new Date();
+      return isoLocalFromDate(now);
+    }
     function isoDaysAgo(n, refIso) {
       if (refIso) {
         const [y, m, dd] = refIso.split("-").map((v) => parseInt(v, 10));
@@ -1172,7 +1176,10 @@
     const HEATMAP_DATES_KEY = 'heatmap_last_dates';
     const initEndParam = urlParams.get("end");
     const initStartParam = urlParams.get("start");
-    const clampToYesterday = (iso) => (iso > isoYesterday() ? isoYesterday() : iso);
+    const clampToToday = (iso) => {
+      const today = isoLocalToday();
+      return iso > today ? today : iso;
+    };
     const partnerParam = urlParams.get("partner");
     const integrationParam = urlParams.get("integration");
     const instanceParam = urlParams.get("instance");
@@ -1185,7 +1192,7 @@
     if (initStartParam && initEndParam) {
       // Use URL params if present
       initStart = initStartParam;
-      initEnd = clampToYesterday(initEndParam);
+      initEnd = clampToToday(initEndParam);
       console.log('📅 Using dates from URL:', { start: initStart, end: initEnd });
     } else {
       // Try to load last used dates from localStorage
@@ -1194,7 +1201,7 @@
         if (stored) {
           const parsed = JSON.parse(stored);
           initStart = parsed.start;
-          initEnd = clampToYesterday(parsed.end);
+          initEnd = clampToToday(parsed.end);
           console.log('📅 Using dates from localStorage:', { start: initStart, end: initEnd });
         } else {
           throw new Error('No stored dates');
@@ -1330,7 +1337,49 @@
       if (textEl && message) textEl.textContent = message;
     }
 
+    async function checkAndRefreshIncompleteDates(startDate, endDate) {
+      try {
+        // Check which dates need refetching
+        const response = await fetch(`/api/check-raw-data?start=${startDate}&end=${endDate}`);
+        if (!response.ok) {
+          console.warn('[Heatmap] Could not check raw data status');
+          return;
+        }
+
+        const { datesToRefetch } = await response.json();
+
+        if (datesToRefetch.length > 0) {
+          console.log(`[Heatmap] Auto-fetching ${datesToRefetch.length} incomplete dates:`, datesToRefetch);
+
+          // Trigger refresh via SSE endpoint
+          const eventSource = new EventSource(
+            `/run-update/stream?start=${startDate}&end=${endDate}&autoRefetch=1`
+          );
+
+          eventSource.addEventListener('complete', () => {
+            console.log('[Heatmap] Auto-refresh complete');
+            eventSource.close();
+          });
+
+          eventSource.addEventListener('error', (e) => {
+            console.error('[Heatmap] Auto-refresh error:', e);
+            eventSource.close();
+          });
+
+          // Wait for the refresh to complete
+          await new Promise((resolve) => {
+            eventSource.addEventListener('complete', resolve);
+            eventSource.addEventListener('error', resolve);
+          });
+        }
+      } catch (err) {
+        console.error('[Heatmap] Error checking incomplete dates:', err);
+      }
+    }
+
     async function loadAndRender(start, end) {
+      // Check and refresh incomplete dates first
+      await checkAndRefreshIncompleteDates(start, end);
       try {
         // Save dates to localStorage for next visit
         try {
