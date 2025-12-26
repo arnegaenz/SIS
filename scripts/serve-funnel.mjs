@@ -1587,7 +1587,11 @@ const server = http.createServer(async (req, res) => {
       const completeEnd = latest(completeDates);
       const overallStart = earliest(allRawDates);
       const overallEnd = latest(allRawDates);
-      const dailyLatest = latest(dailyDays);
+
+      // Clean up daily dates (remove .json extension)
+      const dailyDatesClean = dailyDays.map(d => d.replace(/\.json$/i, ""));
+      const dailyEarliest = earliest(dailyDatesClean);
+      const dailyLatest = latest(dailyDatesClean);
 
       return send(res, 200, {
         // Legacy fields for backward compatibility
@@ -1610,6 +1614,11 @@ const server = http.createServer(async (req, res) => {
           start: overallStart,
           end: overallEnd,
           count: allRawDates.length,
+        },
+        daily: {
+          start: dailyEarliest,
+          end: dailyLatest,
+          count: dailyDatesClean.length,
         },
       });
     } catch (err) {

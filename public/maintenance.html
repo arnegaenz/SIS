@@ -1517,10 +1517,16 @@
         }
 
         // Daily rollups
-        if (data.dailyLatest) {
+        if (data.daily?.start && data.daily?.end) {
           const age = data.dailyAgeDays ?? null;
           const ageStr = Number.isFinite(age) ? ` (${age} day${age === 1 ? "" : "s"} old)` : "";
-          lines.push(`📈 Daily rollups: through ${data.dailyLatest}${ageStr}`);
+          lines.push(`📈 Daily rollups: ${data.daily.start} through ${data.daily.end} (${data.daily.count} days)${ageStr}`);
+        } else if (data.dailyLatest) {
+          // Fallback for backward compatibility
+          const age = data.dailyAgeDays ?? null;
+          const ageStr = Number.isFinite(age) ? ` (${age} day${age === 1 ? "" : "s"} old)` : "";
+          const cleaned = data.dailyLatest.replace(/\.json$/i, "");
+          lines.push(`📈 Daily rollups: through ${cleaned}${ageStr}`);
         }
 
         return lines.join("\n");
