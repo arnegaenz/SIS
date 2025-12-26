@@ -151,6 +151,33 @@
       align-items: center;
       align-self: flex-end;
     }
+    .loading-banner {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      border-radius: 12px;
+      background: var(--panel-light);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-bottom: 12px;
+    }
+    .loading-banner[hidden] {
+      display: none;
+    }
+    .loading-banner .spinner {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      animation: spin 0.9s linear infinite;
+    }
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
     .summary-card .label {
       text-transform: uppercase;
       letter-spacing: 0.08em;
@@ -324,6 +351,10 @@
   <main class="sis-main">
     <section class="sis-panel">
       <div id="filter-bar"></div>
+      <div id="loadingBanner" class="loading-banner" hidden>
+        <div class="spinner" aria-hidden="true"></div>
+        <span>Loading sessions…</span>
+      </div>
       <div class="trouble-header">
       <div class="filter-grid filter-grid--dates">
         <div class="form-field">
@@ -400,6 +431,7 @@
         dateWarning: document.getElementById("dateWarning"),
         applyBtn: document.getElementById("applyBtn"),
         status: document.getElementById("statusLine"),
+        loadingBanner: document.getElementById("loadingBanner"),
         summary: document.getElementById("summaryGrid"),
         sessions: document.getElementById("sessionList"),
         empty: document.getElementById("emptyState"),
@@ -429,17 +461,26 @@
         return `${y}-${m}-${d}`;
       }
 
+      function isoLocalYesterday() {
+        const now = new Date();
+        now.setDate(now.getDate() - 1);
+        const y = now.getFullYear();
+        const m = String(now.getMonth() + 1).padStart(2, '0');
+        const d = String(now.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+      }
+
       function getMaxSelectableDateIso() {
-        // Allow selecting through today; data refresh handles incomplete data
-        return isoLocalToday();
+        // Default to yesterday to avoid incomplete same-day data.
+        return isoLocalYesterday();
       }
 
       function renderDateWarning() {
         if (!els.dateWarning || !els.endDate) return;
-        const today = isoLocalToday();
+        const maxSelectable = getMaxSelectableDateIso();
         const chosen = els.endDate.value;
-        if (chosen && chosen > today) {
-          els.dateWarning.textContent = `Heads up: you selected a future date (${chosen}). Data may not be available yet.`;
+        if (chosen && chosen > maxSelectable) {
+          els.dateWarning.textContent = `Heads up: you selected a date beyond available data (${chosen}).`;
           els.dateWarning.style.display = "block";
         } else {
           els.dateWarning.textContent = "";
@@ -526,6 +567,13 @@
       function setStatus(text, tone = "muted") {
         els.status.textContent = text || "";
         els.status.style.color = tone === "error" ? "var(--badge-fail)" : "var(--muted)";
+      }
+
+      function setLoading(isLoading, message) {
+        state.loading = isLoading;
+        if (els.applyBtn) els.applyBtn.disabled = isLoading;
+        if (els.loadingBanner) els.loadingBanner.hidden = !isLoading;
+        if (message) setStatus(message);
       }
 
       function optionRows() {
@@ -773,7 +821,7 @@
           }
 
           const defaultDay = data.defaultDate || "";
-          const today = isoLocalToday();
+          const today = getMaxSelectableDateIso();
           if (data.days && data.days.length) {
             els.startDate.min = data.days[0];
             els.startDate.max = today;  // Allow through today
@@ -1324,12 +1372,9 @@
           return;
         }
 
+        setLoading(true, "Loading sessions…");
         // Check and refresh incomplete dates first
         await checkAndRefreshIncompleteDates(start, end);
-
-        state.loading = true;
-        els.applyBtn.disabled = true;
-        setStatus("Loading sessions…");
         try {
           const query = buildQuery();
           console.log("[troubleshoot] fetching", `/troubleshoot/day?${query}`);
@@ -1357,8 +1402,7 @@
           renderSummary(null);
           renderSessions([]);
         } finally {
-          els.applyBtn.disabled = false;
-          state.loading = false;
+          setLoading(false);
         }
       }
 
@@ -1392,7 +1436,7 @@
             .toISOString()
             .slice(0, 10);
 
-        const todayMidnight = startOfDay(today);
+        const yesterdayMidnight = startOfDay(new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1));
         const maxBound = els.endDate.max ? startOfDay(parseLocalIso(els.endDate.max)) : null;
         const minBound = els.startDate.min ? startOfDay(parseLocalIso(els.startDate.min)) : null;
         const clamp = (d) => {
@@ -1403,7 +1447,7 @@
         };
         // Use the lesser of today or data max as the end anchor
         const endAnchor = clamp(
-          maxBound ? new Date(Math.min(maxBound.getTime(), todayMidnight.getTime())) : todayMidnight
+          maxBound ? new Date(Math.min(maxBound.getTime(), yesterdayMidnight.getTime())) : yesterdayMidnight
         );
         const dayMs = 86400000;
         const daysBeforeEnd = (n) => new Date(endAnchor.getTime() - n * dayMs);

@@ -60,6 +60,7 @@
 .funnel-dist-table { width:100%; border-collapse:collapse; }
 .funnel-dist-table th, .funnel-dist-table td { padding:10px 12px; border-bottom:1px solid var(--table-border); text-align:left; }
 .funnel-dist-empty { padding:12px; opacity:.7; }
+.funnel-body { min-height: 40vh; }
 
 @media (max-width: 768px) {
   .funnel-dist-table {
