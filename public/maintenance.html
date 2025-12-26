@@ -1345,6 +1345,8 @@
       return "http://localhost:8787";
     }
 
+    const apiBase = resolveApiBase();
+
     function getAdminKey() {
       try {
         return sessionStorage.getItem(ADMIN_KEY_STORAGE) || "";
