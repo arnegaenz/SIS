@@ -1537,31 +1537,80 @@ const server = http.createServer(async (req, res) => {
   }
   if (pathname === "/data-freshness") {
     try {
+      const { checkRawDataStatus } = await import("../src/lib/rawStorage.mjs");
       const [rawSessionDays, rawPlacementDays, dailyDays] = await Promise.all([
         listRawDays("sessions"),
         listRawDays("placements"),
         listDaily(),
       ]);
+
       const latest = (arr = []) => (arr.length ? arr[arr.length - 1] : null);
-      const rawLatest = latest(
-        rawSessionDays.length && rawPlacementDays.length
-          ? rawSessionDays.filter((d) => rawPlacementDays.includes(d))
-          : rawSessionDays.length
-          ? rawSessionDays
-          : rawPlacementDays
-      );
-      const dailyLatest = latest(dailyDays);
+      const earliest = (arr = []) => (arr.length ? arr[0] : null);
+
+      // Get all dates that have both sessions and placements
+      const allRawDates = rawSessionDays.length && rawPlacementDays.length
+        ? rawSessionDays.filter((d) => rawPlacementDays.includes(d))
+        : rawSessionDays.length
+        ? rawSessionDays
+        : rawPlacementDays;
+
+      // Categorize dates by completeness
+      const completeDates = [];
+      const incompleteDates = [];
+
+      for (const dateStr of allRawDates) {
+        const sessionStatus = checkRawDataStatus("sessions", dateStr);
+        const placementStatus = checkRawDataStatus("placements", dateStr);
+
+        // A date is complete if both sessions and placements are complete
+        const isComplete =
+          sessionStatus.exists &&
+          !sessionStatus.needsRefetch &&
+          placementStatus.exists &&
+          !placementStatus.needsRefetch;
+
+        if (isComplete) {
+          completeDates.push(dateStr);
+        } else if (sessionStatus.exists || placementStatus.exists) {
+          incompleteDates.push(dateStr);
+        }
+      }
+
       const today = todayIsoDate();
       const age = (iso) => {
         if (!iso) return null;
         const ms = new Date(`${today}T00:00:00Z`) - new Date(`${iso}T00:00:00Z`);
         return Math.floor(ms / 86400000);
       };
+
+      const completeStart = earliest(completeDates);
+      const completeEnd = latest(completeDates);
+      const overallStart = earliest(allRawDates);
+      const overallEnd = latest(allRawDates);
+      const dailyLatest = latest(dailyDays);
+
       return send(res, 200, {
-        rawLatest,
-        rawAgeDays: age(rawLatest),
+        // Legacy fields for backward compatibility
+        rawLatest: completeEnd,
+        rawAgeDays: age(completeEnd),
         dailyLatest,
         dailyAgeDays: age(dailyLatest),
+
+        // New detailed fields
+        complete: {
+          start: completeStart,
+          end: completeEnd,
+          count: completeDates.length,
+        },
+        incomplete: {
+          dates: incompleteDates,
+          count: incompleteDates.length,
+        },
+        overall: {
+          start: overallStart,
+          end: overallEnd,
+          count: allRawDates.length,
+        },
       });
     } catch (err) {
       return send(res, 500, { error: err?.message || "Unable to load freshness" });

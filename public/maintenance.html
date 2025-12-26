@@ -1490,24 +1490,40 @@
       }
       function labelFromFreshness(data) {
         if (!data) return "";
-        const parts = [];
-        if (data.rawLatest) {
-          const age = data.rawAgeDays ?? null;
-          parts.push(
-            `Raw: ${data.rawLatest}${
-              Number.isFinite(age) ? ` (${age} day${age === 1 ? "" : "s"} old)` : ""
-            }`
-          );
+
+        const lines = [];
+
+        // Overall data availability
+        if (data.overall?.start && data.overall?.end) {
+          lines.push(`📊 Data available: ${data.overall.start} through ${data.overall.end} (${data.overall.count} days)`);
         }
+
+        // Complete data range
+        if (data.complete?.start && data.complete?.end) {
+          const age = data.rawAgeDays ?? null;
+          const ageStr = Number.isFinite(age) ? ` (${age} day${age === 1 ? "" : "s"} old)` : "";
+          lines.push(`✓ Complete data: ${data.complete.start} through ${data.complete.end} (${data.complete.count} days)${ageStr}`);
+        } else {
+          lines.push("✓ Complete data: None");
+        }
+
+        // Incomplete dates
+        if (data.incomplete && data.incomplete.count > 0) {
+          const dateList = data.incomplete.dates.slice(0, 5).join(", ");
+          const moreCount = data.incomplete.count > 5 ? ` and ${data.incomplete.count - 5} more` : "";
+          lines.push(`⚠ Incomplete data (${data.incomplete.count}): ${dateList}${moreCount}`);
+        } else {
+          lines.push("⚠ Incomplete data: None");
+        }
+
+        // Daily rollups
         if (data.dailyLatest) {
           const age = data.dailyAgeDays ?? null;
-          parts.push(
-            `Daily: ${data.dailyLatest}${
-              Number.isFinite(age) ? ` (${age} day${age === 1 ? "" : "s"} old)` : ""
-            }`
-          );
+          const ageStr = Number.isFinite(age) ? ` (${age} day${age === 1 ? "" : "s"} old)` : "";
+          lines.push(`📈 Daily rollups: through ${data.dailyLatest}${ageStr}`);
         }
-        return parts.join(" • ");
+
+        return lines.join("\n");
       }
       async function loadFreshness() {
         if (!freshnessEl) return;
@@ -1517,9 +1533,9 @@
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           const data = await res.json();
           const label = labelFromFreshness(data);
-          freshnessEl.textContent = label
-            ? `Latest data — ${label}`
-            : "Latest data not available.";
+          freshnessEl.textContent = label || "Latest data not available.";
+          freshnessEl.style.whiteSpace = "pre-line";
+          freshnessEl.style.lineHeight = "1.6";
         } catch (err) {
           console.error("freshness load failed", err);
           freshnessEl.textContent = "Unable to determine data freshness.";
