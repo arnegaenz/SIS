@@ -275,6 +275,7 @@
   <script src="./theme-toggle.js"></script>
   <script>
     (function setupLogsPage() {
+      const ADMIN_KEY_STORAGE = "sis_admin_key";
       const logLevel = document.getElementById("logLevel");
       const logSearch = document.getElementById("logSearch");
       const autoRefresh = document.getElementById("autoRefresh");
@@ -286,6 +287,26 @@
       let allLogs = [];
       let autoRefreshInterval = null;
       let isAutoScrolling = true;
+
+      function getAdminKey() {
+        try {
+          return sessionStorage.getItem(ADMIN_KEY_STORAGE) || "";
+        } catch (e) {}
+        return "";
+      }
+
+      function withAdminHeaders(init) {
+        const next = init ? { ...init } : {};
+        const headers = new Headers(init && init.headers ? init.headers : undefined);
+        const key = getAdminKey();
+        if (key) headers.set("X-SIS-ADMIN-KEY", key);
+        if (key || (init && init.headers)) next.headers = headers;
+        return next;
+      }
+
+      function fetchAdmin(url, init) {
+        return fetch(url, withAdminHeaders(init));
+      }
 
       function setStatus(message, kind = "") {
         logStatus.textContent = message || "";
@@ -347,7 +368,7 @@
 
       async function loadLogs() {
         try {
-          const res = await fetch("/server-logs?limit=2000");
+          const res = await fetchAdmin("/server-logs?limit=2000");
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
           const data = await res.json();
