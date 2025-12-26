@@ -1435,6 +1435,15 @@ const server = http.createServer(async (req, res) => {
 
     sseSend(res, "snapshot", currentUpdateSnapshot());
 
+    // Send keepalive pings every 15 seconds to prevent timeout
+    const keepaliveInterval = setInterval(() => {
+      try {
+        res.write(": keepalive\n\n");
+      } catch (err) {
+        clearInterval(keepaliveInterval);
+      }
+    }, 15000);
+
     if (!currentUpdateJob.running) {
       const qsStart = queryParams.get("start") || queryParams.get("startDate");
       const qsEnd = queryParams.get("end") || queryParams.get("endDate");
@@ -1451,6 +1460,7 @@ const server = http.createServer(async (req, res) => {
     }
 
     req.on("close", () => {
+      clearInterval(keepaliveInterval);
       updateClients.delete(res);
     });
 
