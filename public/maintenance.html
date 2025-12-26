@@ -1530,17 +1530,20 @@
           }
         } else {
           // Legacy format (old API) - show simplified view
+          // Note: Old API doesn't provide start dates, so we show "Latest" instead
           if (data.rawLatest) {
             const age = data.rawAgeDays ?? null;
             const ageStr = Number.isFinite(age) ? ` (${age} day${age === 1 ? "" : "s"} old)` : "";
-            lines.push(`Raw data: through ${data.rawLatest}${ageStr}`);
+            lines.push(`Latest raw data: ${data.rawLatest}${ageStr}`);
           }
           if (data.dailyLatest) {
             const age = data.dailyAgeDays ?? null;
             const ageStr = Number.isFinite(age) ? ` (${age} day${age === 1 ? "" : "s"} old)` : "";
             const cleaned = data.dailyLatest.replace(/\.json$/i, "");
-            lines.push(`Daily rollups: through ${cleaned}${ageStr}`);
+            lines.push(`Latest daily rollup: ${cleaned}${ageStr}`);
           }
+          lines.push("");
+          lines.push("⚠️ Update Lightsail server for detailed date ranges");
         }
 
         return lines.join("\n");
