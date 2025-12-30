@@ -1391,19 +1391,21 @@
         if (!data && origin && apiBase !== origin) {
           data = await fetchBuildInfo(origin);
         }
-        const stamp = data && data.startedAt ? new Date(data.startedAt) : null;
+        const stampValue =
+          (data && data.committedAt) || (data && data.startedAt) || null;
+        const stamp = stampValue ? new Date(stampValue) : null;
         const commit = data && data.commit ? data.commit : "";
         if (stamp && !Number.isNaN(stamp)) {
           buildStampEl.textContent = commit
-            ? `Build: ${stamp.toLocaleString()} (${commit})`
-            : `Build: ${stamp.toLocaleString()}`;
+            ? `Commit: ${stamp.toLocaleString()} (${commit})`
+            : `Commit: ${stamp.toLocaleString()}`;
         } else {
           buildStampEl.textContent = commit
-            ? `Build: unavailable (${commit})`
-            : "Build: unavailable (restart server to enable build info)";
+            ? `Commit: unavailable (${commit})`
+            : "Commit: unavailable (restart server to enable build info)";
         }
       } catch (err) {
-        buildStampEl.textContent = "Build: unavailable";
+        buildStampEl.textContent = "Commit: unavailable";
       }
     }
 

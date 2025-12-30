@@ -72,6 +72,18 @@ const BUILD_COMMIT = (() => {
     return "";
   }
 })();
+const BUILD_COMMITTED_AT = (() => {
+  try {
+    return execSync("git log -1 --format=%cI", {
+      cwd: ROOT,
+      stdio: ["ignore", "pipe", "ignore"],
+    })
+      .toString()
+      .trim();
+  } catch {
+    return "";
+  }
+})();
 
 const updateClients = new Set();
 
@@ -1564,7 +1576,10 @@ const server = http.createServer(async (req, res) => {
     return send(res, 200, diag);
   }
   if (pathname === "/build-info") {
-    return send(res, 200, { startedAt: SERVER_STARTED_AT, commit: BUILD_COMMIT });
+    return send(res, 200, {
+      committedAt: BUILD_COMMITTED_AT,
+      commit: BUILD_COMMIT,
+    });
   }
 
   // JSON helpers
