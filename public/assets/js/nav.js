@@ -76,7 +76,8 @@ var GROUPS = [
 { id:"overview", label:"Overview", href:"./index.html" },
 { id:"funnel", label:"FI Funnel", href:"./funnel.html" },
 { id:"sources", label:"Sources", href:"./sources.html" },
-{ id:"ux-paths", label:"UX Paths", href:"./ux-paths.html" }
+{ id:"ux-paths", label:"UX Paths", href:"./ux-paths.html" },
+{ id:"placement-outcomes", label:"Placement Outcomes", href:"./placement-outcomes.html" }
 ]},
 { label: "Reliability", items: [
 { id:"heatmap", label:"Merchant Heatmap", href:"./heatmap.html" },

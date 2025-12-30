@@ -137,7 +137,10 @@ async function verifyPlacementAccess(session, instanceName, verificationDate) {
 async function verifyInstanceLogins(instances, cache, options = {}) {
   const verificationDate = options.verificationDate || todayUtc();
   const verifyPlacements = options.verifyPlacements !== false;
+  const strict = options.strict !== false;
   const failures = [];
+  const okInstances = [];
+
   for (const instance of instances) {
     const instanceName =
       instance?.name ||
@@ -152,13 +155,15 @@ async function verifyInstanceLogins(instances, cache, options = {}) {
       if (verifyPlacements) {
         await verifyPlacementAccess(session, instanceName, verificationDate);
       }
+      okInstances.push(instance);
     } catch (err) {
       const msg = err?.message || String(err);
       console.error(`[login] ${instanceName}: FAILED - ${msg}`);
       failures.push({ instanceName, error: msg });
     }
   }
-  if (failures.length > 0) {
+
+  if (failures.length > 0 && strict) {
     const detail = failures
       .map((failure) => `${failure.instanceName}: ${failure.error}`)
       .join("; ");
@@ -169,6 +174,8 @@ async function verifyInstanceLogins(instances, cache, options = {}) {
     err.kind = "credentials";
     throw err;
   }
+
+  return { instances: okInstances, failures };
 }
 
 async function collectSessionsForDay(date, instances, cache, options = {}) {
@@ -352,10 +359,20 @@ export async function fetchRawRange({
   const dates = enumerateDates(startDate, endDate);
   ensureRawDirs();
   const verificationDate = dates[0] || todayUtc();
-  await verifyInstanceLogins(instances, sessionCache, {
+  const loginResult = await verifyInstanceLogins(instances, sessionCache, {
     verificationDate,
     verifyPlacements: true,
+    strict,
   });
+  const activeInstances = loginResult?.instances?.length
+    ? loginResult.instances
+    : [];
+  if (loginResult?.failures?.length) {
+    const names = loginResult.failures.map((f) => f.instanceName).join(", ");
+    const warnMsg = `[login] Skipping ${loginResult.failures.length} instance(s) due to auth errors: ${names}`;
+    if (onStatus) onStatus(warnMsg);
+    console.warn(warnMsg);
+  }
 
   for (const date of dates) {
     console.log(`\n=== ${date} ===`);
@@ -400,7 +417,7 @@ export async function fetchRawRange({
         logRefetch(date, "Sessions", sessionsReason, onStatus);
       }
       try {
-        const sessions = await collectSessionsForDay(date, instances, sessionCache, {
+        const sessions = await collectSessionsForDay(date, activeInstances, sessionCache, {
           strict,
         });
         const payload = { date, sessions, count: sessions.length };
@@ -441,7 +458,7 @@ export async function fetchRawRange({
       try {
         const { placements, errors } = await collectPlacementsForDay(
           date,
-          instances,
+          activeInstances,
           sessionCache,
           { strict }
         );

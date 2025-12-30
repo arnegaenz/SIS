@@ -793,6 +793,12 @@
     }
     .status-line.success { color: var(--success); }
     .status-line.error { color: var(--danger); }
+    .build-stamp {
+      margin-top: 28px;
+      font-size: 12px;
+      color: var(--muted);
+      text-align: center;
+    }
     @media (max-width: 960px) {
       .registry-body {
         grid-template-columns: 1fr;
@@ -1326,6 +1332,7 @@
           </div>
         </article>
       </div>
+      <div class="build-stamp" id="buildStamp">Build: loading…</div>
     </section>
   </main>
   </div>
@@ -1346,6 +1353,59 @@
     }
 
     const apiBase = resolveApiBase();
+    const buildStampEl = document.getElementById("buildStamp");
+
+    async function fetchJson(url) {
+      const res = await fetch(url, { cache: "no-store" });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const contentType = (res.headers.get("content-type") || "").toLowerCase();
+      if (!contentType.includes("application/json")) {
+        throw new Error("non_json");
+      }
+      return res.json();
+    }
+
+    async function fetchBuildInfo(baseUrl) {
+      try {
+        return await fetchJson(`${baseUrl}/build-info`);
+      } catch (err) {
+        return await fetchJson(`${baseUrl}/__diag`);
+      }
+    }
+
+    async function loadBuildStamp() {
+      if (!buildStampEl) return;
+      try {
+        const origin = window.location.origin || "";
+        const isLocal =
+          origin.includes("localhost") ||
+          origin.includes("127.0.0.1") ||
+          origin.includes("0.0.0.0");
+        let data = null;
+        if (isLocal && origin) {
+          data = await fetchBuildInfo(origin);
+        }
+        if (!data) {
+          data = await fetchBuildInfo(apiBase);
+        }
+        if (!data && origin && apiBase !== origin) {
+          data = await fetchBuildInfo(origin);
+        }
+        const stamp = data && data.startedAt ? new Date(data.startedAt) : null;
+        const commit = data && data.commit ? data.commit : "";
+        if (stamp && !Number.isNaN(stamp)) {
+          buildStampEl.textContent = commit
+            ? `Build: ${stamp.toLocaleString()} (${commit})`
+            : `Build: ${stamp.toLocaleString()}`;
+        } else {
+          buildStampEl.textContent = commit
+            ? `Build: unavailable (${commit})`
+            : "Build: unavailable (restart server to enable build info)";
+        }
+      } catch (err) {
+        buildStampEl.textContent = "Build: unavailable";
+      }
+    }
 
     function getAdminKey() {
       try {
@@ -1374,6 +1434,8 @@
         else sessionStorage.setItem(ADMIN_KEY_VALID_STORAGE, "0");
       } catch (e) {}
     }
+
+    loadBuildStamp();
 
     function withAdminHeaders(init) {
       const next = init ? { ...init } : {};

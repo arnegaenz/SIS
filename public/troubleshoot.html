@@ -500,6 +500,16 @@
         if (upper === "TEST") return "TEST";
         return "UNKNOWN";
       };
+      const getSessionFiKey = (session) =>
+        session?.fi_lookup_key ||
+        session?.financial_institution_lookup_key ||
+        session?.fi_key ||
+        session?.fi ||
+        "";
+      const getSessionFiLabel = (session) =>
+        session?.fi_name || session?.fi_label || getSessionFiKey(session) || "Unknown FI";
+      const getSessionInstance = (session) =>
+        session?.instance || session?._instance || "";
 
       function escapeHtml(str) {
         return (str || "").toString()
@@ -579,11 +589,23 @@
       function optionRows() {
         if (Array.isArray(state.data?.sessions) && state.data.sessions.length) {
           return state.data.sessions.map((row) => ({
-            fi_key: normalizeFiKey(row.fi_key || row.fi_name || row.fi),
-            fi_label: row.fi_name || row.fi_key || row.fi || "Unknown FI",
+            fi_key: normalizeFiKey(
+              row.fi_lookup_key ||
+                row.financial_institution_lookup_key ||
+                row.fi_key ||
+                row.fi_name ||
+                row.fi
+            ),
+            fi_label:
+              row.fi_name ||
+              row.fi_lookup_key ||
+              row.financial_institution_lookup_key ||
+              row.fi_key ||
+              row.fi ||
+              "Unknown FI",
             partner: row.partner || "Unknown",
             integration: normalizeIntegrationLabel(row.integration || row.integration_type),
-            instance: row.instance || "",
+            instance: row.instance || row._instance || "",
             is_test: !!row.is_test,
           }));
         }
@@ -840,20 +862,27 @@
       function currentFilterSelection() {
         const shared = window.__FILTER_STATE;
         if (shared && shared.page === "troubleshoot") {
-          const fis = shared.fis && shared.fis.size ? Array.from(shared.fis) : [];
-          const fi = fis.length === 1 ? fis[0] : FI_ALL_VALUE;
+          const fiTouched = Boolean(shared.__fiTouched);
+          const fis = fiTouched && shared.fis && shared.fis.size ? Array.from(shared.fis) : [];
+          const fi = fiTouched && fis.length === 1 ? fis[0] : FI_ALL_VALUE;
           return {
             fi,
             integration:
-              shared.integration && shared.integration !== "All"
+              shared.__integrationSetTouched &&
+              shared.integration &&
+              shared.integration !== "All"
                 ? shared.integration
                 : "(all)",
             partner:
-              shared.partner && shared.partner !== "All"
+              shared.__partnerSetTouched &&
+              shared.partner &&
+              shared.partner !== "All"
                 ? shared.partner
                 : PARTNER_ALL_VALUE,
             instance:
-              shared.instance && shared.instance !== "All"
+              shared.__instanceSetTouched &&
+              shared.instance &&
+              shared.instance !== "All"
                 ? shared.instance
                 : INSTANCE_ALL_VALUE,
           };
@@ -1139,21 +1168,21 @@
               session.integration_display ||
               "Unknown integration";
             const partnerLabel =
-              registryPartnerFor(session.fi_lookup_key || session.fi_key, session.instance) ||
+              registryPartnerFor(getSessionFiKey(session), getSessionInstance(session)) ||
               session.partner ||
               session.partner_name ||
               session.partner_id ||
               "Unknown";
             return `
               <div class="session-card"
-                data-fi="${escapeHtml(session.fi_lookup_key || "")}"
+                data-fi="${escapeHtml(getSessionFiKey(session))}"
                 data-partner="${escapeHtml(partnerLabel)}"
                 data-integration="${escapeHtml(integrationLabel)}"
-                data-instance="${escapeHtml(session.instance || "")}"
+                data-instance="${escapeHtml(getSessionInstance(session))}"
               >
                 <div class="session-top">
-                  <div class="chip">${escapeHtml(session.fi_name)}</div>
-                  <div class="chip muted">${escapeHtml(session.instance)}</div>
+                  <div class="chip">${escapeHtml(getSessionFiLabel(session))}</div>
+                  <div class="chip muted">${escapeHtml(getSessionInstance(session))}</div>
                   <div class="chip muted">${escapeHtml(integrationLabel)}</div>
                   <div class="chip muted">${escapeHtml(partnerLabel)}</div>
                   ${session.is_test ? '<div class="chip test">Test instance</div>' : ""}
@@ -1163,7 +1192,7 @@
                   ${session.closed_on ? `<span><strong>Closed</strong> ${escapeHtml(formatDateTime(session.closed_on))}</span>` : ""}
                   <span><strong>Jobs</strong> ${jobCount} (success ${jobSuccess} / fail ${jobFailure})</span>
                   ${session.source?.integration ? `<span><strong>Source</strong> ${escapeHtml(session.source.integration)}</span>` : ""}
-                  ${session.fi_lookup_key ? `<span><strong>FI lookup key</strong> ${escapeHtml(session.fi_lookup_key)}</span>` : ""}
+                  ${getSessionFiKey(session) ? `<span><strong>FI lookup key</strong> ${escapeHtml(getSessionFiKey(session))}</span>` : ""}
                   ${session.cuid ? `<span><strong>CUID</strong> ${escapeHtml(session.cuid)}</span>` : ""}
                 </div>
                 ${renderClickstream(session.clickstream)}
@@ -1224,7 +1253,7 @@
           };
         }
         const fiSet =
-          shared.fis && shared.fis.size
+          shared.__fiTouched && shared.fis && shared.fis.size
             ? new Set(Array.from(shared.fis).map((fi) => normalizeFiKey(fi)).filter(Boolean))
             : null;
         const partnerSet =
@@ -1272,7 +1301,7 @@
         } = currentSharedFilter();
         const filtered = (state.data.sessions || []).filter((s) => {
           if (fiSet && fiSet.size) {
-            const fiKey = normalizeFiKey(s.fi_lookup_key || s.fi_key || s.fi || "");
+            const fiKey = normalizeFiKey(getSessionFiKey(s));
             if (!fiSet.has(fiKey)) return false;
           }
           if (partnerSetActive && (!partnerSet || partnerSet.size === 0)) return false;
@@ -1282,19 +1311,21 @@
             if (!partnerSet.has(rowPartner)) return false;
           }
           if (integrationSetActive && integrationSet && integrationSet.size) {
-            const rowIntegration = normalizeIntegrationKey(s.integration || s.integration_type || "");
+            const rowIntegration = normalizeIntegrationLabel(
+              s.integration || s.integration_type || ""
+            );
             const allowed = new Set(
-              Array.from(integrationSet).map((v) => normalizeIntegrationKey(v))
+              Array.from(integrationSet).map((v) => normalizeIntegrationLabel(v))
             );
             if (!allowed.has(rowIntegration)) return false;
           }
           if (instanceSetActive) {
             if (!instanceSet || instanceSet.size === 0) return false;
-            const instKey = normalizeInstanceKey(s.instance || s._instance || "");
+            const instKey = normalizeInstanceKey(getSessionInstance(s));
             if (!instanceSet.has(instKey)) return false;
           }
           if (instanceKey) {
-            const instKey = normalizeInstanceKey(s.instance || s._instance || "");
+            const instKey = normalizeInstanceKey(getSessionInstance(s));
             if (instKey !== instanceKey) return false;
           }
           return true;
@@ -1344,14 +1375,27 @@
               // Note: loadDay() will be called after this function returns
             });
 
+            eventSource.addEventListener('done', () => {
+              console.log('[Troubleshoot] Auto-refresh complete (done), reloading data...');
+              eventSource.close();
+              // Note: loadDay() will be called after this function returns
+            });
+
             eventSource.addEventListener('error', (e) => {
               console.error('[Troubleshoot] Auto-refresh error:', e);
+              eventSource.close();
+            });
+
+            eventSource.addEventListener('job_error', (e) => {
+              console.error('[Troubleshoot] Auto-refresh job_error:', e);
               eventSource.close();
             });
 
             // Wait for the refresh to complete
             await new Promise((resolve) => {
               eventSource.addEventListener('complete', resolve);
+              eventSource.addEventListener('done', resolve);
+              eventSource.addEventListener('job_error', resolve);
               eventSource.addEventListener('error', resolve);
             });
           }

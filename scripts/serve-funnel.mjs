@@ -1,6 +1,7 @@
 import http from "node:http";
 import path from "node:path";
 import fs from "node:fs/promises";
+import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import url from "url";
 import { TERMINATION_RULES } from "../src/config/terminationMap.mjs";
@@ -58,6 +59,19 @@ const PORT = 8787;
 const FI_ALL_VALUE = "__all__";
 const PARTNER_ALL_VALUE = "__all_partners__";
 const INSTANCE_ALL_VALUE = "__all_instances__";
+const SERVER_STARTED_AT = new Date().toISOString();
+const BUILD_COMMIT = (() => {
+  try {
+    return execSync("git rev-parse --short HEAD", {
+      cwd: ROOT,
+      stdio: ["ignore", "pipe", "ignore"],
+    })
+      .toString()
+      .trim();
+  } catch {
+    return "";
+  }
+})();
 
 const updateClients = new Set();
 
@@ -125,6 +139,12 @@ function yesterdayIsoDate() {
   const d = new Date();
   d.setUTCDate(d.getUTCDate() - 1);
   return d.toISOString().slice(0, 10);
+}
+
+function isDayComplete(dateStr) {
+  if (!dateStr) return false;
+  const dayEndUTC = new Date(`${dateStr}T23:59:59.999Z`);
+  return new Date() > dayEndUTC;
 }
 
 function isoAddDays(isoDate, deltaDays) {
@@ -215,13 +235,15 @@ async function startUpdateJobIfNeeded(range = {}) {
       message: `Fetching raw for ${startDate} → ${endDate}${range.forceRaw ? " (forced refetch)" : ""}...`,
     });
 
+    const strict = isDayComplete(endDate);
+
     await fetchRawRange({
       startDate,
       endDate,
       onStatus: (message) =>
         broadcastUpdate("progress", { phase: "raw", message }),
       forceRaw: Boolean(range.forceRaw),
-      strict: true,
+      strict,
     });
 
     broadcastUpdate("progress", {
@@ -1523,6 +1545,8 @@ const server = http.createServer(async (req, res) => {
   if (pathname === "/__diag") {
     const diag = {
       now: new Date().toISOString(),
+      startedAt: SERVER_STARTED_AT,
+      commit: BUILD_COMMIT,
       root: ROOT,
       public_dir: PUBLIC_DIR,
       data_dir: DATA_DIR,
@@ -1538,6 +1562,9 @@ const server = http.createServer(async (req, res) => {
       requested: pathname,
     };
     return send(res, 200, diag);
+  }
+  if (pathname === "/build-info") {
+    return send(res, 200, { startedAt: SERVER_STARTED_AT, commit: BUILD_COMMIT });
   }
 
   // JSON helpers
@@ -1557,12 +1584,10 @@ const server = http.createServer(async (req, res) => {
       const latest = (arr = []) => (arr.length ? arr[arr.length - 1] : null);
       const earliest = (arr = []) => (arr.length ? arr[0] : null);
 
-      // Get all dates that have both sessions and placements
-      const allRawDates = rawSessionDays.length && rawPlacementDays.length
-        ? rawSessionDays.filter((d) => rawPlacementDays.includes(d))
-        : rawSessionDays.length
-        ? rawSessionDays
-        : rawPlacementDays;
+      // Get all dates that have any raw data (sessions or placements)
+      const allRawDates = Array.from(
+        new Set([...(rawSessionDays || []), ...(rawPlacementDays || [])])
+      ).sort();
 
       // Categorize dates by completeness
       const completeDates = [];
@@ -1574,14 +1599,15 @@ const server = http.createServer(async (req, res) => {
         const { metadata: sessionMeta } = readRawWithMetadata("sessions", dateStr);
         const { metadata: placementMeta } = readRawWithMetadata("placements", dateStr);
 
-        // A date is complete if both sessions and placements have isComplete: true
+        // A date is complete only if both sessions and placements are complete.
+        // If either side is missing or incomplete, treat as incomplete.
         const sessionComplete = sessionMeta && sessionMeta.isComplete === true;
         const placementComplete = placementMeta && placementMeta.isComplete === true;
-        const isComplete = sessionComplete && placementComplete;
+        const hasAny = Boolean(sessionMeta || placementMeta);
 
-        if (isComplete) {
+        if (hasAny && sessionComplete && placementComplete) {
           completeDates.push(dateStr);
-        } else if (sessionMeta || placementMeta) {
+        } else if (hasAny) {
           incompleteDates.push(dateStr);
         }
       }
