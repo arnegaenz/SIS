@@ -1,7 +1,7 @@
 import "dotenv/config";
 import path from "node:path";
 import process from "node:process";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { fetchGaRowsForDay } from "../src/ga.mjs";
 import { loginWithSdk, getCardPlacementPage, getSessionsPage } from "../src/api.mjs";
@@ -16,8 +16,8 @@ import {
   readRaw,
 } from "../src/lib/rawStorage.mjs";
 
-const SRC_DIR = path.resolve("src");
-const ROOT_DIR = path.resolve(".");
+const ROOT_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const SRC_DIR = path.join(ROOT_DIR, "src");
 const DAILY_FORMAT = /^\d{4}-\d{2}-\d{2}$/;
 const DEFAULT_GA_PROPERTY = process.env.GA_PROPERTY_ID || "328054560";
 const DEFAULT_GA_KEYFILE =

@@ -26,11 +26,15 @@ export async function loginWithSdk(overrides = {}) {
     );
   }
 
+  // Normalize instance URL by removing trailing slashes
+  // This prevents double-slash issues when SDK constructs endpoint URLs
+  const normalizedInstance = CARDSAVR_INSTANCE.replace(/\/+$/, '');
+
   console.log(
-    `Logging in with Strivve SDK to ${CARDSAVR_INSTANCE} as ${USERNAME} (app: ${APP_NAME})...`
+    `Logging in with Strivve SDK to ${normalizedInstance} as ${USERNAME} (app: ${APP_NAME})...`
   );
 
-  const session = new CardsavrSession(CARDSAVR_INSTANCE, API_KEY, APP_NAME);
+  const session = new CardsavrSession(normalizedInstance, API_KEY, APP_NAME);
   await session.init(USERNAME, PASSWORD);
   console.log("✅ SDK login succeeded.");
 

@@ -1749,49 +1749,62 @@
         startInput.value = resolvedRange.start;
         endInput.value = resolvedRange.end;
 
-        // Check which dates need refetching
-        setStatus("Checking for incomplete dates...");
-        try {
-          const response = await fetch(`/api/check-raw-data?start=${resolvedRange.start}&end=${resolvedRange.end}`);
-          const result = await response.json();
-          const datesToRefetch = result.datesToRefetch || [];
-
-          if (datesToRefetch.length === 0) {
-            setStatus("All data is complete. No refresh needed.");
-            appendLogLine("✓ All raw data for this date range is complete.");
-            return;
-          }
-
-          // Show confirmation
-          const confirmMsg = `Found ${datesToRefetch.length} incomplete day(s):\n${datesToRefetch.join(', ')}\n\nRefetch these days?`;
-          if (!confirm(confirmMsg)) {
-            setStatus("Refresh cancelled by user.");
-            return;
-          }
-
-          // Use the first and last incomplete dates as the actual range
-          const actualStart = datesToRefetch[0];
-          const actualEnd = datesToRefetch[datesToRefetch.length - 1];
-          startInput.value = actualStart;
-          endInput.value = actualEnd;
-
-          setStatus(`Refreshing ${datesToRefetch.length} incomplete day(s): ${actualStart} → ${actualEnd}...`);
-          appendLogLine(`Refreshing incomplete dates: ${datesToRefetch.join(', ')}`);
-
+        if (forceCheckbox && forceCheckbox.checked) {
+          setStatus(`Force-refreshing ${resolvedRange.start} → ${resolvedRange.end}...`);
+          appendLogLine("Force refetch enabled. Re-fetching all selected dates.");
           const params = new URLSearchParams({
-            start: actualStart,
-            end: actualEnd,
-            forceRaw: "false", // Never force refetch - only incomplete days need refetching
+            start: resolvedRange.start,
+            end: resolvedRange.end,
+            forceRaw: "true",
           });
-
           logEl.textContent = "";
           const streamUrl = `${apiBase}/run-update/stream?${params.toString()}`;
           source = new EventSource(appendAdminKeyToUrl(streamUrl));
-        } catch (err) {
-          console.error('[Maintenance] Check incomplete dates failed:', err);
-          setStatus("Error checking data status. See console for details.", "error");
-          appendLogLine("Error: " + err.message);
-          return;
+        } else {
+          // Check which dates need refetching
+          setStatus("Checking for incomplete dates...");
+          try {
+            const response = await fetch(`/api/check-raw-data?start=${resolvedRange.start}&end=${resolvedRange.end}`);
+            const result = await response.json();
+            const datesToRefetch = result.datesToRefetch || [];
+
+            if (datesToRefetch.length === 0) {
+              setStatus("All data is complete. No refresh needed.");
+              appendLogLine("✓ All raw data for this date range is complete.");
+              return;
+            }
+
+            // Show confirmation
+            const confirmMsg = `Found ${datesToRefetch.length} incomplete day(s):\n${datesToRefetch.join(', ')}\n\nRefetch these days?`;
+            if (!confirm(confirmMsg)) {
+              setStatus("Refresh cancelled by user.");
+              return;
+            }
+
+            // Use the first and last incomplete dates as the actual range
+            const actualStart = datesToRefetch[0];
+            const actualEnd = datesToRefetch[datesToRefetch.length - 1];
+            startInput.value = actualStart;
+            endInput.value = actualEnd;
+
+            setStatus(`Refreshing ${datesToRefetch.length} incomplete day(s): ${actualStart} → ${actualEnd}...`);
+            appendLogLine(`Refreshing incomplete dates: ${datesToRefetch.join(', ')}`);
+
+            const params = new URLSearchParams({
+              start: actualStart,
+              end: actualEnd,
+              forceRaw: "false", // Never force refetch - only incomplete days need refetching
+            });
+
+            logEl.textContent = "";
+            const streamUrl = `${apiBase}/run-update/stream?${params.toString()}`;
+            source = new EventSource(appendAdminKeyToUrl(streamUrl));
+          } catch (err) {
+            console.error('[Maintenance] Check incomplete dates failed:', err);
+            setStatus("Error checking data status. See console for details.", "error");
+            appendLogLine("Error: " + err.message);
+            return;
+          }
         }
 
         source.addEventListener("open", () => appendLogLine("Connected to update stream."));
