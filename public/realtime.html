@@ -393,8 +393,6 @@
 
           currentData = data;
           displayResults(data);
-          statusEl.textContent = `Last updated: ${new Date().toLocaleTimeString()} — ${data.sessions?.length || 0} sessions, ${data.placements?.length || 0} placements`;
-          statusEl.className = 'status-line';
         } catch (err) {
           console.error('Failed to fetch live data:', err);
           statusEl.textContent = `Error: ${err.message}`;
@@ -447,6 +445,8 @@
         if (sessions.length === 0) {
           resultsEl.innerHTML = '<div class="status-line">No sessions found in this time range.</div>';
           populateFilters([], []);
+          statusEl.textContent = `Last updated: ${new Date().toLocaleTimeString()} — 0 sessions, 0 placements`;
+          statusEl.className = 'status-line';
           return;
         }
 
@@ -482,6 +482,13 @@
 
         // Update filters based on what's displayed
         populateFilters(filteredSessions, filteredJobs);
+
+        // Count filtered placements
+        const filteredPlacementCount = filteredSessions.reduce((sum, s) => sum + (s.placements_raw?.length || 0), 0);
+
+        // Update status line with filtered counts
+        statusEl.textContent = `Last updated: ${new Date().toLocaleTimeString()} — ${filteredSessions.length} sessions, ${filteredPlacementCount} placements`;
+        statusEl.className = 'status-line';
 
         if (filteredSessions.length === 0) {
           resultsEl.innerHTML = '<div class="status-line">No sessions match the selected filters.</div>';
