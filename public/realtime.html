@@ -1,0 +1,683 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Real-Time Troubleshooting</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <link rel="stylesheet" href="./sis-shared.css?v=navfix" />
+  <link rel="stylesheet" href="./assets/css/sis.css">
+  <link rel="stylesheet" href="./assets/css/mobile.css">
+  <script src="./assets/js/passcode-gate.js"></script>
+  <script defer src="./assets/js/sis.js"></script>
+  <script src="./assets/js/config.js"></script>
+  <script defer src="./assets/js/nav.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function(){
+      if (window.renderHeaderNav && !window.__sisHeaderNav_realtime) {
+        window.__sisHeaderNav_realtime = true;
+        window.renderHeaderNav({
+          currentId: "realtime",
+          title: "Real-Time Troubleshooting",
+          subtitle: "Live session and placement data directly from instance APIs."
+        });
+      }
+    });
+  </script>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 16px;
+      --sis-panel-bg: var(--panel);
+    }
+    .realtime-header {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 18px;
+    }
+    .realtime-header h1 {
+      margin: 0;
+      font-size: 1.4rem;
+    }
+    .realtime-header p {
+      margin: 0;
+      color: var(--muted);
+      max-width: 860px;
+    }
+    .filter-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 10px;
+      align-items: end;
+      margin-bottom: 12px;
+    }
+    .form-field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .form-field label {
+      font-size: 0.85rem;
+      color: var(--muted);
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      padding-left: 2px;
+    }
+    .form-select {
+      background: var(--input-bg);
+      border: 1px solid var(--input-border);
+      border-radius: 10px;
+      color: var(--text);
+      padding: 10px 12px;
+      font-size: 0.92rem;
+      height: 42px;
+      line-height: 22px;
+    }
+    .form-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .btn {
+      background: linear-gradient(120deg, var(--accent), var(--accent-2));
+      border: none;
+      border-radius: 999px;
+      padding: 12px 26px;
+      font-size: 1rem;
+      cursor: pointer;
+      color: #f8fafc;
+      font-weight: 600;
+      box-shadow: 0 6px 16px rgba(37, 99, 235, 0.3);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 20px rgba(37, 99, 235, 0.35);
+    }
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .status-line {
+      padding: 8px 12px;
+      border-radius: 8px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      font-size: 0.9rem;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+    .status-line.loading {
+      color: var(--accent);
+    }
+    .status-line.error {
+      color: #dc2626;
+      background: rgba(220, 38, 38, 0.1);
+      border-color: rgba(220, 38, 38, 0.3);
+    }
+    .session-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .session-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px;
+      box-shadow: 0 16px 40px rgba(15, 23, 42, 0.10);
+    }
+    .session-top {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--chip-bg);
+      color: var(--chip-text);
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .chip.muted {
+      background: var(--panel-light);
+      color: var(--muted);
+    }
+    .chip.test {
+      background: rgba(220, 38, 38, 0.12);
+      color: #dc2626;
+    }
+    [data-theme="dark"] .chip.test {
+      background: rgba(249, 115, 22, 0.18);
+      color: #fb923c;
+    }
+    .session-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      color: var(--muted);
+      font-size: 0.88rem;
+    }
+    .session-meta strong {
+      color: var(--text);
+    }
+    .clickstream {
+      margin: 10px 0;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .click-pill {
+      background: var(--panel-light);
+      border: 1px dashed var(--border);
+      border-radius: 8px;
+      padding: 6px 8px;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+    .jobs {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .job {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 12px;
+      background: var(--panel-light);
+    }
+    .job-header {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border-radius: 999px;
+      padding: 4px 9px;
+      font-size: 0.78rem;
+      letter-spacing: 0.02em;
+    }
+    .badge.success { background: rgba(22,163,74,0.12); color: var(--badge-success); }
+    .badge.fail { background: rgba(220,38,38,0.12); color: var(--badge-fail); }
+    .badge.warn { background: rgba(245,158,11,0.15); color: var(--badge-warn); }
+    .badge.neutral { background: var(--panel); color: var(--muted); border: 1px solid var(--border); }
+    .job-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+    .raw-details {
+      margin-top: 10px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--panel-light);
+    }
+    .raw-details summary {
+      cursor: pointer;
+      padding: 10px 12px;
+      font-weight: 600;
+      color: var(--muted);
+      list-style: none;
+    }
+    .raw-details summary::-webkit-details-marker { display: none; }
+    .raw-details summary::before {
+      content: "▸";
+      display: inline-block;
+      margin-right: 6px;
+      transform: translateY(-1px);
+    }
+    .raw-details[open] summary::before { content: "▾"; }
+    .raw-block {
+      padding: 0 12px 12px;
+      overflow: auto;
+      max-height: 360px;
+      font-family: ui-monospace, SFMono-Regular, SFMono, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 0.85rem;
+      color: var(--muted);
+      white-space: pre;
+    }
+    .auto-refresh-toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+    .auto-refresh-toggle input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="page-layout">
+    <main class="page-main">
+      <div class="realtime-header">
+        <h1>Real-Time Troubleshooting</h1>
+        <p>Query live data directly from instance APIs. Choose an instance and time range to see the most recent sessions and placements.</p>
+      </div>
+
+      <div class="filter-grid">
+        <div class="form-field">
+          <label for="instance">Instance</label>
+          <select id="instance" class="form-select">
+            <option value="">Loading instances...</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label for="timeRange">Time Range</label>
+          <select id="timeRange" class="form-select">
+            <option value="1">Last 1 hour</option>
+            <option value="2">Last 2 hours</option>
+            <option value="4" selected>Last 4 hours</option>
+            <option value="8">Last 8 hours</option>
+            <option value="12">Last 12 hours</option>
+            <option value="24">Last 24 hours</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label for="fiFilter">FI Filter</label>
+          <select id="fiFilter" class="form-select">
+            <option value="">All FIs</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label for="merchantFilter">Merchant Site</label>
+          <select id="merchantFilter" class="form-select">
+            <option value="">All Merchants</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button id="fetchBtn" class="btn" disabled>Fetch Live Data</button>
+        <label class="auto-refresh-toggle">
+          <input type="checkbox" id="autoRefresh" />
+          <span>Auto-refresh every 30s</span>
+        </label>
+      </div>
+
+      <div id="status" class="status-line">Select an instance and click "Fetch Live Data" to begin.</div>
+
+      <div id="results"></div>
+    </main>
+  </div>
+
+  <script>
+    (function() {
+      const instanceSelect = document.getElementById('instance');
+      const timeRangeSelect = document.getElementById('timeRange');
+      const fiFilterSelect = document.getElementById('fiFilter');
+      const merchantFilterSelect = document.getElementById('merchantFilter');
+      const fetchBtn = document.getElementById('fetchBtn');
+      const autoRefreshCheckbox = document.getElementById('autoRefresh');
+      const statusEl = document.getElementById('status');
+      const resultsEl = document.getElementById('results');
+
+      let autoRefreshInterval = null;
+      let instances = [];
+      let currentData = null;
+
+      // Load instances
+      async function loadInstances() {
+        try {
+          const res = await fetch('/instances');
+          const data = await res.json();
+          instances = data.instances || [];
+
+          instanceSelect.innerHTML = '<option value="">Select an instance...</option>' +
+            instances.map(inst => {
+              const name = inst.name || inst.CARDSAVR_INSTANCE || 'unknown';
+              return `<option value="${name}">${name}</option>`;
+            }).join('');
+
+          fetchBtn.disabled = false;
+        } catch (err) {
+          console.error('Failed to load instances:', err);
+          statusEl.textContent = 'Error loading instances. Please refresh the page.';
+          statusEl.className = 'status-line error';
+        }
+      }
+
+      // Fetch live data
+      async function fetchLiveData() {
+        const instance = instanceSelect.value;
+        const hours = parseInt(timeRangeSelect.value);
+
+        if (!instance) {
+          statusEl.textContent = 'Please select an instance.';
+          statusEl.className = 'status-line error';
+          return;
+        }
+
+        statusEl.textContent = `Fetching live data from ${instance} (last ${hours} hour${hours > 1 ? 's' : ''})...`;
+        statusEl.className = 'status-line loading';
+        fetchBtn.disabled = true;
+
+        try {
+          const res = await fetch(`/api/realtime?instance=${encodeURIComponent(instance)}&hours=${hours}`);
+          if (!res.ok) {
+            throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+          }
+          const data = await res.json();
+
+          console.log('[realtime] Received data:', data);
+          console.log('[realtime] First session:', data.sessions?.[0]);
+          console.log('[realtime] First session jobs:', data.sessions?.[0]?.jobs);
+
+          currentData = data;
+          displayResults(data);
+          statusEl.textContent = `Last updated: ${new Date().toLocaleTimeString()} — ${data.sessions?.length || 0} sessions, ${data.placements?.length || 0} placements`;
+          statusEl.className = 'status-line';
+        } catch (err) {
+          console.error('Failed to fetch live data:', err);
+          statusEl.textContent = `Error: ${err.message}`;
+          statusEl.className = 'status-line error';
+        } finally {
+          fetchBtn.disabled = false;
+        }
+      }
+
+      // Populate filter dropdowns based on currently displayed sessions
+      function populateFilters(sessions, jobs) {
+        // Extract unique FIs from displayed sessions
+        const fiSet = new Set();
+        sessions.forEach(s => {
+          const fi = getSessionFiKey(s);
+          if (fi) fiSet.add(fi);
+        });
+        const fiOptions = Array.from(fiSet).sort();
+
+        // Preserve current selection if it's still valid
+        const currentFi = fiFilterSelect.value;
+        fiFilterSelect.innerHTML = '<option value="">All FIs</option>' +
+          fiOptions.map(fi => `<option value="${fi}" ${fi === currentFi ? 'selected' : ''}>${fi}</option>`).join('');
+
+        // Extract unique merchants from displayed jobs
+        const merchantSet = new Set();
+        jobs.forEach(job => {
+          const merchant = job.merchant || job.merchant_site || '';
+          if (merchant) merchantSet.add(merchant);
+        });
+        const merchantOptions = Array.from(merchantSet).sort();
+
+        // Preserve current selection if it's still valid
+        const currentMerchant = merchantFilterSelect.value;
+        merchantFilterSelect.innerHTML = '<option value="">All Merchants</option>' +
+          merchantOptions.map(m => `<option value="${m}" ${m === currentMerchant ? 'selected' : ''}>${m}</option>`).join('');
+      }
+
+      // Apply filters and re-render
+      function applyFilters() {
+        if (!currentData) return;
+        displayResults(currentData);
+      }
+
+      // Display results
+      function displayResults(data) {
+        const sessions = data.sessions || [];
+        const placements = data.placements || [];
+
+        if (sessions.length === 0) {
+          resultsEl.innerHTML = '<div class="status-line">No sessions found in this time range.</div>';
+          populateFilters([], []);
+          return;
+        }
+
+        // Get filter values
+        const fiFilter = fiFilterSelect.value;
+        const merchantFilter = merchantFilterSelect.value;
+
+        // Filter sessions
+        let filteredSessions = sessions;
+
+        // Apply FI filter
+        if (fiFilter) {
+          filteredSessions = filteredSessions.filter(s => {
+            const fi = getSessionFiKey(s);
+            return fi === fiFilter;
+          });
+        }
+
+        // Apply merchant filter (session must have at least one job with this merchant)
+        if (merchantFilter) {
+          filteredSessions = filteredSessions.filter(s => {
+            const jobs = s.jobs || [];
+            return jobs.some(job => (job.merchant || job.merchant_site || '') === merchantFilter);
+          });
+        }
+
+        // Collect all jobs from filtered sessions for filter population
+        const filteredJobs = [];
+        filteredSessions.forEach(s => {
+          const jobs = s.jobs || [];
+          filteredJobs.push(...jobs);
+        });
+
+        // Update filters based on what's displayed
+        populateFilters(filteredSessions, filteredJobs);
+
+        if (filteredSessions.length === 0) {
+          resultsEl.innerHTML = '<div class="status-line">No sessions match the selected filters.</div>';
+          return;
+        }
+
+        // Render sessions - sessions now have jobs array already embedded
+        let html = '';
+        filteredSessions.forEach(session => {
+          const jobs = session.jobs || [];
+
+          // If merchant filter is active, only show matching jobs
+          let displayJobs = jobs;
+          if (merchantFilter) {
+            displayJobs = jobs.filter(job => (job.merchant || job.merchant_site || '') === merchantFilter);
+          }
+
+          html += renderSessionCard(session, displayJobs);
+        });
+
+        resultsEl.innerHTML = html;
+      }
+
+      // Helper functions from troubleshoot.html
+      function escapeHtml(str) {
+        return (str || "").toString()
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;");
+      }
+
+      function formatDateTime(value) {
+        if (!value) return "";
+        const d = new Date(value);
+        if (Number.isNaN(d)) return value;
+        return d.toLocaleString(undefined, {
+          month: "short",
+          day: "numeric",
+          hour: "numeric",
+          minute: "2-digit",
+          timeZoneName: "short"
+        });
+      }
+
+      function formatDuration(ms) {
+        if (!Number.isFinite(ms) || ms < 0) return "";
+        if (ms < 1000) return ms + " ms";
+        const seconds = Math.round(ms / 1000);
+        if (seconds < 90) return seconds + "s";
+        const minutes = Math.floor(seconds / 60);
+        const rem = seconds % 60;
+        return rem ? `${minutes}m ${rem}s` : `${minutes}m`;
+      }
+
+      const getSessionFiKey = (session) =>
+        session?.fi_lookup_key ||
+        session?.financial_institution_lookup_key ||
+        session?.fi_key ||
+        session?.fi ||
+        "";
+
+      const getSessionFiLabel = (session) =>
+        session?.fi_name || session?.fi_label || getSessionFiKey(session) || "Unknown FI";
+
+      const getSessionInstance = (session) =>
+        session?.instance || session?._instance || "";
+
+      function sessionJobStats(session, placements) {
+        const jobs = placements || [];
+        const jobCount = jobs.length;
+        const jobSuccess = jobs.filter((job) => job.is_success).length;
+        const jobFailure = Math.max(0, jobCount - jobSuccess);
+        return { jobs, jobCount, jobSuccess, jobFailure };
+      }
+
+      function jobBadgeClass(job) {
+        if (job.is_success) return "success";
+        if (job.severity === "ux") return "warn";
+        if (job.severity === "site-failure") return "fail";
+        return "neutral";
+      }
+
+      function renderJobs(jobs = []) {
+        if (!jobs.length) {
+          return '<div class="job"><div class="job-meta">No placements/jobs recorded in this session.</div></div>';
+        }
+        return jobs
+          .map((job) => {
+            const badgeClass = jobBadgeClass(job);
+            return `
+              <div class="job">
+                <div class="job-header">
+                  <div class="badge ${badgeClass}">${escapeHtml(job.termination_label || job.termination_type || job.termination || 'unknown')}</div>
+                  <div class="chip muted">${escapeHtml(job.merchant_site || job.merchant || "merchant")}</div>
+                  ${job.status ? `<div class="chip muted">${escapeHtml(job.status)}</div>` : ""}
+                </div>
+                <div class="job-meta">
+                  ${job.created_on ? `<span>Created ${escapeHtml(formatDateTime(job.created_on))}</span>` : ""}
+                  ${job.completed_on ? `<span>Completed ${escapeHtml(formatDateTime(job.completed_on))}</span>` : ""}
+                  ${job.duration_ms ? `<span>Duration ${escapeHtml(formatDuration(job.duration_ms))}</span>` : ""}
+                  ${getSessionInstance(job) ? `<span>Instance ${escapeHtml(getSessionInstance(job))}</span>` : ""}
+                </div>
+                ${job.status_message ? `<div class="job-meta">${escapeHtml(job.status_message)}</div>` : ""}
+              </div>
+            `;
+          })
+          .join("");
+      }
+
+      function renderClickstream(steps) {
+        if (!steps || !Array.isArray(steps) || !steps.length) return "";
+        const items = steps
+          .map((step) => `<span class="click-pill">${escapeHtml(step.url || step.page_title || "step")}</span>`)
+          .join("");
+        return `<div class="clickstream">${items}</div>`;
+      }
+
+      // Render session card with full details
+      function renderSessionCard(session, placements) {
+        const stats = sessionJobStats(session, placements);
+        const jobCount = stats.jobCount;
+        const jobSuccess = stats.jobSuccess;
+        const jobFailure = stats.jobFailure;
+        const integrationLabel =
+          session.integration ||
+          session.integration_type ||
+          session.integration_display ||
+          "Unknown integration";
+        const partnerLabel =
+          session.partner ||
+          session.partner_name ||
+          session.partner_id ||
+          "Unknown";
+
+        return `
+          <div class="session-card"
+            data-fi="${escapeHtml(getSessionFiKey(session))}"
+            data-partner="${escapeHtml(partnerLabel)}"
+            data-integration="${escapeHtml(integrationLabel)}"
+            data-instance="${escapeHtml(getSessionInstance(session))}"
+          >
+            <div class="session-top">
+              <div class="chip">${escapeHtml(getSessionFiLabel(session))}</div>
+              <div class="chip muted">${escapeHtml(getSessionInstance(session))}</div>
+              <div class="chip muted">${escapeHtml(integrationLabel)}</div>
+              <div class="chip muted">${escapeHtml(partnerLabel)}</div>
+              ${session.is_test ? '<div class="chip test">Test instance</div>' : ""}
+            </div>
+            <div class="session-meta">
+              ${session.created_on ? `<span><strong>Opened</strong> ${escapeHtml(formatDateTime(session.created_on))}</span>` : ""}
+              ${session.closed_on ? `<span><strong>Closed</strong> ${escapeHtml(formatDateTime(session.closed_on))}</span>` : ""}
+              <span><strong>Jobs</strong> ${jobCount} (success ${jobSuccess} / fail ${jobFailure})</span>
+              ${session.source?.integration ? `<span><strong>Source</strong> ${escapeHtml(session.source.integration)}</span>` : ""}
+              ${getSessionFiKey(session) ? `<span><strong>FI lookup key</strong> ${escapeHtml(getSessionFiKey(session))}</span>` : ""}
+              ${session.cuid ? `<span><strong>CUID</strong> ${escapeHtml(session.cuid)}</span>` : ""}
+            </div>
+            ${renderClickstream(session.clickstream)}
+            <div class="jobs">
+              ${renderJobs(stats.jobs)}
+            </div>
+            <details class="raw-details">
+              <summary>Raw session payload</summary>
+              <pre class="raw-block">${escapeHtml(JSON.stringify(session, null, 2))}</pre>
+            </details>
+            ${
+              placements?.length
+                ? `<details class="raw-details">
+                    <summary>Raw placement payloads (${placements.length})</summary>
+                    <pre class="raw-block">${escapeHtml(JSON.stringify(placements, null, 2))}</pre>
+                  </details>`
+                : ""
+            }
+          </div>
+        `;
+      }
+
+      // Auto-refresh handling
+      autoRefreshCheckbox.addEventListener('change', (e) => {
+        if (e.target.checked) {
+          autoRefreshInterval = setInterval(fetchLiveData, 30000);
+          statusEl.textContent += ' (Auto-refresh enabled)';
+        } else {
+          if (autoRefreshInterval) {
+            clearInterval(autoRefreshInterval);
+            autoRefreshInterval = null;
+          }
+        }
+      });
+
+      // Event listeners
+      fetchBtn.addEventListener('click', fetchLiveData);
+      fiFilterSelect.addEventListener('change', applyFilters);
+      merchantFilterSelect.addEventListener('change', applyFilters);
+
+      // Initialize
+      loadInstances();
+    })();
+  </script>
+</body>
+</html>

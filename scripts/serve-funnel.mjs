@@ -568,20 +568,26 @@ const normalizeInstanceEntry = (entry = {}) => {
 };
 
 async function writeInstancesFile(entries) {
+  console.log("[writeInstancesFile] Starting write, entries count:", entries.length);
   const sorted = [...entries].sort((a, b) =>
     (a?.name || "").localeCompare(b?.name || "")
   );
   let target = INSTANCES_FILES[0];
+  console.log("[writeInstancesFile] Default target:", target);
   for (const candidate of INSTANCES_FILES) {
     try {
       await fs.access(candidate);
       target = candidate;
+      console.log("[writeInstancesFile] Found existing file:", target);
       break;
     } catch {
       // missing, keep searching
+      console.log("[writeInstancesFile] File not found:", candidate);
     }
   }
+  console.log("[writeInstancesFile] Writing to:", target);
   await fs.writeFile(target, JSON.stringify(sorted, null, 2) + "\n", "utf8");
+  console.log("[writeInstancesFile] Write completed successfully");
   return { entries: sorted, path: target };
 }
 
@@ -2881,6 +2887,7 @@ const server = http.createServer(async (req, res) => {
     try {
       const rawBody = await readRequestBody(req);
       const payload = JSON.parse(rawBody || "{}");
+      console.log("[instances/save] Received save request for:", payload?.entry?.name);
       if (!payload || typeof payload !== "object") {
         return send(res, 400, { error: "Invalid payload" });
       }
@@ -2889,25 +2896,47 @@ const server = http.createServer(async (req, res) => {
         return send(res, 400, { error: "Missing entry" });
       }
       const normalized = normalizeInstanceEntry(entry);
+      console.log("[instances/save] RAW entry from client:", entry);
+      console.log("[instances/save] Normalized entry:", {
+        name: normalized.name,
+        url: normalized.CARDSAVR_INSTANCE,
+        username: normalized.USERNAME,
+        password: normalized.PASSWORD,
+        apikey_first20: normalized.API_KEY?.substring(0, 20) || ''
+      });
       const { entries: current } = await readInstancesFile();
+      console.log("[instances/save] Current entries count:", current.length);
+      const existingPscu = current.find(e => e.name === 'pscu');
+      if (existingPscu && normalized.name === 'pscu') {
+        console.log("[instances/save] Existing PSCU in file PASSWORD:", existingPscu.PASSWORD);
+        console.log("[instances/save] New PSCU PASSWORD from form:", normalized.PASSWORD);
+      }
       const targetName = originalName || normalized.name;
       const existingIdx = current.findIndex((inst) => inst?.name === targetName);
+      console.log("[instances/save] Target:", targetName, "existing index:", existingIdx);
       const conflict = current.findIndex(
         (inst, idx) => inst?.name === normalized.name && idx !== existingIdx
       );
       if (conflict >= 0) {
+        console.log("[instances/save] Conflict detected at index:", conflict);
         return send(res, 409, { error: "An instance with that name already exists." });
       }
 
       if (existingIdx >= 0) {
         current[existingIdx] = normalized;
+        console.log("[instances/save] Updated existing entry at index:", existingIdx);
       } else {
         current.push(normalized);
+        console.log("[instances/save] Added new entry");
       }
 
+      console.log("[instances/save] Writing file...");
       const { entries: saved, path: savedPath } = await writeInstancesFile(current);
+      console.log("[instances/save] File written successfully to:", savedPath);
+      console.log("[instances/save] Saved entries count:", saved.length);
       return send(res, 200, { entry: normalized, instances: saved, path: savedPath });
     } catch (err) {
+      console.error("[instances/save] Error:", err);
       const status = err?.status || 500;
       return send(res, status, { error: err.message || "Unable to save instance" });
     }
@@ -2931,6 +2960,196 @@ const server = http.createServer(async (req, res) => {
     } catch (err) {
       const status = err?.status || 500;
       return send(res, status, { error: err.message || "Unable to delete instance" });
+    }
+  }
+  if (pathname === "/api/realtime") {
+    try {
+      const instance = queryParams.get("instance");
+      const hours = parseInt(queryParams.get("hours") || "4");
+
+      if (!instance) {
+        return send(res, 400, { error: "Missing instance query param" });
+      }
+
+      // Read instances file to get credentials
+      const { entries } = await readInstancesFile();
+      const instanceConfig = entries.find(e => e.name === instance);
+      if (!instanceConfig) {
+        return send(res, 404, { error: `Instance "${instance}" not found` });
+      }
+
+      // Calculate time range - use date strings for wider range
+      const now = new Date();
+      const startTime = new Date(now.getTime() - hours * 60 * 60 * 1000);
+
+      // Get date strings in YYYY-MM-DD format
+      const startDate = startTime.toISOString().slice(0, 10);
+      const endDate = now.toISOString().slice(0, 10);
+
+      console.log(`[realtime] Fetching live data for ${instance}: ${startDate} to ${endDate} (last ${hours} hours)`);
+
+      // Login to instance
+      const { session } = await loginWithSdk(instanceConfig);
+
+      // Fetch sessions with pagination - using exact pattern from fetchSessions.mjs
+      const sessionsData = [];
+
+      const firstSessionResp = await session.get("cardholder_sessions", {
+        created_on_min: `${startDate}T00:00:00Z`,
+        created_on_max: `${endDate}T23:59:59Z`,
+      }, {});
+
+      const firstSessions = Array.isArray(firstSessionResp?.body) ? firstSessionResp.body :
+                           Array.isArray(firstSessionResp) ? firstSessionResp : [];
+      sessionsData.push(...firstSessions);
+
+      let rawHeader = firstSessionResp?.headers?.get
+        ? firstSessionResp.headers.get("x-cardsavr-paging")
+        : firstSessionResp?.headers?.["x-cardsavr-paging"];
+
+      while (rawHeader) {
+        let paging;
+        try {
+          paging = JSON.parse(rawHeader);
+        } catch {
+          break;
+        }
+
+        const page = Number(paging.page) || 1;
+        const pageLength = Number(paging.page_length) || 0;
+        const totalResults = Number(paging.total_results) || 0;
+
+        if (pageLength === 0 || page * pageLength >= totalResults) break;
+
+        const nextPage = page + 1;
+        const nextPaging = { ...paging, page: nextPage };
+        const resp = await session.get("cardholder_sessions", {
+          created_on_min: `${startDate}T00:00:00Z`,
+          created_on_max: `${endDate}T23:59:59Z`,
+        }, { "x-cardsavr-paging": JSON.stringify(nextPaging) });
+
+        const rows = Array.isArray(resp?.body) ? resp.body : Array.isArray(resp) ? resp : [];
+        sessionsData.push(...rows);
+
+        rawHeader = resp?.headers?.get
+          ? resp.headers.get("x-cardsavr-paging")
+          : resp?.headers?.["x-cardsavr-paging"];
+      }
+
+      // Fetch placements with pagination - using exact pattern from fetchPlacements.mjs
+      const placementsData = [];
+
+      const firstPlacementResp = await session.getCardPlacementResults({
+        created_on_min: `${startDate}T00:00:00Z`,
+        created_on_max: `${endDate}T23:59:59Z`,
+      }, {});
+
+      const extractPlacementRows = (resp) => {
+        if (!resp) return [];
+        if (Array.isArray(resp.body)) return resp.body;
+        if (Array.isArray(resp.card_placement_results)) return resp.card_placement_results;
+        if (Array.isArray(resp)) return resp;
+        return [];
+      };
+
+      const firstPlacements = extractPlacementRows(firstPlacementResp);
+      placementsData.push(...firstPlacements);
+
+      const rawPlacementHeader = firstPlacementResp.headers?.get
+        ? firstPlacementResp.headers.get("x-cardsavr-paging")
+        : firstPlacementResp.headers?.["x-cardsavr-paging"];
+
+      if (rawPlacementHeader) {
+        let pagingMeta = JSON.parse(rawPlacementHeader);
+        const pageLength = Number(pagingMeta.page_length) || firstPlacements.length || 25;
+        const totalResults = Number(pagingMeta.total_results) || firstPlacements.length;
+        const totalPages = pageLength > 0 ? Math.ceil(totalResults / pageLength) : 1;
+
+        let currentPage = Number(pagingMeta.page) || 1;
+
+        while (currentPage < totalPages && currentPage < 500) {
+          const nextPage = currentPage + 1;
+          const requestPaging = { ...pagingMeta, page: nextPage };
+
+          const resp = await session.getCardPlacementResults({
+            created_on_min: `${startDate}T00:00:00Z`,
+            created_on_max: `${endDate}T23:59:59Z`,
+          }, { "x-cardsavr-paging": JSON.stringify(requestPaging) });
+
+          const rows = extractPlacementRows(resp);
+          placementsData.push(...rows);
+
+          const nextHeader = resp.headers?.get
+            ? resp.headers.get("x-cardsavr-paging")
+            : resp.headers?.["x-cardsavr-paging"];
+
+          if (!nextHeader) break;
+
+          try {
+            pagingMeta = JSON.parse(nextHeader);
+          } catch {
+            pagingMeta.page = nextPage;
+          }
+
+          const reportedPage = Number(pagingMeta.page);
+          if (!Number.isFinite(reportedPage) || reportedPage <= currentPage) break;
+          currentPage = reportedPage;
+        }
+      }
+
+      console.log(`[realtime] Fetched ${sessionsData.length} sessions, ${placementsData.length} placements`);
+
+      // Group placements by session ID using same logic as troubleshoot endpoint
+      const placementMap = new Map();
+      placementsData.forEach(p => {
+        const key = p.agent_session_id || p.session_id || p.cardholder_session_id || p.cuid || null;
+        if (!key) return;
+        if (!placementMap.has(key)) {
+          placementMap.set(key, []);
+        }
+        placementMap.get(key).push(p);
+      });
+
+      // Merge placements into sessions as enriched jobs
+      const enrichedSessions = sessionsData.map(session => {
+        const agentId = session.agent_session_id || session.session_id || session.id || session.cuid || null;
+        const sessionPlacements = agentId ? placementMap.get(agentId) || [] : [];
+        const jobs = sessionPlacements
+          .map(p => mapPlacementToJob(p, session.fi_lookup_key || session.fi, instance))
+          .sort((a, b) => {
+            if (!a.created_on || !b.created_on) return 0;
+            return a.created_on.localeCompare(b.created_on);
+          });
+
+        return {
+          ...session,
+          jobs,
+          placements_raw: sessionPlacements,
+        };
+      });
+
+      // Sort sessions newest to oldest
+      enrichedSessions.sort((a, b) => {
+        const aTime = a.created_on || a.closed_on || '';
+        const bTime = b.created_on || b.closed_on || '';
+        return bTime.localeCompare(aTime); // Reverse order for newest first
+      });
+
+      // Also keep enriched placements for filter population
+      const enrichedPlacements = placementsData.map(p =>
+        mapPlacementToJob(p, p.fi_lookup_key || p.fi, instance)
+      );
+
+      return send(res, 200, {
+        instance,
+        timeRange: { hours, start: `${startDate}T00:00:00Z`, end: `${endDate}T23:59:59Z` },
+        sessions: enrichedSessions,
+        placements: enrichedPlacements,
+      });
+    } catch (err) {
+      console.error("[realtime] Error:", err);
+      const status = err?.status || 500;
+      return send(res, status, { error: err.message || "Unable to fetch realtime data" });
     }
   }
   if (pathname === "/daily") {

@@ -53,7 +53,8 @@
   if (typeof global.SIS_API_BASE !== "string" || !global.SIS_API_BASE) {
     // Set to your AWS base URL when hosting the UI on GitHub Pages.
     // Example: https://sis-api.example.com
-    global.SIS_API_BASE = "https://34-220-57-7.sslip.io";
+    // Use empty string for local development to avoid nginx content-type issues
+    global.SIS_API_BASE = window.location.hostname === "localhost" ? "" : "https://34-220-57-7.sslip.io";
   }
 
   wrapFetch(resolveApiBase());

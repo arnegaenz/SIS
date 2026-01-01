@@ -85,6 +85,7 @@ var GROUPS = [
 ]},
 { label: "Ops", items: [
 { id:"troubleshoot", label:"Troubleshoot", href:"./troubleshoot.html" },
+{ id:"realtime", label:"Real-Time", href:"./realtime.html" },
 { id:"maintenance", label:"Maintenance", href:"./maintenance.html" },
 { id:"fi-api", label:"FI API", href:"./fi-api.html" },
 { id:"logs", label:"Server Logs", href:"./logs.html" }
