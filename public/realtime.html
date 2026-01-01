@@ -347,7 +347,7 @@
       // Load instances
       async function loadInstances() {
         try {
-          const res = await fetch('./instances');
+          const res = await fetch('/instances');
           const data = await res.json();
           instances = data.instances || [];
 
@@ -381,7 +381,7 @@
         fetchBtn.disabled = true;
 
         try {
-          const res = await fetch(`./api/realtime?instance=${encodeURIComponent(instance)}&hours=${hours}`);
+          const res = await fetch(`/api/realtime?instance=${encodeURIComponent(instance)}&hours=${hours}`);
           if (!res.ok) {
             throw new Error(`HTTP ${res.status}: ${res.statusText}`);
           }
