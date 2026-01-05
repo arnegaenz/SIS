@@ -278,9 +278,6 @@
         if (list.classList.contains("open")) closeRateList(list);
         else openRateList(list);
       });
-      input.addEventListener("focus", function () {
-        if (!input.disabled) openRateList(list);
-      });
       input.addEventListener("blur", function () {
         setTimeout(function () {
           closeRateList(list);
