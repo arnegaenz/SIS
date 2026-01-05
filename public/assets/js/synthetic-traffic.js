@@ -6,6 +6,10 @@
   var jobsStatus = document.getElementById("jobsStatus");
   var jobsBody = document.getElementById("jobsBody");
   var modeSelect = document.getElementById("modeSelect");
+  var jobsCount = document.getElementById("jobsCount");
+  var toggleJobLimit = document.getElementById("toggleJobLimit");
+  var showAllJobs = false;
+  var JOB_LIMIT = 50;
 
   var options = {
     fiHostEnv: ["argfcu", "orb_prod"],
@@ -123,11 +127,24 @@
 
   function renderJobs(list) {
     if (!jobsBody) return;
-    if (!list || !list.length) {
+    var total = list ? list.length : 0;
+    var visible = list || [];
+    if (!showAllJobs && total > JOB_LIMIT) {
+      visible = list.slice(0, JOB_LIMIT);
+    }
+    if (!visible.length) {
       jobsBody.innerHTML = '<tr><td colspan="10">No jobs yet.</td></tr>';
+      if (jobsCount) jobsCount.textContent = "Showing 0 jobs.";
       return;
     }
-    jobsBody.innerHTML = list.map(buildJobRow).join("");
+    jobsBody.innerHTML = visible.map(buildJobRow).join("");
+    if (jobsCount) {
+      jobsCount.textContent = "Showing " + visible.length + " of " + total + " jobs.";
+    }
+    if (toggleJobLimit) {
+      toggleJobLimit.textContent = showAllJobs ? "Show less" : "Show all";
+      toggleJobLimit.style.display = total > JOB_LIMIT ? "inline-flex" : "none";
+    }
   }
 
   function getPayload() {
@@ -378,6 +395,12 @@
     }
     if (form) form.addEventListener("submit", submitJob);
     if (jobsBody) jobsBody.addEventListener("click", handleTableClick);
+    if (toggleJobLimit) {
+      toggleJobLimit.addEventListener("click", function () {
+        showAllJobs = !showAllJobs;
+        refreshJobs();
+      });
+    }
     setupRateCombos();
     updateRateValidation();
     var presetSelect = document.getElementById("motivationPreset");
