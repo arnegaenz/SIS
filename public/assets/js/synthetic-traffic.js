@@ -10,6 +10,10 @@
   var toggleJobLimit = document.getElementById("toggleJobLimit");
   var showAllJobs = false;
   var JOB_LIMIT = 50;
+  var jobModal = document.getElementById("jobModal");
+  var jobModalBody = document.getElementById("jobModalBody");
+  var jobModalSubtitle = document.getElementById("jobModalSubtitle");
+  var latestJobs = [];
 
   var options = {
     fiHostEnv: ["argfcu", "orb_prod"],
@@ -110,7 +114,7 @@
 
     return (
       "<tr>" +
-        '<td><div class="job-meta"><strong>' + escapeHtml(name) + "</strong>" +
+        '<td><div class="job-meta"><button class="job-link" type="button" data-action="detail" data-id="' + escapeHtml(id) + '">' + escapeHtml(name) + "</button>" +
         '<span class="job-id">' + escapeHtml(id) + "</span></div></td>" +
         "<td>" + status + "</td>" +
         "<td>" + escapeHtml(formatDateTime(job.created_at)) + "</td>" +
@@ -127,6 +131,7 @@
 
   function renderJobs(list) {
     if (!jobsBody) return;
+    latestJobs = list || [];
     var total = list ? list.length : 0;
     var visible = list || [];
     if (!showAllJobs && total > JOB_LIMIT) {
@@ -145,6 +150,58 @@
       toggleJobLimit.textContent = showAllJobs ? "Show less" : "Show all";
       toggleJobLimit.style.display = total > JOB_LIMIT ? "inline-flex" : "none";
     }
+  }
+
+  function getJobById(jobId) {
+    return (latestJobs || []).find(function (job) {
+      return job && job.id === jobId;
+    });
+  }
+
+  function openJobModal(job) {
+    if (!jobModal || !jobModalBody) return;
+    var items = [
+      ["Status", job.status || "queued"],
+      ["Mode", job.mode || ""],
+      ["FI Host", job.fi_host_env || ""],
+      ["Integration Flow", job.integration_flow || ""],
+      ["Test Card Preset", job.test_card_preset || ""],
+      ["Source Type", job.source_type || ""],
+      ["Source Category", job.source_category || ""],
+      ["Source Subcategory", job.source_subcategory || ""],
+      ["Total Runs", job.total_runs || ""],
+      ["Runs Per Day", job.runs_per_day || ""],
+      ["End Date", job.end_date || ""],
+      ["Success Rate", (job.target_success_rate ?? "") + "%"],
+      ["Fail Rate", (job.target_fail_rate ?? "") + "%"],
+      ["Select Merchant Abandon", (job.abandon_select_merchant_rate ?? "") + "%"],
+      ["User Data Abandon", (job.abandon_user_data_rate ?? "") + "%"],
+      ["Credential Entry Abandon", (job.abandon_credential_entry_rate ?? "") + "%"],
+      ["Created At", formatDateTime(job.created_at)],
+      ["Last Run", formatDateTime(job.last_run_at)],
+      ["Next Run", formatDateTime(job.next_run_at)]
+    ];
+    jobModalBody.innerHTML = items
+      .map(function (item) {
+        return (
+          '<div class="detail-item">' +
+            '<div class="detail-label">' + escapeHtml(item[0]) + "</div>" +
+            "<div>" + escapeHtml(item[1]) + "</div>" +
+          "</div>"
+        );
+      })
+      .join("");
+    if (jobModalSubtitle) {
+      jobModalSubtitle.textContent = (job.job_name || job.id || "").toString();
+    }
+    jobModal.classList.add("open");
+    jobModal.setAttribute("aria-hidden", "false");
+  }
+
+  function closeJobModal() {
+    if (!jobModal) return;
+    jobModal.classList.remove("open");
+    jobModal.setAttribute("aria-hidden", "true");
   }
 
   function getPayload() {
@@ -372,8 +429,17 @@
 
   function handleTableClick(evt) {
     var target = evt.target;
-    if (!target || target.getAttribute("data-action") !== "cancel") return;
-    cancelJob(target.getAttribute("data-id"));
+    if (!target) return;
+    var action = target.getAttribute("data-action");
+    var jobId = target.getAttribute("data-id");
+    if (action === "cancel") {
+      cancelJob(jobId);
+      return;
+    }
+    if (action === "detail") {
+      var job = getJobById(jobId);
+      if (job) openJobModal(job);
+    }
   }
 
   function init() {
@@ -395,6 +461,16 @@
     }
     if (form) form.addEventListener("submit", submitJob);
     if (jobsBody) jobsBody.addEventListener("click", handleTableClick);
+    if (jobModal) {
+      jobModal.addEventListener("click", function (evt) {
+        if (evt.target && evt.target.hasAttribute("data-modal-close")) {
+          closeJobModal();
+        }
+      });
+    }
+    document.addEventListener("keydown", function (evt) {
+      if (evt.key === "Escape") closeJobModal();
+    });
     if (toggleJobLimit) {
       toggleJobLimit.addEventListener("click", function () {
         showAllJobs = !showAllJobs;
