@@ -1993,6 +1993,7 @@ const server = http.createServer(async (req, res) => {
     const abandonUser = inc(payload.abandon_user_data);
     const abandonCredential = inc(payload.abandon_credential_entry);
     const finishedAt = payload.last_run_at ? new Date(payload.last_run_at) : new Date();
+    const nextStatus = (payload.status || "").toString().trim().toLowerCase();
 
     job.attempted += attempts;
     job.placements_success += success;
@@ -2004,6 +2005,10 @@ const server = http.createServer(async (req, res) => {
     job.last_run_at = finishedAt.toISOString();
     job.due = false;
 
+    if (nextStatus === "running") {
+      job.status = "running";
+    }
+
     if (job.mode === "one_shot" && job.attempted >= job.total_runs) {
       job.status = "completed";
       job.next_run_at = "";
@@ -2011,11 +2016,11 @@ const server = http.createServer(async (req, res) => {
       if (jobEndDateReached(job, finishedAt) || (job.max_runs && job.attempted >= job.max_runs)) {
         job.status = "completed";
         job.next_run_at = "";
-      } else {
+      } else if (nextStatus !== "running") {
         job.status = "queued";
         job.next_run_at = computeNextRunIso(job, finishedAt);
       }
-    } else {
+    } else if (nextStatus !== "running") {
       job.status = "queued";
     }
 

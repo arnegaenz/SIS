@@ -91,7 +91,7 @@
     var className = "pill";
     if (status === "canceled" || status === "failed") className += " warn";
     if (status === "completed") className += " muted";
-    if (isDue) label = "due";
+    if (isDue && status !== "running") label = "queued";
     return '<span class="' + className + '">' + escapeHtml(label) + "</span>";
   }
 
