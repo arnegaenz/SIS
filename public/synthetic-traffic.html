@@ -220,6 +220,7 @@
       border-radius: 12px;
       max-height: 420px;
       overflow: auto;
+      position: relative;
     }
     table {
       width: 100%;
@@ -227,6 +228,7 @@
       border-spacing: 0;
       min-width: 980px;
       font-size: 13px;
+      background: var(--panel-bg);
     }
     th, td {
       text-align: left;
@@ -244,10 +246,11 @@
       text-transform: uppercase;
       letter-spacing: 0.08em;
       color: var(--muted);
-      background: rgba(148, 163, 184, 0.08);
+      background: var(--panel-bg);
       position: sticky;
       top: 0;
-      z-index: 2;
+      z-index: 3;
+      box-shadow: 0 1px 0 rgba(148, 163, 184, 0.2);
     }
     tr:last-child td { border-bottom: none; }
     .job-meta {
