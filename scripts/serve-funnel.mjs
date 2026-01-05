@@ -2717,9 +2717,7 @@ const server = http.createServer(async (req, res) => {
         throw err;
       });
       const registry = JSON.parse(raw);
-      if (!registry[key]) {
-        return send(res, 404, { error: "Registry entry not found", key });
-      }
+      const isNewEntry = !registry[key];
 
       const normalizeIntegration = (value) => {
         if (!value) return "non-sso";
@@ -2797,21 +2795,42 @@ const server = http.createServer(async (req, res) => {
         return canonical
           .replace(/(^|\s|-)([a-z])/g, (m, p1, p2) => p1 + p2.toUpperCase());
       };
+      const normalizeInstance = (value) => {
+        if (!value) return null;
+        const str = value.toString().trim();
+        return str || null;
+      };
       const canonicalLookupKey = (value) =>
         value ? value.toString().trim().toLowerCase() : "";
       const canonicalInstance = (value) =>
         value ? value.toString().trim().toLowerCase() : "";
 
-      const next = { ...registry[key] };
+      const next = { ...(registry[key] || {}) };
+      if (isNewEntry) {
+        const fallbackInstance = key.includes("__") ? key.split("__")[1] : null;
+        const instanceValue = normalizeInstance(updates.instance || fallbackInstance || "unknown");
+        if (instanceValue) {
+          next.instance = instanceValue;
+        }
+      }
       if ("integration_type" in updates) {
         next.integration_type = normalizeIntegration(updates.integration_type);
+      } else if (isNewEntry && !next.integration_type) {
+        next.integration_type = normalizeIntegration(next.integration_type);
       }
       if ("fi_name" in updates) {
         const fiName = normalizeFiName(updates.fi_name);
         if (fiName !== undefined) next.fi_name = fiName;
+      } else if (isNewEntry && !next.fi_name) {
+        const fallbackFi = key.includes("__") ? key.split("__")[0] : null;
+        if (fallbackFi) next.fi_name = normalizeFiName(fallbackFi);
       }
       if ("fi_lookup_key" in updates) {
         const fiLookup = normalizeFiLookupKey(updates.fi_lookup_key, next.fi_lookup_key);
+        if (fiLookup !== undefined) next.fi_lookup_key = fiLookup;
+      } else if (isNewEntry && !next.fi_lookup_key) {
+        const fallbackLookup = key.includes("__") ? key.split("__")[0] : null;
+        const fiLookup = normalizeFiLookupKey(fallbackLookup, next.fi_lookup_key);
         if (fiLookup !== undefined) next.fi_lookup_key = fiLookup;
       }
       if ("partner" in updates) {
@@ -2871,6 +2890,10 @@ const server = http.createServer(async (req, res) => {
             },
           });
         }
+      }
+
+      if (isNewEntry) {
+        registry[key] = next;
       }
 
       registry[key] = next;
