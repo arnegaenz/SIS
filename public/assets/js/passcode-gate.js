@@ -159,7 +159,14 @@
       }
     } catch (e) {}
     try {
-      if (getAccessLevel()) return;
+      var level = getAccessLevel();
+      if (level) {
+        if (level === "limited" && !isLimitedAllowedPage()) {
+          window.location.href = "./funnel.html";
+          return;
+        }
+        return;
+      }
     } catch (e) {}
     showGate();
   }

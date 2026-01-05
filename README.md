@@ -118,6 +118,14 @@ node scripts/serve-funnel.mjs
 ```
 
 Open your browser to **http://localhost:8787** and explore:
+
+## Synthetic Traffic Jobs
+
+The Synthetic Traffic (Load Tests) OPS page stores job definitions locally so they survive restarts.
+
+- Jobs file: `data/synthetic/jobs.json` (created automatically if missing).
+- Simulated runner: start the server with `SYNTHETIC_RUNNER=sim node scripts/serve-funnel.mjs`.
+- Runner mode is logged on startup; SIS still acts as the control plane and status dashboard.
 - `/funnel.html` — FI-Funnel conversion analysis
 - `/sources.html` — Traffic source analytics
 - `/heatmap.html` — Merchant site health heatmap

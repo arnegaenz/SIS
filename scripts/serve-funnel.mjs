@@ -33,6 +33,8 @@ const DATA_DIR = path.join(ROOT, "data");
 const DAILY_DIR = path.join(DATA_DIR, "daily");
 const RAW_DIR = path.join(ROOT, "raw");
 const RAW_PLACEMENTS_DIR = path.join(RAW_DIR, "placements");
+const SYNTHETIC_DIR = path.join(DATA_DIR, "synthetic");
+const SYNTHETIC_JOBS_FILE = path.join(SYNTHETIC_DIR, "jobs.json");
 const FI_REGISTRY_FILE = path.join(ROOT, "fi_registry.json");
 const INSTANCES_FILES = [
   path.join(ROOT, "secrets", "instances.json"),
@@ -84,6 +86,9 @@ const BUILD_COMMITTED_AT = (() => {
     return "";
   }
 })();
+
+const SYNTHETIC_RUNNER_MODE = (process.env.SYNTHETIC_RUNNER || "").toLowerCase();
+const SYNTHETIC_SCHEDULER_MS = 5000;
 
 const updateClients = new Set();
 
@@ -401,6 +406,419 @@ async function fileExists(fp) {
   } catch {
     return false;
   }
+}
+
+let synthState = {
+  loaded: false,
+  jobs: [],
+  saving: Promise.resolve(),
+};
+let synthSchedulerTimer = null;
+let synthRunnerActive = false;
+
+function clampNumber(value, min, max, fallback) {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return fallback;
+  return Math.min(max, Math.max(min, num));
+}
+
+function parsePositiveInt(value, fallback = null) {
+  const num = Number(value);
+  if (!Number.isFinite(num) || num <= 0) return fallback;
+  return Math.floor(num);
+}
+
+function normalizeIsoDate(value) {
+  if (!value) return "";
+  if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return "";
+  return parsed.toISOString().slice(0, 10);
+}
+
+function addDaysIso(isoDate, deltaDays) {
+  const d = new Date(`${isoDate}T00:00:00Z`);
+  if (Number.isNaN(d.getTime())) return "";
+  d.setUTCDate(d.getUTCDate() + deltaDays);
+  return d.toISOString().slice(0, 10);
+}
+
+function computeCampaignMaxRuns(startIso, endIso, runsPerDay) {
+  if (!startIso || !endIso || !runsPerDay) return null;
+  const start = new Date(`${startIso}T00:00:00Z`);
+  const end = new Date(`${endIso}T00:00:00Z`);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return null;
+  const days = Math.max(1, Math.ceil((end - start) / 86400000) + 1);
+  return days * runsPerDay;
+}
+
+async function ensureSynthStore() {
+  await fs.mkdir(SYNTHETIC_DIR, { recursive: true });
+  if (!(await fileExists(SYNTHETIC_JOBS_FILE))) {
+    const payload = { jobs: [], updated_at: new Date().toISOString() };
+    await fs.writeFile(SYNTHETIC_JOBS_FILE, JSON.stringify(payload, null, 2));
+  }
+}
+
+async function loadSynthJobs() {
+  if (synthState.loaded) return synthState.jobs;
+  try {
+    await ensureSynthStore();
+    const raw = await fs.readFile(SYNTHETIC_JOBS_FILE, "utf8");
+    const parsed = JSON.parse(raw || "{}");
+    const jobs = Array.isArray(parsed) ? parsed : parsed.jobs;
+    synthState.jobs = Array.isArray(jobs) ? jobs : [];
+    synthState.loaded = true;
+    return synthState.jobs;
+  } catch (err) {
+    console.error("[synth] Failed to load jobs:", err);
+    synthState.jobs = [];
+    synthState.loaded = true;
+    return synthState.jobs;
+  }
+}
+
+function saveSynthJobs() {
+  synthState.saving = synthState.saving
+    .then(async () => {
+      await ensureSynthStore();
+      const payload = { jobs: synthState.jobs, updated_at: new Date().toISOString() };
+      await fs.writeFile(SYNTHETIC_JOBS_FILE, JSON.stringify(payload, null, 2));
+    })
+    .catch((err) => {
+      console.error("[synth] Failed to persist jobs:", err);
+    });
+  return synthState.saving;
+}
+
+function synthJobDefaults(payload = {}) {
+  const now = new Date();
+  const nowIso = now.toISOString();
+  const createdDate = nowIso.slice(0, 10);
+  const mode = payload.mode === "campaign" ? "campaign" : "one_shot";
+  const testerName = (payload.tester_name || "").toString().trim();
+  const fiHostEnv = (payload.fi_host_env || "").toString().trim();
+  const integrationFlow = (payload.integration_flow || "").toString().trim();
+  const testCardPreset = (payload.test_card_preset || "").toString().trim();
+  const sourceType = (payload.source_type || "").toString().trim();
+  const sourceCategory = (payload.source_category || "").toString().trim();
+  const sourceSubcategory = (payload.source_subcategory || "").toString().trim();
+
+  const totalRuns = parsePositiveInt(payload.total_runs);
+  const runsPerDay = parsePositiveInt(payload.runs_per_day);
+  let endDate = normalizeIsoDate(payload.end_date);
+  const durationDays = parsePositiveInt(payload.duration_days);
+  if (!endDate && durationDays) {
+    endDate = addDaysIso(createdDate, Math.max(0, durationDays - 1));
+  }
+
+  const targetSuccessRate = clampNumber(payload.target_success_rate, 0, 100, 90);
+  const targetFailRate = clampNumber(payload.target_fail_rate, 0, 100, 10);
+  const abandonSelectMerchantRate = clampNumber(
+    payload.abandon_select_merchant_rate,
+    0,
+    100,
+    0
+  );
+  let abandonUserDataRate = clampNumber(payload.abandon_user_data_rate, 0, 100, 0);
+  const isSsoFlow = integrationFlow.toLowerCase().includes("_sso");
+  if (isSsoFlow) abandonUserDataRate = 0;
+  const abandonCredentialEntryRate = clampNumber(
+    payload.abandon_credential_entry_rate,
+    0,
+    100,
+    0
+  );
+  const targetRateTotal = targetSuccessRate + targetFailRate;
+
+  const jobNameParts = [];
+  if (sourceSubcategory) jobNameParts.push(sourceSubcategory);
+  if (fiHostEnv) jobNameParts.push(fiHostEnv);
+  if (integrationFlow) jobNameParts.push(integrationFlow);
+  const jobName = jobNameParts.join(" • ") || "Synthetic Job";
+
+  return {
+    mode,
+    testerName,
+    fiHostEnv,
+    integrationFlow,
+    testCardPreset,
+    sourceType,
+    sourceCategory,
+    sourceSubcategory,
+    totalRuns,
+    runsPerDay,
+    endDate,
+    durationDays,
+    targetSuccessRate,
+    targetFailRate,
+    abandonSelectMerchantRate,
+    abandonUserDataRate,
+    abandonCredentialEntryRate,
+    createdDate,
+    createdAt: nowIso,
+    jobName,
+  };
+}
+
+function buildSynthJob(payload = {}) {
+  const defaults = synthJobDefaults(payload);
+  if (!defaults.fiHostEnv) return { error: "fi_host_env is required" };
+  if (!defaults.integrationFlow) return { error: "integration_flow is required" };
+  if (!defaults.testCardPreset) return { error: "test_card_preset is required" };
+
+  if (defaults.mode === "one_shot" && !defaults.totalRuns) {
+    return { error: "total_runs is required for one_shot mode" };
+  }
+  if (defaults.mode === "campaign") {
+    if (!defaults.runsPerDay) return { error: "runs_per_day is required for campaign mode" };
+    if (!defaults.endDate) return { error: "end_date or duration_days is required for campaign mode" };
+  }
+  if (defaults.targetRateTotal > 100) {
+    return { error: "target_success_rate + target_fail_rate must be <= 100" };
+  }
+
+  const id = `synth_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+  const maxRuns =
+    defaults.mode === "campaign"
+      ? computeCampaignMaxRuns(defaults.createdDate, defaults.endDate, defaults.runsPerDay)
+      : defaults.totalRuns;
+
+  return {
+    job: {
+      id,
+      job_name: defaults.jobName,
+      tester_name: defaults.testerName,
+      fi_host_env: defaults.fiHostEnv,
+      integration_flow: defaults.integrationFlow,
+      test_card_preset: defaults.testCardPreset,
+      source_type: defaults.sourceType,
+      source_category: defaults.sourceCategory,
+      source_subcategory: defaults.sourceSubcategory,
+      mode: defaults.mode,
+      total_runs: defaults.totalRuns || 0,
+      runs_per_day: defaults.runsPerDay || 0,
+      end_date: defaults.endDate || "",
+      duration_days: defaults.durationDays || 0,
+      target_success_rate: defaults.targetSuccessRate,
+      target_fail_rate: defaults.targetFailRate,
+      abandon_select_merchant_rate: defaults.abandonSelectMerchantRate,
+      abandon_user_data_rate: defaults.abandonUserDataRate,
+      abandon_credential_entry_rate: defaults.abandonCredentialEntryRate,
+      target_rate_total: defaults.targetRateTotal,
+      created_at: defaults.createdAt,
+      last_run_at: "",
+      next_run_at: defaults.createdAt,
+      due: false,
+      status: "queued",
+      attempted: 0,
+      placements_success: 0,
+      placements_failed: 0,
+      placements_abandoned: 0,
+      abandon_select_merchant: 0,
+      abandon_user_data: 0,
+      abandon_credential_entry: 0,
+      max_runs: maxRuns || null,
+    },
+  };
+}
+
+function computeNextRunIso(job, fromDate = new Date()) {
+  if (!job || job.mode !== "campaign") return "";
+  const runsPerDay = parsePositiveInt(job.runs_per_day);
+  if (!runsPerDay) return "";
+  const intervalMs = Math.max(1, Math.round(86400000 / runsPerDay));
+  const next = new Date(fromDate.getTime() + intervalMs);
+  return next.toISOString();
+}
+
+function jobEndDateReached(job, now) {
+  if (!job?.end_date) return false;
+  const end = new Date(`${job.end_date}T23:59:59.999Z`);
+  return Number.isFinite(end.getTime()) && now > end;
+}
+
+function simulateCounts(job, attempts) {
+  const selectMerchantRate =
+    clampNumber(job.abandon_select_merchant_rate, 0, 100, 0) / 100;
+  const userDataRate = clampNumber(job.abandon_user_data_rate, 0, 100, 0) / 100;
+  const credentialRate =
+    clampNumber(job.abandon_credential_entry_rate, 0, 100, 0) / 100;
+  let successRate = clampNumber(job.target_success_rate, 0, 100, 90) / 100;
+  let failRate = clampNumber(job.target_fail_rate, 0, 100, 10) / 100;
+
+  const selectAbandon = Math.round(attempts * selectMerchantRate);
+  const afterSelect = Math.max(0, attempts - selectAbandon);
+  const userDataAbandon = Math.round(afterSelect * userDataRate);
+  const afterUserData = Math.max(0, afterSelect - userDataAbandon);
+  const credentialAbandon = Math.round(afterUserData * credentialRate);
+  const credentialAttempts = Math.max(0, afterUserData - credentialAbandon);
+
+  const totalRate = successRate + failRate;
+  if (totalRate > 1) {
+    successRate /= totalRate;
+    failRate /= totalRate;
+  }
+
+  let success = Math.round(credentialAttempts * successRate);
+  let fail = Math.round(credentialAttempts * failRate);
+  const remainder = credentialAttempts - success - fail;
+  if (remainder !== 0) success += remainder;
+
+  const abandon = selectAbandon + userDataAbandon + credentialAbandon;
+
+  return {
+    success,
+    fail,
+    abandon,
+    abandon_select_merchant: selectAbandon,
+    abandon_user_data: userDataAbandon,
+    abandon_credential_entry: credentialAbandon,
+  };
+}
+
+const synthRunnerAdapter = {
+  mode: SYNTHETIC_RUNNER_MODE || "disabled",
+  async runDue(jobs = []) {
+    if (this.mode === "sim") {
+      return runSynthSimRunner(jobs);
+    }
+    if (this.mode) {
+      // TODO: invoke external synthetic runner via CLI or HTTP without assuming paths.
+      // This is the integration boundary for the separate Playwright-based tool.
+      return { updated: false, message: "external runner not wired" };
+    }
+    return { updated: false, message: "runner disabled" };
+  },
+};
+
+async function runSynthSimRunner(jobs = []) {
+  let updated = false;
+  for (const job of jobs) {
+    if (!job?.due) continue;
+    if (job.status === "canceled" || job.status === "completed") {
+      job.due = false;
+      updated = true;
+      continue;
+    }
+
+    const now = new Date();
+    job.status = "running";
+    job.due = false;
+
+    let attempts = 0;
+    if (job.mode === "one_shot") {
+      attempts = Math.max(0, job.total_runs - job.attempted);
+    } else {
+      attempts = 1;
+    }
+
+    if (attempts > 0) {
+      const results = simulateCounts(job, attempts);
+      job.attempted += attempts;
+        job.placements_success += results.success;
+        job.placements_failed += results.fail;
+        job.placements_abandoned += results.abandon;
+        job.abandon_select_merchant += results.abandon_select_merchant || 0;
+        job.abandon_user_data += results.abandon_user_data || 0;
+        job.abandon_credential_entry += results.abandon_credential_entry || 0;
+      job.last_run_at = now.toISOString();
+    }
+
+    if (job.mode === "one_shot") {
+      job.status = "completed";
+      job.next_run_at = "";
+    } else {
+      job.status = "queued";
+      if (jobEndDateReached(job, now) || (job.max_runs && job.attempted >= job.max_runs)) {
+        job.status = "completed";
+        job.next_run_at = "";
+      } else {
+        job.next_run_at = computeNextRunIso(job, now);
+      }
+    }
+
+    updated = true;
+  }
+  return { updated };
+}
+
+async function runSynthScheduler() {
+  await loadSynthJobs();
+  const now = new Date();
+  let changed = false;
+
+  for (const job of synthState.jobs) {
+    if (!job) continue;
+    if (job.status === "canceled" || job.status === "completed") {
+      if (job.due) {
+        job.due = false;
+        changed = true;
+      }
+      continue;
+    }
+
+    if (job.mode === "one_shot" && job.attempted >= job.total_runs) {
+      job.status = "completed";
+      job.next_run_at = "";
+      job.due = false;
+      changed = true;
+      continue;
+    }
+
+    if (job.mode === "campaign") {
+      if (jobEndDateReached(job, now) || (job.max_runs && job.attempted >= job.max_runs)) {
+        job.status = "completed";
+        job.next_run_at = "";
+        job.due = false;
+        changed = true;
+        continue;
+      }
+    }
+
+    if (!job.next_run_at) {
+      job.next_run_at = job.mode === "campaign" ? computeNextRunIso(job, now) : now.toISOString();
+      changed = true;
+    }
+
+    if (job.next_run_at) {
+      const next = new Date(job.next_run_at);
+      if (!Number.isNaN(next.getTime()) && now >= next) {
+        if (!job.due) {
+          job.due = true;
+          changed = true;
+        }
+        if (job.status !== "queued" && job.status !== "running") {
+          job.status = "queued";
+          changed = true;
+        }
+      }
+    }
+  }
+
+  if (changed) await saveSynthJobs();
+
+  if (synthRunnerActive) return;
+  synthRunnerActive = true;
+  try {
+    const dueJobs = synthState.jobs.filter((job) => job?.due);
+    const result = await synthRunnerAdapter.runDue(dueJobs);
+    if (result?.updated) await saveSynthJobs();
+  } finally {
+    synthRunnerActive = false;
+  }
+}
+
+function startSynthScheduler() {
+  if (synthSchedulerTimer) return;
+  synthSchedulerTimer = setInterval(() => {
+    runSynthScheduler().catch((err) => {
+      console.error("[synth] Scheduler error:", err);
+    });
+  }, SYNTHETIC_SCHEDULER_MS);
+  runSynthScheduler().catch((err) => {
+    console.error("[synth] Scheduler bootstrap error:", err);
+  });
 }
 
 async function serveFile(res, fp) {
@@ -1505,6 +1923,104 @@ const server = http.createServer(async (req, res) => {
     });
 
     return;
+  }
+
+  if (pathname === "/api/synth/jobs" && req.method === "GET") {
+    await loadSynthJobs();
+    return send(res, 200, {
+      jobs: synthState.jobs,
+      runner_mode: SYNTHETIC_RUNNER_MODE || "disabled",
+    });
+  }
+
+  if (pathname === "/api/synth/jobs" && req.method === "POST") {
+    try {
+      const rawBody = await readRequestBody(req);
+      let payload = {};
+      try {
+        payload = JSON.parse(rawBody || "{}");
+      } catch (err) {
+        return send(res, 400, { error: "Invalid JSON payload" });
+      }
+      const { job, error } = buildSynthJob(payload || {});
+      if (error) return send(res, 400, { error });
+      await loadSynthJobs();
+      synthState.jobs.unshift(job);
+      await saveSynthJobs();
+      return send(res, 200, { job });
+    } catch (err) {
+      return send(res, 500, { error: err?.message || "Unable to create job" });
+    }
+  }
+
+  const synthCancelMatch = pathname.match(/^\/api\/synth\/jobs\/([^/]+)\/cancel$/);
+  if (synthCancelMatch && req.method === "POST") {
+    await loadSynthJobs();
+    const jobId = synthCancelMatch[1];
+    const job = synthState.jobs.find((entry) => entry?.id === jobId);
+    if (!job) return send(res, 404, { error: "Job not found" });
+    job.status = "canceled";
+    job.due = false;
+    job.next_run_at = "";
+    job.canceled_at = new Date().toISOString();
+    await saveSynthJobs();
+    return send(res, 200, { job });
+  }
+
+  const synthResultsMatch = pathname.match(/^\/api\/synth\/jobs\/([^/]+)\/results$/);
+  if (synthResultsMatch && req.method === "POST") {
+    await loadSynthJobs();
+    let payload = {};
+    try {
+      const rawBody = await readRequestBody(req);
+      payload = JSON.parse(rawBody || "{}");
+    } catch (err) {
+      return send(res, 400, { error: "Invalid JSON payload" });
+    }
+    const jobId = synthResultsMatch[1];
+    const job = synthState.jobs.find((entry) => entry?.id === jobId);
+    if (!job) return send(res, 404, { error: "Job not found" });
+    if (job.status === "canceled" || job.status === "completed") {
+      return send(res, 200, { job, ignored: true });
+    }
+
+    const inc = (value) => Math.max(0, Number(value) || 0);
+    const attempts = inc(payload.attempted);
+    const success = inc(payload.placements_success);
+    const fail = inc(payload.placements_failed);
+    const abandon = inc(payload.placements_abandoned);
+    const abandonSelect = inc(payload.abandon_select_merchant);
+    const abandonUser = inc(payload.abandon_user_data);
+    const abandonCredential = inc(payload.abandon_credential_entry);
+    const finishedAt = payload.last_run_at ? new Date(payload.last_run_at) : new Date();
+
+    job.attempted += attempts;
+    job.placements_success += success;
+    job.placements_failed += fail;
+    job.placements_abandoned += abandon;
+    job.abandon_select_merchant += abandonSelect;
+    job.abandon_user_data += abandonUser;
+    job.abandon_credential_entry += abandonCredential;
+    job.last_run_at = finishedAt.toISOString();
+    job.due = false;
+
+    if (job.mode === "one_shot" && job.attempted >= job.total_runs) {
+      job.status = "completed";
+      job.next_run_at = "";
+    } else if (job.mode === "campaign") {
+      if (jobEndDateReached(job, finishedAt) || (job.max_runs && job.attempted >= job.max_runs)) {
+        job.status = "completed";
+        job.next_run_at = "";
+      } else {
+        job.status = "queued";
+        job.next_run_at = computeNextRunIso(job, finishedAt);
+      }
+    } else {
+      job.status = "queued";
+    }
+
+    await saveSynthJobs();
+    return send(res, 200, { job });
   }
 
   // Check raw data metadata status
@@ -3368,4 +3884,12 @@ server.listen(PORT, () => {
   console.log(`> UI dir: ${PUBLIC_DIR}`);
   console.log(`> Data dir: ${DATA_DIR}`);
   console.log(`> Daily dir: ${DAILY_DIR}`);
+  if (SYNTHETIC_RUNNER_MODE === "sim") {
+    console.log("> Synthetic runner: simulated");
+  } else if (SYNTHETIC_RUNNER_MODE) {
+    console.log(`> Synthetic runner: ${SYNTHETIC_RUNNER_MODE}`);
+  } else {
+    console.log("> Synthetic runner: disabled");
+  }
+  startSynthScheduler();
 });
