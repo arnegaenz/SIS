@@ -96,6 +96,12 @@ function gaRequestForDate(date, overrides = {}) {
   };
 }
 
+function isDayComplete(dateStr) {
+  const now = new Date();
+  const dayEndUTC = new Date(`${dateStr}T23:59:59.999Z`);
+  return now > dayEndUTC;
+}
+
 async function getSessionForInstance(instance, cache) {
   const instanceName =
     instance?.name ||
@@ -257,31 +263,49 @@ async function collectPlacementsForDay(date, instances, cache, options = {}) {
   return { placements: combined, errors };
 }
 
-async function fetchGaRaw(date) {
-  const configs = [
-    { propertyId: DEFAULT_GA_PROPERTY, keyFile: DEFAULT_GA_KEYFILE, isTest: false },
-  ];
+async function fetchGaRawPair(date) {
+  const prodRequest = gaRequestForDate(date, {
+    propertyId: DEFAULT_GA_PROPERTY,
+    keyFile: DEFAULT_GA_KEYFILE,
+  });
+  const prodRows = await fetchGaRowsForDay({
+    date: prodRequest.date,
+    propertyId: prodRequest.propertyId,
+    keyFile: prodRequest.keyFile,
+  });
+  console.log(
+    `[${date}] GA (prod): queried ${prodRequest.propertyId}, fetched ${prodRows.length} rows`
+  );
+  const prodPayload = {
+    date,
+    rows: prodRows.map((row) => ({ ...row, is_test: false })),
+    count: prodRows.length,
+    requests: [{ ...prodRequest, is_test: false, fetched: prodRows.length }],
+  };
+
+  let testPayload = null;
   if (TEST_GA_PROPERTY) {
-    configs.push({ propertyId: TEST_GA_PROPERTY, keyFile: TEST_GA_KEYFILE, isTest: true });
-  }
-  const allRows = [];
-  const requests = [];
-  for (const cfg of configs) {
-    const request = gaRequestForDate(date, cfg);
-    const rows = await fetchGaRowsForDay({
-      date: request.date,
-      propertyId: cfg.propertyId,
-      keyFile: cfg.keyFile,
+    const testRequest = gaRequestForDate(date, {
+      propertyId: TEST_GA_PROPERTY,
+      keyFile: TEST_GA_KEYFILE,
     });
-    const taggedRows = rows.map((row) => ({ ...row, is_test: cfg.isTest }));
-    allRows.push(...taggedRows);
-    requests.push({ ...request, is_test: cfg.isTest, fetched: rows.length });
-    const label = cfg.isTest ? "GA (test)" : "GA (prod)";
+    const testRows = await fetchGaRowsForDay({
+      date: testRequest.date,
+      propertyId: testRequest.propertyId,
+      keyFile: testRequest.keyFile,
+    });
     console.log(
-      `[${date}] ${label}: queried ${cfg.propertyId}, fetched ${rows.length} rows`
+      `[${date}] GA (test): queried ${testRequest.propertyId}, fetched ${testRows.length} rows`
     );
+    testPayload = {
+      date,
+      rows: testRows.map((row) => ({ ...row, is_test: true })),
+      count: testRows.length,
+      requests: [{ ...testRequest, is_test: true, fetched: testRows.length }],
+    };
   }
-  return { date, rows: allRows, count: allRows.length, requests };
+
+  return { prod: prodPayload, test: testPayload };
 }
 
 async function fetchSessionsRaw(date, instances, cache) {
@@ -327,7 +351,7 @@ function shouldRefreshRaw(type, date, force = false) {
     return { refresh: true, reason: "previous error" };
   }
   let rows = null;
-  if (type === "ga") {
+  if (type === "ga" || type === "ga-test") {
     rows = Array.isArray(raw.rows) ? raw.rows : null;
   } else if (type === "sessions") {
     rows = Array.isArray(raw.sessions) ? raw.sessions : null;
@@ -378,17 +402,42 @@ export async function fetchRawRange({
     console.log(`\n=== ${date} ===`);
 
     const hasGa = rawExists("ga", date);
+    const hasGaTest = rawExists("ga-test", date);
     const { refresh: shouldRefreshGa, reason: gaReason } = hasGa
       ? shouldRefreshRaw("ga", date, forceRaw)
       : { refresh: true, reason: "missing cache" };
-    if (shouldRefreshGa) {
+    const { refresh: shouldRefreshGaTest, reason: gaTestReason } = hasGaTest
+      ? shouldRefreshRaw("ga-test", date, forceRaw)
+      : { refresh: true, reason: "missing cache" };
+    if (shouldRefreshGa || shouldRefreshGaTest) {
       if (hasGa) {
         logRefetch(date, "GA", gaReason, onStatus);
       }
       try {
-        const payload = await fetchGaRaw(date);
-        writeRawWithMetadata("ga", date, payload);
-        logWrite(date, "GA", `fetched ${payload.rows.length} rows`, onStatus);
+        const payloads = await fetchGaRawPair(date);
+        const prodPayload = payloads.prod;
+        const testPayload = payloads.test;
+        const prodComplete = Boolean(testPayload) && isDayComplete(date);
+        writeRawWithMetadata("ga", date, prodPayload, {
+          isCompleteOverride: prodComplete,
+        });
+        logWrite(
+          date,
+          "GA",
+          `fetched ${prodPayload.rows.length} rows`,
+          onStatus
+        );
+        if (testPayload) {
+          writeRawWithMetadata("ga-test", date, testPayload);
+          logWrite(
+            date,
+            "GA (test)",
+            `fetched ${testPayload.rows.length} rows`,
+            onStatus
+          );
+        } else {
+          logWrite(date, "GA (test)", "skipped (no test property)", onStatus);
+        }
       } catch (err) {
         const warnMsg = `[${date}] GA error: ${err.message || err}`;
         if (onStatus) onStatus(warnMsg);
@@ -403,6 +452,15 @@ export async function fetchRawRange({
           count: 0,
           requests: [],
         });
+        if (TEST_GA_PROPERTY) {
+          writeRawWithMetadata("ga-test", date, {
+            date,
+            error: err.message || String(err),
+            rows: [],
+            count: 0,
+            requests: [],
+          });
+        }
       }
     } else {
       logSkip(date, "GA", onStatus);

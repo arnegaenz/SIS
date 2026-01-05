@@ -81,6 +81,9 @@ If you want GA traffic data, add your Google Analytics service account JSON file
 
 **Skip this step if you only need session and placement data.**
 
+When `ga-test.json` + `GA_TEST_PROPERTY_ID` are configured, SIS writes test GA rows to
+`raw/ga-test/YYYY-MM-DD.json` and production rows to `raw/ga/YYYY-MM-DD.json`.
+
 ### 4. Fetch Raw Data
 
 Download raw sessions, placements, and GA data from your Strivve instances:

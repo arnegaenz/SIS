@@ -17,7 +17,7 @@ function writeFileAtomicSync(targetPath, contents) {
 }
 
 export function ensureRawDirs() {
-  for (const d of ["ga", "sessions", "placements"]) {
+  for (const d of ["ga", "ga-test", "sessions", "placements"]) {
     fs.mkdirSync(path.join(RAW_ROOT, d), { recursive: true });
   }
 }
@@ -81,7 +81,10 @@ function isDayComplete(dateStr) {
  */
 export function writeRawWithMetadata(type, dateStr, data, options = {}) {
   const now = new Date();
-  const isComplete = isDayComplete(dateStr);
+  const isComplete =
+    typeof options.isCompleteOverride === "boolean"
+      ? options.isCompleteOverride
+      : isDayComplete(dateStr);
 
   // Put _metadata FIRST so it appears at the top of the JSON file
   const wrappedData = {
@@ -160,6 +163,20 @@ export function checkRawDataStatus(type, dateStr) {
 
   if (!metadata || !data) {
     return { exists: false, needsRefetch: true, reason: 'File does not exist' };
+  }
+
+  if (data.error) {
+    return { exists: true, needsRefetch: true, reason: 'Recorded error in file' };
+  }
+
+  if (type === "ga") {
+    const testStatus = checkRawDataStatus("ga-test", dateStr);
+    if (!testStatus.exists) {
+      return { exists: true, needsRefetch: true, reason: "GA test data missing" };
+    }
+    if (testStatus.needsRefetch) {
+      return { exists: true, needsRefetch: true, reason: "GA test data incomplete" };
+    }
   }
 
   if (metadata.isComplete === true) {

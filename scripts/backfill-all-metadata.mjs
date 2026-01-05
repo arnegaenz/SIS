@@ -42,7 +42,7 @@ function backfillMetadata(filePath, dateStr) {
 }
 
 // Process all files in raw folder
-const types = ['sessions', 'placements', 'ga'];
+const types = ['sessions', 'placements', 'ga', 'ga-test'];
 for (const type of types) {
   const dir = path.join(RAW_ROOT, type);
   if (!fs.existsSync(dir)) continue;

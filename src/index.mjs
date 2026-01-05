@@ -121,29 +121,39 @@ function loadRawArrayOrEmpty(type, date, field) {
 
 function loadGaRowsFromCache(date) {
   const raw = readRaw("ga", date);
-  if (!raw) {
+  const rawTest = readRaw("ga-test", date);
+  if (!raw && !rawTest) {
     console.warn(
       `[${date}] raw/ga/${date}.json not found; GA funnel will fetch live if needed.`
     );
     return null;
   }
-  if (raw.error) {
+  if (raw?.error) {
     console.warn(
       `[${date}] raw/ga/${date}.json recorded error: ${raw.error}`
     );
-    return null;
   }
-  if (!Array.isArray(raw.rows)) {
+  if (rawTest?.error) {
     console.warn(
-      `[${date}] raw/ga/${date}.json missing rows array; GA funnel will fetch live if needed.`
+      `[${date}] raw/ga-test/${date}.json recorded error: ${rawTest.error}`
+    );
+  }
+  const prodRows = Array.isArray(raw?.rows) ? raw.rows : [];
+  const testRows = Array.isArray(rawTest?.rows) ? rawTest.rows : [];
+  const combined = [...prodRows, ...testRows];
+  if (!combined.length) {
+    console.warn(
+      `[${date}] GA rows missing; GA funnel will fetch live if needed.`
     );
     return null;
   }
-  return raw.rows.map((row) => ({
-    date: row.date || raw.date || date,
+  const fallbackDate = raw?.date || rawTest?.date || date;
+  return combined.map((row) => ({
+    date: row.date || fallbackDate || date,
     host: row.host || row.hostname || "",
     pagePath: row.pagePath || row.page || "",
     views: Number(row.views) || 0,
+    is_test: Boolean(row.is_test),
   }));
 }
 

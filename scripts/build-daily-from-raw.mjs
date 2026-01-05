@@ -186,7 +186,7 @@ function aggregateGaFromRaw(day, raw, registryIndex) {
     const adjustedInstance = adjustInstanceForFi(fiKey, instanceRaw);
     const instanceDisplay = formatInstanceDisplay(adjustedInstance);
     const normalizedInstance = canonicalInstance(instanceDisplay);
-    const isTest = isTestInstanceName(normalizedInstance);
+    const isTest = Boolean(originalRow.is_test) || isTestInstanceName(normalizedInstance);
     const fiInstanceKey = makeFiInstanceKey(fiKey, normalizedInstance);
 
     if (!byInstance[fiInstanceKey]) {
@@ -461,6 +461,24 @@ function allSourcesMissing(...rawValues) {
   return rawValues.every((value) => !value);
 }
 
+function mergeGaRaw(gaRaw, gaTestRaw) {
+  const rows = [];
+  if (gaRaw && Array.isArray(gaRaw.rows)) {
+    rows.push(...gaRaw.rows.map((row) => ({ ...row, is_test: Boolean(row.is_test) })));
+  }
+  if (gaTestRaw && Array.isArray(gaTestRaw.rows)) {
+    rows.push(
+      ...gaTestRaw.rows.map((row) => ({ ...row, is_test: true }))
+    );
+  }
+  if (!rows.length) {
+    const error = gaRaw?.error || gaTestRaw?.error || null;
+    if (error) return { error };
+    return null;
+  }
+  return { date: gaRaw?.date || gaTestRaw?.date || "", rows };
+}
+
 export async function buildDailyFromRawRange({ startDate, endDate }) {
   const registry = readFiRegistry();
   const registryIndex = buildRegistryIndex(registry);
@@ -468,17 +486,19 @@ export async function buildDailyFromRawRange({ startDate, endDate }) {
 
   for (const day of dates) {
     const gaRaw = readRaw("ga", day);
+    const gaTestRaw = readRaw("ga-test", day);
     const sessionsRaw = readRaw("sessions", day);
     const placementsRaw = readRaw("placements", day);
 
-    if (allSourcesMissing(gaRaw, sessionsRaw, placementsRaw)) {
+    if (allSourcesMissing(gaRaw, gaTestRaw, sessionsRaw, placementsRaw)) {
       console.warn(`[${day}] No raw files found; skipping daily build.`);
       continue;
     }
 
+    const mergedGa = mergeGaRaw(gaRaw, gaTestRaw);
     const { byFi: gaByFi, byInstance: gaByInstance } = aggregateGaFromRaw(
       day,
-      gaRaw,
+      mergedGa,
       registryIndex
     );
     const { byFi: sessionsByFi, byInstance: sessionsByInstance } =

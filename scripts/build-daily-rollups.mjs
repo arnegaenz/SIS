@@ -11,6 +11,12 @@ import { fetchGaRowsForDay } from "../src/ga.mjs";
 const DAILY_DIR = "./data/daily";
 const FORCE_GA_TO_TODAY =
   String(process.env.FORCE_GA_TO_TODAY || "").toLowerCase() === "true";
+const DEFAULT_GA_PROPERTY = process.env.GA_PROPERTY_ID || "328054560";
+const DEFAULT_GA_KEYFILE =
+  process.env.GA_KEYFILE || process.env.GOOGLE_APPLICATION_CREDENTIALS || "./secrets/ga-service-account.json";
+const TEST_GA_PROPERTY = process.env.GA_TEST_PROPERTY_ID || null;
+const TEST_GA_KEYFILE =
+  process.env.GA_TEST_KEYFILE || "./secrets/ga-test.json";
 
 function nextDayStr(isoDate) {
   const y = Number(isoDate.slice(0, 4));
@@ -25,13 +31,30 @@ async function fetchGaRowsForSisDay(day) {
     ? new Date().toISOString().slice(0, 10)
     : day;
 
-  const rows = await fetchGaRowsForDay({ date: gaDate });
+  const rows = await fetchGaRowsForDay({
+    date: gaDate,
+    propertyId: DEFAULT_GA_PROPERTY,
+    keyFile: DEFAULT_GA_KEYFILE,
+  });
+  const tagged = rows.map((row) => ({ ...row, is_test: false }));
+  let testRows = [];
+  if (TEST_GA_PROPERTY) {
+    testRows = await fetchGaRowsForDay({
+      date: gaDate,
+      propertyId: TEST_GA_PROPERTY,
+      keyFile: TEST_GA_KEYFILE,
+    });
+  }
+  const combined = [
+    ...tagged,
+    ...testRows.map((row) => ({ ...row, is_test: true })),
+  ];
 
   if (FORCE_GA_TO_TODAY) {
-    return rows.map((row) => ({ ...row, date: day }));
+    return combined.map((row) => ({ ...row, date: day }));
   }
 
-  return rows;
+  return combined;
 }
 
 async function main() {
