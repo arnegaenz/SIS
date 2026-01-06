@@ -1458,7 +1458,7 @@
       const base = window.location.origin || "http://localhost";
       const next = new URL(url, base);
       next.searchParams.set("adminKey", key);
-      return next.pathname + next.search;
+      return next.toString();
     }
 
     async function validateAdminKey(candidateKey) {
