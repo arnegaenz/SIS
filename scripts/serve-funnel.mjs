@@ -209,6 +209,9 @@ function sseSend(res, event, data) {
 }
 
 function broadcastUpdate(event, data) {
+  if (event === "progress" && data && data.message) {
+    currentUpdateJob.lastMessage = data.message;
+  }
   for (const res of updateClients) {
     try {
       sseSend(res, event, data);
@@ -1884,10 +1887,13 @@ const server = http.createServer(async (req, res) => {
     setCors(res);
     res.writeHead(200, {
       "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache",
+      "Cache-Control": "no-cache, no-transform",
       Connection: "keep-alive",
+      "X-Accel-Buffering": "no",
     });
+    res.flushHeaders?.();
     res.write("retry: 5000\n\n");
+    res.write(": stream-open\n\n");
 
     updateClients.add(res);
 
