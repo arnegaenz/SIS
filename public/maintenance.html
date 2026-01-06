@@ -1541,6 +1541,9 @@
       const freshnessEl = document.getElementById("dataFreshness");
       const apiBase = resolveApiBase();
       let source = null;
+      let statusPollTimer = null;
+      let streamOpenTimer = null;
+      let lastStatusMessage = "";
 
       const iso = (d) => {
         const y = d.getFullYear();
@@ -1663,6 +1666,56 @@
         logEl.scrollTop = logEl.scrollHeight;
       }
 
+      function stopStatusPolling() {
+        if (statusPollTimer) {
+          clearInterval(statusPollTimer);
+          statusPollTimer = null;
+        }
+      }
+
+      function appendStatusMessage(text) {
+        if (!text) return;
+        if (text === lastStatusMessage) return;
+        lastStatusMessage = text;
+        appendLogLine(text);
+      }
+
+      async function pollStatusOnce() {
+        try {
+          const res = await fetchAdmin(`${apiBase}/run-update/status`, { cache: "no-store" });
+          if (res.status === 401) {
+            setStatus("Admin key required to view refresh status.");
+            stopStatusPolling();
+            return;
+          }
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const data = await res.json();
+          if (data.startDate) startInput.value = data.startDate;
+          if (data.endDate) endInput.value = data.endDate;
+          if (forceCheckbox) forceCheckbox.checked = Boolean(data.forceRaw);
+          if (data.running) {
+            setStatus(`Running: ${data.startDate} → ${data.endDate} (polling)`);
+            appendStatusMessage(data.lastMessage || "Update running...");
+          } else if (data.finishedAt) {
+            setStatus("Update complete.");
+            appendStatusMessage(data.lastMessage || "Update complete.");
+            stopStatusPolling();
+          } else {
+            setStatus("Ready to start update…");
+            stopStatusPolling();
+          }
+        } catch (err) {
+          console.error("status poll failed", err);
+        }
+      }
+
+      function startStatusPolling(reason) {
+        if (statusPollTimer) return;
+        appendLogLine(reason || "Stream pending; polling update status.");
+        statusPollTimer = setInterval(pollStatusOnce, 5000);
+        pollStatusOnce();
+      }
+
       function applyPreset(value) {
         const today = new Date();
         const dayMs = 86400000;
@@ -1737,6 +1790,9 @@
           source.close();
           source = null;
         }
+        stopStatusPolling();
+        if (streamOpenTimer) clearTimeout(streamOpenTimer);
+        lastStatusMessage = "";
         if (!getAdminKey()) {
           setStatus("Admin key required to refresh data.");
           return;
@@ -1807,7 +1863,17 @@
           }
         }
 
-        source.addEventListener("open", () => appendLogLine("Connected to update stream."));
+        streamOpenTimer = setTimeout(() => {
+          if (source) {
+            startStatusPolling("Stream still connecting; polling update status.");
+          }
+        }, 4000);
+
+        source.addEventListener("open", () => {
+          if (streamOpenTimer) clearTimeout(streamOpenTimer);
+          stopStatusPolling();
+          appendLogLine("Connected to update stream.");
+        });
 
         source.addEventListener("snapshot", (ev) => {
           try {
@@ -1861,6 +1927,7 @@
           }
           source?.close();
           source = null;
+          stopStatusPolling();
         });
 
         source.addEventListener("job_error", (ev) => {
@@ -1882,13 +1949,14 @@
           }
           source?.close();
           source = null;
+          stopStatusPolling();
         });
 
         source.addEventListener("error", () => {
-          setStatus("Update failed or connection lost.");
           appendLogLine("Stream error or disconnect.");
           source?.close();
           source = null;
+          startStatusPolling("Stream disconnected; polling update status.");
         });
       }
 
