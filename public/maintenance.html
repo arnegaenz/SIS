@@ -1814,6 +1814,12 @@
             forceRaw: "true",
           });
           logEl.textContent = "";
+          try {
+            await fetchAdmin(`${apiBase}/run-update/start?${params.toString()}`, { method: "POST" });
+          } catch (err) {
+            console.error("run-update/start failed", err);
+            appendLogLine("Warning: unable to start update; relying on stream.");
+          }
           const streamUrl = `${apiBase}/run-update/stream?${params.toString()}`;
           source = new EventSource(appendAdminKeyToUrl(streamUrl));
         } else {
@@ -1853,6 +1859,12 @@
             });
 
             logEl.textContent = "";
+            try {
+              await fetchAdmin(`${apiBase}/run-update/start?${params.toString()}`, { method: "POST" });
+            } catch (err) {
+              console.error("run-update/start failed", err);
+              appendLogLine("Warning: unable to start update; relying on stream.");
+            }
             const streamUrl = `${apiBase}/run-update/stream?${params.toString()}`;
             source = new EventSource(appendAdminKeyToUrl(streamUrl));
           } catch (err) {

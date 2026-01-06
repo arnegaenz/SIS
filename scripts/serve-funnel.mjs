@@ -1882,6 +1882,19 @@ const server = http.createServer(async (req, res) => {
     return send(res, 200, currentUpdateSnapshot());
   }
 
+  if (pathname === "/run-update/start") {
+    if (!requireAdmin(req, res, queryParams)) return;
+    const qsStart = queryParams.get("start") || queryParams.get("startDate");
+    const qsEnd = queryParams.get("end") || queryParams.get("endDate");
+    const forceRaw = queryParams.get("forceRaw") === "true";
+    try {
+      await startUpdateJobIfNeeded({ startDate: qsStart, endDate: qsEnd, forceRaw });
+    } catch (err) {
+      console.error("Update job failed:", err);
+    }
+    return send(res, 200, currentUpdateSnapshot());
+  }
+
   if (pathname === "/run-update/stream") {
     if (!requireAdmin(req, res, queryParams)) return;
     setCors(res);
