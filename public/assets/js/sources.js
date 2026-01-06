@@ -9,26 +9,20 @@
     includeTestDataCheckbox: document.getElementById("includeTest"),
     fiGuard: document.getElementById("fiGuard"),
     loadingBanner: document.getElementById("loadingBanner"),
-    gaSection: document.getElementById("gaSection"),
-    comparisonSection: document.getElementById("comparisonSection"),
-    gaSelectSso: document.getElementById("gaSelectSso"),
-    gaUserSso: document.getElementById("gaUserSso"),
-    gaCredSso: document.getElementById("gaCredSso"),
-    gaSelectNon: document.getElementById("gaSelectNon"),
-    gaUserNon: document.getElementById("gaUserNon"),
-    gaCredNon: document.getElementById("gaCredNon"),
+    sourcesSection: document.getElementById("sourcesSection"),
+    sourcesTableBody: document.getElementById("sourcesTableBody"),
+    sourcesEmpty: document.getElementById("sourcesEmpty"),
   };
 
   const state = {
     data: null,
     loading: false,
-    gaMetrics: null,
+    gaTotals: null,
   };
   let earliestAvailableDate = null;
   let latestAvailableDate = null;
   let availableDailyDates = [];
   let availableDailySet = new Set();
-  const dailyCache = new Map();
   let currentController = null;
 
   function safeNumber(value) {
@@ -44,32 +38,33 @@
     return "unknown";
   }
 
-  function determineIntegrationGroup(session) {
-    // Only trust source.integration field - fallbacks are unreliable
-    const integration = session?.source?.integration || "";
-    const normalized = integration.toString().trim().toUpperCase();
-    if (!normalized) return "nonSso";
-    if (normalized === "CU2_SSO" || normalized === "SSO") {
-      return "SSO";
-    }
-    return "nonSso";
+  function classifyIntegration(session) {
+    const raw =
+      session?.source?.integration ||
+      session?.integration_raw ||
+      session?.integration_display ||
+      session?.integration ||
+      "";
+    const normalized = raw.toString().trim().toUpperCase();
+    if (!normalized) return "UNKNOWN";
+    if (normalized.includes("SSO")) return "SSO";
+    if (normalized === "CU2" || normalized === "CU3") return "NON-SSO";
+    if (normalized.includes("NON-SSO") || normalized.includes("NONSSO")) return "NON-SSO";
+    return "UNKNOWN";
   }
 
-  function computeDuration(session) {
-    if (!session?.created_on || !session?.closed_on) return null;
-    const start = new Date(session.created_on);
-    const end = new Date(session.closed_on);
-    if (Number.isNaN(start) || Number.isNaN(end)) return null;
-    const diff = end - start;
-    return diff >= 0 ? diff : null;
+  function normalizeCategory(value) {
+    const str = value ? value.toString().trim() : "";
+    return str || null;
   }
 
-  function getSessionDay(session) {
-    const candidate = session.created_on || session.closed_on || session.date;
-    if (!candidate) return null;
-    const parsed = new Date(candidate);
-    if (Number.isNaN(parsed)) return null;
-    return parsed.toISOString().slice(0, 10);
+  function getSessionId(session) {
+    return (
+      session?.agent_session_id ||
+      session?.id ||
+      session?.cuid ||
+      `${session?.fi_key || "fi"}-${session?.created_on || Math.random()}`
+    );
   }
 
   function enumerateDates(start, end) {
@@ -242,114 +237,54 @@
   }
 
   function clearSourcesUI() {
-    if (els.gaSection) els.gaSection.style.display = "none";
-    if (els.comparisonSection) els.comparisonSection.style.display = "none";
-    if (els.merchantSection) els.merchantSection.style.display = "none";
+    if (els.sourcesSection) els.sourcesSection.style.display = "none";
+    if (els.sourcesTableBody) els.sourcesTableBody.innerHTML = "";
+    if (els.sourcesEmpty) els.sourcesEmpty.style.display = "";
     if (els.exportCsvBtn) els.exportCsvBtn.disabled = true;
-    renderGAMetrics(null);
+    setGATotals(null);
   }
 
-  function getDailyCandidates(start, end) {
-    const range = enumerateDates(start, end);
-    if (!availableDailySet.size) return range;
-    return range.filter((day) => availableDailySet.has(day));
-  }
-
-  async function loadDailyFile(day) {
-    if (!day) return null;
-
-    // Check in-memory cache first
-    if (dailyCache.has(day)) return dailyCache.get(day);
-
-    // Check persistent cache
-    if (window.DataCache) {
-      const cached = window.DataCache.get(`daily_${day}`);
-      if (cached) {
-        dailyCache.set(day, cached);  // Also store in memory cache
-        return cached;
-      }
-    }
-
-    try {
-      const res = await fetch(`/daily?date=${encodeURIComponent(day)}`);
-      if (!res.ok) {
-        throw new Error(`daily ${day} unavailable (${res.status})`);
-      }
-      const json = await res.json();
-      dailyCache.set(day, json);
-
-      // Store in persistent cache
-      if (window.DataCache) {
-        window.DataCache.set(`daily_${day}`, json);
-      }
-
-      return json;
-    } catch (err) {
-      console.warn("Unable to load daily GA data", day, err);
-      dailyCache.set(day, null);
-      return null;
-    }
-  }
-
-  async function fetchGAMetrics(fiKey, start, end, ssoStartDate) {
+  async function fetchGATotals(fiKey, start, end) {
     const normalizedKey = normalizeDailyKey(fiKey);
     if (!normalizedKey) return null;
-    const days = getDailyCandidates(start, end);
-    if (!days.length) return null;
-    const totals = {
-      sso: { select: 0, user: 0, cred: 0 },
-      nonSso: { select: 0, user: 0, cred: 0 },
-    };
-    const isSsoDay = (day) => {
-      if (!ssoStartDate) return false;
-      return day >= ssoStartDate;
-    };
-    for (const day of days) {
-      const payload = await loadDailyFile(day);
-      if (!payload?.fi || typeof payload.fi !== "object") continue;
-      for (const [key, entry] of Object.entries(payload.fi)) {
-        if (!key) continue;
-        const keyNormalized = key.toString().toLowerCase();
-        if (keyNormalized === normalizedKey || keyNormalized.startsWith(`${normalizedKey}__`)) {
-          const ga = entry?.ga || {};
-          const select = safeNumber(ga.select_merchants);
-          const user = safeNumber(ga.user_data_collection);
-          const cred = safeNumber(ga.credential_entry);
-          if (!select && !user && !cred) continue;
-          const bucket = isSsoDay(day) ? totals.sso : totals.nonSso;
-          bucket.select += select;
-          bucket.user += user;
-          bucket.cred += cred;
+    const totals = { select: 0, user: 0, cred: 0 };
+    try {
+      const res = await fetch(`/daily-range?start=${start}&end=${end}`);
+      if (!res.ok) {
+        throw new Error(`daily-range unavailable (${res.status})`);
+      }
+      const payload = await res.json();
+      const dayMap = payload?.entries || {};
+      const dayList = Array.isArray(payload?.days) && payload.days.length
+        ? payload.days
+        : Object.keys(dayMap || {});
+      for (const day of dayList) {
+        const daily = dayMap?.[day];
+        if (!daily?.fi || typeof daily.fi !== "object") continue;
+        for (const [key, entry] of Object.entries(daily.fi)) {
+          if (!key) continue;
+          const keyNormalized = key.toString().toLowerCase();
+          if (keyNormalized === normalizedKey || keyNormalized.startsWith(`${normalizedKey}__`)) {
+            const ga = entry?.ga || {};
+            const select = safeNumber(ga.select_merchants);
+            const user = safeNumber(ga.user_data_collection);
+            const cred = safeNumber(ga.credential_entry);
+            if (!select && !user && !cred) continue;
+            totals.select += select;
+            totals.user += user;
+            totals.cred += cred;
+          }
         }
       }
+    } catch (err) {
+      console.warn("Unable to load GA daily-range", err);
+      return null;
     }
     return totals;
   }
 
-  function formatGACount(value) {
-    if (value === null || value === undefined) return "—";
-    const num = Number(value);
-    return Number.isFinite(num) ? num.toLocaleString() : "—";
-  }
-
-  function renderGAMetrics(metrics) {
-    state.gaMetrics = metrics;
-    const updateMetric = (el, value) => {
-      if (!el) return;
-      el.textContent = value === null || value === undefined ? "—" : formatGACount(value);
-    };
-    const gaSso = metrics?.sso || {};
-    const gaNonSso = metrics?.nonSso || {};
-    updateMetric(els.gaSelectSso, gaSso.select || null);
-    updateMetric(els.gaUserSso, gaSso.user || null);
-    updateMetric(els.gaCredSso, gaSso.cred || null);
-    updateMetric(els.gaSelectNon, gaNonSso.select || null);
-    updateMetric(els.gaUserNon, gaNonSso.user || null);
-    updateMetric(els.gaCredNon, gaNonSso.cred || null);
-
-    if (els.gaSection && metrics) {
-      els.gaSection.style.display = "";
-    }
+  function setGATotals(totals) {
+    state.gaTotals = totals || null;
   }
 
   function syncApplyEnabled(explicitGate) {
@@ -367,182 +302,135 @@
   }
 
   function clearDisplay() {
-    if (els.comparisonBody) els.comparisonBody.innerHTML = "";
-    if (els.merchantBody) els.merchantBody.innerHTML = "";
+    if (els.sourcesTableBody) els.sourcesTableBody.innerHTML = "";
     state.data = null;
   }
 
-  function buildDeviceSplit(devices, sessionCount) {
-    const categories = ["desktop", "mobile", "unknown"];
-    return categories.map((cat) => {
-      const count = devices[cat] || 0;
-      return {
-        label: cat,
-        pct: sessionCount ? Number(((count / sessionCount) * 100).toFixed(1)) : null,
-        count,
-      };
-    });
-  }
-
-  function aggregateSessions(sessions, start, end) {
-    const dayList = enumerateDates(start, end);
-    const dayMap = dayList.reduce((acc, day) => {
-      acc[day] = {
-        SSO: { sessions: 0, totalJobs: 0, successJobs: 0, placements: 0 },
-        nonSso: { sessions: 0, totalJobs: 0, successJobs: 0, placements: 0 },
-      };
-      return acc;
-    }, {});
-
-    const createBucket = () => ({
+  function createMetrics() {
+    return {
       sessions: 0,
       sessionsWithJobs: 0,
       sessionsWithSuccess: 0,
-      totalJobs: 0,
-      successfulJobs: 0,
       placements: 0,
-      durationSum: 0,
-      durationCount: 0,
-      devices: { desktop: 0, mobile: 0, unknown: 0 },
+      sessionIds: new Set(),
+    };
+  }
+
+  function addSessionMetrics(node, sessionMetrics, sessionId, placementCount) {
+    if (!node || !sessionMetrics) return;
+    if (!node.metrics.sessionIds.has(sessionId)) {
+      node.metrics.sessionIds.add(sessionId);
+      node.metrics.sessions += 1;
+      if (sessionMetrics.sessionsWithJobs) node.metrics.sessionsWithJobs += 1;
+      if (sessionMetrics.sessionsWithSuccess) node.metrics.sessionsWithSuccess += 1;
+    }
+    if (Number.isFinite(placementCount)) {
+      node.metrics.placements += placementCount;
+    }
+  }
+
+  function getSessionMetrics(session) {
+    const jobs = Array.isArray(session.jobs) ? session.jobs : [];
+    const totalJobs = safeNumber(session.total_jobs || jobs.length);
+    const successfulJobs = safeNumber(
+      session.successful_jobs || jobs.filter((job) => job.is_success).length
+    );
+    const placements = Array.isArray(session.placements_raw) ? session.placements_raw.length : 0;
+    return {
+      sessionsWithJobs: totalJobs > 0,
+      sessionsWithSuccess: successfulJobs > 0,
+      placements,
+    };
+  }
+
+  function collectCategoryStats(session) {
+    const placements = Array.isArray(session.placements_raw) ? session.placements_raw : [];
+    const categories = new Map();
+    placements.forEach((placement) => {
+      const category = normalizeCategory(placement?.source?.category);
+      if (!category) return;
+      const subCategory = normalizeCategory(placement?.source?.sub_category);
+      if (!categories.has(category)) {
+        categories.set(category, { placements: 0, subCategories: new Map() });
+      }
+      const entry = categories.get(category);
+      entry.placements += 1;
+      if (subCategory) {
+        entry.subCategories.set(subCategory, (entry.subCategories.get(subCategory) || 0) + 1);
+      }
     });
 
-    const buckets = {
-      SSO: createBucket(),
-      nonSso: createBucket(),
-    };
-
-    const merchantMap = new Map();
-
-    for (const session of sessions) {
-      const bucket = determineIntegrationGroup(session);
-      const stats = buckets[bucket];
-      const totalJobs = safeNumber(session.total_jobs);
-      const successfulJobs = safeNumber(session.successful_jobs);
-      const placements = Array.isArray(session.placements_raw) ? session.placements_raw.length : 0;
-      stats.sessions += 1;
-      stats.totalJobs += totalJobs;
-      stats.successfulJobs += successfulJobs;
-      stats.placements += placements;
-      if (totalJobs > 0) {
-        stats.sessionsWithJobs += 1;
-      }
-      if (successfulJobs > 0) {
-        stats.sessionsWithSuccess += 1;
-      }
-      const duration = computeDuration(session);
-      if (duration !== null) {
-        stats.durationSum += duration;
-        stats.durationCount += 1;
-      }
-      const device = normalizeDevice(session.source?.device);
-      stats.devices[device] = (stats.devices[device] || 0) + 1;
-
-      const bucketDay = getSessionDay(session);
-      if (bucketDay && dayMap[bucketDay]) {
-        const dayStats = dayMap[bucketDay][bucket];
-        dayStats.sessions += 1;
-        dayStats.totalJobs += totalJobs;
-        dayStats.successJobs += successfulJobs;
-        dayStats.placements += placements;
-      }
-
-      if (totalJobs > 0 && Array.isArray(session.jobs)) {
-        const sessionId =
-          session.id ||
-          session.agent_session_id ||
-          session.cuid ||
-          `${bucket}-${session.created_on || Math.random()}`;
-        session.jobs.forEach((job) => {
-          const merchant = job.merchant || "Unknown Merchant";
-          const key = merchant.toLowerCase();
-          if (!merchantMap.has(key)) {
-            merchantMap.set(key, {
-              merchant,
-              placements: 0,
-              SSO: { sessions: new Set(), jobs: 0, successes: 0 },
-              nonSso: { sessions: new Set(), jobs: 0, successes: 0 },
-            });
-          }
-          const entry = merchantMap.get(key);
-          const bucketEntry = entry[bucket];
-          bucketEntry.sessions.add(sessionId);
-          bucketEntry.jobs += 1;
-          if (job.is_success) {
-            bucketEntry.successes += 1;
-          }
-          entry.placements += 1;
-        });
+    if (!categories.size) {
+      const category = normalizeCategory(session?.source?.category);
+      if (category) {
+        const subCategory = normalizeCategory(session?.source?.sub_category);
+        const entry = { placements: 0, subCategories: new Map() };
+        if (subCategory) {
+          entry.subCategories.set(subCategory, 0);
+        }
+        categories.set(category, entry);
       }
     }
 
-    const totalSessions = buckets.SSO.sessions + buckets.nonSso.sessions;
-    const buildKpi = (bucket) => ({
-      sessions: bucket.sessions,
-      sessionsWithJobs: bucket.sessionsWithJobs,
-      sessionsWithSuccess: bucket.sessionsWithSuccess,
-      jobSuccessRate:
-        bucket.totalJobs > 0 ? (bucket.successfulJobs / bucket.totalJobs) * 100 : 0,
-      placements: bucket.placements,
-      avgSessionDurationMs:
-        bucket.durationCount > 0 ? bucket.durationSum / bucket.durationCount : null,
-      deviceSplit: buildDeviceSplit(bucket.devices, bucket.sessions),
-      sessionSharePct: totalSessions > 0 ? (bucket.sessions / totalSessions) * 100 : 0,
-    });
-    const kpis = {
-      SSO: buildKpi(buckets.SSO),
-      nonSso: buildKpi(buckets.nonSso),
-      totalSessions,
-    };
+    return categories;
+  }
 
-    const dailyRows = dayList.map((day) => {
-      const bucketDay = dayMap[day];
-      return {
-        date: day,
-        SSO: {
-          sessions: bucketDay.SSO.sessions,
-          successPct:
-            bucketDay.SSO.totalJobs > 0
-              ? Number(((bucketDay.SSO.successJobs / bucketDay.SSO.totalJobs) * 100).toFixed(1))
-              : null,
-          placements: bucketDay.SSO.placements,
-        },
-        nonSso: {
-          sessions: bucketDay.nonSso.sessions,
-          successPct:
-            bucketDay.nonSso.totalJobs > 0
-              ? Number(((bucketDay.nonSso.successJobs / bucketDay.nonSso.totalJobs) * 100).toFixed(1))
-              : null,
-          placements: bucketDay.nonSso.placements,
-        },
-      };
-    });
-
-    const merchantRows = Array.from(merchantMap.values())
-      .map((entry) => {
-        const sso = entry.SSO;
-        const nonSso = entry.nonSso;
-        return {
-          merchant: entry.merchant,
-          sso: {
-            sessions: sso.sessions.size,
-            jobs: sso.jobs,
-            successPct: sso.jobs ? Number(((sso.successes / sso.jobs) * 100).toFixed(1)) : null,
-          },
-          nonSso: {
-            sessions: nonSso.sessions.size,
-            jobs: nonSso.jobs,
-            successPct: nonSso.jobs ? Number(((nonSso.successes / nonSso.jobs) * 100).toFixed(1)) : null,
-          },
-          placements: entry.placements,
-        };
-      })
-      .sort((a, b) => a.merchant.localeCompare(b.merchant));
-
+  function createNode(label, level) {
     return {
-      kpis,
-      dailyRows,
-      merchantRows,
+      label,
+      level,
+      metrics: createMetrics(),
+      devices: new Map(),
+      categories: new Map(),
+      subCategories: new Map(),
     };
+  }
+
+  function buildHierarchy(sessions) {
+    const overall = createNode("Overall", 0);
+    const integrations = new Map();
+
+    sessions.forEach((session) => {
+      const integration = classifyIntegration(session);
+      const device = normalizeDevice(session?.source?.device);
+      const sessionId = getSessionId(session);
+      const metrics = getSessionMetrics(session);
+
+      addSessionMetrics(overall, metrics, sessionId, metrics.placements);
+
+      if (!integrations.has(integration)) {
+        integrations.set(integration, createNode(integration, 1));
+      }
+      const integrationNode = integrations.get(integration);
+      addSessionMetrics(integrationNode, metrics, sessionId, metrics.placements);
+
+      if (!integrationNode.devices.has(device)) {
+        integrationNode.devices.set(device, createNode(device, 2));
+      }
+      const deviceNode = integrationNode.devices.get(device);
+      addSessionMetrics(deviceNode, metrics, sessionId, metrics.placements);
+
+      const categories = collectCategoryStats(session);
+      if (!categories.size) return;
+
+      for (const [category, entry] of categories.entries()) {
+        if (!deviceNode.categories.has(category)) {
+          deviceNode.categories.set(category, createNode(category, 3));
+        }
+        const categoryNode = deviceNode.categories.get(category);
+        addSessionMetrics(categoryNode, metrics, sessionId, entry.placements);
+
+        for (const [subCategory, count] of entry.subCategories.entries()) {
+          if (!categoryNode.subCategories.has(subCategory)) {
+            categoryNode.subCategories.set(subCategory, createNode(subCategory, 4));
+          }
+          const subNode = categoryNode.subCategories.get(subCategory);
+          addSessionMetrics(subNode, metrics, sessionId, count);
+        }
+      }
+    });
+
+    return { overall, integrations };
   }
 
   function formatPercent(value, fallback = "—", decimals = 1) {
@@ -550,195 +438,208 @@
     return `${value.toFixed(decimals)}%`;
   }
 
-  function renderComparisonTable(kpis) {
-    if (!kpis) return;
-
-    const sso = kpis.SSO;
-    const nonSso = kpis.nonSso;
-    const gaMetrics = state.gaMetrics;
-    const gaSso = gaMetrics?.sso || {};
-    const gaNonSso = gaMetrics?.nonSso || {};
-
-    const formatCount = (val) => (val || 0).toLocaleString();
-    const formatPct = (val) => val > 0 ? val.toFixed(1) + "%" : "—";
-
-    // Build metrics for cards and chart
-    const metrics = [
-      {
-        label: "Select Merchants",
-        ssoCount: gaSso.select || 0,
-        nonSsoCount: gaNonSso.select || 0,
-        ssoPct: null,
-        nonSsoPct: null
-      },
-      {
-        label: "User Data",
-        ssoCount: gaSso.user || 0,
-        nonSsoCount: gaNonSso.user || 0,
-        ssoPct: gaSso.select > 0 ? (gaSso.user / gaSso.select) * 100 : 0,
-        nonSsoPct: gaNonSso.select > 0 ? (gaNonSso.user / gaNonSso.select) * 100 : 0
-      },
-      {
-        label: "Credentials",
-        ssoCount: gaSso.cred || 0,
-        nonSsoCount: gaNonSso.cred || 0,
-        ssoPct: gaSso.select > 0 ? (gaSso.cred / gaSso.select) * 100 : 0,
-        nonSsoPct: gaNonSso.select > 0 ? (gaNonSso.cred / gaNonSso.select) * 100 : 0
-      },
-      {
-        label: "Sessions",
-        ssoCount: sso?.sessions || 0,
-        nonSsoCount: nonSso?.sessions || 0,
-        ssoPct: null,
-        nonSsoPct: null
-      },
-      {
-        label: "Sessions w/ Jobs",
-        ssoCount: sso?.sessionsWithJobs || 0,
-        nonSsoCount: nonSso?.sessionsWithJobs || 0,
-        ssoPct: sso?.sessions > 0 ? (sso.sessionsWithJobs / sso.sessions) * 100 : 0,
-        nonSsoPct: nonSso?.sessions > 0 ? (nonSso.sessionsWithJobs / nonSso.sessions) * 100 : 0
-      },
-      {
-        label: "Sessions w/ Success",
-        ssoCount: sso?.sessionsWithSuccess || 0,
-        nonSsoCount: nonSso?.sessionsWithSuccess || 0,
-        ssoPct: sso?.sessions > 0 ? (sso.sessionsWithSuccess / sso.sessions) * 100 : 0,
-        nonSsoPct: nonSso?.sessions > 0 ? (nonSso.sessionsWithSuccess / nonSso.sessions) * 100 : 0
-      },
-      {
-        label: "Placements",
-        ssoCount: sso?.placements || 0,
-        nonSsoCount: nonSso?.placements || 0,
-        ssoPct: gaSso.select > 0 ? ((sso?.placements || 0) / gaSso.select) * 100 : 0,
-        nonSsoPct: gaNonSso.select > 0 ? ((nonSso?.placements || 0) / gaNonSso.select) * 100 : 0
-      }
-    ];
-
-    // Render SSO metrics card
-    const ssoMetricsEl = document.getElementById('ssoMetrics');
-    if (ssoMetricsEl) {
-      ssoMetricsEl.innerHTML = metrics.map(m => `
-        <div class="funnel-metric-row">
-          <span class="funnel-metric-label">${m.label}</span>
-          <span class="funnel-metric-value">
-            ${formatCount(m.ssoCount)}
-            ${m.ssoPct !== null ? `<span class="funnel-metric-pct">(${formatPct(m.ssoPct)})</span>` : ''}
-          </span>
-        </div>
-      `).join('');
-    }
-
-    // Render Non-SSO metrics card
-    const nonSsoMetricsEl = document.getElementById('nonSsoMetrics');
-    if (nonSsoMetricsEl) {
-      nonSsoMetricsEl.innerHTML = metrics.map(m => `
-        <div class="funnel-metric-row">
-          <span class="funnel-metric-label">${m.label}</span>
-          <span class="funnel-metric-value">
-            ${formatCount(m.nonSsoCount)}
-            ${m.nonSsoPct !== null ? `<span class="funnel-metric-pct">(${formatPct(m.nonSsoPct)})</span>` : ''}
-          </span>
-        </div>
-      `).join('');
-    }
-
-    // Render bar chart
-    const funnelChartEl = document.getElementById('funnelChart');
-    if (funnelChartEl) {
-      const maxCount = Math.max(...metrics.map(m => Math.max(m.ssoCount, m.nonSsoCount)));
-
-      funnelChartEl.innerHTML = metrics.map(m => {
-        const ssoWidth = maxCount > 0 ? (m.ssoCount / maxCount) * 100 : 0;
-        const nonSsoWidth = maxCount > 0 ? (m.nonSsoCount / maxCount) * 100 : 0;
-
-        return `
-          <div class="funnel-chart-row">
-            <div class="funnel-chart-label">${m.label}</div>
-            <div class="funnel-chart-bars">
-              <span class="funnel-bar-label">SSO</span>
-              <div class="funnel-bar-container">
-                <div class="funnel-bar funnel-bar-sso" style="width: ${ssoWidth}%">
-                  ${ssoWidth > 15 ? formatCount(m.ssoCount) : ''}
-                </div>
-              </div>
-              <span class="funnel-bar-label">Non-SSO</span>
-              <div class="funnel-bar-container">
-                <div class="funnel-bar funnel-bar-nonsso" style="width: ${nonSsoWidth}%">
-                  ${nonSsoWidth > 15 ? formatCount(m.nonSsoCount) : ''}
-                </div>
-              </div>
-            </div>
-          </div>
-        `;
-      }).join('');
-    }
-
-    if (els.comparisonSection) {
-      els.comparisonSection.style.display = "";
-    }
+  function formatCount(value) {
+    if (value === null || value === undefined) return "—";
+    const num = Number(value);
+    return Number.isFinite(num) ? num.toLocaleString() : "—";
   }
 
-
-
-
-  function buildDailyCsv(rows, start, end, fiName) {
-    const lines = [
-      ["Range", `${start} → ${end}`].join(","),
-      `FI,${JSON.stringify(fiName || "FI")}`,
-      "",
-      ["Date", "Bucket", "Sessions", "Success %", "Placements"].join(","),
-    ];
+  function renderSourcesTable(rows) {
+    if (!els.sourcesTableBody || !els.sourcesSection || !els.sourcesEmpty) return;
+    els.sourcesTableBody.innerHTML = "";
+    if (!rows.length) {
+      els.sourcesSection.style.display = "";
+      els.sourcesEmpty.style.display = "";
+      return;
+    }
+    els.sourcesSection.style.display = "";
+    els.sourcesEmpty.style.display = "none";
     rows.forEach((row) => {
-      ["SSO", "nonSso"].forEach((bucket) => {
-        const bucketRow = row[bucket];
-        const label = bucket === "nonSso" ? "Non-SSO" : bucket;
-        lines.push(
-          [
-            row.date,
-            label,
-            bucketRow.sessions || 0,
-            bucketRow.successPct !== null ? bucketRow.successPct.toFixed(1) : "",
-            bucketRow.placements || 0,
-          ].join(",")
+      const tr = document.createElement("tr");
+      tr.className = `sources-row level-${row.level}`;
+      tr.innerHTML = `
+        <td>${row.label}</td>
+        <td class="num">${row.ga?.select ?? "—"}</td>
+        <td class="num">${row.ga?.user ?? "—"}</td>
+        <td class="num">${row.ga?.cred ?? "—"}</td>
+        <td class="num">${row.gaSelUserPct ?? "—"}</td>
+        <td class="num">${row.gaSelCredPct ?? "—"}</td>
+        <td class="num">${row.gaSelSuccessPct ?? "—"}</td>
+        <td class="num">${row.sessions}</td>
+        <td class="num">${row.sessionsWithJobs}</td>
+        <td class="num">${row.sessionsWithJobsPct}</td>
+        <td class="num">${row.sessionsWithSuccess}</td>
+        <td class="num">${row.sessionsWithSuccessPct}</td>
+        <td class="num">${row.placements}</td>
+      `;
+      els.sourcesTableBody.appendChild(tr);
+    });
+  }
+
+  function buildRow(node, label, level, gaTotals) {
+    const sessions = node.metrics.sessions || 0;
+    const sessionsWithJobs = node.metrics.sessionsWithJobs || 0;
+    const sessionsWithSuccess = node.metrics.sessionsWithSuccess || 0;
+    const placements = node.metrics.placements || 0;
+    const ga = gaTotals
+      ? {
+          select: formatCount(gaTotals.select || 0),
+          user: formatCount(gaTotals.user || 0),
+          cred: formatCount(gaTotals.cred || 0),
+        }
+      : null;
+    const gaSelUserPct =
+      gaTotals && gaTotals.select > 0
+        ? formatPercent((gaTotals.user / gaTotals.select) * 100, "—")
+        : "—";
+    const gaSelCredPct =
+      gaTotals && gaTotals.select > 0
+        ? formatPercent((gaTotals.cred / gaTotals.select) * 100, "—")
+        : "—";
+    const gaSelSuccessPct =
+      gaTotals && gaTotals.select > 0
+        ? formatPercent((sessionsWithSuccess / gaTotals.select) * 100, "—")
+        : "—";
+
+    return {
+      label,
+      level,
+      _raw: {
+        ga_select: gaTotals ? gaTotals.select || 0 : null,
+        ga_user: gaTotals ? gaTotals.user || 0 : null,
+        ga_cred: gaTotals ? gaTotals.cred || 0 : null,
+        sessions,
+        sessionsWithJobs,
+        sessionsWithSuccess,
+        placements,
+        gaSelUserPct:
+          gaTotals && gaTotals.select > 0 ? (gaTotals.user / gaTotals.select) * 100 : null,
+        gaSelCredPct:
+          gaTotals && gaTotals.select > 0 ? (gaTotals.cred / gaTotals.select) * 100 : null,
+        gaSelSuccessPct:
+          gaTotals && gaTotals.select > 0
+            ? (sessionsWithSuccess / gaTotals.select) * 100
+            : null,
+        sessionsWithJobsPct: sessions ? (sessionsWithJobs / sessions) * 100 : null,
+        sessionsWithSuccessPct: sessions ? (sessionsWithSuccess / sessions) * 100 : null,
+      },
+      ga,
+      gaSelUserPct,
+      gaSelCredPct,
+      gaSelSuccessPct,
+      sessions: formatCount(sessions),
+      sessionsWithJobs: formatCount(sessionsWithJobs),
+      sessionsWithJobsPct: sessions
+        ? formatPercent((sessionsWithJobs / sessions) * 100, "—")
+        : "—",
+      sessionsWithSuccess: formatCount(sessionsWithSuccess),
+      sessionsWithSuccessPct: sessions
+        ? formatPercent((sessionsWithSuccess / sessions) * 100, "—")
+        : "—",
+      placements: formatCount(placements),
+    };
+  }
+
+  function sortKeysWithOrder(keys, order) {
+    const orderMap = new Map(order.map((value, idx) => [value, idx]));
+    return Array.from(keys).sort((a, b) => {
+      const aIdx = orderMap.has(a) ? orderMap.get(a) : Number.MAX_SAFE_INTEGER;
+      const bIdx = orderMap.has(b) ? orderMap.get(b) : Number.MAX_SAFE_INTEGER;
+      if (aIdx !== bIdx) return aIdx - bIdx;
+      return a.localeCompare(b);
+    });
+  }
+
+  function buildRowsFromHierarchy(hierarchy, gaTotals) {
+    const rows = [];
+    rows.push(buildRow(hierarchy.overall, "Overall", 0, gaTotals));
+
+    const integrationOrder = ["SSO", "NON-SSO", "CardSavr", "TEST", "UNKNOWN"];
+    const deviceOrder = ["desktop", "mobile", "unknown"];
+    const integrations = sortKeysWithOrder(hierarchy.integrations.keys(), integrationOrder);
+
+    integrations.forEach((integrationKey) => {
+      const integrationNode = hierarchy.integrations.get(integrationKey);
+      rows.push(buildRow(integrationNode, `Integration: ${integrationKey}`, 1, null));
+
+      const devices = sortKeysWithOrder(integrationNode.devices.keys(), deviceOrder);
+      devices.forEach((deviceKey) => {
+        const deviceNode = integrationNode.devices.get(deviceKey);
+        rows.push(buildRow(deviceNode, `Device: ${deviceKey}`, 2, null));
+
+        const categories = Array.from(deviceNode.categories.keys()).sort((a, b) =>
+          a.localeCompare(b)
         );
+        categories.forEach((categoryKey) => {
+          const categoryNode = deviceNode.categories.get(categoryKey);
+          rows.push(buildRow(categoryNode, `Category: ${categoryKey}`, 3, null));
+
+          const subCategories = Array.from(categoryNode.subCategories.keys()).sort((a, b) =>
+            a.localeCompare(b)
+          );
+          subCategories.forEach((subKey) => {
+            const subNode = categoryNode.subCategories.get(subKey);
+            rows.push(buildRow(subNode, `Sub-category: ${subKey}`, 4, null));
+          });
+        });
       });
     });
-    return lines.join("\n");
+
+    return rows;
   }
 
-  function buildMerchantCsv(rows, start, end, fiName) {
+
+
+
+  function buildRollupCsv(rows, start, end, fiName) {
     const lines = [
       ["Range", `${start} → ${end}`].join(","),
       `FI,${JSON.stringify(fiName || "FI")}`,
       "",
       [
-        "Merchant",
-        "SSO Sessions",
-        "SSO Jobs",
-        "SSO Success %",
-        "Non-SSO Sessions",
-        "Non-SSO Jobs",
-        "Non-SSO Success %",
-        "Placements",
+        "Level",
+        "Source",
+        "GA select",
+        "GA user",
+        "GA cred",
+        "sel→user %",
+        "sel→cred %",
+        "sel→success %",
+        "sessions",
+        "sess w/jobs",
+        "sess→jobs %",
+        "sess w/success",
+        "sess→success %",
+        "placements",
       ].join(","),
     ];
     rows.forEach((row) => {
-        lines.push(
-          [
-            `"${row.merchant.replace(/"/g, '""')}"`,
-            row.sso.sessions || 0,
-            row.sso.jobs || 0,
-            row.sso.successPct !== null ? row.sso.successPct.toFixed(1) : "",
-            row.nonSso.sessions || 0,
-            row.nonSso.jobs || 0,
-            row.nonSso.successPct !== null ? row.nonSso.successPct.toFixed(1) : "",
-            row.placements || 0,
-          ].join(",")
-        );
-      });
-      return lines.join("\n");
-    }
+      const raw = row._raw || {};
+      lines.push(
+        [
+          row.level,
+          JSON.stringify(row.label || ""),
+          raw.ga_select ?? "",
+          raw.ga_user ?? "",
+          raw.ga_cred ?? "",
+          raw.gaSelUserPct !== null && raw.gaSelUserPct !== undefined ? raw.gaSelUserPct.toFixed(1) : "",
+          raw.gaSelCredPct !== null && raw.gaSelCredPct !== undefined ? raw.gaSelCredPct.toFixed(1) : "",
+          raw.gaSelSuccessPct !== null && raw.gaSelSuccessPct !== undefined ? raw.gaSelSuccessPct.toFixed(1) : "",
+          raw.sessions ?? 0,
+          raw.sessionsWithJobs ?? 0,
+          raw.sessionsWithJobsPct !== null && raw.sessionsWithJobsPct !== undefined
+            ? raw.sessionsWithJobsPct.toFixed(1)
+            : "",
+          raw.sessionsWithSuccess ?? 0,
+          raw.sessionsWithSuccessPct !== null && raw.sessionsWithSuccessPct !== undefined
+            ? raw.sessionsWithSuccessPct.toFixed(1)
+            : "",
+          raw.placements ?? 0,
+        ].join(",")
+      );
+    });
+    return lines.join("\n");
+  }
 
   function downloadCsv(filename, contents) {
     const blob = new Blob([contents], { type: "text/csv;charset=utf-8" });
@@ -754,8 +655,10 @@
 
   function exportCsv() {
     if (!state.data) return;
-    downloadCsv("sources_detail.csv", buildDailyCsv(state.data.dailyRows, state.data.start, state.data.end, state.data.fiName));
-    downloadCsv("sources_merchants.csv", buildMerchantCsv(state.data.merchantRows, state.data.start, state.data.end, state.data.fiName));
+    downloadCsv(
+      "sources_rollup.csv",
+      buildRollupCsv(state.data.rows, state.data.start, state.data.end, state.data.fiName)
+    );
   }
 
   function buildQueryParams(start, end, fiKey) {
@@ -866,43 +769,28 @@
       }
       const payload = await res.json();
       const sessions = Array.isArray(payload.sessions) ? payload.sessions : [];
-      const aggregated = aggregateSessions(sessions, start, end);
+      const hierarchy = sessions.length ? buildHierarchy(sessions) : null;
+      const gaTotals = await fetchGATotals(fiKey, start, end).catch((err) => {
+        console.warn("GA fetch failed", err);
+        return null;
+      });
+      setGATotals(gaTotals);
+      const rows = hierarchy ? buildRowsFromHierarchy(hierarchy, gaTotals) : [];
       state.data = {
-        ...aggregated,
+        rows,
         start,
         end,
         fiKey,
         fiName: payload.fiName || fiKey || "FI",
       };
-
-      const firstSso = (aggregated.dailyRows || []).find(
-        (row) => row.SSO?.sessions > 0
-      );
-      const ssoStartDate = firstSso?.date || null;
-      const gaPromise = fetchGAMetrics(fiKey, start, end, ssoStartDate).catch((err) => {
-        console.warn("GA fetch failed", err);
-        return null;
-      });
-      const gaMetrics = await gaPromise;
-      renderGAMetrics(gaMetrics);
-      renderComparisonTable(aggregated.kpis);
-
-      // Display SSO start date
-      const ssoStartInfo = document.getElementById("ssoStartInfo");
-      const ssoStartDateEl = document.getElementById("ssoStartDate");
-      if (ssoStartInfo && ssoStartDateEl) {
-        if (ssoStartDate) {
-          ssoStartDateEl.textContent = ssoStartDate;
-          ssoStartInfo.style.display = "";
-        } else {
-          ssoStartDateEl.textContent = "None detected";
-          ssoStartInfo.style.display = "";
-        }
+      renderSourcesTable(rows);
+      if (!sessions.length) {
+        setStatus(`No sessions found for ${state.data.fiName} (${start} → ${end}).`);
+      } else {
+        setStatus(
+          `Loaded ${sessions.length} sessions for ${state.data.fiName} (${start} → ${end}).`
+        );
       }
-
-      setStatus(
-        `Loaded ${aggregated.kpis.totalSessions || 0} sessions for ${state.data.fiName} (${start} → ${end}).`
-      );
     } catch (err) {
       if (err.name === "AbortError") {
         setStatus("Loading interrupted.");
@@ -911,7 +799,7 @@
         setStatus(err.message || "Unable to load source data.");
       }
       state.data = null;
-      renderGAMetrics(null);
+      setGATotals(null);
     } finally {
       currentController = null;
       setLoading(false);

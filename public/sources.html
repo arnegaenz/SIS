@@ -117,6 +117,19 @@
         font-weight: 600;
       }
 
+      .sources-row td:first-child {
+        white-space: nowrap;
+      }
+
+      .sources-row.level-0 td:first-child {
+        font-weight: 700;
+      }
+
+      .sources-row.level-1 td:first-child { padding-left: 16px; }
+      .sources-row.level-2 td:first-child { padding-left: 32px; }
+      .sources-row.level-3 td:first-child { padding-left: 48px; }
+      .sources-row.level-4 td:first-child { padding-left: 64px; }
+
       .sources-table .metric-header {
         text-align: center;
         border-bottom: 2px solid var(--table-border);
@@ -512,89 +525,49 @@
               <label>&nbsp;</label>
               <button id="exportCsv" class="form-button secondary" disabled>Export CSV</button>
             </div>
+            <div class="form-field">
+              <label>&nbsp;</label>
+              <label class="form-checkbox">
+                <input type="checkbox" id="includeTest" />
+                Include test data
+              </label>
+            </div>
           </div>
 
           <div id="statusMessage" class="status-message">
             Pick a date range and apply filters.
           </div>
 
-          <div id="ssoStartInfo" class="status-message" style="display:none;">
-            SSO Start Date: <strong id="ssoStartDate">—</strong>
-          </div>
-
           <div id="fiGuard" class="fi-guard" style="display:none;">
             Select <strong>one</strong> FI to view Sources analysis.
           </div>
 
-          <div id="gaSection" style="display:none;">
-            <div class="sources-card">
-              <h2>Google Analytics Metrics</h2>
-              <p class="subhead">Event counts from GA for the selected date range</p>
-              <div class="ga-summary">
-                <div class="ga-card">
-                  <h3>SSO GA Events</h3>
-                  <div class="ga-metrics">
-                    <div class="ga-metric">
-                      <span class="label">Select merchants</span>
-                      <span class="value" id="gaSelectSso">—</span>
-                    </div>
-                    <div class="ga-metric">
-                      <span class="label">User data</span>
-                      <span class="value" id="gaUserSso">—</span>
-                    </div>
-                    <div class="ga-metric">
-                      <span class="label">Credentials</span>
-                      <span class="value" id="gaCredSso">—</span>
-                    </div>
-                  </div>
-                </div>
-                <div class="ga-card">
-                  <h3>Non-SSO GA</h3>
-                  <div class="ga-metrics">
-                    <div class="ga-metric">
-                      <span class="label">Select merchants</span>
-                      <span class="value" id="gaSelectNon">—</span>
-                    </div>
-                    <div class="ga-metric">
-                      <span class="label">User data</span>
-                      <span class="value" id="gaUserNon">—</span>
-                    </div>
-                    <div class="ga-metric">
-                      <span class="label">Credentials</span>
-                      <span class="value" id="gaCredNon">—</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
+          <div id="sourcesSection" class="sources-card" style="display:none;">
+            <h2>Sources rollup</h2>
+            <p class="subhead">Hierarchy by integration, device, category, and sub-category for the selected FI.</p>
+            <div class="sources-table-wrapper">
+              <table class="sources-table" id="sourcesTable">
+                <thead>
+                  <tr>
+                    <th>Source</th>
+                    <th class="num">GA select</th>
+                    <th class="num">GA user</th>
+                    <th class="num">GA cred</th>
+                    <th class="num">sel→user %</th>
+                    <th class="num">sel→cred %</th>
+                    <th class="num">sel→success %</th>
+                    <th class="num">sessions</th>
+                    <th class="num">sess w/jobs</th>
+                    <th class="num">sess→jobs %</th>
+                    <th class="num">sess w/success</th>
+                    <th class="num">sess→success %</th>
+                    <th class="num">placements</th>
+                  </tr>
+                </thead>
+                <tbody id="sourcesTableBody"></tbody>
+              </table>
             </div>
-          </div>
-
-          <div id="comparisonSection" style="display:none;">
-            <div class="sources-card">
-              <h2>Conversion Funnel Comparison</h2>
-              <p class="subhead">Step-by-step conversion metrics comparing SSO integrations vs non-SSO traffic</p>
-
-              <!-- Side-by-side metric cards -->
-              <div class="funnel-cards">
-                <div class="funnel-card funnel-card-sso">
-                  <h3>SSO</h3>
-                  <div class="funnel-metrics" id="ssoMetrics">
-                    <!-- Populated by JavaScript -->
-                  </div>
-                </div>
-                <div class="funnel-card funnel-card-nonsso">
-                  <h3>Non-SSO</h3>
-                  <div class="funnel-metrics" id="nonSsoMetrics">
-                    <!-- Populated by JavaScript -->
-                  </div>
-                </div>
-              </div>
-
-              <!-- Visual bar chart comparison -->
-              <div class="funnel-chart" id="funnelChart">
-                <!-- Populated by JavaScript -->
-              </div>
-            </div>
+            <div id="sourcesEmpty" class="sources-empty">No data available for this FI.</div>
           </div>
 
 
