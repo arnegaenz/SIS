@@ -110,11 +110,11 @@
     return '<span class="' + className + '">' + escapeHtml(label) + "</span>";
   }
 
-  function buildActionButton(action, jobId, label, svgPath) {
+  function buildActionButton(action, jobId, label, svgMarkup) {
     return (
       '<button class="icon-btn" type="button" data-action="' + action + '" data-id="' + escapeHtml(jobId) + '"' +
       ' aria-label="' + escapeHtml(label) + '" title="' + escapeHtml(label) + '">' +
-      '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + svgPath + '"></path></svg>' +
+      svgMarkup +
       "</button>"
     );
   }
@@ -126,11 +126,39 @@
     var normalized = (job.status || "queued").toString().toLowerCase();
     var actions = [];
     if (normalized === "paused") {
-      actions.push(buildActionButton("continue", id, "Continue", "M8 5v14l11-7z"));
-      actions.push(buildActionButton("cancel", id, "Cancel", "M6 6l12 12M18 6l-12 12"));
+      actions.push(
+        buildActionButton(
+          "continue",
+          id,
+          "Continue",
+          '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"></path></svg>'
+        )
+      );
+      actions.push(
+        buildActionButton(
+          "cancel",
+          id,
+          "Cancel",
+          '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6l-12 12"></path></svg>'
+        )
+      );
     } else if (normalized === "queued" || normalized === "running" || job.due) {
-      actions.push(buildActionButton("pause", id, "Pause", "M6 5h4v14H6zM14 5h4v14h-4z"));
-      actions.push(buildActionButton("cancel", id, "Cancel", "M6 6l12 12M18 6l-12 12"));
+      actions.push(
+        buildActionButton(
+          "pause",
+          id,
+          "Pause",
+          '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5h4v14H6zM14 5h4v14h-4z"></path></svg>'
+        )
+      );
+      actions.push(
+        buildActionButton(
+          "cancel",
+          id,
+          "Cancel",
+          '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6l-12 12"></path></svg>'
+        )
+      );
     }
     var actionHtml = actions.length
       ? actions.join("")
@@ -537,8 +565,10 @@
   function handleTableClick(evt) {
     var target = evt.target;
     if (!target) return;
-    var action = target.getAttribute("data-action");
-    var jobId = target.getAttribute("data-id");
+    var button = target.closest("[data-action]");
+    if (!button) return;
+    var action = button.getAttribute("data-action");
+    var jobId = button.getAttribute("data-id");
     if (action === "cancel") {
       openCancelModal(getJobById(jobId));
       return;
