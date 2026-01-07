@@ -110,6 +110,15 @@
     return '<span class="' + className + '">' + escapeHtml(label) + "</span>";
   }
 
+  function buildActionButton(action, jobId, label, svgPath) {
+    return (
+      '<button class="icon-btn" type="button" data-action="' + action + '" data-id="' + escapeHtml(jobId) + '"' +
+      ' aria-label="' + escapeHtml(label) + '" title="' + escapeHtml(label) + '">' +
+      '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + svgPath + '"></path></svg>' +
+      "</button>"
+    );
+  }
+
   function buildJobRow(job) {
     var name = job.job_name || job.source_subcategory || "Unnamed job";
     var id = job.id || "";
@@ -117,11 +126,11 @@
     var normalized = (job.status || "queued").toString().toLowerCase();
     var actions = [];
     if (normalized === "paused") {
-      actions.push('<button class="btn secondary" data-action="continue" data-id="' + escapeHtml(id) + '">Continue</button>');
-      actions.push('<button class="btn secondary" data-action="cancel" data-id="' + escapeHtml(id) + '">Cancel</button>');
+      actions.push(buildActionButton("continue", id, "Continue", "M8 5v14l11-7z"));
+      actions.push(buildActionButton("cancel", id, "Cancel", "M6 6l12 12M18 6l-12 12"));
     } else if (normalized === "queued" || normalized === "running" || job.due) {
-      actions.push('<button class="btn secondary" data-action="pause" data-id="' + escapeHtml(id) + '">Pause</button>');
-      actions.push('<button class="btn secondary" data-action="cancel" data-id="' + escapeHtml(id) + '">Cancel</button>');
+      actions.push(buildActionButton("pause", id, "Pause", "M6 5h4v14H6zM14 5h4v14h-4z"));
+      actions.push(buildActionButton("cancel", id, "Cancel", "M6 6l12 12M18 6l-12 12"));
     }
     var actionHtml = actions.length
       ? actions.join("")

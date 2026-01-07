@@ -269,13 +269,33 @@
     }
     .job-actions {
       display: flex;
-      flex-direction: column;
-      gap: 8px;
+      flex-direction: row;
+      gap: 6px;
       align-items: flex-start;
     }
-    .job-actions .btn {
-      padding: 6px 12px;
-      font-size: 12px;
+    .icon-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      border: 1px solid var(--panel-border);
+      background: rgba(15, 23, 42, 0.25);
+      color: var(--panel-title);
+      padding: 0;
+      cursor: pointer;
+      transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+    }
+    .icon-btn:hover {
+      background: rgba(56, 189, 248, 0.12);
+      border-color: rgba(56, 189, 248, 0.35);
+      transform: translateY(-1px);
+    }
+    .icon-btn svg {
+      width: 14px;
+      height: 14px;
+      fill: currentColor;
     }
     .jobs-toolbar {
       display: flex;
