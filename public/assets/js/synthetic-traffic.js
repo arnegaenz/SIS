@@ -89,6 +89,14 @@
     return dt.toLocaleString();
   }
 
+  function formatNextRun(job) {
+    if (!job) return "—";
+    var status = (job.status || "").toString().toLowerCase();
+    if (status === "running") return "In progress";
+    if (status === "paused") return "Paused";
+    return formatDateTime(job.next_run_at);
+  }
+
   function escapeHtml(value) {
     return (value || "")
       .toString()
@@ -171,7 +179,7 @@
         "<td>" + status + "</td>" +
         "<td>" + escapeHtml(formatDateTime(job.created_at)) + "</td>" +
         "<td>" + escapeHtml(formatDateTime(job.last_run_at)) + "</td>" +
-        "<td>" + escapeHtml(formatDateTime(job.next_run_at)) + "</td>" +
+        "<td>" + escapeHtml(formatNextRun(job)) + "</td>" +
         "<td>" + escapeHtml(job.end_date || "—") + "</td>" +
         "<td>" + escapeHtml(job.attempted || 0) + "</td>" +
         "<td>" + escapeHtml(job.placements_success || 0) + "</td>" +

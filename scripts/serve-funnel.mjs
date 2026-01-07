@@ -760,6 +760,17 @@ async function runSynthScheduler() {
       }
       continue;
     }
+    if (job.status === "running") {
+      if (job.due) {
+        job.due = false;
+        changed = true;
+      }
+      if (job.next_run_at) {
+        job.next_run_at = "";
+        changed = true;
+      }
+      continue;
+    }
 
     if (job.mode === "one_shot" && job.attempted >= job.total_runs) {
       job.status = "completed";
@@ -1997,6 +2008,7 @@ const server = http.createServer(async (req, res) => {
     }
     job.status = "paused";
     job.due = false;
+    job.next_run_at = "";
     job.paused_at = new Date().toISOString();
     await saveSynthJobs();
     return send(res, 200, { job });
@@ -2059,6 +2071,8 @@ const server = http.createServer(async (req, res) => {
 
     if (nextStatus === "running") {
       job.status = "running";
+      job.next_run_at = "";
+      job.due = false;
     }
 
     if (job.mode === "one_shot" && job.attempted >= job.total_runs) {
