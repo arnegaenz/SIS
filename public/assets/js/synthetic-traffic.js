@@ -92,9 +92,12 @@
   function formatNextRun(job) {
     if (!job) return "—";
     var status = (job.status || "").toString().toLowerCase();
-    if (status === "running") return "In progress";
     if (status === "paused") return "Paused";
-    return formatDateTime(job.next_run_at);
+    var nextRun = formatDateTime(job.next_run_at);
+    if (status === "running") {
+      return nextRun !== "—" ? nextRun : "In progress";
+    }
+    return nextRun;
   }
 
   function escapeHtml(value) {

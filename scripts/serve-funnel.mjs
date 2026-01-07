@@ -765,10 +765,6 @@ async function runSynthScheduler() {
         job.due = false;
         changed = true;
       }
-      if (job.next_run_at) {
-        job.next_run_at = "";
-        changed = true;
-      }
       continue;
     }
 
@@ -2071,7 +2067,6 @@ const server = http.createServer(async (req, res) => {
 
     if (nextStatus === "running") {
       job.status = "running";
-      job.next_run_at = "";
       job.due = false;
     }
 
