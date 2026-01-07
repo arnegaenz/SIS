@@ -95,6 +95,16 @@
     if (status === "paused") return "Paused";
     var nextRun = formatDateTime(job.next_run_at);
     if (status === "running") {
+      var lastRun = job.last_run_at ? new Date(job.last_run_at) : null;
+      var nextRunDate = job.next_run_at ? new Date(job.next_run_at) : null;
+      var runsPerDay = Number(job.runs_per_day) || 0;
+      if (runsPerDay > 0 && lastRun && !isNaN(lastRun.getTime())) {
+        var intervalMs = Math.max(1, Math.round(86400000 / runsPerDay));
+        var estimated = new Date(lastRun.getTime() + intervalMs);
+        if (!nextRunDate || isNaN(nextRunDate.getTime()) || nextRunDate < lastRun) {
+          return formatDateTime(estimated.toISOString());
+        }
+      }
       return nextRun !== "—" ? nextRun : "In progress";
     }
     return nextRun;
