@@ -8,6 +8,10 @@
   var modeSelect = document.getElementById("modeSelect");
   var jobsCount = document.getElementById("jobsCount");
   var activeOnlyToggle = document.getElementById("activeOnlyToggle");
+  var demoPreset = document.getElementById("demoPreset");
+  var sourceSubcategoryInput = document.getElementById("sourceSubcategory");
+  var sourceSubcategoryHint = document.getElementById("sourceSubcategoryHint");
+  var createJobButton = document.getElementById("createJobButton");
   var activeOnly = false;
   var jobModal = document.getElementById("jobModal");
   var jobModalBody = document.getElementById("jobModalBody");
@@ -18,6 +22,7 @@
   var cancelConfirmButton = document.getElementById("cancelConfirmButton");
   var cancelConfirmHint = document.getElementById("cancelConfirmHint");
   var pendingCancelJobId = null;
+  var activeDemoPreset = null;
   var latestJobs = [];
 
   var options = {
@@ -71,7 +76,9 @@
     var toggle = input ? input.closest(".rate-combo")?.querySelector(".rate-toggle") : null;
     if (!flow || !input) return;
     if (isSsoFlow(flow.value)) {
-      input.value = "0";
+      if (!activeDemoPreset || activeDemoPreset.integration !== "sso") {
+        input.value = "0";
+      }
       input.disabled = true;
       if (toggle) toggle.disabled = true;
       var list = input.closest(".rate-combo")?.querySelector(".rate-list");
@@ -80,6 +87,23 @@
       input.disabled = false;
       if (toggle) toggle.disabled = false;
     }
+  }
+
+  function setSubcategoryHint(message) {
+    if (!sourceSubcategoryHint) return;
+    sourceSubcategoryHint.textContent = message || "";
+  }
+
+  function validateSourceSubcategory() {
+    var value = sourceSubcategoryInput ? sourceSubcategoryInput.value.trim() : "";
+    var isValid = value.length > 0;
+    if (sourceSubcategoryInput) {
+      if (!isValid) sourceSubcategoryInput.classList.add("input-error");
+      else sourceSubcategoryInput.classList.remove("input-error");
+    }
+    setSubcategoryHint(isValid ? "" : "Source subcategory is required for synthetic jobs.");
+    if (createJobButton) createJobButton.disabled = !isValid;
+    return isValid;
   }
 
   function formatDateTime(value) {
@@ -384,50 +408,189 @@
     return totalConversion / credentialSuccess;
   }
 
-  function applyMotivationPreset(preset) {
+  function setSuccessBounds(targetSuccess) {
+    var input = document.getElementById("successRate");
+    if (!input) return;
+    if (typeof targetSuccess !== "number") {
+      input.removeAttribute("min");
+      input.removeAttribute("max");
+      input.removeAttribute("title");
+      return;
+    }
+    var min = Math.max(0, Math.round((targetSuccess - 5) * 10) / 10);
+    var max = Math.min(100, Math.round((targetSuccess + 5) * 10) / 10);
+    input.min = String(min);
+    input.max = String(max);
+    input.title = "Allowed range: " + min + "% to " + max + "%";
+  }
+
+  function clampSuccessRate() {
+    if (!activeDemoPreset) return;
+    var input = document.getElementById("successRate");
+    var fail = document.getElementById("failRate");
+    if (!input) return;
+    var min = Number(input.min);
+    var max = Number(input.max);
+    var value = Number(input.value);
+    if (Number.isFinite(min) && value < min) value = min;
+    if (Number.isFinite(max) && value > max) value = max;
+    if (Number.isFinite(value)) input.value = String(value);
+    if (fail) {
+      var nextFail = Math.max(0, Math.round((100 - value) * 10) / 10);
+      fail.value = String(nextFail);
+    }
+  }
+
+  function resolveIntegrationFlow(targetMode) {
     var flow = document.getElementById("integrationFlow");
-    var isSso = flow ? isSsoFlow(flow.value) : false;
-    var totalConversion = 0;
-    var credentialSuccess = 0;
-    var credentialFail = 0;
-    var abandonSelect = 0;
-    var abandonUser = 0;
-    var abandonCredential = 0;
+    var current = flow ? flow.value : "";
+    var prefix = current.indexOf("overlay") === 0 ? "overlay" : "embedded";
+    return prefix + "_" + targetMode;
+  }
 
-    if (preset === "not_motivated") {
-      totalConversion = 0.105;
-      credentialSuccess = 35;
-      credentialFail = 65;
-      abandonSelect = 97.5;
-      abandonUser = isSso ? 0 : 88;
-      abandonCredential = 0;
-    } else {
-      totalConversion = preset === "motivated" ? 7 : 25;
-      credentialSuccess = preset === "motivated" ? 50 : 65;
-      credentialFail = 100 - credentialSuccess;
-      abandonCredential = 0;
-
-      var reachCredential = computeReachCredential(
-        totalConversion / 100,
-        credentialSuccess / 100
-      );
-      if (isSso) {
-        abandonSelect = roundRate((1 - reachCredential) * 100);
-        abandonUser = 0;
-      } else {
-        var stageRetain = Math.sqrt(Math.max(0, reachCredential));
-        abandonSelect = roundRate((1 - stageRetain) * 100);
-        abandonUser = roundRate((1 - stageRetain) * 100);
-      }
+  function applyDemoPreset(presetKey) {
+    if (!presetKey) {
+      activeDemoPreset = null;
+      setSuccessBounds(null);
+      return;
     }
 
-    setRateValue("abandonSelectMerchant", abandonSelect);
-    setRateValue("abandonUserData", abandonUser);
-    setRateValue("abandonCredentialEntry", abandonCredential);
-    setRateValue("successRate", credentialSuccess);
-    setRateValue("failRate", credentialFail);
-    updateRateValidation();
+    // Synthetic / Demo Defaults
+    var presets = {
+      aggressive_card_activation: {
+        integration: "sso",
+        sourceType: "push_notification",
+        sourceCategory: "activation",
+        sourceSubcategoryHint: "post_activation",
+        mode: "campaign",
+        runsPerDay: 48,
+        durationDays: 7,
+        abandonSelect: 60,
+        abandonUser: 1,
+        abandonCredential: 1,
+        success: 45,
+        fail: 55
+      },
+      normal_card_activation: {
+        integration: "sso",
+        sourceType: "email",
+        sourceCategory: "activation",
+        sourceSubcategoryHint: "replacement_or_expiration",
+        mode: "campaign",
+        runsPerDay: 24,
+        durationDays: 14,
+        abandonSelect: 74,
+        abandonUser: 2,
+        abandonCredential: 2,
+        success: 42,
+        fail: 58
+      },
+      base_card_controls: {
+        integration: "sso",
+        sourceType: "navigation",
+        sourceCategory: "card_controls",
+        sourceSubcategoryHint: "manage_card_controls",
+        mode: "campaign",
+        runsPerDay: 12,
+        durationDays: 30,
+        abandonSelect: 83,
+        abandonUser: 2,
+        abandonCredential: 2,
+        success: 42,
+        fail: 58
+      },
+      standard_sso: {
+        integration: "sso",
+        sourceType: "navigation",
+        sourceCategory: "card_controls",
+        sourceSubcategoryHint: "routine_card_management",
+        mode: "campaign",
+        runsPerDay: 24,
+        durationDays: 60,
+        abandonSelect: 86,
+        abandonUser: 2,
+        abandonCredential: 2,
+        success: 42,
+        fail: 58
+      },
+      marketing_push: {
+        integration: "nosso",
+        sourceType: "promo",
+        sourceCategory: "campaign",
+        sourceSubcategoryHint: "seasonal_offer",
+        mode: "campaign",
+        runsPerDay: 72,
+        durationDays: 5,
+        abandonSelect: 92,
+        abandonUser: 75,
+        abandonCredential: 60,
+        success: 38,
+        fail: 62
+      },
+      assisted_card_update: {
+        integration: "nosso",
+        sourceType: "qr_code",
+        sourceCategory: "activation",
+        sourceSubcategoryHint: "branch_qr_assisted",
+        mode: "campaign",
+        runsPerDay: 8,
+        durationDays: 21,
+        abandonSelect: 95,
+        abandonUser: 80,
+        abandonCredential: 65,
+        success: 38,
+        fail: 62
+      }
+    };
+
+    var preset = presets[presetKey];
+    if (!preset) return;
+
+    activeDemoPreset = {
+      key: presetKey,
+      integration: preset.integration,
+      success: preset.success
+    };
+
+    var flow = document.getElementById("integrationFlow");
+    if (flow) {
+      flow.value = resolveIntegrationFlow(preset.integration === "sso" ? "sso" : "nosso");
+    }
+    var sourceType = document.getElementById("sourceType");
+    var sourceCategory = document.getElementById("sourceCategory");
+    if (sourceType) sourceType.value = preset.sourceType || "";
+    if (sourceCategory) sourceCategory.value = preset.sourceCategory || "";
+    if (sourceSubcategoryInput) {
+      sourceSubcategoryInput.value = "";
+      sourceSubcategoryInput.placeholder = preset.sourceSubcategoryHint || "Required";
+    }
+    var mode = document.getElementById("modeSelect");
+    var runsPerDay = document.getElementById("runsPerDay");
+    var endDate = document.getElementById("endDate");
+    if (mode && preset.mode) {
+      mode.value = preset.mode;
+      toggleModeFields();
+    }
+    if (runsPerDay && preset.runsPerDay) {
+      runsPerDay.value = String(preset.runsPerDay);
+    }
+    if (endDate && preset.durationDays) {
+      var today = new Date();
+      var end = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()));
+      end.setUTCDate(end.getUTCDate() + Math.max(0, preset.durationDays - 1));
+      endDate.value = end.toISOString().slice(0, 10);
+    }
+
+    setRateValue("abandonSelectMerchant", preset.abandonSelect);
+    setRateValue("abandonUserData", preset.abandonUser);
+    setRateValue("abandonCredentialEntry", preset.abandonCredential);
+    setRateValue("successRate", preset.success);
+    setRateValue("failRate", preset.fail);
+    setSuccessBounds(preset.success);
+    clampSuccessRate();
     toggleUserDataAbandon();
+    updateRateValidation();
+    validateSourceSubcategory();
   }
 
   function buildRateOptions(listEl, inputEl) {
@@ -489,6 +652,10 @@
   async function submitJob(evt) {
     evt.preventDefault();
     var payload = getPayload();
+    if (!validateSourceSubcategory()) {
+      setStatus("Source subcategory is required for synthetic jobs.", true);
+      return;
+    }
     if (!updateRateValidation()) return;
     setStatus("Saving job...");
     try {
@@ -620,10 +787,6 @@
     var flowSelect = document.getElementById("integrationFlow");
     if (flowSelect) {
       flowSelect.addEventListener("change", toggleUserDataAbandon);
-      flowSelect.addEventListener("change", function () {
-        var preset = document.getElementById("motivationPreset");
-        if (preset) applyMotivationPreset(preset.value);
-      });
     }
     if (form) form.addEventListener("submit", submitJob);
     if (jobsBody) jobsBody.addEventListener("click", handleTableClick);
@@ -665,18 +828,27 @@
     if (cancelConfirmButton) {
       cancelConfirmButton.addEventListener("click", function () {
         if (!pendingCancelJobId) return;
+        var jobId = pendingCancelJobId;
         closeCancelModal();
-        cancelJob(pendingCancelJobId);
+        cancelJob(jobId);
       });
     }
     setupRateCombos();
     updateRateValidation();
-    var presetSelect = document.getElementById("motivationPreset");
-    if (presetSelect) {
-      presetSelect.addEventListener("change", function () {
-        applyMotivationPreset(presetSelect.value);
+    if (sourceSubcategoryInput) {
+      sourceSubcategoryInput.addEventListener("input", validateSourceSubcategory);
+      sourceSubcategoryInput.addEventListener("blur", validateSourceSubcategory);
+    }
+    validateSourceSubcategory();
+    var successRate = document.getElementById("successRate");
+    if (successRate) {
+      successRate.addEventListener("input", clampSuccessRate);
+      successRate.addEventListener("change", clampSuccessRate);
+    }
+    if (demoPreset) {
+      demoPreset.addEventListener("change", function () {
+        applyDemoPreset(demoPreset.value);
       });
-      applyMotivationPreset(presetSelect.value);
     }
     var endDate = document.getElementById("endDate");
     if (endDate) {

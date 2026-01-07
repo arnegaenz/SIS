@@ -102,6 +102,13 @@
       cursor: not-allowed;
       background: rgba(148, 163, 184, 0.08);
     }
+    .input-hint {
+      font-size: 11px;
+      letter-spacing: normal;
+      text-transform: none;
+      color: #f87171;
+      min-height: 14px;
+    }
     .rate-combo {
       position: relative;
       width: 100%;
@@ -444,6 +451,21 @@
       letter-spacing: 0.08em;
       color: var(--muted);
     }
+    .funnel-rates-row {
+      grid-column: 1 / -1;
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: flex-end;
+    }
+    .funnel-rates-row label {
+      min-width: 120px;
+      flex: 1 1 120px;
+    }
+    .funnel-rates-row select,
+    .funnel-rates-row input {
+      height: 40px;
+    }
     @media (max-width: 900px) {
       .form-actions { flex-direction: column; align-items: flex-start; }
     }
@@ -489,6 +511,21 @@
               <option value="100"></option>
             </datalist>
             <div class="form-grid">
+              <div class="form-section">
+                <div class="section-title">Defaults</div>
+              </div>
+              <label>
+                Demo Defaults
+                <select id="demoPreset">
+                  <option value="">Choose preset</option>
+                  <option value="aggressive_card_activation">Aggressive Card Activation</option>
+                  <option value="normal_card_activation">Normal Card Activation</option>
+                  <option value="base_card_controls">Base Card Controls</option>
+                  <option value="standard_sso">Standard SSO</option>
+                  <option value="marketing_push">Marketing Push</option>
+                  <option value="assisted_card_update">Assisted Card Update</option>
+                </select>
+              </label>
               <label>
                 FI Host Environment
                 <select id="fiHostEnv" required></select>
@@ -511,21 +548,14 @@
               </label>
               <label>
                 Source Subcategory
-                <input type="text" id="sourceSubcategory" placeholder="e.g. direct" />
+                <input type="text" id="sourceSubcategory" placeholder="Required" />
+                <div class="input-hint" id="sourceSubcategoryHint"></div>
               </label>
               <label>
                 Mode
                 <select id="modeSelect" required>
                   <option value="one_shot">One Shot</option>
                   <option value="campaign">Campaign</option>
-                </select>
-              </label>
-              <label>
-                Motivation Preset
-                <select id="motivationPreset" required>
-                  <option value="not_motivated">Not Motivated</option>
-                  <option value="motivated">Motivated</option>
-                  <option value="very_motivated" selected>Very Motivated</option>
                 </select>
               </label>
               <label data-mode="one_shot">
@@ -543,50 +573,52 @@
               <div class="form-section">
                 <div class="section-title">Funnel Rates</div>
               </div>
-              <label>
-                Select Merchant Abandon (%)
-                <div class="rate-combo" data-rate-combo>
-                  <input type="number" id="abandonSelectMerchant" min="0" max="100" step="1" value="0" data-rate-combo-input />
-                  <button type="button" class="rate-toggle" data-rate-combo-toggle aria-label="Show rate options">▾</button>
-                  <div class="rate-list" data-rate-combo-list></div>
-                </div>
-              </label>
-              <label>
-                User Data Abandon (%)
-                <div class="rate-combo" data-rate-combo>
-                  <input type="number" id="abandonUserData" min="0" max="100" step="1" value="0" data-rate-combo-input />
-                  <button type="button" class="rate-toggle" data-rate-combo-toggle aria-label="Show rate options">▾</button>
-                  <div class="rate-list" data-rate-combo-list></div>
-                </div>
-              </label>
-              <label>
-                Credential Entry Abandon (%)
-                <div class="rate-combo" data-rate-combo>
-                  <input type="number" id="abandonCredentialEntry" min="0" max="100" step="1" value="0" data-rate-combo-input />
-                  <button type="button" class="rate-toggle" data-rate-combo-toggle aria-label="Show rate options">▾</button>
-                  <div class="rate-list" data-rate-combo-list></div>
-                </div>
-              </label>
-              <label>
-                Credential Success Rate (%)
-                <div class="rate-combo" data-rate-combo>
-                  <input type="number" id="successRate" min="0" max="100" step="1" value="90" data-rate-combo-input />
-                  <button type="button" class="rate-toggle" data-rate-combo-toggle aria-label="Show rate options">▾</button>
-                  <div class="rate-list" data-rate-combo-list></div>
-                </div>
-              </label>
-              <label>
-                Credential Fail Rate (%)
-                <div class="rate-combo" data-rate-combo>
-                  <input type="number" id="failRate" min="0" max="100" step="1" value="10" data-rate-combo-input />
-                  <button type="button" class="rate-toggle" data-rate-combo-toggle aria-label="Show rate options">▾</button>
-                  <div class="rate-list" data-rate-combo-list></div>
-                </div>
-              </label>
+              <div class="funnel-rates-row">
+                <label>
+                  Select Merchant Abandon (%)
+                  <div class="rate-combo" data-rate-combo>
+                    <input type="number" id="abandonSelectMerchant" min="0" max="100" step="0.1" value="0" data-rate-combo-input />
+                    <button type="button" class="rate-toggle" data-rate-combo-toggle aria-label="Show rate options">▾</button>
+                    <div class="rate-list" data-rate-combo-list></div>
+                  </div>
+                </label>
+                <label>
+                  User Data Abandon (%)
+                  <div class="rate-combo" data-rate-combo>
+                    <input type="number" id="abandonUserData" min="0" max="100" step="0.1" value="0" data-rate-combo-input />
+                    <button type="button" class="rate-toggle" data-rate-combo-toggle aria-label="Show rate options">▾</button>
+                    <div class="rate-list" data-rate-combo-list></div>
+                  </div>
+                </label>
+                <label>
+                  Cred Entry Abandon (%)
+                  <div class="rate-combo" data-rate-combo>
+                    <input type="number" id="abandonCredentialEntry" min="0" max="100" step="0.1" value="0" data-rate-combo-input />
+                    <button type="button" class="rate-toggle" data-rate-combo-toggle aria-label="Show rate options">▾</button>
+                    <div class="rate-list" data-rate-combo-list></div>
+                  </div>
+                </label>
+                <label>
+                  Cred Success Rate (%)
+                  <div class="rate-combo" data-rate-combo>
+                    <input type="number" id="successRate" min="0" max="100" step="0.1" value="90" data-rate-combo-input />
+                    <button type="button" class="rate-toggle" data-rate-combo-toggle aria-label="Show rate options">▾</button>
+                    <div class="rate-list" data-rate-combo-list></div>
+                  </div>
+                </label>
+                <label>
+                  Cred Fail Rate (%)
+                  <div class="rate-combo" data-rate-combo>
+                    <input type="number" id="failRate" min="0" max="100" step="0.1" value="10" data-rate-combo-input />
+                    <button type="button" class="rate-toggle" data-rate-combo-toggle aria-label="Show rate options">▾</button>
+                    <div class="rate-list" data-rate-combo-list></div>
+                  </div>
+                </label>
+              </div>
             </div>
 
             <div class="form-actions">
-              <button class="btn" type="submit">Create Job</button>
+              <button class="btn" type="submit" id="createJobButton">Create Job</button>
               <div class="status-line" id="formStatus">Ready.</div>
             </div>
           </form>
