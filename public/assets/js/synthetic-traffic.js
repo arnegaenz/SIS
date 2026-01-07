@@ -7,12 +7,17 @@
   var jobsBody = document.getElementById("jobsBody");
   var modeSelect = document.getElementById("modeSelect");
   var jobsCount = document.getElementById("jobsCount");
-  var toggleJobLimit = document.getElementById("toggleJobLimit");
-  var showAllJobs = false;
-  var JOB_LIMIT = 50;
+  var activeOnlyToggle = document.getElementById("activeOnlyToggle");
+  var activeOnly = false;
   var jobModal = document.getElementById("jobModal");
   var jobModalBody = document.getElementById("jobModalBody");
   var jobModalSubtitle = document.getElementById("jobModalSubtitle");
+  var cancelModal = document.getElementById("cancelModal");
+  var cancelModalSubtitle = document.getElementById("cancelModalSubtitle");
+  var cancelConfirmInput = document.getElementById("cancelConfirmInput");
+  var cancelConfirmButton = document.getElementById("cancelConfirmButton");
+  var cancelConfirmHint = document.getElementById("cancelConfirmHint");
+  var pendingCancelJobId = null;
   var latestJobs = [];
 
   var options = {
@@ -95,11 +100,13 @@
   }
 
   function statusPill(status, isDue) {
-    var label = status || "queued";
+    var normalized = (status || "queued").toString().toLowerCase();
+    var label = normalized || "queued";
     var className = "pill";
-    if (status === "canceled" || status === "failed") className += " warn";
-    if (status === "completed") className += " muted";
-    if (isDue && status !== "running") label = "queued";
+    if (normalized === "canceled" || normalized === "failed") className += " warn";
+    if (normalized === "completed") className += " muted";
+    if (normalized === "paused") className += " paused";
+    if (isDue && normalized !== "running" && normalized !== "paused") label = "queued";
     return '<span class="' + className + '">' + escapeHtml(label) + "</span>";
   }
 
@@ -107,9 +114,17 @@
     var name = job.job_name || job.source_subcategory || "Unnamed job";
     var id = job.id || "";
     var status = statusPill(job.status, job.due);
-    var cancelAllowed = job.status === "queued" || job.status === "running" || job.due;
-    var actionHtml = cancelAllowed
-      ? '<button class="btn secondary" data-action="cancel" data-id="' + escapeHtml(id) + '">Cancel</button>'
+    var normalized = (job.status || "queued").toString().toLowerCase();
+    var actions = [];
+    if (normalized === "paused") {
+      actions.push('<button class="btn secondary" data-action="continue" data-id="' + escapeHtml(id) + '">Continue</button>');
+      actions.push('<button class="btn secondary" data-action="cancel" data-id="' + escapeHtml(id) + '">Cancel</button>');
+    } else if (normalized === "queued" || normalized === "running" || job.due) {
+      actions.push('<button class="btn secondary" data-action="pause" data-id="' + escapeHtml(id) + '">Pause</button>');
+      actions.push('<button class="btn secondary" data-action="cancel" data-id="' + escapeHtml(id) + '">Cancel</button>');
+    }
+    var actionHtml = actions.length
+      ? actions.join("")
       : '<span class="pill muted">—</span>';
 
     return (
@@ -129,26 +144,36 @@
     );
   }
 
+  function isActiveJob(job) {
+    var normalized = (job?.status || "queued").toString().toLowerCase();
+    return normalized !== "completed" && normalized !== "canceled";
+  }
+
   function renderJobs(list) {
     if (!jobsBody) return;
     latestJobs = list || [];
-    var total = list ? list.length : 0;
-    var visible = list || [];
-    if (!showAllJobs && total > JOB_LIMIT) {
-      visible = list.slice(0, JOB_LIMIT);
-    }
+    var total = latestJobs.length;
+    var filtered = activeOnly ? latestJobs.filter(isActiveJob) : latestJobs.slice();
+    var filteredTotal = filtered.length;
+    var visible = filtered;
     if (!visible.length) {
-      jobsBody.innerHTML = '<tr><td colspan="10">No jobs yet.</td></tr>';
-      if (jobsCount) jobsCount.textContent = "Showing 0 jobs.";
+      var emptyLabel = activeOnly && total ? "No active jobs." : "No jobs yet.";
+      jobsBody.innerHTML = '<tr><td colspan="10">' + emptyLabel + "</td></tr>";
+      if (jobsCount) {
+        jobsCount.textContent = activeOnly && total
+          ? "Showing 0 active jobs (" + total + " total)."
+          : "Showing 0 jobs.";
+      }
       return;
     }
     jobsBody.innerHTML = visible.map(buildJobRow).join("");
     if (jobsCount) {
-      jobsCount.textContent = "Showing " + visible.length + " of " + total + " jobs.";
-    }
-    if (toggleJobLimit) {
-      toggleJobLimit.textContent = showAllJobs ? "Show less" : "Show all";
-      toggleJobLimit.style.display = total > JOB_LIMIT ? "inline-flex" : "none";
+      if (activeOnly) {
+        var suffix = total !== filteredTotal ? " (" + total + " total)." : ".";
+        jobsCount.textContent = "Showing " + visible.length + " of " + filteredTotal + " active jobs" + suffix;
+      } else {
+        jobsCount.textContent = "Showing " + visible.length + " of " + total + " jobs.";
+      }
     }
   }
 
@@ -202,6 +227,41 @@
     if (!jobModal) return;
     jobModal.classList.remove("open");
     jobModal.setAttribute("aria-hidden", "true");
+  }
+
+  function openCancelModal(job) {
+    if (!cancelModal || !job || !job.id) return;
+    pendingCancelJobId = job.id;
+    if (cancelModalSubtitle) {
+      var label = (job?.job_name || job?.id || "").toString();
+      cancelModalSubtitle.textContent = label ? label : "Job cancellation";
+    }
+    if (cancelConfirmInput) {
+      cancelConfirmInput.value = "";
+    }
+    if (cancelConfirmHint) {
+      cancelConfirmHint.textContent = "Confirmation required.";
+    }
+    if (cancelConfirmButton) {
+      cancelConfirmButton.disabled = true;
+    }
+    cancelModal.classList.add("open");
+    cancelModal.setAttribute("aria-hidden", "false");
+    if (cancelConfirmInput) cancelConfirmInput.focus();
+  }
+
+  function closeCancelModal() {
+    if (!cancelModal) return;
+    cancelModal.classList.remove("open");
+    cancelModal.setAttribute("aria-hidden", "true");
+    pendingCancelJobId = null;
+  }
+
+  function updateCancelState() {
+    if (!cancelConfirmInput || !cancelConfirmButton || !cancelConfirmHint) return;
+    var matches = cancelConfirmInput.value.trim().toLowerCase() === "cancel";
+    cancelConfirmButton.disabled = !matches;
+    cancelConfirmHint.textContent = matches ? "Ready to cancel." : "Confirmation required.";
   }
 
   function getPayload() {
@@ -427,13 +487,59 @@
     }
   }
 
+  async function pauseJob(jobId) {
+    if (!jobId) return;
+    setJobsStatus("Pausing job...");
+    try {
+      var res = await fetch(JOBS_ENDPOINT + "/" + encodeURIComponent(jobId) + "/pause", {
+        method: "POST"
+      });
+      var data = await res.json();
+      if (!res.ok) {
+        setJobsStatus(data && data.error ? data.error : "Unable to pause job.", true);
+        return;
+      }
+      setJobsStatus("Job paused.");
+      await refreshJobs();
+    } catch (err) {
+      setJobsStatus("Unable to pause job.", true);
+    }
+  }
+
+  async function continueJob(jobId) {
+    if (!jobId) return;
+    setJobsStatus("Resuming job...");
+    try {
+      var res = await fetch(JOBS_ENDPOINT + "/" + encodeURIComponent(jobId) + "/continue", {
+        method: "POST"
+      });
+      var data = await res.json();
+      if (!res.ok) {
+        setJobsStatus(data && data.error ? data.error : "Unable to resume job.", true);
+        return;
+      }
+      setJobsStatus("Job resumed.");
+      await refreshJobs();
+    } catch (err) {
+      setJobsStatus("Unable to resume job.", true);
+    }
+  }
+
   function handleTableClick(evt) {
     var target = evt.target;
     if (!target) return;
     var action = target.getAttribute("data-action");
     var jobId = target.getAttribute("data-id");
     if (action === "cancel") {
-      cancelJob(jobId);
+      openCancelModal(getJobById(jobId));
+      return;
+    }
+    if (action === "pause") {
+      pauseJob(jobId);
+      return;
+    }
+    if (action === "continue") {
+      continueJob(jobId);
       return;
     }
     if (action === "detail") {
@@ -468,13 +574,39 @@
         }
       });
     }
+    if (cancelModal) {
+      cancelModal.addEventListener("click", function (evt) {
+        if (evt.target && evt.target.hasAttribute("data-modal-close")) {
+          closeCancelModal();
+        }
+      });
+    }
     document.addEventListener("keydown", function (evt) {
-      if (evt.key === "Escape") closeJobModal();
+      if (evt.key === "Escape") {
+        closeJobModal();
+        closeCancelModal();
+      }
     });
-    if (toggleJobLimit) {
-      toggleJobLimit.addEventListener("click", function () {
-        showAllJobs = !showAllJobs;
-        refreshJobs();
+    if (activeOnlyToggle) {
+      activeOnly = activeOnlyToggle.checked;
+      activeOnlyToggle.addEventListener("change", function () {
+        activeOnly = activeOnlyToggle.checked;
+        renderJobs(latestJobs);
+      });
+    }
+    if (cancelConfirmInput) {
+      cancelConfirmInput.addEventListener("input", updateCancelState);
+      cancelConfirmInput.addEventListener("keydown", function (evt) {
+        if (evt.key === "Enter" && cancelConfirmButton && !cancelConfirmButton.disabled) {
+          cancelConfirmButton.click();
+        }
+      });
+    }
+    if (cancelConfirmButton) {
+      cancelConfirmButton.addEventListener("click", function () {
+        if (!pendingCancelJobId) return;
+        closeCancelModal();
+        cancelJob(pendingCancelJobId);
       });
     }
     setupRateCombos();

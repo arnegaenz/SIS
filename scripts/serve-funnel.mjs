@@ -699,7 +699,7 @@ async function runSynthSimRunner(jobs = []) {
   let updated = false;
   for (const job of jobs) {
     if (!job?.due) continue;
-    if (job.status === "canceled" || job.status === "completed") {
+    if (job.status === "canceled" || job.status === "completed" || job.status === "paused") {
       job.due = false;
       updated = true;
       continue;
@@ -753,7 +753,7 @@ async function runSynthScheduler() {
 
   for (const job of synthState.jobs) {
     if (!job) continue;
-    if (job.status === "canceled" || job.status === "completed") {
+    if (job.status === "canceled" || job.status === "completed" || job.status === "paused") {
       if (job.due) {
         job.due = false;
         changed = true;
@@ -1986,6 +1986,39 @@ const server = http.createServer(async (req, res) => {
     return send(res, 200, { job });
   }
 
+  const synthPauseMatch = pathname.match(/^\/api\/synth\/jobs\/([^/]+)\/pause$/);
+  if (synthPauseMatch && req.method === "POST") {
+    await loadSynthJobs();
+    const jobId = synthPauseMatch[1];
+    const job = synthState.jobs.find((entry) => entry?.id === jobId);
+    if (!job) return send(res, 404, { error: "Job not found" });
+    if (job.status === "completed" || job.status === "canceled") {
+      return send(res, 400, { error: "Job is already finished" });
+    }
+    job.status = "paused";
+    job.due = false;
+    job.paused_at = new Date().toISOString();
+    await saveSynthJobs();
+    return send(res, 200, { job });
+  }
+
+  const synthContinueMatch = pathname.match(/^\/api\/synth\/jobs\/([^/]+)\/continue$/);
+  if (synthContinueMatch && req.method === "POST") {
+    await loadSynthJobs();
+    const jobId = synthContinueMatch[1];
+    const job = synthState.jobs.find((entry) => entry?.id === jobId);
+    if (!job) return send(res, 404, { error: "Job not found" });
+    if (job.status === "completed" || job.status === "canceled") {
+      return send(res, 400, { error: "Job is already finished" });
+    }
+    job.status = "queued";
+    if (!job.next_run_at) job.next_run_at = new Date().toISOString();
+    job.due = false;
+    job.paused_at = "";
+    await saveSynthJobs();
+    return send(res, 200, { job });
+  }
+
   const synthResultsMatch = pathname.match(/^\/api\/synth\/jobs\/([^/]+)\/results$/);
   if (synthResultsMatch && req.method === "POST") {
     await loadSynthJobs();
@@ -1999,7 +2032,7 @@ const server = http.createServer(async (req, res) => {
     const jobId = synthResultsMatch[1];
     const job = synthState.jobs.find((entry) => entry?.id === jobId);
     if (!job) return send(res, 404, { error: "Job not found" });
-    if (job.status === "canceled" || job.status === "completed") {
+    if (job.status === "canceled" || job.status === "completed" || job.status === "paused") {
       return send(res, 200, { job, ignored: true });
     }
 
