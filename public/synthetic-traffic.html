@@ -283,6 +283,14 @@
       align-items: center;
       margin: 6px 0 12px;
       gap: 12px;
+      flex-wrap: nowrap;
+    }
+    .jobs-status {
+      flex: 1;
+      min-width: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     .jobs-filter {
       display: inline-flex;
@@ -290,6 +298,10 @@
       gap: 8px;
       font-size: 12px;
       color: var(--panel-title);
+      flex-direction: row;
+      text-transform: none;
+      letter-spacing: 0;
+      white-space: nowrap;
     }
     .jobs-filter input {
       accent-color: var(--accent);
@@ -568,7 +580,7 @@
             <p class="description">Jobs are stored on disk and updated every few seconds. Cancel queued or running jobs as needed.</p>
           </div>
           <div class="jobs-toolbar">
-            <div class="status-line" id="jobsStatus">Loading jobs...</div>
+            <div class="status-line jobs-status" id="jobsStatus">Loading jobs...</div>
             <label class="jobs-filter">
               <input type="checkbox" id="activeOnlyToggle" checked />
               Hide completed/canceled
