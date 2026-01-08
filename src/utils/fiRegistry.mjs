@@ -8,14 +8,23 @@ const __dirname = path.dirname(__filename);
 const SOURCE_TYPES = new Set(["placement", "session"]);
 const ALWAYS_SSO_INSTANCES = new Set(["advancial-prod"]);
 const UNKNOWN_INSTANCE = "unknown";
+const UNKNOWN_FI = "UNKNOWN_FI";
 
 function normalizeInstance(instance) {
   if (!instance) return UNKNOWN_INSTANCE;
   return instance.toString().toLowerCase();
 }
 
-function makeRegistryKey(fiName, instance) {
-  const name = fiName || "UNKNOWN_FI";
+function normalizeFiKey(value) {
+  if (!value) return UNKNOWN_FI;
+  const str = value.toString().trim();
+  if (!str) return UNKNOWN_FI;
+  if (str.toUpperCase() === UNKNOWN_FI) return UNKNOWN_FI;
+  return str.toLowerCase();
+}
+
+function makeRegistryKey(fiName, instance, fiLookupKey) {
+  const name = normalizeFiKey(fiLookupKey || fiName || UNKNOWN_FI);
   const inst = normalizeInstance(instance);
   return `${name}__${inst}`;
 }
@@ -48,7 +57,7 @@ function migrateRegistry(raw = {}) {
       candidates.add(null);
     }
     for (const inst of candidates) {
-      const registryKey = makeRegistryKey(fiName, inst);
+      const registryKey = makeRegistryKey(fiName, inst, value.fi_lookup_key);
       const existing = normalized[registryKey] || {
         fi_name: fiName,
         fi_lookup_key: value.fi_lookup_key || null,
@@ -58,6 +67,11 @@ function migrateRegistry(raw = {}) {
         integration_type: value.integration_type || "non-sso",
         first_seen: value.first_seen || null,
         last_seen: value.last_seen || null,
+        traffic_first_seen:
+          value.traffic_first_seen || value.first_seen || null,
+        traffic_last_seen:
+          value.traffic_last_seen || value.last_seen || null,
+        traffic_first_seen_sso: value.traffic_first_seen_sso || null,
       };
 
       // Preserve manually entered metadata fields from the source value
@@ -83,6 +97,18 @@ function migrateRegistry(raw = {}) {
       );
       existing.first_seen = pickEarlierDate(existing.first_seen, value.first_seen);
       existing.last_seen = pickLaterDate(existing.last_seen, value.last_seen);
+      existing.traffic_first_seen = pickEarlierDate(
+        existing.traffic_first_seen,
+        value.traffic_first_seen || value.first_seen
+      );
+      existing.traffic_last_seen = pickLaterDate(
+        existing.traffic_last_seen,
+        value.traffic_last_seen || value.last_seen
+      );
+      existing.traffic_first_seen_sso = pickEarlierDate(
+        existing.traffic_first_seen_sso,
+        value.traffic_first_seen_sso
+      );
       normalized[registryKey] = existing;
     }
   }
@@ -107,6 +133,8 @@ function getFiNameFromSession(s) {
     s?.fi_name ||
     s?.financial_institution ||
     s?.financial_institution_name ||
+    s?.financial_institution_lookup_key ||
+    s?.fi_lookup_key ||
     s?.institution ||
     s?.org_name ||
     "UNKNOWN_FI"
@@ -119,6 +147,8 @@ function getFiNameFromPlacement(p) {
     p?.fi_name ||
     p?.financial_institution ||
     p?.financial_institution_name ||
+    p?.financial_institution_lookup_key ||
+    p?.fi_lookup_key ||
     p?.issuer_name ||
     "UNKNOWN_FI"
   );
@@ -199,9 +229,13 @@ function addUniqueSorted(list, value) {
 }
 
 function upsertFi(registry, payload, ssoLookupSet) {
-  const fiName = payload.fi_name || "UNKNOWN_FI";
+  const fiName = payload.fi_name || UNKNOWN_FI;
   const instanceValue = payload.instance ? payload.instance.toString() : null;
-  const registryKey = makeRegistryKey(fiName, instanceValue);
+  const registryKey = makeRegistryKey(fiName, instanceValue, payload.fi_lookup_key);
+  const integrationRaw = payload.integration || "";
+  const isSsoTraffic =
+    typeof integrationRaw === "string" &&
+    integrationRaw.toUpperCase().includes("SSO");
 
   if (!registry[registryKey]) {
     registry[registryKey] = {
@@ -237,9 +271,19 @@ function upsertFi(registry, payload, ssoLookupSet) {
       !entry.last_seen || dateOnly > entry.last_seen
         ? dateOnly
         : toDateOnly(entry.last_seen);
+    entry.traffic_first_seen =
+      !entry.traffic_first_seen || dateOnly < entry.traffic_first_seen
+        ? dateOnly
+        : toDateOnly(entry.traffic_first_seen);
+    entry.traffic_last_seen =
+      !entry.traffic_last_seen || dateOnly > entry.traffic_last_seen
+        ? dateOnly
+        : toDateOnly(entry.traffic_last_seen);
   } else {
     entry.first_seen = toDateOnly(entry.first_seen);
     entry.last_seen = toDateOnly(entry.last_seen);
+    entry.traffic_first_seen = toDateOnly(entry.traffic_first_seen);
+    entry.traffic_last_seen = toDateOnly(entry.traffic_last_seen);
   }
 
   if (!entry.fi_lookup_key && payload.fi_lookup_key) {
@@ -247,6 +291,12 @@ function upsertFi(registry, payload, ssoLookupSet) {
   }
 
   entry.integration_type = determineIntegrationType(entry, ssoLookupSet);
+  if (dateOnly && payload.source === "session" && isSsoTraffic) {
+    entry.traffic_first_seen_sso =
+      !entry.traffic_first_seen_sso || dateOnly < entry.traffic_first_seen_sso
+        ? dateOnly
+        : toDateOnly(entry.traffic_first_seen_sso);
+  }
 }
 
 function normalizeEntryForOutput(nameKey, entry, ssoLookupSet) {
@@ -270,6 +320,9 @@ function normalizeEntryForOutput(nameKey, entry, ssoLookupSet) {
     ),
     first_seen: toDateOnly(entry.first_seen),
     last_seen: toDateOnly(entry.last_seen),
+    traffic_first_seen: toDateOnly(entry.traffic_first_seen),
+    traffic_last_seen: toDateOnly(entry.traffic_last_seen),
+    traffic_first_seen_sso: toDateOnly(entry.traffic_first_seen_sso),
   };
 
   // Preserve manually entered metadata fields
@@ -319,6 +372,7 @@ export function updateFiRegistry(
       fi_lookup_key: getFiLookupKey(session),
       instance: getInstanceName(session),
       source: "session",
+      integration: session?.integration || session?.source?.integration,
       seen_date:
         session?.created_on ||
         session?.created_at ||
@@ -334,6 +388,7 @@ export function updateFiRegistry(
       fi_lookup_key: getFiLookupKey(placement),
       instance: getInstanceName(placement),
       source: "placement",
+      integration: placement?.integration || placement?.source?.integration,
       seen_date:
         placement?.created_on ||
         placement?.created_at ||

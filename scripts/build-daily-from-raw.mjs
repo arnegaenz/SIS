@@ -9,6 +9,8 @@ import {
   writeDailyFile,
 } from "../src/lib/daily-rollups.mjs";
 import { isTestInstanceName } from "../src/config/testInstances.mjs";
+import { loadSsoFis } from "../src/utils/config.mjs";
+import { updateFiRegistry } from "../src/utils/fiRegistry.mjs";
 import { readRaw } from "../src/lib/rawStorage.mjs";
 import { parseDateArgs } from "./fetch-raw.mjs";
 
@@ -482,6 +484,7 @@ function mergeGaRaw(gaRaw, gaTestRaw) {
 export async function buildDailyFromRawRange({ startDate, endDate }) {
   const registry = readFiRegistry();
   const registryIndex = buildRegistryIndex(registry);
+  const ssoSet = loadSsoFis(path.resolve("src"));
   const dates = enumerateRange(startDate, endDate);
 
   for (const day of dates) {
@@ -501,6 +504,15 @@ export async function buildDailyFromRawRange({ startDate, endDate }) {
       mergedGa,
       registryIndex
     );
+    const sessions = Array.isArray(sessionsRaw?.sessions)
+      ? sessionsRaw.sessions
+      : [];
+    const placements = Array.isArray(placementsRaw?.placements)
+      ? placementsRaw.placements
+      : [];
+    if (sessions.length || placements.length) {
+      updateFiRegistry(sessions, placements, ssoSet);
+    }
     const { byFi: sessionsByFi, byInstance: sessionsByInstance } =
       aggregateSessionsFromRaw(sessionsRaw, registryIndex);
     const { byFi: placementsByFi, byInstance: placementsByInstance } =

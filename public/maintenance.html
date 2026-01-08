@@ -445,6 +445,10 @@
       padding: 0 20px;
       align-self: flex-end;
     }
+    .registry-count {
+      font-size: 12px;
+      color: var(--muted);
+    }
     .registry-body {
       display: grid;
       grid-template-columns: minmax(280px, 1.2fr) minmax(280px, 1fr);
@@ -455,7 +459,6 @@
       border: 1px solid var(--panel-border);
       border-radius: 12px;
       overflow: hidden;
-      max-height: 520px;
       display: flex;
       flex-direction: column;
     }
@@ -505,6 +508,82 @@
       background: rgba(37, 99, 235, 0.1);
       cursor: pointer;
     }
+    .registry-table-footer {
+      border-top: 1px solid var(--panel-border);
+      background: var(--surface);
+      padding: 6px 10px;
+    }
+    .registry-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(9, 11, 16, 0.6);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      z-index: 50;
+    }
+    .registry-modal.open {
+      display: flex;
+    }
+    .registry-modal-card {
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 16px;
+      max-width: 720px;
+      width: min(720px, 100%);
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.25);
+      display: grid;
+      gap: 16px;
+      padding: 20px 20px 18px;
+    }
+    .registry-modal-card h3 {
+      margin: 0;
+      font-size: 18px;
+      color: var(--panel-title);
+    }
+    .registry-modal-controls {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .registry-modal-controls .btn {
+      min-width: 120px;
+    }
+    .registry-modal-controls .btn.active {
+      border-color: var(--brand);
+      color: var(--panel-title);
+      box-shadow: inset 0 0 0 1px var(--brand);
+    }
+    .registry-modal-list {
+      max-height: 320px;
+      overflow: auto;
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+      padding: 10px;
+      background: var(--surface);
+    }
+    .registry-modal-row {
+      display: grid;
+      grid-template-columns: 22px 1fr;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 4px;
+      border-bottom: 1px solid var(--panel-border);
+    }
+    .registry-modal-row:last-child {
+      border-bottom: none;
+    }
+    .registry-modal-row label {
+      cursor: pointer;
+      color: var(--panel-title);
+    }
+    .registry-modal-meta {
+      color: var(--muted);
+      font-size: 12px;
+    }
     .registry-editor {
       border: 1px solid var(--panel-border);
       border-radius: 12px;
@@ -538,13 +617,15 @@
       color: var(--panel-title);
       padding: 8px 10px;
       font-size: 14px;
+      height: 40px;
+      line-height: 22px;
     }
     .editor-actions {
       display: flex;
       gap: 10px;
       align-items: center;
       flex-wrap: wrap;
-      margin-top: 8px;
+      margin-top: 16px;
     }
     .editor-meta {
       font-size: 12px;
@@ -1025,7 +1106,8 @@
                 </select>
               </label>
               <button class="btn secondary" id="registryReloadBtn" type="button">Reload Registry</button>
-              <button class="btn secondary" id="registryFindDupes" type="button">Find Duplicates</button>
+              <button class="btn secondary" id="registryFindDupes" type="button">Cleanup Registry</button>
+              <button class="btn secondary" id="registrySyncFiApi" type="button">Sync FI API</button>
             </div>
           <div class="registry-body">
             <div class="registry-table-wrapper">
@@ -1038,27 +1120,24 @@
                     <th data-column="fi_lookup_key" class="sortable">
                       Lookup Key <span class="sort-indicator">↕</span>
                     </th>
+                    <th data-column="instance" class="sortable">
+                      Instance <span class="sort-indicator">↕</span>
+                    </th>
                     <th data-column="integration_type" class="sortable">
                       Integration <span class="sort-indicator">↕</span>
                     </th>
-                    <th data-column="core_vendor" class="sortable">
-                      Core Vendor <span class="sort-indicator">↕</span>
-                    </th>
-                    <th data-column="core_product" class="sortable">
-                      Core Product <span class="sort-indicator">↕</span>
-                    </th>
-                    <th data-column="debit_processor" class="sortable">
-                      Debit Processor <span class="sort-indicator">↕</span>
-                    </th>
-                    <th data-column="credit_processor" class="sortable">
-                      Credit Processor <span class="sort-indicator">↕</span>
+                    <th data-column="partner" class="sortable">
+                      Partner <span class="sort-indicator">↕</span>
                     </th>
                   </tr>
                 </thead>
                 <tbody id="registryTableBody">
-                  <tr><td colspan="7">Loading…</td></tr>
+                  <tr><td colspan="5">Loading…</td></tr>
                 </tbody>
               </table>
+              <div class="registry-table-footer">
+                <div class="registry-count" id="registryCount"></div>
+              </div>
             </div>
             <div class="registry-editor" id="registryEditor">
               <div class="status-line" id="editorStatus">Select an FI row to edit its metadata.</div>
@@ -1132,6 +1211,18 @@
                     Cardholder As Of
                     <input type="date" id="editorAsOf" />
                   </label>
+                  <label>
+                    First Seen
+                    <input type="text" id="editorTrafficFirstSeen" disabled />
+                  </label>
+                  <label>
+                    First SSO Seen
+                    <input type="text" id="editorTrafficFirstSeenSso" disabled />
+                  </label>
+                  <label>
+                    Last Seen
+                    <input type="text" id="editorTrafficLastSeen" disabled />
+                  </label>
                 </fieldset>
                 <div class="editor-meta" id="editorMeta"></div>
                 <div class="editor-actions">
@@ -1143,6 +1234,29 @@
             </div>
           </div>
         </article>
+        <div class="registry-modal" id="registryUnknownModal" aria-hidden="true">
+          <div class="registry-modal-card" role="dialog" aria-modal="true" aria-labelledby="registryUnknownTitle">
+            <h3 id="registryUnknownTitle">Registry cleanup</h3>
+            <div class="registry-modal-controls">
+              <div>
+                <button class="btn secondary" type="button" id="registryUnknownTab" data-mode="unknown">Unknown</button>
+                <button class="btn secondary" type="button" id="registryDuplicateTab" data-mode="duplicate">Duplicates</button>
+              </div>
+            </div>
+            <div class="registry-modal-meta" id="registryUnknownMeta"></div>
+            <div class="registry-modal-controls">
+              <div>
+                <button class="btn secondary" type="button" id="registryUnknownSelectAll">Select all</button>
+                <button class="btn secondary" type="button" id="registryUnknownSelectNone">Select none</button>
+              </div>
+              <div>
+                <button class="btn secondary" type="button" id="registryUnknownClose">Close</button>
+                <button class="btn danger" type="button" id="registryUnknownDelete">Delete selected</button>
+              </div>
+            </div>
+            <div class="registry-modal-list" id="registryUnknownList"></div>
+          </div>
+        </div>
 
         <article class="maint-card instances-card">
           <div>
@@ -1832,8 +1946,29 @@
             const datesToRefetch = result.datesToRefetch || [];
 
             if (datesToRefetch.length === 0) {
-              setStatus("All data is complete. No refresh needed.");
-              appendLogLine("✓ All raw data for this date range is complete.");
+              const confirmMsg =
+                "All raw data for this date range is complete.\n\nRebuild metrics from cache anyway? (No refetch)";
+              if (!confirm(confirmMsg)) {
+                setStatus("All data is complete. No refresh needed.");
+                appendLogLine("✓ All raw data for this date range is complete.");
+                return;
+              }
+              setStatus(`Rebuilding from cache ${resolvedRange.start} → ${resolvedRange.end}...`);
+              appendLogLine("Rebuilding metrics from cached raw data.");
+              const params = new URLSearchParams({
+                start: resolvedRange.start,
+                end: resolvedRange.end,
+                forceRaw: "false",
+              });
+              logEl.textContent = "";
+              try {
+                await fetchAdmin(`${apiBase}/run-update/start?${params.toString()}`, { method: "POST" });
+              } catch (err) {
+                console.error("run-update/start failed", err);
+                appendLogLine("Warning: unable to start update; relying on stream.");
+              }
+              const streamUrl = `${apiBase}/run-update/stream?${params.toString()}`;
+              source = new EventSource(appendAdminKeyToUrl(streamUrl));
               return;
             }
 
@@ -2037,7 +2172,9 @@
       const instanceFilter = document.getElementById("registryInstanceFilter");
       const reloadBtn = document.getElementById("registryReloadBtn");
       const dupesBtn = document.getElementById("registryFindDupes");
+      const syncBtn = document.getElementById("registrySyncFiApi");
       const tableBody = document.getElementById("registryTableBody");
+      const registryCount = document.getElementById("registryCount");
       const statusLine = document.getElementById("editorStatus");
       const metaLine = document.getElementById("editorMeta");
       const form = document.getElementById("registryForm");
@@ -2048,6 +2185,9 @@
         fi: document.getElementById("editorFiName"),
         fiLookup: document.getElementById("editorFiLookup"),
         instance: document.getElementById("editorInstance"),
+        trafficFirstSeen: document.getElementById("editorTrafficFirstSeen"),
+        trafficFirstSeenSso: document.getElementById("editorTrafficFirstSeenSso"),
+        trafficLastSeen: document.getElementById("editorTrafficLastSeen"),
         integration: document.getElementById("editorIntegration"),
         partner: document.getElementById("editorPartner"),
         coreVendor: document.getElementById("editorCoreVendor"),
@@ -2064,6 +2204,17 @@
         ? Array.from(registryTable.querySelectorAll("thead th[data-column]"))
         : [];
       let registrySortState = { column: "fi_name", direction: "asc" };
+      const unknownModal = document.getElementById("registryUnknownModal");
+      const unknownList = document.getElementById("registryUnknownList");
+      const unknownMeta = document.getElementById("registryUnknownMeta");
+      const unknownTitle = document.getElementById("registryUnknownTitle");
+      const unknownCloseBtn = document.getElementById("registryUnknownClose");
+      const unknownDeleteBtn = document.getElementById("registryUnknownDelete");
+      const unknownSelectAllBtn = document.getElementById("registryUnknownSelectAll");
+      const unknownSelectNoneBtn = document.getElementById("registryUnknownSelectNone");
+      const unknownTabBtn = document.getElementById("registryUnknownTab");
+      const duplicateTabBtn = document.getElementById("registryDuplicateTab");
+      let cleanupMode = "unknown";
 
       function toggleRegistrySort(column) {
         if (!column) return;
@@ -2116,8 +2267,6 @@
       let filteredEntries = [];
       let selectedKey = null;
       let saving = false;
-      let showingDupes = false;
-      let duplicateRows = null;
 
       function normalizeIntegration(value) {
         if (!value) return "NON-SSO";
@@ -2149,6 +2298,9 @@
           cardholder_as_of: entry.cardholder_as_of || "",
           first_seen: entry.first_seen || "",
           last_seen: entry.last_seen || "",
+          traffic_first_seen: entry.traffic_first_seen || "",
+          traffic_last_seen: entry.traffic_last_seen || "",
+          traffic_first_seen_sso: entry.traffic_first_seen_sso || "",
           core_vendor: entry.core_vendor || "",
           core_product: entry.core_product || "",
           debit_processor: entry.debit_processor || "",
@@ -2159,6 +2311,123 @@
       function setStatus(message, kind = "") {
         statusLine.textContent = message || "";
         statusLine.className = "status-line " + kind;
+      }
+
+      function normalizeKey(value) {
+        return value ? value.toString().trim().toLowerCase() : "";
+      }
+
+      function normalizeInstanceValue(value) {
+        if (!value) return "unknown";
+        const str = value.toString().trim().toLowerCase();
+        return str || "unknown";
+      }
+
+      function getUnknownCandidates() {
+        const grouped = new Map();
+        entries.forEach((entry) => {
+          const fiKey = normalizeKey(entry.fi_lookup_key || entry.fi_name);
+          if (!fiKey) return;
+          const instance = normalizeInstanceValue(entry.instance);
+          if (!grouped.has(fiKey)) grouped.set(fiKey, { unknowns: [], known: false });
+          const bucket = grouped.get(fiKey);
+          if (instance === "unknown") {
+            bucket.unknowns.push(entry);
+          } else {
+            bucket.known = true;
+          }
+        });
+        const candidates = [];
+        grouped.forEach((bucket) => {
+          if (!bucket.known || !bucket.unknowns.length) return;
+          bucket.unknowns.forEach((entry) => candidates.push(entry));
+        });
+        return candidates;
+      }
+
+      function getDuplicateCandidates() {
+        const map = new Map();
+        entries.forEach((entry) => {
+          const fiKey = normalizeKey(entry.fi_lookup_key || entry.fi_name);
+          if (!fiKey) return;
+          const inst = normalizeInstanceValue(entry.instance);
+          const combo = `${fiKey}__${inst}`;
+          if (!map.has(combo)) map.set(combo, []);
+          map.get(combo).push(entry);
+        });
+        return Array.from(map.values())
+          .filter((list) => list.length > 1)
+          .flat();
+      }
+
+      function renderCleanupModal() {
+        if (!unknownModal || !unknownList) return;
+        const candidates =
+          cleanupMode === "duplicate" ? getDuplicateCandidates() : getUnknownCandidates();
+        unknownList.innerHTML = "";
+        if (!candidates.length) {
+          if (unknownMeta) {
+            unknownMeta.textContent =
+              cleanupMode === "duplicate"
+                ? "No duplicate FI + instance entries found."
+                : "No unknown instances found with a known instance for the same FI.";
+          }
+          unknownList.innerHTML =
+            "<div class='registry-modal-meta'>Nothing to delete.</div>";
+          if (unknownDeleteBtn) unknownDeleteBtn.disabled = true;
+          return;
+        }
+        if (unknownMeta) {
+          unknownMeta.textContent =
+            cleanupMode === "duplicate"
+              ? `${candidates.length} entries are part of duplicate FI + instance combos.`
+              : `${candidates.length} unknown entries have a known instance for the same FI.`;
+        }
+        if (unknownDeleteBtn) unknownDeleteBtn.disabled = false;
+        candidates.forEach((entry) => {
+          const row = document.createElement("div");
+          row.className = "registry-modal-row";
+          const safeId = entry.key ? entry.key.replace(/[^a-z0-9_-]/gi, "_") : Math.random().toString(36).slice(2);
+          const id = `unknown-${safeId}`;
+          row.innerHTML = `
+            <input type="checkbox" id="${id}" data-key="${entry.key}" checked />
+            <label for="${id}">
+              ${entry.fi_name} — instance: ${entry.instance || "unknown"}
+              <div class="registry-modal-meta">${entry.fi_lookup_key || "no lookup key"} • ${entry.key}</div>
+            </label>
+          `;
+          unknownList.appendChild(row);
+        });
+      }
+
+      function setCleanupMode(mode) {
+        cleanupMode = mode === "duplicate" ? "duplicate" : "unknown";
+        if (unknownTabBtn) {
+          unknownTabBtn.classList.toggle("active", cleanupMode === "unknown");
+        }
+        if (duplicateTabBtn) {
+          duplicateTabBtn.classList.toggle("active", cleanupMode === "duplicate");
+        }
+        if (unknownTitle) {
+          unknownTitle.textContent =
+            cleanupMode === "duplicate"
+              ? "Duplicate cleanup"
+              : "Unknown-instance cleanup";
+        }
+        renderCleanupModal();
+      }
+
+      function openUnknownModal() {
+        if (!unknownModal) return;
+        setCleanupMode("unknown");
+        unknownModal.classList.add("open");
+        unknownModal.setAttribute("aria-hidden", "false");
+      }
+
+      function closeUnknownModal() {
+        if (!unknownModal) return;
+        unknownModal.classList.remove("open");
+        unknownModal.setAttribute("aria-hidden", "true");
       }
 
       async function fetchRegistryPayload() {
@@ -2242,12 +2511,20 @@
         });
         const sorted = sortRegistryEntries(filtered);
         filteredEntries = sorted;
+        if (registryCount) {
+          const total = entries.length;
+          const shown = sorted.length;
+          registryCount.textContent =
+            search || integrationValue || instanceValue || partnerValue
+              ? `Filtered: ${shown} of ${total}`
+              : `Total: ${total}`;
+        }
 
         tableBody.innerHTML = "";
         if (!sorted.length) {
           const tr = document.createElement("tr");
           const td = document.createElement("td");
-          td.colSpan = 7;
+          td.colSpan = 5;
           td.textContent = "No registry entries match the current filters.";
           tr.appendChild(td);
           tableBody.appendChild(tr);
@@ -2264,11 +2541,9 @@
           tr.innerHTML = `
             <td>${entry.fi_name}</td>
             <td>${entry.fi_lookup_key || "—"}</td>
+            <td>${entry.instance || "—"}</td>
             <td>${entry.integration_type}</td>
-            <td>${entry.core_vendor || "—"}</td>
-            <td>${entry.core_product || "—"}</td>
-            <td>${entry.debit_processor || "—"}</td>
-            <td>${entry.credit_processor || "—"}</td>
+            <td>${entry.partner || "—"}</td>
           `;
           tableBody.appendChild(tr);
         });
@@ -2277,12 +2552,15 @@
 
       function populateForm(entry) {
         if (!entry) {
-          inputs.fi.value = "";
-          inputs.fiLookup.value = "";
-          inputs.instance.value = "";
-          inputs.integration.value = "NON-SSO";
-          inputs.partner.value = "";
-          inputs.coreVendor.value = "";
+        inputs.fi.value = "";
+        inputs.fiLookup.value = "";
+        inputs.instance.value = "";
+        inputs.trafficFirstSeen.value = "";
+        inputs.trafficFirstSeenSso.value = "";
+        inputs.trafficLastSeen.value = "";
+        inputs.integration.value = "NON-SSO";
+        inputs.partner.value = "";
+        inputs.coreVendor.value = "";
           inputs.coreProduct.value = "";
           inputs.debitProcessor.value = "";
           inputs.creditProcessor.value = "";
@@ -2298,6 +2576,11 @@
         inputs.fi.value = entry.fi_name;
         inputs.fiLookup.value = entry.fi_lookup_key || entry.fi_name || "";
         inputs.instance.value = entry.instance;
+        inputs.trafficFirstSeen.value =
+          entry.traffic_first_seen || entry.first_seen || "";
+        inputs.trafficFirstSeenSso.value = entry.traffic_first_seen_sso || "";
+        inputs.trafficLastSeen.value =
+          entry.traffic_last_seen || entry.last_seen || "";
         inputs.integration.value = entry.integration_type || "NON-SSO";
         inputs.partner.value = entry.partner || "";
         inputs.coreVendor.value = entry.core_vendor || "";
@@ -2317,19 +2600,7 @@
         }
         inputs.source.value = sourceValue;
         inputs.asOf.value = entry.cardholder_as_of || "";
-        const metaParts = [
-          `First seen: ${entry.first_seen || "—"}`,
-          `Last seen: ${entry.last_seen || "—"}`,
-        ];
-        const extraMeta = [];
-        if (entry.core_vendor) extraMeta.push(`Core Vendor: ${entry.core_vendor}`);
-        if (entry.core_product) extraMeta.push(`Core Product: ${entry.core_product}`);
-        if (entry.debit_processor) extraMeta.push(`Debit Processor: ${entry.debit_processor}`);
-        if (entry.credit_processor) extraMeta.push(`Credit Processor: ${entry.credit_processor}`);
-        if (extraMeta.length) {
-          metaParts.push(extraMeta.join(" • "));
-        }
-        metaLine.textContent = metaParts.join(" • ");
+        metaLine.textContent = "";
         saveBtn.disabled = false;
         resetBtn.disabled = false;
         deleteBtn.disabled = false;
@@ -2344,12 +2615,12 @@
         const entry = getEntryByKey(key);
         populateForm(entry);
         setStatus(entry ? `Editing ${entry.fi_name} (${entry.instance})` : "Select an FI row to edit its metadata.");
-        renderTable(showingDupes ? duplicateRows : undefined);
+        renderTable();
       }
 
       async function loadRegistry() {
         setStatus("Loading registry…");
-        tableBody.innerHTML = "<tr><td colspan='7'>Loading…</td></tr>";
+        tableBody.innerHTML = "<tr><td colspan='5'>Loading…</td></tr>";
         try {
           const payload = await fetchRegistryPayload();
           if (!payload) {
@@ -2363,13 +2634,13 @@
         } catch (err) {
           console.error("registry load failed", err);
           setStatus("Failed to load registry.", "error");
-          tableBody.innerHTML = "<tr><td colspan='7'>Unable to load registry.</td></tr>";
+          tableBody.innerHTML = "<tr><td colspan='5'>Unable to load registry.</td></tr>";
         }
       }
       async function reloadRegistryFromData() {
         if (!window.confirm("Reload registry from data? New FI + instance combos will be added; existing entries are untouched.")) return;
         setStatus("Scanning data for new FI + instance combos…");
-        tableBody.innerHTML = "<tr><td colspan='7'>Scanning…</td></tr>";
+        tableBody.innerHTML = "<tr><td colspan='5'>Scanning…</td></tr>";
         try {
           if (!getAdminKey()) {
             setStatus("Admin key required to update registry.", "error");
@@ -2417,6 +2688,7 @@
               const daily = await fetch(`/daily?date=${file.replace(".json", "")}`).then((r) => r.json());
               const fiInstances = daily?.fi_instances || {};
               const fiEntries = daily?.fi || {};
+              const fiInstanceMap = new Map();
 
               const addCombo = (fiKeyRaw, instanceRaw) => {
                 const fiKey = (fiKeyRaw || "").toString().trim();
@@ -2436,16 +2708,30 @@
               };
 
               Object.entries(fiInstances).forEach(([key, val]) => {
+                const fiKey = normalizeFiKey(
+                  val.fi_lookup_key || val.fi_name || val.fi || key.split("__")[0]
+                );
+                const instValue = val.instance || key.split("__")[1];
+                if (fiKey) {
+                  if (!fiInstanceMap.has(fiKey)) fiInstanceMap.set(fiKey, new Set());
+                  if (instValue) fiInstanceMap.get(fiKey).add(instValue);
+                }
                 addCombo(val.fi_lookup_key || val.fi_name || val.fi || key.split("__")[0], val.instance || key.split("__")[1]);
               });
 
               Object.entries(fiEntries).forEach(([fiName, entry]) => {
-                const instances =
-                  (Array.isArray(entry.ga_instances) && entry.ga_instances.length
-                    ? entry.ga_instances
-                    : entry.instance
-                    ? [entry.instance]
-                    : ["unknown"]);
+                const fiKey = normalizeFiKey(fiName);
+                let instances = [];
+                if (Array.isArray(entry.ga_instances) && entry.ga_instances.length) {
+                  instances = entry.ga_instances;
+                } else if (entry.instance) {
+                  instances = [entry.instance];
+                } else if (fiKey && fiInstanceMap.has(fiKey)) {
+                  // Instances already captured via fi_instances; skip adding "unknown".
+                  instances = [];
+                } else {
+                  instances = ["unknown"];
+                }
                 instances.forEach((inst) => addCombo(fiName, inst));
               });
             } catch (err) {
@@ -2477,6 +2763,105 @@
         } catch (err) {
           console.error("reload scan failed", err);
           setStatus(err?.message || "Failed to reload registry from data.", "error");
+        }
+      }
+
+      async function syncRegistryFromFiApi() {
+        if (!getAdminKey()) {
+          setStatus("Admin key required to sync FI API data.", "error");
+          return;
+        }
+        if (!window.confirm("Sync from FI API? Only missing FI + instance combos will be added; existing entries are untouched.")) {
+          return;
+        }
+        if (syncBtn) syncBtn.disabled = true;
+        setStatus("Loading FI API data…");
+        try {
+          const res = await fetch(`${apiBase}/fi-api-data`, { cache: "no-store" });
+          if (!res.ok) throw new Error(`FI API load failed: ${res.status}`);
+          const data = await res.json();
+          const fis = Array.isArray(data?.fis) ? data.fis : [];
+
+          const existing = new Set(
+            entries.map((entry) => {
+              const fiKey = normalizeKey(entry.fi_lookup_key || entry.fi_name);
+              const inst = normalizeInstanceValue(entry.instance);
+              return `${fiKey}__${inst}`;
+            })
+          );
+
+          let added = 0;
+          let skippedExisting = 0;
+          let skippedMissing = 0;
+          let failed = 0;
+
+          for (const fi of fis) {
+            const fiLookup =
+              fi?.fi_lookup_key ||
+              fi?.lookup_key ||
+              fi?.financial_institution ||
+              fi?.financial_institution_key ||
+              "";
+            const instanceRaw =
+              fi?._instance || fi?.instance || fi?.instance_name || "";
+            const fiName =
+              fi?.fi_name ||
+              fi?.name ||
+              fi?.financial_institution_name ||
+              fi?.financial_institution ||
+              fiLookup ||
+              "";
+            const lookupNorm = normalizeKey(fiLookup);
+            const instNorm = normalizeInstanceValue(instanceRaw);
+            if (!lookupNorm || !instanceRaw || instNorm === "unknown") {
+              skippedMissing += 1;
+              continue;
+            }
+            const combo = `${lookupNorm}__${instNorm}`;
+            if (existing.has(combo)) {
+              skippedExisting += 1;
+              continue;
+            }
+            try {
+              const payload = {
+                key: combo,
+                updates: {
+                  fi_name: fiName,
+                  fi_lookup_key: fiLookup.toString().trim(),
+                  instance: instanceRaw.toString().trim(),
+                  integration_type: "UNKNOWN",
+                },
+              };
+              const updateRes = await fetchAdmin("/fi-registry/update", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+              });
+              if (!updateRes.ok) {
+                const errText = await updateRes.text();
+                throw new Error(errText || `HTTP ${updateRes.status}`);
+              }
+              added += 1;
+              existing.add(combo);
+            } catch (err) {
+              console.warn("FI API sync failed for", fiLookup, instanceRaw, err);
+              failed += 1;
+            }
+          }
+
+          await loadRegistry();
+          const summary = [
+            `FI API sync complete: added ${added}`,
+            `skipped ${skippedExisting} existing`,
+            `skipped ${skippedMissing} missing lookup/instance`,
+          ];
+          if (failed) summary.push(`failed ${failed}`);
+          setStatus(summary.join(", ") + ".", "success");
+        } catch (err) {
+          console.error("FI API sync failed", err);
+          setStatus(err?.message || "Failed to sync FI API data.", "error");
+        } finally {
+          if (syncBtn) syncBtn.disabled = false;
         }
       }
 
@@ -2610,36 +2995,78 @@
       instanceFilter.addEventListener("change", renderTable);
       partnerFilter?.addEventListener("change", renderTable);
       reloadBtn.addEventListener("click", reloadRegistryFromData);
+      syncBtn?.addEventListener("click", syncRegistryFromFiApi);
       dupesBtn?.addEventListener("click", () => {
         if (!entries.length) {
           setStatus("Load the registry first.");
           return;
         }
-        if (showingDupes) {
-          showingDupes = false;
-          duplicateRows = null;
-          setStatus("Showing filtered registry.");
-          renderTable();
-          return;
-        }
-        const map = new Map();
-        entries.forEach((entry) => {
-          const fiKey = (entry.fi_lookup_key || "").toString().trim().toLowerCase();
-          if (!fiKey) return;
-          const inst = (entry.instance || "unknown").toString().trim().toLowerCase();
-          const combo = `${fiKey}__${inst}`;
-          if (!map.has(combo)) map.set(combo, []);
-          map.get(combo).push(entry);
+        openUnknownModal();
+      });
+
+      unknownCloseBtn?.addEventListener("click", closeUnknownModal);
+      unknownModal?.addEventListener("click", (event) => {
+        if (event.target === unknownModal) closeUnknownModal();
+      });
+      unknownSelectAllBtn?.addEventListener("click", () => {
+        unknownList?.querySelectorAll("input[type='checkbox']").forEach((el) => {
+          el.checked = true;
         });
-        const dupes = Array.from(map.values()).filter((list) => list.length > 1).flat();
-        if (!dupes.length) {
-          setStatus("No duplicate FI+instance entries found.");
+      });
+      unknownSelectNoneBtn?.addEventListener("click", () => {
+        unknownList?.querySelectorAll("input[type='checkbox']").forEach((el) => {
+          el.checked = false;
+        });
+      });
+      unknownTabBtn?.addEventListener("click", () => {
+        setCleanupMode("unknown");
+      });
+      duplicateTabBtn?.addEventListener("click", () => {
+        setCleanupMode("duplicate");
+      });
+      unknownDeleteBtn?.addEventListener("click", async () => {
+        if (!getAdminKey()) {
+          setStatus("Admin key required to delete registry entries.", "error");
           return;
         }
-        showingDupes = true;
-        duplicateRows = dupes;
-        setStatus(`Showing ${dupes.length} duplicate entries (same FI+instance).`);
-        renderTable(duplicateRows);
+        const checks = Array.from(
+          unknownList?.querySelectorAll("input[type='checkbox']:checked") || []
+        );
+        if (!checks.length) {
+          setStatus("No entries selected.");
+          return;
+        }
+        const label =
+          cleanupMode === "duplicate" ? "duplicate entries" : "unknown-instance entries";
+        if (!window.confirm(`Delete ${checks.length} ${label}? This cannot be undone.`)) {
+          return;
+        }
+        if (unknownDeleteBtn) unknownDeleteBtn.disabled = true;
+        setStatus("Deleting unknown entries…");
+        for (const input of checks) {
+          const key = input.dataset.key;
+          if (!key) continue;
+          try {
+            const res = await fetchAdmin("/fi-registry/delete", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ key }),
+            });
+            if (!res.ok) {
+              const errText = await res.text();
+              throw new Error(errText || `HTTP ${res.status}`);
+            }
+          } catch (err) {
+            console.warn("delete failed", key, err);
+          }
+        }
+        await loadRegistry();
+        setStatus(
+          cleanupMode === "duplicate" ? "Duplicate entries deleted." : "Unknown entries deleted.",
+          "success"
+        );
+        if (unknownDeleteBtn) unknownDeleteBtn.disabled = false;
+        closeUnknownModal();
       });
 
       form.addEventListener("submit", (event) => {
