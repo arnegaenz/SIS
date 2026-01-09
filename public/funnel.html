@@ -626,6 +626,59 @@
         max-width: 100%;
         overflow: hidden;
       }
+      .breakdown-details-wide {
+        margin-top: 16px;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: var(--panel);
+        box-shadow: 0 18px 45px rgba(15, 23, 42, 0.12);
+        padding: 14px;
+        position: relative;
+      }
+      .breakdown-details-wide::before {
+        content: "";
+        position: absolute;
+        top: -8px;
+        left: var(--breakdown-anchor, 24px);
+        width: 14px;
+        height: 14px;
+        background: var(--panel);
+        border-left: 1px solid var(--border);
+        border-top: 1px solid var(--border);
+        transform: translateX(-50%) rotate(45deg);
+      }
+      .breakdown-details-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 10px;
+      }
+      .breakdown-details-title {
+        font-weight: 700;
+        color: var(--panel-title);
+        font-size: 0.95rem;
+      }
+      .breakdown-details-close {
+        border: 1px solid var(--border);
+        background: transparent;
+        color: var(--muted);
+        border-radius: 8px;
+        padding: 6px 10px;
+        font-size: 0.8rem;
+        cursor: pointer;
+      }
+      .breakdown-details-close:hover {
+        color: var(--panel-title);
+        border-color: var(--panel-border);
+      }
+      .breakdown-item.active {
+        box-shadow: 0 12px 30px rgba(15, 23, 42, 0.18);
+        border-color: rgba(59, 130, 246, 0.45);
+      }
+      .breakdown-item.active .breakdown-label {
+        color: var(--panel-title);
+      }
 
       .placement-loading {
         display: flex;
@@ -1275,6 +1328,13 @@
                 </div>
               </details>
             </div>
+          </div>
+          <div class="breakdown-details-wide" id="breakdownDetailsArea" hidden>
+            <div class="breakdown-details-header">
+              <div class="breakdown-details-title" id="breakdownDetailsTitle"></div>
+              <button class="breakdown-details-close" id="breakdownDetailsClose" type="button">Close</button>
+            </div>
+            <div id="breakdownDetailsBody"></div>
           </div>
         </div>
       </div>
@@ -4113,17 +4173,94 @@ function applyColumnTitles(root = document) {
 
       // Placement Details Cache and Functions
       const placementDetailsCache = new Map();
+      const placementDetailsContentMap = new WeakMap();
+      const placementDetailsParentMap = new WeakMap();
 
       /**
        * Initialize placement details event handlers
        */
       function initPlacementDetailsHandlers() {
         const detailsElements = document.querySelectorAll('.placement-details');
+        const detailsArea = document.getElementById('breakdownDetailsArea');
+        const detailsBody = document.getElementById('breakdownDetailsBody');
+        const detailsTitle = document.getElementById('breakdownDetailsTitle');
+        const detailsClose = document.getElementById('breakdownDetailsClose');
+        let activeDetails = null;
+        let activeCard = null;
+
+        const typeLabels = {
+          success: 'Successful Placements',
+          system: 'System Failures',
+          ux: 'UX Failures',
+          nojobs: 'Sessions Without Jobs',
+        };
+
+        function closeDetails(details) {
+          if (!details) return;
+          const content = details.querySelector('.placement-content') || placementDetailsContentMap.get(details);
+          const parent = content ? placementDetailsParentMap.get(content) : null;
+          if (content && parent && content.parentElement !== parent) {
+            parent.appendChild(content);
+          }
+          details.open = false;
+        }
+
+        function closeAllDetails() {
+          detailsElements.forEach((details) => closeDetails(details));
+          if (detailsBody) detailsBody.innerHTML = '';
+          if (detailsArea) detailsArea.hidden = true;
+          if (detailsArea) detailsArea.removeAttribute('data-type');
+          if (activeCard) activeCard.classList.remove('active');
+          activeDetails = null;
+          activeCard = null;
+        }
+
+        if (detailsClose) {
+          detailsClose.addEventListener('click', () => closeAllDetails());
+        }
+
+        function openDetails(details) {
+          if (!details) return;
+          const type = details.getAttribute('data-type');
+          closeAllDetails();
+          activeDetails = details;
+          activeCard = details.closest('.breakdown-item');
+          if (activeCard) activeCard.classList.add('active');
+          details.open = true;
+          const content = details.querySelector('.placement-content') || placementDetailsContentMap.get(details);
+          if (content && detailsBody) {
+            if (!placementDetailsParentMap.has(content)) {
+              placementDetailsParentMap.set(content, content.parentElement);
+            }
+            placementDetailsContentMap.set(details, content);
+            detailsBody.innerHTML = '';
+            detailsBody.appendChild(content);
+          }
+          if (detailsTitle) {
+            detailsTitle.textContent = typeLabels[type] || 'Placement Details';
+          }
+          if (detailsArea) {
+            detailsArea.hidden = false;
+            if (type) detailsArea.setAttribute('data-type', type);
+            if (activeCard) {
+              const cardRect = activeCard.getBoundingClientRect();
+              const areaRect = detailsArea.getBoundingClientRect();
+              const anchor = Math.max(20, Math.min(areaRect.width - 20, (cardRect.left + cardRect.width / 2) - areaRect.left));
+              detailsArea.style.setProperty('--breakdown-anchor', `${anchor}px`);
+            }
+          }
+          loadPlacementDetails(details);
+        }
 
         detailsElements.forEach(details => {
-          details.addEventListener('toggle', async (event) => {
-            if (details.open) {
-              await loadPlacementDetails(details);
+          const summary = details.querySelector('summary');
+          if (!summary) return;
+          summary.addEventListener('click', (event) => {
+            event.preventDefault();
+            if (activeDetails === details) {
+              closeAllDetails();
+            } else {
+              openDetails(details);
             }
           });
         });
@@ -4134,21 +4271,28 @@ function applyColumnTitles(root = document) {
        */
       async function loadPlacementDetails(detailsElement) {
         const type = detailsElement.getAttribute('data-type');
-        const container = detailsElement.querySelector('.placement-table-container');
-        const loadingEl = detailsElement.querySelector('.placement-loading');
-        const errorEl = detailsElement.querySelector('.placement-error');
+        const sharedBody = document.getElementById('breakdownDetailsBody');
+        const contentRoot =
+          detailsElement.querySelector('.placement-content') ||
+          placementDetailsContentMap.get(detailsElement) ||
+          sharedBody?.querySelector('.placement-content');
+        const container = contentRoot?.querySelector('.placement-table-container') || null;
+        const loadingEl = contentRoot?.querySelector('.placement-loading') || null;
+        const errorEl = contentRoot?.querySelector('.placement-error') || null;
 
         // Check cache first
         const cacheKey = getCacheKey(type);
         if (placementDetailsCache.has(cacheKey)) {
-          renderPlacementTable(container, placementDetailsCache.get(cacheKey), type);
+          if (container) {
+            renderPlacementTable(container, placementDetailsCache.get(cacheKey), type);
+          }
           return;
         }
 
         // Show loading state
-        loadingEl.style.display = 'flex';
-        errorEl.style.display = 'none';
-        container.innerHTML = '';
+        if (loadingEl) loadingEl.style.display = 'flex';
+        if (errorEl) errorEl.style.display = 'none';
+        if (container) container.innerHTML = '';
 
         try {
           const data = await fetchPlacementDetails(type);
@@ -4157,16 +4301,20 @@ function applyColumnTitles(root = document) {
           placementDetailsCache.set(cacheKey, data);
 
           // Hide loading
-          loadingEl.style.display = 'none';
+          if (loadingEl) loadingEl.style.display = 'none';
 
           // Render table
-          renderPlacementTable(container, data, type);
+          if (container) {
+            renderPlacementTable(container, data, type);
+          }
 
         } catch (error) {
           console.error('Failed to load placement details:', error);
-          loadingEl.style.display = 'none';
-          errorEl.style.display = 'block';
-          errorEl.textContent = `Failed to load placements: ${error.message}`;
+          if (loadingEl) loadingEl.style.display = 'none';
+          if (errorEl) {
+            errorEl.style.display = 'block';
+            errorEl.textContent = `Failed to load placements: ${error.message}`;
+          }
         }
       }
 
@@ -4865,6 +5013,13 @@ function applyColumnTitles(root = document) {
         const detailsElements = document.querySelectorAll('.placement-details');
         detailsElements.forEach(details => {
           details.open = false;
+        });
+        const detailsArea = document.getElementById('breakdownDetailsArea');
+        const detailsBody = document.getElementById('breakdownDetailsBody');
+        if (detailsBody) detailsBody.innerHTML = '';
+        if (detailsArea) detailsArea.hidden = true;
+        document.querySelectorAll('.breakdown-item.active').forEach((el) => {
+          el.classList.remove('active');
         });
       }
 
