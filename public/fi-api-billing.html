@@ -1,0 +1,391 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Billing Summary</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <link rel="stylesheet" href="./sis-shared.css?v=navfix" />
+  <link rel="stylesheet" href="./assets/css/sis.css">
+  <link rel="stylesheet" href="./assets/css/mobile.css">
+  <script src="./assets/js/passcode-gate.js"></script>
+  <script defer src="./assets/js/sis.js"></script>
+  <script src="./assets/js/config.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      background: var(--bg);
+      color: var(--panel-title);
+      font-family: "Inter", "Segoe UI", ui-sans-serif, system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    .billing-wrap {
+      max-width: 1100px;
+      margin: 32px auto 80px;
+      padding: 0 20px;
+    }
+    .billing-card {
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 18px;
+      padding: 24px;
+      box-shadow: 0 18px 45px rgba(15, 23, 42, 0.12);
+    }
+    .billing-header {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .billing-title {
+      margin: 0;
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--ink);
+    }
+    .billing-subtitle {
+      margin: 4px 0 0;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .billing-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    .billing-status {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+    .billing-loading {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--panel-border);
+      background: var(--surface);
+      color: var(--muted);
+      font-size: 13px;
+      margin-top: 8px;
+    }
+    .billing-loading.active {
+      display: inline-flex;
+    }
+    .billing-spinner {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      border: 2px solid var(--panel-border);
+      border-top-color: var(--accent);
+      animation: billingSpin 0.8s linear infinite;
+    }
+    @keyframes billingSpin {
+      to { transform: rotate(360deg); }
+    }
+    .billing-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 14px;
+      margin-top: 18px;
+    }
+    .billing-tile {
+      border-radius: 14px;
+      border: 1px solid var(--panel-border);
+      background: var(--surface);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .billing-tile h3 {
+      margin: 0;
+      font-size: 14px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .billing-tile .value {
+      font-size: 26px;
+      font-weight: 700;
+      color: var(--panel-title);
+    }
+    .billing-tile .meta {
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .billing-details {
+      margin-top: 12px;
+      border-top: 1px solid var(--panel-border);
+      padding-top: 10px;
+    }
+    .billing-details summary {
+      cursor: pointer;
+      font-weight: 600;
+      color: var(--accent);
+      list-style: none;
+    }
+    .billing-details summary::-webkit-details-marker {
+      display: none;
+    }
+    .billing-details summary::before {
+      content: "▸";
+      display: inline-block;
+      margin-right: 6px;
+      transition: transform 0.2s ease;
+    }
+    .billing-details[open] summary::before {
+      transform: rotate(90deg);
+    }
+    .billing-list {
+      margin: 10px 0 0;
+      padding: 0;
+      list-style: none;
+      max-height: 240px;
+      overflow: auto;
+      border: 1px solid var(--panel-border);
+      border-radius: 10px;
+      background: var(--panel-bg);
+    }
+    .billing-list li {
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--panel-border);
+      font-size: 13px;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .billing-list li:last-child {
+      border-bottom: none;
+    }
+    .billing-list .fi-name {
+      font-weight: 600;
+      color: var(--panel-title);
+    }
+    .billing-list .fi-key {
+      color: var(--muted);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+      font-size: 12px;
+    }
+    .billing-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 18px;
+      font-size: 14px;
+    }
+    .billing-table th,
+    .billing-table td {
+      text-align: left;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--panel-border);
+    }
+    .billing-table th {
+      color: var(--muted);
+      text-transform: uppercase;
+      font-size: 12px;
+      letter-spacing: 0.04em;
+    }
+    .billing-table td:last-child,
+    .billing-table th:last-child {
+      text-align: right;
+    }
+    .billing-footnote {
+      margin-top: 14px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .billing-footnote b {
+      color: var(--panel-title);
+    }
+  </style>
+</head>
+<body>
+  <main class="sis-content">
+    <div class="billing-wrap">
+      <div class="billing-card">
+        <div class="billing-header">
+          <div>
+            <h1 class="billing-title">Billing Summary</h1>
+            <div class="billing-subtitle">Active FI counts for Marquis + Digital Onboarding.</div>
+            <div class="billing-status" id="billingStatus">Loading…</div>
+          </div>
+          <div class="billing-actions"></div>
+        </div>
+        <div class="billing-loading" id="billingLoading">
+          <span class="billing-spinner" aria-hidden="true"></span>
+          <span>Loading FI API data…</span>
+        </div>
+
+        <div class="billing-grid">
+          <div class="billing-tile">
+            <h3>Marquis</h3>
+            <div class="value" id="billingMarquis">—</div>
+            <div class="meta" id="billingMarquisMeta">Active FIs</div>
+            <details class="billing-details" id="billingMarquisDetails">
+              <summary>View FI list</summary>
+              <ul class="billing-list" id="billingMarquisList"></ul>
+            </details>
+          </div>
+          <div class="billing-tile">
+            <h3>Digital Onboarding</h3>
+            <div class="value" id="billingDigital">—</div>
+            <div class="meta" id="billingDigitalMeta">Active FIs</div>
+            <details class="billing-details" id="billingDigitalDetails">
+              <summary>View FI list</summary>
+              <ul class="billing-list" id="billingDigitalList"></ul>
+            </details>
+          </div>
+        </div>
+
+        <div class="billing-footnote" id="billingUpdated"></div>
+        <div class="billing-footnote" id="billingSystemNote">System FIs are hidden.</div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    function resolveApiBase() {
+      if (typeof window.SIS_API_BASE === "string" && window.SIS_API_BASE) {
+        return window.SIS_API_BASE.replace(/\/+$/, "");
+      }
+      if (window.location.protocol === "http:" || window.location.protocol === "https:") {
+        return window.location.origin;
+      }
+      return "http://localhost:8787";
+    }
+
+    const apiBase = resolveApiBase();
+    const targetInstances = [
+      { label: "Marquis", keys: ["marquis"] },
+      { label: "Digital Onboarding", keys: ["digital-onboarding", "digitalonboarding"] }
+    ];
+
+    const statusEl = document.getElementById("billingStatus");
+    const marquisEl = document.getElementById("billingMarquis");
+    const digitalEl = document.getElementById("billingDigital");
+    const marquisMeta = document.getElementById("billingMarquisMeta");
+    const digitalMeta = document.getElementById("billingDigitalMeta");
+    const marquisList = document.getElementById("billingMarquisList");
+    const digitalList = document.getElementById("billingDigitalList");
+    const updatedEl = document.getElementById("billingUpdated");
+    const loadingEl = document.getElementById("billingLoading");
+
+    function normalizeInstance(value) {
+      if (!value) return "";
+      const raw = value.toString().trim().toLowerCase();
+      if (!raw) return "";
+      return raw.replace(/[\s_]+/g, "-");
+    }
+
+    function isActive(fi) {
+      const v = fi?.active ?? fi?.is_active ?? fi?.enabled ?? null;
+      if (typeof v === "boolean") return v;
+      if (typeof v === "string") return v.toLowerCase() === "true";
+      return Boolean(v);
+    }
+
+    function isSystemFi(fi) {
+      const key = (fi?.fi_lookup_key || fi?.lookup_key || fi?.financial_institution || "")
+        .toString()
+        .trim()
+        .toLowerCase();
+      const name = (fi?.fi_name || fi?.name || "")
+        .toString()
+        .trim()
+        .toLowerCase();
+      return key === "default" || key === "admin" || name === "default" || name === "admin";
+    }
+
+    function matchesInstance(inst, keys) {
+      if (!inst) return false;
+      const norm = normalizeInstance(inst);
+      return keys.some((key) => norm === key);
+    }
+
+    function setLoadingState(isLoading) {
+      if (isLoading) {
+        statusEl.textContent = "Loading FI API data…";
+        if (loadingEl) loadingEl.classList.add("active");
+        return;
+      }
+      if (loadingEl) loadingEl.classList.remove("active");
+    }
+
+    async function loadBillingSummary() {
+      setLoadingState(true);
+        try {
+          const res = await fetch(`${apiBase}/fi-api-data`, { cache: "no-store" });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        const fis = Array.isArray(data?.fis) ? data.fis : [];
+
+        const counts = targetInstances.map((inst) => ({
+          label: inst.label,
+          total: 0,
+          active: 0,
+          inactive: 0,
+          activeList: [],
+        }));
+
+        for (const fi of fis) {
+          const instName = fi?._instance || fi?.instance || "";
+          const idx = targetInstances.findIndex((inst) =>
+            matchesInstance(instName, inst.keys)
+          );
+          if (idx === -1) continue;
+          if (isSystemFi(fi)) continue;
+          counts[idx].total += 1;
+          if (isActive(fi)) {
+            counts[idx].active += 1;
+            counts[idx].activeList.push({
+              name: fi?.fi_name || fi?.name || "Unknown FI",
+              key: fi?.fi_lookup_key || fi?.lookup_key || fi?.financial_institution || "",
+            });
+          } else {
+            counts[idx].inactive += 1;
+          }
+        }
+
+        marquisEl.textContent = counts[0].active.toLocaleString();
+        digitalEl.textContent = counts[1].active.toLocaleString();
+        marquisMeta.textContent = `${counts[0].active.toLocaleString()} active / ${counts[0].inactive.toLocaleString()} inactive`;
+        digitalMeta.textContent = `${counts[1].active.toLocaleString()} active / ${counts[1].inactive.toLocaleString()} inactive`;
+
+        const renderList = (listEl, items) => {
+          if (!listEl) return;
+          if (!items.length) {
+            listEl.innerHTML = "<li><span class='fi-name'>No active FIs</span></li>";
+            return;
+          }
+          const sorted = items.slice().sort((a, b) => a.name.localeCompare(b.name));
+          listEl.innerHTML = sorted
+            .map((fi) => `
+              <li>
+                <span class="fi-name">${fi.name}</span>
+                <span class="fi-key">${fi.key || "—"}</span>
+              </li>
+            `)
+            .join("");
+        };
+
+        renderList(marquisList, counts[0].activeList);
+        renderList(digitalList, counts[1].activeList);
+
+        const timestamp = new Date().toLocaleString();
+        statusEl.textContent = "Loaded.";
+        updatedEl.textContent = `Last refreshed: ${timestamp}`;
+      } catch (err) {
+        console.error("Billing summary load failed", err);
+        statusEl.textContent = "Failed to load FI API data.";
+      } finally {
+        setLoadingState(false);
+      }
+    }
+
+    loadBillingSummary();
+  </script>
+</body>
+</html>

@@ -1,9 +1,11 @@
 (function (global) {
   var FULL_PASSCODE = "12345678";
   var LIMITED_PASSCODE = "1234";
+  var BILLING_PASSCODE = "BILLING2026";
   var STORAGE_KEY = "sis_passcode_ok";
   var ACCESS_KEY = "sis_access_level";
   var LIMITED_PAGES = ["funnel.html", "troubleshoot.html"];
+  var BILLING_PAGES = ["fi-api-billing.html"];
 
   function getPageName() {
     try {
@@ -23,10 +25,19 @@
     return false;
   }
 
+  function isBillingAllowedPage() {
+    var page = getPageName().toLowerCase();
+    if (page === "" || page === "/") page = "index.html";
+    for (var i = 0; i < BILLING_PAGES.length; i++) {
+      if (page === BILLING_PAGES[i]) return true;
+    }
+    return false;
+  }
+
   function getAccessLevel() {
     try {
       var level = sessionStorage.getItem(ACCESS_KEY);
-      if (level === "full" || level === "limited") return level;
+      if (level === "full" || level === "limited" || level === "billing") return level;
       if (sessionStorage.getItem(STORAGE_KEY) === "1") return "full";
     } catch (e) {}
     return "";
@@ -42,6 +53,10 @@
     if (gate) gate.remove();
     if (level === "limited" && !isLimitedAllowedPage()) {
       window.location.href = "./funnel.html";
+      return;
+    }
+    if (level === "billing" && !isBillingAllowedPage()) {
+      window.location.href = "./fi-api-billing.html";
       return;
     }
     window.location.reload();
@@ -118,6 +133,8 @@
         unlock("full");
       } else if (input.value === LIMITED_PASSCODE) {
         unlock("limited");
+      } else if (input.value === BILLING_PASSCODE) {
+        unlock("billing");
       } else {
         error.textContent = "Incorrect code.";
         input.value = "";
@@ -163,6 +180,10 @@
       if (level) {
         if (level === "limited" && !isLimitedAllowedPage()) {
           window.location.href = "./funnel.html";
+          return;
+        }
+        if (level === "billing" && !isBillingAllowedPage()) {
+          window.location.href = "./fi-api-billing.html";
           return;
         }
         return;
