@@ -216,7 +216,7 @@
         </div>
         <div class="billing-loading" id="billingLoading">
           <span class="billing-spinner" aria-hidden="true"></span>
-          <span>Loading FI API data…</span>
+          <span>Loading billing summary…</span>
         </div>
 
         <div class="billing-grid">
@@ -307,7 +307,7 @@
 
     function setLoadingState(isLoading) {
       if (isLoading) {
-        statusEl.textContent = "Loading FI API data…";
+        statusEl.textContent = "Loading billing summary…";
         if (loadingEl) loadingEl.classList.add("active");
         return;
       }
