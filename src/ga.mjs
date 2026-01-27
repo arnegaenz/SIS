@@ -12,9 +12,15 @@ const CARDUPDATR_PAGES = [
   "/credential-entry",
 ];
 
-function isCardupdatrPage(pathname = "") {
+// Check if a page is part of the standard CardUpdatr funnel
+export function isCardupdatrPage(pathname = "") {
   if (!pathname) return false;
   return CARDUPDATR_PAGES.some((prefix) => pathname.startsWith(prefix));
+}
+
+// Check if host is a cardupdatr.app domain
+export function isCardupdatrHost(host = "") {
+  return host.endsWith(CARDUPDATR_SUFFIX);
 }
 
 function normalizeDate(value, fallback) {
@@ -26,33 +32,59 @@ function normalizeDate(value, fallback) {
   return fallback;
 }
 
-function resolveFiFromHost(host = "") {
-  if (!host.endsWith(CARDUPDATR_SUFFIX)) return null;
+// Extract FI key and instance from any hostname
+// Returns null only if host is empty
+export function resolveFiFromHost(host = "") {
+  if (!host) return null;
 
-  const prefix = host.slice(0, -CARDUPDATR_SUFFIX.length);
-  if (!prefix) return null;
+  // Standard cardupdatr.app domains: {fi_key}.{instance}.cardupdatr.app
+  if (host.endsWith(CARDUPDATR_SUFFIX)) {
+    const prefix = host.slice(0, -CARDUPDATR_SUFFIX.length);
+    if (!prefix) return { fi_key: host, instance: "unknown", is_cardupdatr: true };
 
-  const parts = prefix.split(".");
-  if (parts.length === 1) {
+    const parts = prefix.split(".");
+    if (parts.length === 1) {
+      return {
+        fi_key: parts[0],
+        instance: parts[0],
+        is_cardupdatr: true,
+      };
+    }
+
+    const fi_key = parts[0];
+    const instance = parts[1] || parts[0];
+
+    // Special case: default.advancial-prod → advancial-prod
+    if (fi_key === "default" && instance === "advancial-prod") {
+      return {
+        fi_key: "advancial-prod",
+        instance,
+        is_cardupdatr: true,
+      };
+    }
+
     return {
-      fi_key: parts[0],
-      instance: parts[0],
+      fi_key,
+      instance,
+      is_cardupdatr: true,
     };
   }
 
-  const fi_key = parts[0];
-  const instance = parts[1] || parts[0];
-
-  if (fi_key === "default" && instance === "advancial-prod") {
+  // Non-cardupdatr domains: extract subdomain as fi_key
+  // e.g., developer.dev.alkamitech.com → fi_key: "developer", instance: "dev.alkamitech.com"
+  const parts = host.split(".");
+  if (parts.length >= 2) {
     return {
-      fi_key: "advancial-prod",
-      instance,
+      fi_key: parts[0],
+      instance: parts.slice(1).join("."),
+      is_cardupdatr: false,
     };
   }
 
   return {
-    fi_key,
-    instance,
+    fi_key: host,
+    instance: "unknown",
+    is_cardupdatr: false,
   };
 }
 
@@ -90,14 +122,18 @@ export async function fetchGaRowsForDay({
   });
 
   const rows = response.data.rows || [];
+
+  // Store ALL data - no filtering at fetch time
+  // Filtering should happen at aggregation/display time
   return rows
     .map((row) => {
       const host = row.dimensionValues?.[1]?.value || "";
       const page = row.dimensionValues?.[2]?.value || "";
-      if (!isCardupdatrPage(page)) return null;
+
+      // Skip only if we have no meaningful data
+      if (!host && !page) return null;
 
       const fi = resolveFiFromHost(host);
-      if (!fi) return null;
 
       return {
         date, // always attribute to the SIS day we asked for
@@ -106,8 +142,10 @@ export async function fetchGaRowsForDay({
         hour: row.dimensionValues?.[3]?.value || "",
         views: Number(row.metricValues?.[0]?.value || "0"),
         active_users: Number(row.metricValues?.[1]?.value || "0"),
-        fi_key: fi.fi_key.toLowerCase(),
-        instance: fi.instance,
+        fi_key: fi ? fi.fi_key.toLowerCase() : "",
+        instance: fi ? fi.instance : "",
+        is_cardupdatr: fi ? fi.is_cardupdatr : false,
+        is_funnel_page: isCardupdatrPage(page),
       };
     })
     .filter(Boolean);
@@ -144,6 +182,7 @@ export async function fetchGAFunnelByDay({
   const rows = res.data.rows || [];
   const out = [];
 
+  // Store ALL data - no filtering at fetch time
   for (const r of rows) {
     const dateRaw = r.dimensionValues?.[0]?.value || "";
     const host = r.dimensionValues?.[1]?.value || "";
@@ -151,7 +190,9 @@ export async function fetchGAFunnelByDay({
     const hour = r.dimensionValues?.[3]?.value || "";
     const views = Number(r.metricValues?.[0]?.value || "0");
 
-    if (!host || !isCardupdatrPage(pagePath)) continue;
+    if (!host && !pagePath) continue;
+
+    const fi = resolveFiFromHost(host);
 
     out.push({
       date: normalizeDate(dateRaw, startDate),
@@ -159,13 +200,25 @@ export async function fetchGAFunnelByDay({
       pagePath,
       hour,
       views,
+      fi_key: fi ? fi.fi_key.toLowerCase() : "",
+      instance: fi ? fi.instance : "",
+      is_cardupdatr: fi ? fi.is_cardupdatr : false,
+      is_funnel_page: isCardupdatrPage(pagePath),
     });
   }
 
   return out;
 }
 
-export function aggregateGAFunnelByFI(gaRows, fiRegistry = {}) {
+// Filter options for aggregation
+export const GA_FILTER_DEFAULTS = {
+  cardupdatrOnly: true,      // Only include *.cardupdatr.app hosts
+  funnelPagesOnly: true,     // Only include standard funnel pages
+};
+
+export function aggregateGAFunnelByFI(gaRows, fiRegistry = {}, filterOptions = {}) {
+  const options = { ...GA_FILTER_DEFAULTS, ...filterOptions };
+
   const lookupDefault = new Map();
   const lookupByInstance = new Map();
   for (const [, fiObj] of Object.entries(fiRegistry)) {
@@ -190,18 +243,29 @@ export function aggregateGAFunnelByFI(gaRows, fiRegistry = {}) {
       return {
         fi_lookup_key: host,
         instance: "unknown",
+        is_cardupdatr: false,
       };
     }
     return {
       fi_lookup_key: resolved.fi_key,
       instance: resolved.instance,
+      is_cardupdatr: resolved.is_cardupdatr,
     };
   }
 
   const byFI = {};
 
   for (const row of gaRows) {
-    const { date, host, pagePath, views } = row;
+    const { date, host, pagePath, views, is_cardupdatr, is_funnel_page } = row;
+
+    // Apply filters at aggregation time (not fetch time)
+    // Use row metadata if available, otherwise compute it
+    const rowIsCardupdatr = is_cardupdatr !== undefined ? is_cardupdatr : isCardupdatrHost(host);
+    const rowIsFunnelPage = is_funnel_page !== undefined ? is_funnel_page : isCardupdatrPage(pagePath);
+
+    if (options.cardupdatrOnly && !rowIsCardupdatr) continue;
+    if (options.funnelPagesOnly && !rowIsFunnelPage) continue;
+
     const parsed = parseHost(host);
     if (!parsed || !parsed.fi_lookup_key) continue;
     const fi_lookup_key = parsed.fi_lookup_key.toString().toLowerCase();

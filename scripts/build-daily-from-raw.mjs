@@ -13,6 +13,7 @@ import { loadSsoFis } from "../src/utils/config.mjs";
 import { updateFiRegistry } from "../src/utils/fiRegistry.mjs";
 import { readRaw } from "../src/lib/rawStorage.mjs";
 import { parseDateArgs } from "./fetch-raw.mjs";
+import { resolveFiFromHost as resolveFiFromHostCore, isCardupdatrPage } from "../src/ga.mjs";
 
 const DAILY_OUTPUT_DIR = path.resolve("data/daily");
 const FI_REGISTRY_PATH = path.resolve("fi_registry.json");
@@ -132,32 +133,21 @@ function resolveFiKey(preferred, fallbackName, registryIndex) {
   return normalizedName || null;
 }
 
-function resolveFiFromHost(host = "") {
-  if (!host.endsWith(CARDUPDATR_SUFFIX)) return null;
-  const prefix = host.slice(0, -CARDUPDATR_SUFFIX.length);
-  if (!prefix) return null;
-  const parts = prefix.split(".");
-  if (parts.length === 1) {
-    return {
-      fi_key: parts[0],
-      instance: parts[0],
-    };
+// Use the core resolver but maintain backward compatibility
+// by returning null for non-cardupdatr hosts when aggregating funnel data
+function resolveFiFromHost(host = "", options = { cardupdatrOnly: true }) {
+  const result = resolveFiFromHostCore(host);
+  if (!result) return null;
+
+  // For funnel aggregation, only include cardupdatr.app hosts by default
+  if (options.cardupdatrOnly && !result.is_cardupdatr) {
+    return null;
   }
-  const fi_key = parts[0];
-  const instance = parts[1] || parts[0];
-  if (fi_key === "default" && instance === "advancial-prod") {
-    return {
-      fi_key: "advancial-prod",
-      instance,
-    };
-  }
-  return {
-    fi_key,
-    instance,
-  };
+
+  return result;
 }
 
-function aggregateGaFromRaw(day, raw, registryIndex) {
+function aggregateGaFromRaw(day, raw, registryIndex, options = { cardupdatrOnly: true, funnelPagesOnly: true }) {
   if (!raw || raw.error) {
     if (raw?.error) {
       console.warn(`[${day}] GA raw flagged error: ${raw.error}`);
@@ -170,8 +160,25 @@ function aggregateGaFromRaw(day, raw, registryIndex) {
 
   for (const originalRow of rows) {
     if (!originalRow || typeof originalRow !== "object") continue;
+
     const host = originalRow.host || originalRow.hostname || "";
-    const parsedHost = resolveFiFromHost(host);
+    const pagePath =
+      (originalRow.page || originalRow.pagePath || originalRow.pathname || "")
+        .toString();
+
+    // Use row metadata if available (from new raw format), otherwise compute it
+    const rowIsCardupdatr = originalRow.is_cardupdatr !== undefined
+      ? originalRow.is_cardupdatr
+      : host.endsWith(CARDUPDATR_SUFFIX);
+    const rowIsFunnelPage = originalRow.is_funnel_page !== undefined
+      ? originalRow.is_funnel_page
+      : isCardupdatrPage(pagePath);
+
+    // Apply filters at aggregation time
+    if (options.cardupdatrOnly && !rowIsCardupdatr) continue;
+    if (options.funnelPagesOnly && !rowIsFunnelPage) continue;
+
+    const parsedHost = resolveFiFromHost(host, { cardupdatrOnly: false }); // Don't filter again, we already did
     const preferredKey =
       originalRow.fi_key ||
       originalRow.fi_lookup_key ||
@@ -197,6 +204,7 @@ function aggregateGaFromRaw(day, raw, registryIndex) {
         instance: instanceDisplay,
         instance_norm: normalizedInstance,
         is_test: isTest,
+        is_cardupdatr: rowIsCardupdatr,
         select_merchants: 0,
         user_data_collection: 0,
         credential_entry: 0,
@@ -213,9 +221,6 @@ function aggregateGaFromRaw(day, raw, registryIndex) {
         originalRow.screenPageViews ??
         0
     );
-    const pagePath =
-      (originalRow.page || originalRow.pagePath || originalRow.pathname || "")
-        .toString();
     const select = pagePath.startsWith("/select-merchants");
     const user = pagePath.startsWith("/user-data-collection");
     const cred = pagePath.startsWith("/credential-entry");
