@@ -3926,6 +3926,120 @@ const server = http.createServer(async (req, res) => {
       return send(res, status, { error: err?.message || "Unable to test instances" });
     }
   }
+  // ========== User Management Endpoints ==========
+  if (pathname === "/api/users" && req.method === "GET") {
+    if (!(await requireFullAccess(req, res, queryParams))) return;
+    try {
+      const users = await loadUsersFile();
+      // Don't expose sensitive fields
+      const safeUsers = users.map(u => ({
+        email: u.email,
+        name: u.name,
+        access_level: u.access_level,
+        fi_keys: u.fi_keys,
+        enabled: u.enabled,
+        notes: u.notes,
+        created_at: u.created_at
+      }));
+      return send(res, 200, { users: safeUsers });
+    } catch (err) {
+      return send(res, 500, { error: err.message || "Unable to load users" });
+    }
+  }
+
+  if (pathname === "/api/users/save" && req.method === "POST") {
+    if (!(await requireFullAccess(req, res, queryParams))) return;
+    try {
+      const rawBody = await readRequestBody(req);
+      const payload = JSON.parse(rawBody || "{}");
+      const { user, originalEmail } = payload;
+
+      if (!user || !user.email) {
+        return send(res, 400, { error: "Email is required" });
+      }
+
+      const email = user.email.toLowerCase().trim();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        return send(res, 400, { error: "Invalid email format" });
+      }
+
+      const users = await loadUsersFile();
+      const existingIdx = users.findIndex(u => u.email.toLowerCase() === email);
+      const originalIdx = originalEmail ? users.findIndex(u => u.email.toLowerCase() === originalEmail.toLowerCase()) : -1;
+
+      // If editing and email changed, check new email doesn't exist
+      if (originalEmail && originalEmail.toLowerCase() !== email && existingIdx !== -1) {
+        return send(res, 400, { error: "A user with this email already exists" });
+      }
+
+      // If adding new, check email doesn't exist
+      if (!originalEmail && existingIdx !== -1) {
+        return send(res, 400, { error: "A user with this email already exists" });
+      }
+
+      const userData = {
+        email,
+        name: user.name || "",
+        access_level: ["full", "limited", "billing"].includes(user.access_level) ? user.access_level : "limited",
+        fi_keys: user.fi_keys || "*",
+        enabled: user.enabled !== false,
+        notes: user.notes || "",
+        created_at: originalIdx !== -1 ? users[originalIdx].created_at : new Date().toISOString()
+      };
+
+      if (originalIdx !== -1) {
+        // Update existing user
+        users[originalIdx] = userData;
+      } else {
+        // Add new user
+        users.push(userData);
+      }
+
+      // Save to file
+      const usersData = { users, updated_at: new Date().toISOString() };
+      await fs.writeFile(USERS_FILE, JSON.stringify(usersData, null, 2), "utf8");
+
+      console.log(`[users] ${originalEmail ? "Updated" : "Added"} user: ${email}`);
+      return send(res, 200, { ok: true, user: userData });
+    } catch (err) {
+      console.error("[users] Save error:", err);
+      return send(res, 500, { error: err.message || "Unable to save user" });
+    }
+  }
+
+  if (pathname === "/api/users/delete" && req.method === "POST") {
+    if (!(await requireFullAccess(req, res, queryParams))) return;
+    try {
+      const rawBody = await readRequestBody(req);
+      const payload = JSON.parse(rawBody || "{}");
+      const { email } = payload;
+
+      if (!email) {
+        return send(res, 400, { error: "Email is required" });
+      }
+
+      const users = await loadUsersFile();
+      const idx = users.findIndex(u => u.email.toLowerCase() === email.toLowerCase());
+
+      if (idx === -1) {
+        return send(res, 404, { error: "User not found" });
+      }
+
+      users.splice(idx, 1);
+
+      // Save to file
+      const usersData = { users, updated_at: new Date().toISOString() };
+      await fs.writeFile(USERS_FILE, JSON.stringify(usersData, null, 2), "utf8");
+
+      console.log(`[users] Deleted user: ${email}`);
+      return send(res, 200, { ok: true, deleted: email });
+    } catch (err) {
+      console.error("[users] Delete error:", err);
+      return send(res, 500, { error: err.message || "Unable to delete user" });
+    }
+  }
+  // ========== End User Management Endpoints ==========
+
   if (pathname === "/api/metrics/funnel") {
     // Validate session
     const session = await validateSession(req, queryParams);

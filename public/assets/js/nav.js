@@ -91,10 +91,13 @@ var GROUPS = [
 { id:"operations", label:"Operations Dashboard", href:NAV_PREFIX+"dashboards/operations.html" },
 { id:"troubleshoot", label:"Troubleshoot", href:NAV_PREFIX+"troubleshoot.html" },
 { id:"realtime", label:"Real-Time", href:NAV_PREFIX+"realtime.html" },
-{ id:"maintenance", label:"Maintenance", href:NAV_PREFIX+"maintenance.html" },
 { id:"synthetic-traffic", label:"Synthetic Traffic", href:NAV_PREFIX+"synthetic-traffic.html" },
 { id:"fi-api", label:"FI API", href:NAV_PREFIX+"fi-api.html" },
 { id:"logs", label:"Server Logs", href:NAV_PREFIX+"logs.html" }
+]},
+{ label: "Admin", fullAccessOnly: true, items: [
+{ id:"maintenance", label:"Data & Config", href:NAV_PREFIX+"maintenance.html" },
+{ id:"users", label:"Users", href:NAV_PREFIX+"users.html" }
 ]}
 ];
 
@@ -121,19 +124,36 @@ function getCurrentUser() {
 
 function getGroupsForAccess() {
   var access = getAccessLevel();
-  if (access !== "limited") return GROUPS;
-  var allowed = { funnel: true, troubleshoot: true };
-  var next = [];
+  var isFullAccess = access === "full";
+  var isLimited = access === "limited";
+
+  // Limited access: only funnel and troubleshoot
+  if (isLimited) {
+    var allowed = { funnel: true, troubleshoot: true };
+    var next = [];
+    for (var g = 0; g < GROUPS.length; g++) {
+      var group = GROUPS[g];
+      if (group.fullAccessOnly) continue;
+      var items = [];
+      for (var i = 0; i < group.items.length; i++) {
+        var item = group.items[i];
+        if (allowed[item.id]) items.push(item);
+      }
+      if (items.length) next.push({ label: group.label, items: items });
+    }
+    return next;
+  }
+
+  // Full access: all groups
+  if (isFullAccess) return GROUPS;
+
+  // Default (non-full): exclude fullAccessOnly groups
+  var filtered = [];
   for (var g = 0; g < GROUPS.length; g++) {
     var group = GROUPS[g];
-    var items = [];
-    for (var i = 0; i < group.items.length; i++) {
-      var item = group.items[i];
-      if (allowed[item.id]) items.push(item);
-    }
-    if (items.length) next.push({ label: group.label, items: items });
+    if (!group.fullAccessOnly) filtered.push(group);
   }
-  return next;
+  return filtered;
 }
 
 function renderHeaderNav(opts){

@@ -1,0 +1,550 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>User Management</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <link rel="stylesheet" href="./sis-shared.css?v=navfix" />
+  <link rel="stylesheet" href="./assets/css/sis.css">
+  <link rel="stylesheet" href="./assets/css/mobile.css">
+  <script src="./assets/js/passcode-gate.js"></script>
+  <script defer src="./assets/js/sis.js"></script>
+  <script src="./assets/js/config.js"></script>
+  <script defer src="./assets/js/nav.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function(){
+      if (window.renderHeaderNav && !window.__sisHeaderNav_users) {
+        window.__sisHeaderNav_users = true;
+        window.renderHeaderNav({
+          currentId: "users",
+          title: "User Management",
+          subtitle: "Manage user access to the SIS dashboard via magic link authentication."
+        });
+      }
+    });
+  </script>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      background: var(--bg);
+      color: var(--panel-title);
+      font-family: "Inter", "Segoe UI", ui-sans-serif, system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    .users-card {
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 18px;
+      padding: 26px;
+      margin-top: 24px;
+    }
+    .users-card h2 {
+      margin: 0 0 8px 0;
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--ink);
+    }
+    .users-card .description {
+      margin: 0 0 20px 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    .users-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: flex-end;
+      margin-bottom: 16px;
+    }
+    .users-controls label {
+      display: flex;
+      flex-direction: column;
+      font-size: 12px;
+      text-transform: uppercase;
+      color: var(--muted);
+      gap: 4px;
+      min-width: 200px;
+    }
+    .users-controls input,
+    .users-controls select {
+      border-radius: 8px;
+      border: 1px solid var(--panel-border);
+      background: var(--input-bg);
+      color: var(--panel-title);
+      padding: 8px 10px;
+      font-size: 14px;
+    }
+    .users-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    .users-table th,
+    .users-table td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid var(--panel-border);
+    }
+    .users-table th {
+      font-size: 12px;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 600;
+    }
+    .users-table tr:hover {
+      background: var(--hover-bg, rgba(0,0,0,0.02));
+    }
+    .users-table .actions {
+      display: flex;
+      gap: 8px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+    .badge-full { background: #dcfce7; color: #166534; }
+    .badge-limited { background: #fef3c7; color: #92400e; }
+    .badge-billing { background: #dbeafe; color: #1e40af; }
+    .badge-disabled { background: #f3f4f6; color: #6b7280; }
+    .btn {
+      padding: 8px 16px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+    }
+    .btn-primary {
+      background: var(--accent, #2563eb);
+      color: white;
+    }
+    .btn-primary:hover {
+      background: var(--accent-hover, #1d4ed8);
+    }
+    .btn-secondary {
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      color: var(--panel-title);
+    }
+    .btn-secondary:hover {
+      background: var(--hover-bg, #f3f4f6);
+    }
+    .btn-danger {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+    .btn-danger:hover {
+      background: #fecaca;
+    }
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .status-message {
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      font-size: 14px;
+    }
+    .status-message.success {
+      background: #dcfce7;
+      color: #166534;
+    }
+    .status-message.error {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+    .status-message:empty {
+      display: none;
+    }
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    .modal-overlay[hidden] {
+      display: none;
+    }
+    .modal {
+      background: var(--panel-bg);
+      border-radius: 12px;
+      padding: 24px;
+      max-width: 500px;
+      width: 90%;
+      box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+    }
+    .modal h3 {
+      margin: 0 0 16px 0;
+      font-size: 18px;
+      color: var(--ink);
+    }
+    .modal-form {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .modal-form label {
+      display: flex;
+      flex-direction: column;
+      font-size: 12px;
+      text-transform: uppercase;
+      color: var(--muted);
+      gap: 4px;
+    }
+    .modal-form input,
+    .modal-form select {
+      border-radius: 8px;
+      border: 1px solid var(--panel-border);
+      background: var(--input-bg);
+      color: var(--panel-title);
+      padding: 10px 12px;
+      font-size: 14px;
+    }
+    .modal-form .checkbox-label {
+      flex-direction: row;
+      align-items: center;
+      gap: 8px;
+      text-transform: none;
+      font-size: 14px;
+      color: var(--panel-title);
+    }
+    .modal-form .checkbox-label input {
+      width: auto;
+    }
+    .modal-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+      margin-top: 8px;
+    }
+    .fi-keys-input {
+      font-family: monospace;
+      font-size: 13px;
+    }
+    .fi-keys-help {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+    @media (prefers-color-scheme: dark) {
+      .badge-full { background: #166534; color: #dcfce7; }
+      .badge-limited { background: #92400e; color: #fef3c7; }
+      .badge-billing { background: #1e40af; color: #dbeafe; }
+      .badge-disabled { background: #374151; color: #9ca3af; }
+      .btn-danger { background: #7f1d1d; color: #fecaca; }
+      .btn-danger:hover { background: #991b1b; }
+      .status-message.success { background: #166534; color: #dcfce7; }
+      .status-message.error { background: #7f1d1d; color: #fecaca; }
+    }
+  </style>
+</head>
+<body>
+  <div id="sis-header"></div>
+  <div class="sis-content">
+    <main class="sis-main">
+      <section class="sis-panel">
+        <div class="users-card">
+          <h2>Authorized Users</h2>
+          <p class="description">
+            Users listed here can sign in via magic link email. Set access levels to control what pages and data each user can see.
+          </p>
+
+          <div id="statusMessage" class="status-message"></div>
+
+          <div class="users-controls">
+            <button class="btn btn-primary" id="addUserBtn" type="button">Add User</button>
+            <button class="btn btn-secondary" id="refreshBtn" type="button">Refresh</button>
+          </div>
+
+          <table class="users-table">
+            <thead>
+              <tr>
+                <th>Email</th>
+                <th>Name</th>
+                <th>Access Level</th>
+                <th>FI Access</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="usersTableBody">
+              <tr><td colspan="6">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="users-card" style="margin-top: 24px;">
+          <h2>Access Levels</h2>
+          <p class="description">Reference for the different access levels available:</p>
+          <table class="users-table">
+            <thead>
+              <tr>
+                <th>Level</th>
+                <th>Description</th>
+                <th>Pages Accessible</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="badge badge-full">full</span></td>
+                <td>Full administrative access</td>
+                <td>All pages including Admin tools</td>
+              </tr>
+              <tr>
+                <td><span class="badge badge-limited">limited</span></td>
+                <td>Partner/customer access</td>
+                <td>Funnel and Troubleshoot only</td>
+              </tr>
+              <tr>
+                <td><span class="badge badge-billing">billing</span></td>
+                <td>Billing access only</td>
+                <td>FI API Billing page only</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Add/Edit User Modal -->
+  <div class="modal-overlay" id="userModal" hidden>
+    <div class="modal">
+      <h3 id="modalTitle">Add User</h3>
+      <form class="modal-form" id="userForm">
+        <input type="hidden" id="originalEmail" />
+        <label>
+          Email Address
+          <input type="email" id="userEmail" required placeholder="user@example.com" />
+        </label>
+        <label>
+          Display Name
+          <input type="text" id="userName" required placeholder="John Smith" />
+        </label>
+        <label>
+          Access Level
+          <select id="userAccessLevel" required>
+            <option value="full">Full (all pages)</option>
+            <option value="limited">Limited (funnel + troubleshoot)</option>
+            <option value="billing">Billing (billing page only)</option>
+          </select>
+        </label>
+        <label>
+          FI Keys (which FIs this user can access)
+          <input type="text" id="userFiKeys" class="fi-keys-input" placeholder="* or bigbank, bigbank-prod" />
+          <span class="fi-keys-help">Use * for all FIs, or comma-separated list of FI keys</span>
+        </label>
+        <label class="checkbox-label">
+          <input type="checkbox" id="userEnabled" checked />
+          Account enabled
+        </label>
+        <label>
+          Notes (optional)
+          <input type="text" id="userNotes" placeholder="Internal notes about this user" />
+        </label>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" id="cancelBtn">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="saveBtn">Save User</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+  (function() {
+    const API_BASE = window.SIS_API_BASE || "";
+    const tableBody = document.getElementById("usersTableBody");
+    const statusMessage = document.getElementById("statusMessage");
+    const addUserBtn = document.getElementById("addUserBtn");
+    const refreshBtn = document.getElementById("refreshBtn");
+    const userModal = document.getElementById("userModal");
+    const userForm = document.getElementById("userForm");
+    const modalTitle = document.getElementById("modalTitle");
+    const cancelBtn = document.getElementById("cancelBtn");
+
+    // Form fields
+    const originalEmailField = document.getElementById("originalEmail");
+    const emailField = document.getElementById("userEmail");
+    const nameField = document.getElementById("userName");
+    const accessLevelField = document.getElementById("userAccessLevel");
+    const fiKeysField = document.getElementById("userFiKeys");
+    const enabledField = document.getElementById("userEnabled");
+    const notesField = document.getElementById("userNotes");
+
+    function showStatus(message, isError = false) {
+      statusMessage.textContent = message;
+      statusMessage.className = "status-message " + (isError ? "error" : "success");
+      setTimeout(() => { statusMessage.textContent = ""; }, 5000);
+    }
+
+    function formatFiKeys(fiKeys) {
+      if (fiKeys === "*") return "All FIs";
+      if (Array.isArray(fiKeys)) return fiKeys.join(", ");
+      return fiKeys || "All FIs";
+    }
+
+    function renderUsers(users) {
+      if (!users || users.length === 0) {
+        tableBody.innerHTML = '<tr><td colspan="6">No users configured.</td></tr>';
+        return;
+      }
+
+      tableBody.innerHTML = users.map(user => `
+        <tr>
+          <td>${escapeHtml(user.email)}</td>
+          <td>${escapeHtml(user.name || "")}</td>
+          <td><span class="badge badge-${user.access_level}">${user.access_level}</span></td>
+          <td>${escapeHtml(formatFiKeys(user.fi_keys))}</td>
+          <td>${user.enabled ? '<span class="badge badge-full">Active</span>' : '<span class="badge badge-disabled">Disabled</span>'}</td>
+          <td class="actions">
+            <button class="btn btn-secondary" onclick="window.editUser('${escapeHtml(user.email)}')">Edit</button>
+            <button class="btn btn-danger" onclick="window.deleteUser('${escapeHtml(user.email)}')">Delete</button>
+          </td>
+        </tr>
+      `).join("");
+    }
+
+    function escapeHtml(str) {
+      if (!str) return "";
+      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    }
+
+    let currentUsers = [];
+
+    async function loadUsers() {
+      tableBody.innerHTML = '<tr><td colspan="6">Loading...</td></tr>';
+      try {
+        const res = await fetch(API_BASE + "/api/users");
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error || `HTTP ${res.status}`);
+        }
+        const data = await res.json();
+        currentUsers = data.users || [];
+        renderUsers(currentUsers);
+      } catch (err) {
+        tableBody.innerHTML = `<tr><td colspan="6" style="color: #991b1b;">Error: ${escapeHtml(err.message)}</td></tr>`;
+      }
+    }
+
+    function openModal(user = null) {
+      if (user) {
+        modalTitle.textContent = "Edit User";
+        originalEmailField.value = user.email;
+        emailField.value = user.email;
+        nameField.value = user.name || "";
+        accessLevelField.value = user.access_level || "limited";
+        fiKeysField.value = user.fi_keys === "*" ? "*" : (Array.isArray(user.fi_keys) ? user.fi_keys.join(", ") : "");
+        enabledField.checked = user.enabled !== false;
+        notesField.value = user.notes || "";
+      } else {
+        modalTitle.textContent = "Add User";
+        originalEmailField.value = "";
+        emailField.value = "";
+        nameField.value = "";
+        accessLevelField.value = "limited";
+        fiKeysField.value = "*";
+        enabledField.checked = true;
+        notesField.value = "";
+      }
+      userModal.hidden = false;
+      emailField.focus();
+    }
+
+    function closeModal() {
+      userModal.hidden = true;
+      userForm.reset();
+    }
+
+    window.editUser = function(email) {
+      const user = currentUsers.find(u => u.email === email);
+      if (user) openModal(user);
+    };
+
+    window.deleteUser = async function(email) {
+      if (!confirm(`Delete user "${email}"? They will no longer be able to sign in.`)) return;
+
+      try {
+        const res = await fetch(API_BASE + "/api/users/delete", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email })
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error || `HTTP ${res.status}`);
+        }
+        showStatus(`User "${email}" deleted.`);
+        loadUsers();
+      } catch (err) {
+        showStatus(`Error: ${err.message}`, true);
+      }
+    };
+
+    addUserBtn.addEventListener("click", () => openModal());
+    refreshBtn.addEventListener("click", loadUsers);
+    cancelBtn.addEventListener("click", closeModal);
+
+    userModal.addEventListener("click", (e) => {
+      if (e.target === userModal) closeModal();
+    });
+
+    userForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const fiKeysRaw = fiKeysField.value.trim();
+      let fiKeys;
+      if (fiKeysRaw === "*" || fiKeysRaw === "") {
+        fiKeys = "*";
+      } else {
+        fiKeys = fiKeysRaw.split(",").map(k => k.trim()).filter(k => k);
+      }
+
+      const userData = {
+        email: emailField.value.trim().toLowerCase(),
+        name: nameField.value.trim(),
+        access_level: accessLevelField.value,
+        fi_keys: fiKeys,
+        enabled: enabledField.checked,
+        notes: notesField.value.trim() || undefined
+      };
+
+      const originalEmail = originalEmailField.value;
+      const isEdit = Boolean(originalEmail);
+
+      try {
+        const res = await fetch(API_BASE + "/api/users/save", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ user: userData, originalEmail: isEdit ? originalEmail : undefined })
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error || `HTTP ${res.status}`);
+        }
+        showStatus(isEdit ? `User "${userData.email}" updated.` : `User "${userData.email}" added.`);
+        closeModal();
+        loadUsers();
+      } catch (err) {
+        showStatus(`Error: ${err.message}`, true);
+      }
+    });
+
+    // Initial load
+    loadUsers();
+  })();
+  </script>
+</body>
+</html>
