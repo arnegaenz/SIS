@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import url from "url";
 import { TERMINATION_RULES } from "../src/config/terminationMap.mjs";
 import { isTestInstanceName } from "../src/config/testInstances.mjs";
+import { loadSsoFis } from "../src/utils/config.mjs";
 import { fetchRawRange } from "./fetch-raw.mjs";
 import { buildDailyFromRawRange } from "./build-daily-from-raw.mjs";
 import {
@@ -61,6 +62,7 @@ const PORT = 8787;
 const FI_ALL_VALUE = "__all__";
 const PARTNER_ALL_VALUE = "__all_partners__";
 const INSTANCE_ALL_VALUE = "__all_instances__";
+const SSO_FI_SET = loadSsoFis(path.join(ROOT, "src"));
 const SERVER_STARTED_AT = new Date().toISOString();
 const BUILD_COMMIT = (() => {
   try {
@@ -1399,6 +1401,231 @@ function normalizeInstanceKey(value) {
 
 function makeFiInstanceKey(fiKey, instanceValue) {
   return `${normalizeFiKey(fiKey)}__${normalizeInstanceKey(instanceValue)}`;
+}
+
+function parseListParam(value) {
+  if (!value) return [];
+  if (Array.isArray(value)) {
+    return value
+      .map((entry) => (entry || "").toString().trim())
+      .filter(Boolean);
+  }
+  return value
+    .toString()
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+}
+
+function normalizeSourceToken(value) {
+  if (!value) return "";
+  return value.toString().trim().toLowerCase();
+}
+
+function parseMetricsFilters(queryParams, payload = null) {
+  const query = Object.fromEntries(queryParams.entries());
+  const body = payload && typeof payload === "object" ? payload : {};
+  const dateFrom =
+    body.date_from ||
+    body.start ||
+    body.startDate ||
+    query.date_from ||
+    query.start ||
+    query.startDate ||
+    "";
+  const dateTo =
+    body.date_to ||
+    body.end ||
+    body.endDate ||
+    query.date_to ||
+    query.end ||
+    query.endDate ||
+    "";
+
+  const fiScopeRaw =
+    body.fi_scope ||
+    body.fiScope ||
+    query.fi_scope ||
+    query.fiScope ||
+    "all";
+  const fiScope = fiScopeRaw.toString().trim().toLowerCase() || "all";
+
+  const fiList = parseListParam(body.fi_list || body.fiList || query.fi_list || query.fiList);
+  const sourceTypeList = parseListParam(
+    body.source_type_list || body.sourceTypeList || query.source_type_list || query.sourceTypeList
+  );
+  const sourceCategoryList = parseListParam(
+    body.source_category_list ||
+      body.sourceCategoryList ||
+      query.source_category_list ||
+      query.sourceCategoryList
+  );
+  const instanceList = parseListParam(
+    body.instance_list || body.instanceList || query.instance_list || query.instanceList
+  );
+  const merchantList = parseListParam(
+    body.merchant_list || body.merchantList || query.merchant_list || query.merchantList
+  );
+
+  return {
+    date_from: dateFrom,
+    date_to: dateTo,
+    fi_scope: fiScope,
+    fi_list: fiList,
+    source_type_list: sourceTypeList,
+    source_category_list: sourceCategoryList,
+    instance_list: instanceList,
+    merchant_list: merchantList,
+  };
+}
+
+function resolveDateRange(filters) {
+  const start = normalizeIsoDate(filters.date_from);
+  const end = normalizeIsoDate(filters.date_to);
+  if (!start || !end) {
+    throw Object.assign(new Error("date_from and date_to must be YYYY-MM-DD"), { status: 400 });
+  }
+  if (new Date(`${start}T00:00:00Z`) > new Date(`${end}T00:00:00Z`)) {
+    throw Object.assign(new Error("date_from must be on or before date_to"), { status: 400 });
+  }
+  return { start, end };
+}
+
+function extractSourceFromPlacement(placement) {
+  if (!placement || typeof placement !== "object") return null;
+  const source = placement.source || {};
+  const custom = placement.custom_data || {};
+  const digital = custom.digital_onboarding || {};
+  const sourceType =
+    source.type ||
+    source.source_type ||
+    custom.source_type ||
+    (digital && Object.keys(digital).length ? "digital_onboarding" : "");
+  const sourceCategory =
+    source.category ||
+    source.source_category ||
+    custom.source_category ||
+    digital.slug ||
+    digital.journey_id ||
+    "";
+  if (!sourceType && !sourceCategory) return null;
+  return {
+    source_type: sourceType ? sourceType.toString().trim() : "",
+    source_category: sourceCategory ? sourceCategory.toString().trim() : "",
+  };
+}
+
+function extractSourceFromSession(session, fallback) {
+  if (!session || typeof session !== "object") return fallback || null;
+  const source = session.source || {};
+  const custom = session.custom_data || {};
+  const sourceType =
+    source.type || source.source_type || custom.source_type || (fallback?.source_type || "");
+  const sourceCategory =
+    source.category ||
+    source.source_category ||
+    custom.source_category ||
+    (fallback?.source_category || "");
+  if (!sourceType && !sourceCategory) return null;
+  return {
+    source_type: sourceType ? sourceType.toString().trim() : "",
+    source_category: sourceCategory ? sourceCategory.toString().trim() : "",
+  };
+}
+
+function hasClickstreamMatch(clickstream, matcher) {
+  if (!Array.isArray(clickstream)) return false;
+  return clickstream.some((step) => {
+    const url = (step?.url || "").toString().toLowerCase();
+    const title = (step?.page_title || "").toString().toLowerCase();
+    return matcher(url, title);
+  });
+}
+
+function resolveSessionFunnelFlags(session) {
+  const clickstream = Array.isArray(session?.clickstream) ? session.clickstream : [];
+  const reachedSelectMerchant = hasClickstreamMatch(clickstream, (url, title) =>
+    url.includes("select-merchant") || title.includes("select merchant")
+  );
+  const reachedCredentialEntry = hasClickstreamMatch(clickstream, (url, title) =>
+    url.includes("credential-entry") || title.includes("credential entry")
+  );
+  return {
+    reachedSelectMerchant,
+    reachedCredentialEntry,
+    successfulJobs: Number.isFinite(session?.successful_jobs) ? session.successful_jobs : 0,
+  };
+}
+
+function resolveSessionJobCounts(session) {
+  const totalJobs = Number.isFinite(session?.total_jobs)
+    ? session.total_jobs
+    : Number.isFinite(session?.failed_jobs) || Number.isFinite(session?.successful_jobs)
+    ? Math.max(0, (session?.failed_jobs || 0) + (session?.successful_jobs || 0))
+    : 0;
+  const successfulJobs = Number.isFinite(session?.successful_jobs)
+    ? session.successful_jobs
+    : 0;
+  const failedJobs = Number.isFinite(session?.failed_jobs)
+    ? session.failed_jobs
+    : Math.max(0, totalJobs - successfulJobs);
+  const normalizedTotal = Math.max(totalJobs, successfulJobs + failedJobs);
+  return {
+    total: Math.max(0, normalizedTotal),
+    success: Math.max(0, successfulJobs),
+    failed: Math.max(0, failedJobs),
+  };
+}
+
+function formatSourceKey(sourceType, sourceCategory) {
+  const type = sourceType || "unknown";
+  const category = sourceCategory || "unknown";
+  return `${type}__${category}`;
+}
+
+const CANCELLED_TERMINATIONS = new Set(["CANCELED", "CANCELLED"]);
+const ABANDON_TERMINATIONS = new Set([
+  "NEVER_STARTED",
+  "TIMEOUT_CREDENTIALS",
+  "TIMEOUT_TFA",
+  "ABANDONED_QUICKSTART",
+  "ACCOUNT_SETUP_INCOMPLETE",
+  "USER_DATA_FAILURE",
+  "TOO_MANY_LOGIN_FAILURES",
+  "ACCOUNT_LOCKED",
+  "PASSWORD_RESET_REQUIRED",
+  "INVALID_CARD_DETAILS",
+]);
+
+function categorizeJobStatus(job) {
+  if (!job) return "failed";
+  if (job.is_success) return "success";
+  const term = (job.termination || "").toString().trim().toUpperCase();
+  const status = (job.status || "").toString().trim().toUpperCase();
+  if (CANCELLED_TERMINATIONS.has(term) || status.includes("CANCEL")) return "cancelled";
+  if (
+    ABANDON_TERMINATIONS.has(term) ||
+    status.includes("ABANDON") ||
+    status.includes("TIMEOUT")
+  ) {
+    return "abandoned";
+  }
+  return "failed";
+}
+
+function clampNonNegative(value) {
+  return Number.isFinite(value) ? Math.max(0, value) : 0;
+}
+
+function dateKeyFromValue(value, fallback) {
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    return value.toISOString().slice(0, 10);
+  }
+  if (value) {
+    const str = value.toString();
+    if (str.length >= 10) return str.slice(0, 10);
+  }
+  return fallback || "";
 }
 
 function normalizeFiInstanceKey(value) {
@@ -3348,6 +3575,348 @@ const server = http.createServer(async (req, res) => {
       return send(res, status, { error: err?.message || "Unable to test instances" });
     }
   }
+  if (pathname === "/api/metrics/funnel") {
+    let payload = null;
+    if (req.method === "POST") {
+      try {
+        const rawBody = await readRequestBody(req);
+        payload = rawBody ? JSON.parse(rawBody) : {};
+      } catch (err) {
+        return send(res, 400, { error: "Invalid JSON payload" });
+      }
+    }
+    try {
+      const filters = parseMetricsFilters(queryParams, payload);
+      const { start, end } = resolveDateRange(filters);
+      const days = daysBetween(start, end);
+      const fiRegistry = await loadFiRegistrySafe();
+      const fiMeta = buildFiMetaMap(fiRegistry);
+      const instanceMeta = await loadInstanceMetaMap();
+      const fiList = filters.fi_list.map((fi) => normalizeFiKey(fi)).filter(Boolean);
+      const fiSet = fiList.length ? new Set(fiList) : null;
+      const sourceTypeSet = new Set(
+        filters.source_type_list.map((value) => normalizeSourceToken(value)).filter(Boolean)
+      );
+      const sourceCategorySet = new Set(
+        filters.source_category_list.map((value) => normalizeSourceToken(value)).filter(Boolean)
+      );
+      const instanceSet = filters.instance_list.length
+        ? new Set(filters.instance_list.map((value) => normalizeInstanceKey(value)))
+        : null;
+
+      const makeCounters = () => ({
+        SM_Sessions: 0,
+        CE_Sessions: 0,
+        Success_Sessions: 0,
+        Jobs_Total: 0,
+        Jobs_Success: 0,
+        Jobs_Failed: 0,
+      });
+      const addCounters = (target, delta) => {
+        target.SM_Sessions += delta.SM_Sessions;
+        target.CE_Sessions += delta.CE_Sessions;
+        target.Success_Sessions += delta.Success_Sessions;
+        target.Jobs_Total += delta.Jobs_Total;
+        target.Jobs_Success += delta.Jobs_Success;
+        target.Jobs_Failed += delta.Jobs_Failed;
+      };
+
+      const overall = makeCounters();
+      const byFi = new Map();
+      const bySso = new Map();
+      const bySource = new Map();
+      const byDay = new Map();
+
+      for (const day of days) {
+        const [sessionsRaw, placementsRaw] = await Promise.all([
+          readSessionDay(day),
+          readPlacementDay(day),
+        ]);
+        if (!sessionsRaw || sessionsRaw.error) continue;
+        const sessions = Array.isArray(sessionsRaw.sessions) ? sessionsRaw.sessions : [];
+        const placementSourceMap = new Map();
+        const placements = Array.isArray(placementsRaw?.placements) ? placementsRaw.placements : [];
+        for (const placement of placements) {
+          const key =
+            placement.agent_session_id ||
+            placement.session_id ||
+            placement.cardholder_session_id ||
+            placement.cuid ||
+            null;
+          if (!key) continue;
+          if (placementSourceMap.has(key)) continue;
+          const sourceInfo = extractSourceFromPlacement(placement);
+          if (sourceInfo) placementSourceMap.set(key, sourceInfo);
+        }
+
+        for (const session of sessions) {
+          const agentId =
+            session.agent_session_id ||
+            session.session_id ||
+            session.id ||
+            session.cuid ||
+            null;
+          const instanceRaw =
+            session._instance || session.instance || session.instance_name || session.org_name || "";
+          const instanceDisplay = formatInstanceDisplay(instanceRaw || "unknown");
+          if (instanceSet && !instanceSet.has(normalizeInstanceKey(instanceDisplay))) continue;
+
+          const instanceLookup = instanceMeta.get(instanceDisplay.toLowerCase());
+          const fiLookupRaw =
+            session.financial_institution_lookup_key ||
+            session.fi_lookup_key ||
+            session.fi_name ||
+            null;
+          const fiKey = normalizeFiKey(
+            fiLookupRaw || instanceLookup?.fi || session.fi_name || ""
+          );
+          if (fiSet && !fiSet.has(fiKey)) continue;
+
+          const isSso = SSO_FI_SET.has(fiKey);
+          if (filters.fi_scope === "sso_only" && !isSso) continue;
+          if (filters.fi_scope === "non_sso_only" && isSso) continue;
+
+          const sourceFallback = agentId ? placementSourceMap.get(agentId) : null;
+          const sourceInfo = extractSourceFromSession(session, sourceFallback);
+          const sourceType = normalizeSourceToken(sourceInfo?.source_type || "unknown");
+          const sourceCategory = normalizeSourceToken(sourceInfo?.source_category || "unknown");
+          if (sourceTypeSet.size && !sourceTypeSet.has(sourceType)) continue;
+          if (sourceCategorySet.size && !sourceCategorySet.has(sourceCategory)) continue;
+
+          const fiName =
+            fiMeta.get(fiKey)?.fi ||
+            session.fi_name ||
+            fiLookupRaw ||
+            fiKey ||
+            "Unknown FI";
+          const flags = resolveSessionFunnelFlags(session);
+          const jobs = resolveSessionJobCounts(session);
+          const dayKey = dateKeyFromValue(session.created_on, day);
+
+          const row = {
+            SM_Sessions: flags.reachedSelectMerchant ? 1 : 0,
+            CE_Sessions: flags.reachedCredentialEntry ? 1 : 0,
+            Success_Sessions: flags.successfulJobs > 0 ? 1 : 0,
+            Jobs_Total: clampNonNegative(jobs.total),
+            Jobs_Success: clampNonNegative(jobs.success),
+            Jobs_Failed: clampNonNegative(jobs.failed),
+          };
+
+          addCounters(overall, row);
+
+          const fiEntry = byFi.get(fiKey) || {
+            fi_name: fiName,
+            fi_lookup_key: fiKey,
+            ...makeCounters(),
+          };
+          addCounters(fiEntry, row);
+          byFi.set(fiKey, fiEntry);
+
+          const segment = isSso ? "SSO" : "Non-SSO";
+          const ssoEntry = bySso.get(segment) || { segment, ...makeCounters() };
+          addCounters(ssoEntry, row);
+          bySso.set(segment, ssoEntry);
+
+          const sourceKey = formatSourceKey(sourceType, sourceCategory);
+          const sourceEntry = bySource.get(sourceKey) || {
+            source_type: sourceType || "unknown",
+            source_category: sourceCategory || "unknown",
+            ...makeCounters(),
+          };
+          addCounters(sourceEntry, row);
+          bySource.set(sourceKey, sourceEntry);
+
+          const dayEntry = byDay.get(dayKey) || {
+            date: dayKey,
+            ...makeCounters(),
+          };
+          addCounters(dayEntry, row);
+          byDay.set(dayKey, dayEntry);
+        }
+      }
+
+      return send(res, 200, {
+        filters: {
+          ...filters,
+          date_from: start,
+          date_to: end,
+        },
+        overall,
+        by_fi: Array.from(byFi.values()),
+        by_sso_segment: Array.from(bySso.values()),
+        by_source: Array.from(bySource.values()),
+        by_day: Array.from(byDay.values()).sort((a, b) => a.date.localeCompare(b.date)),
+      });
+    } catch (err) {
+      const status = err?.status || 500;
+      return send(res, status, { error: err?.message || "Unable to build funnel metrics" });
+    }
+  }
+  if (pathname === "/api/metrics/ops") {
+    let payload = null;
+    if (req.method === "POST") {
+      try {
+        const rawBody = await readRequestBody(req);
+        payload = rawBody ? JSON.parse(rawBody) : {};
+      } catch (err) {
+        return send(res, 400, { error: "Invalid JSON payload" });
+      }
+    }
+    try {
+      const filters = parseMetricsFilters(queryParams, payload);
+      const { start, end } = resolveDateRange(filters);
+      const days = daysBetween(start, end);
+      const fiRegistry = await loadFiRegistrySafe();
+      const fiMeta = buildFiMetaMap(fiRegistry);
+      const fiList = filters.fi_list.map((fi) => normalizeFiKey(fi)).filter(Boolean);
+      const fiSet = fiList.length ? new Set(fiList) : null;
+      const instanceSet = filters.instance_list.length
+        ? new Set(filters.instance_list.map((value) => normalizeInstanceKey(value)))
+        : null;
+      const merchantSet = filters.merchant_list.length
+        ? new Set(filters.merchant_list.map((value) => normalizeSourceToken(value)))
+        : null;
+
+      const overall = {
+        Jobs_Total: 0,
+        Jobs_Success: 0,
+        Jobs_Failed: 0,
+        Jobs_Cancelled: 0,
+        Jobs_Abandoned: 0,
+      };
+      const statusCounts = new Map([
+        ["success", 0],
+        ["failed", 0],
+        ["cancelled", 0],
+        ["abandoned", 0],
+      ]);
+      const byDay = new Map();
+      const byMerchant = new Map();
+      const byFiInstance = new Map();
+      const errorCodes = new Map();
+
+      for (const day of days) {
+        const placementsRaw = await readPlacementDay(day);
+        if (!placementsRaw || placementsRaw.error) continue;
+        const placements = Array.isArray(placementsRaw.placements) ? placementsRaw.placements : [];
+        for (const placement of placements) {
+          const job = mapPlacementToJob(placement, placement.fi_lookup_key || placement.fi, placement._instance);
+          const instanceDisplay = formatInstanceDisplay(job.instance || placement._instance || "unknown");
+          if (instanceSet && !instanceSet.has(normalizeInstanceKey(instanceDisplay))) continue;
+
+          const fiKey = normalizeFiKey(job.fi_key || placement.fi_lookup_key || placement.fi_name || "");
+          if (fiSet && !fiSet.has(fiKey)) continue;
+          const isSso = SSO_FI_SET.has(fiKey);
+          if (filters.fi_scope === "sso_only" && !isSso) continue;
+          if (filters.fi_scope === "non_sso_only" && isSso) continue;
+
+          const merchant = (job.merchant || "unknown").toString();
+          if (merchantSet && !merchantSet.has(normalizeSourceToken(merchant))) continue;
+
+          const status = categorizeJobStatus(job);
+          const dayKey = dateKeyFromValue(job.created_on || placement.job_created_on || placement.created_on, day);
+
+          overall.Jobs_Total += 1;
+          statusCounts.set(status, (statusCounts.get(status) || 0) + 1);
+          if (status === "success") overall.Jobs_Success += 1;
+          if (status === "cancelled") overall.Jobs_Cancelled += 1;
+          if (status === "abandoned") overall.Jobs_Abandoned += 1;
+          if (status === "failed") overall.Jobs_Failed += 1;
+
+          const dayEntry = byDay.get(dayKey) || { date: dayKey, Jobs_Total: 0, Jobs_Failed: 0 };
+          dayEntry.Jobs_Total += 1;
+          if (status === "failed") dayEntry.Jobs_Failed += 1;
+          byDay.set(dayKey, dayEntry);
+
+          const merchantEntry = byMerchant.get(merchant) || {
+            merchant_name: merchant,
+            Jobs_Total: 0,
+            Jobs_Failed: 0,
+            Jobs_Success: 0,
+            top_error_code: null,
+            __errorCodes: new Map(),
+          };
+          merchantEntry.Jobs_Total += 1;
+          if (status === "success") merchantEntry.Jobs_Success += 1;
+          if (status === "failed") {
+            merchantEntry.Jobs_Failed += 1;
+            const code =
+              (job.termination || job.status || "UNKNOWN").toString().trim().toUpperCase() ||
+              "UNKNOWN";
+            merchantEntry.__errorCodes.set(
+              code,
+              (merchantEntry.__errorCodes.get(code) || 0) + 1
+            );
+            errorCodes.set(code, (errorCodes.get(code) || 0) + 1);
+          }
+          byMerchant.set(merchant, merchantEntry);
+
+          const fiName =
+            fiMeta.get(fiKey)?.fi ||
+            placement.fi_name ||
+            placement.fi_lookup_key ||
+            fiKey ||
+            "Unknown FI";
+          const fiInstanceKey = makeFiInstanceKey(fiKey, instanceDisplay);
+          const fiEntry = byFiInstance.get(fiInstanceKey) || {
+            fi_name: fiName,
+            fi_lookup_key: fiKey,
+            instance: instanceDisplay || null,
+            Jobs_Total: 0,
+            Jobs_Failed: 0,
+            Jobs_Success: 0,
+          };
+          fiEntry.Jobs_Total += 1;
+          if (status === "success") fiEntry.Jobs_Success += 1;
+          if (status === "failed") fiEntry.Jobs_Failed += 1;
+          byFiInstance.set(fiInstanceKey, fiEntry);
+        }
+      }
+
+      const byMerchantRows = Array.from(byMerchant.values()).map((row) => {
+        let topError = null;
+        let topCount = 0;
+        for (const [code, count] of row.__errorCodes.entries()) {
+          if (count > topCount) {
+            topCount = count;
+            topError = code;
+          }
+        }
+        return {
+          merchant_name: row.merchant_name,
+          Jobs_Total: row.Jobs_Total,
+          Jobs_Failed: row.Jobs_Failed,
+          Jobs_Success: row.Jobs_Success,
+          top_error_code: topError,
+        };
+      });
+
+      const topErrorCodes = Array.from(errorCodes.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10)
+        .map(([code, count]) => ({ error_code: code, count }));
+
+      return send(res, 200, {
+        filters: {
+          ...filters,
+          date_from: start,
+          date_to: end,
+        },
+        overall,
+        status_breakdown: Array.from(statusCounts.entries()).map(([status, count]) => ({
+          status,
+          count,
+        })),
+        by_day: Array.from(byDay.values()).sort((a, b) => a.date.localeCompare(b.date)),
+        by_merchant: byMerchantRows,
+        by_fi_instance: Array.from(byFiInstance.values()),
+        top_error_codes: topErrorCodes,
+      });
+    } catch (err) {
+      const status = err?.status || 500;
+      return send(res, status, { error: err?.message || "Unable to build ops metrics" });
+    }
+  }
 	  if (pathname === "/sessions/jobs-stats") {
       let payload = null;
       if (req.method === "POST") {
@@ -3934,6 +4503,19 @@ const server = http.createServer(async (req, res) => {
 
   if (pathname === "/maintenance" || pathname === "/maintenance.html") {
     const fp = path.join(PUBLIC_DIR, "maintenance.html");
+    if (await fileExists(fp)) return serveFile(res, fp);
+  }
+
+  if (
+    pathname === "/dashboards/customer-success" ||
+    pathname === "/dashboards/customer-success.html"
+  ) {
+    const fp = path.join(PUBLIC_DIR, "dashboards", "customer-success.html");
+    if (await fileExists(fp)) return serveFile(res, fp);
+  }
+
+  if (pathname === "/dashboards/operations" || pathname === "/dashboards/operations.html") {
+    const fp = path.join(PUBLIC_DIR, "dashboards", "operations.html");
     if (await fileExists(fp)) return serveFile(res, fp);
   }
 
