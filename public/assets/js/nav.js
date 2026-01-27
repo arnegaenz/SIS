@@ -71,27 +71,60 @@ return el;
 }
 
 // Default groups and pages. Keys match page ids we will pass from each page.
+// Compute base path for navigation links
+// Handles both root hosting (Lightsail) and subdirectory hosting (GitHub Pages)
+function getBasePath() {
+  // Check for explicit base path config
+  if (global.SIS_BASE_PATH) return global.SIS_BASE_PATH;
+  // Check for <base> tag
+  var base = document.querySelector("base[href]");
+  if (base && base.href) {
+    var href = base.getAttribute("href");
+    if (href && href !== "/") return href.replace(/\/$/, "");
+  }
+  // Detect from script src (nav.js is at /assets/js/nav.js)
+  var scripts = document.querySelectorAll('script[src*="nav.js"]');
+  for (var i = 0; i < scripts.length; i++) {
+    var src = scripts[i].getAttribute("src") || "";
+    var match = src.match(/^(.*?)\/assets\/js\/nav\.js/);
+    if (match && match[1]) return match[1];
+  }
+  // Default: assume root
+  return "";
+}
+
+var BASE_PATH = getBasePath();
+
+function navHref(path) {
+  if (!path) return path;
+  // Already absolute URL
+  if (/^[a-z]+:\/\//i.test(path)) return path;
+  // Remove leading ./ or /
+  var clean = path.replace(/^\.?\//, "");
+  return BASE_PATH + "/" + clean;
+}
+
 var GROUPS = [
 { label: "Conversions", items: [
-{ id:"overview", label:"Overview", href:"/index.html" },
-{ id:"funnel", label:"FI Funnel", href:"/funnel.html" },
-{ id:"customer-success", label:"Customer Success Dashboard", href:"/dashboards/customer-success.html" },
-{ id:"sources", label:"Sources", href:"/sources.html" },
-{ id:"ux-paths", label:"UX Paths", href:"/ux-paths.html" },
-{ id:"placement-outcomes", label:"Placement Outcomes", href:"/placement-outcomes.html" }
+{ id:"overview", label:"Overview", href:navHref("index.html") },
+{ id:"funnel", label:"FI Funnel", href:navHref("funnel.html") },
+{ id:"customer-success", label:"Customer Success Dashboard", href:navHref("dashboards/customer-success.html") },
+{ id:"sources", label:"Sources", href:navHref("sources.html") },
+{ id:"ux-paths", label:"UX Paths", href:navHref("ux-paths.html") },
+{ id:"placement-outcomes", label:"Placement Outcomes", href:navHref("placement-outcomes.html") }
 ]},
 { label: "Reliability", items: [
-{ id:"heatmap", label:"Merchant Heatmap", href:"/heatmap.html" },
-{ id:"watchlist", label:"Alerts & Watchlist", href:"/watchlist.html" }
+{ id:"heatmap", label:"Merchant Heatmap", href:navHref("heatmap.html") },
+{ id:"watchlist", label:"Alerts & Watchlist", href:navHref("watchlist.html") }
 ]},
 { label: "Ops", items: [
-{ id:"operations", label:"Operations Dashboard", href:"/dashboards/operations.html" },
-{ id:"troubleshoot", label:"Troubleshoot", href:"/troubleshoot.html" },
-{ id:"realtime", label:"Real-Time", href:"/realtime.html" },
-{ id:"maintenance", label:"Maintenance", href:"/maintenance.html" },
-{ id:"synthetic-traffic", label:"Synthetic Traffic", href:"/synthetic-traffic.html" },
-{ id:"fi-api", label:"FI API", href:"/fi-api.html" },
-{ id:"logs", label:"Server Logs", href:"/logs.html" }
+{ id:"operations", label:"Operations Dashboard", href:navHref("dashboards/operations.html") },
+{ id:"troubleshoot", label:"Troubleshoot", href:navHref("troubleshoot.html") },
+{ id:"realtime", label:"Real-Time", href:navHref("realtime.html") },
+{ id:"maintenance", label:"Maintenance", href:navHref("maintenance.html") },
+{ id:"synthetic-traffic", label:"Synthetic Traffic", href:navHref("synthetic-traffic.html") },
+{ id:"fi-api", label:"FI API", href:navHref("fi-api.html") },
+{ id:"logs", label:"Server Logs", href:navHref("logs.html") }
 ]}
 ];
 
