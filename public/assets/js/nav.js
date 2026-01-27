@@ -99,12 +99,24 @@ var GROUPS = [
 ];
 
 function getAccessLevel() {
+  // Use sisAuth if available (new session-based auth)
+  if (global.sisAuth && global.sisAuth.getAccessLevel) {
+    return global.sisAuth.getAccessLevel();
+  }
+  // Legacy fallback
   try {
     var level = sessionStorage.getItem("sis_access_level");
     if (level === "full" || level === "limited") return level;
     if (sessionStorage.getItem("sis_passcode_ok") === "1") return "full";
   } catch (e) {}
   return "";
+}
+
+function getCurrentUser() {
+  if (global.sisAuth && global.sisAuth.getUser) {
+    return global.sisAuth.getUser();
+  }
+  return null;
 }
 
 function getGroupsForAccess() {
@@ -220,6 +232,30 @@ var navGroups = getGroupsForAccess();
 for (var g=0; g<navGroups.length; g++){
 var group = navGroups[g];
 addDropdown(group, rightGroup);
+}
+
+// Add user info and logout button
+var user = getCurrentUser();
+if (user) {
+  var userName = user.name || user.email || "";
+  if (userName) {
+    var userSpan = h("span", { class: "sis-user-name" }, [userName]);
+    userSpan.style.fontSize = "13px";
+    userSpan.style.color = "#8b949e";
+    userSpan.style.marginRight = "8px";
+    leftGroup.appendChild(userSpan);
+  }
+  var logoutBtn = h("button", { class: "sis-pill sis-pill-outline", type: "button" }, ["Sign Out"]);
+  logoutBtn.style.fontSize = "12px";
+  logoutBtn.style.padding = "6px 12px";
+  logoutBtn.addEventListener("click", function() {
+    if (global.sisAuth && global.sisAuth.logout) {
+      global.sisAuth.logout();
+    } else {
+      window.location.href = NAV_PREFIX + "login.html";
+    }
+  });
+  leftGroup.appendChild(logoutBtn);
 }
 
 // Theme toggle removed from header - now in maintenance page body only

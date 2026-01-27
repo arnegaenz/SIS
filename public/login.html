@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Sign In - SIS Metrics</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="./sis-shared.css" />
+  <script src="./assets/js/config.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: radial-gradient(circle at top, rgba(37,99,235,.09), transparent 42%) var(--bg, #0b0f14);
+      color: var(--text, #e6edf3);
+      font-family: "Inter", "Segoe UI", ui-sans-serif, system-ui, -apple-system, Roboto, "Helvetica Neue", Arial;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .login-container {
+      background: var(--panel, #161b22);
+      border: 1px solid var(--border, #30363d);
+      border-radius: 12px;
+      padding: 40px;
+      width: 100%;
+      max-width: 400px;
+      text-align: center;
+    }
+    .login-container h1 {
+      margin: 0 0 8px;
+      font-size: 24px;
+      font-weight: 600;
+    }
+    .login-container p {
+      margin: 0 0 24px;
+      color: var(--muted, #8b949e);
+      font-size: 14px;
+    }
+    .login-container input[type="email"] {
+      width: 100%;
+      padding: 12px 16px;
+      font-size: 16px;
+      border: 1px solid var(--border, #30363d);
+      border-radius: 8px;
+      background: var(--bg, #0b0f14);
+      color: var(--text, #e6edf3);
+      margin-bottom: 16px;
+    }
+    .login-container input[type="email"]:focus {
+      outline: none;
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37,99,235,0.2);
+    }
+    .login-container button {
+      width: 100%;
+      padding: 12px 24px;
+      font-size: 16px;
+      font-weight: 500;
+      border: none;
+      border-radius: 8px;
+      background: #2563eb;
+      color: white;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .login-container button:hover {
+      background: #1d4ed8;
+    }
+    .login-container button:disabled {
+      background: #4b5563;
+      cursor: not-allowed;
+    }
+    #message {
+      margin-top: 16px;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 14px;
+      display: none;
+    }
+    #message.success {
+      display: block;
+      background: rgba(34, 197, 94, 0.1);
+      border: 1px solid rgba(34, 197, 94, 0.3);
+      color: #22c55e;
+    }
+    #message.error {
+      display: block;
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #ef4444;
+    }
+    #verify-status {
+      display: none;
+    }
+    .spinner {
+      display: inline-block;
+      width: 24px;
+      height: 24px;
+      border: 3px solid rgba(255,255,255,0.3);
+      border-radius: 50%;
+      border-top-color: #2563eb;
+      animation: spin 1s linear infinite;
+      margin-bottom: 16px;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .logo {
+      margin-bottom: 24px;
+    }
+    .logo svg {
+      width: 48px;
+      height: 48px;
+    }
+  </style>
+</head>
+<body>
+  <div class="login-container">
+    <div class="logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+      </svg>
+    </div>
+
+    <div id="request-form">
+      <h1>Sign In</h1>
+      <p>Enter your email to receive a sign-in link.</p>
+      <input type="email" id="email" placeholder="you@yourcompany.com" autocomplete="email" />
+      <button type="button" id="request-btn">Send Sign-In Link</button>
+      <div id="message"></div>
+    </div>
+
+    <div id="verify-status">
+      <div class="spinner"></div>
+      <h1>Signing In...</h1>
+      <p id="verify-message">Verifying your link...</p>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      var API_BASE = window.SIS_API_BASE || "";
+
+      // Check if already logged in
+      try {
+        var existingToken = localStorage.getItem("sis_session_token");
+        var existingUser = localStorage.getItem("sis_user");
+        if (existingToken && existingUser) {
+          var user = JSON.parse(existingUser);
+          window.location.href = getRedirectForAccessLevel(user.access_level);
+          return;
+        }
+      } catch (e) {}
+
+      // Check for token in URL (magic link clicked)
+      var params = new URLSearchParams(window.location.search);
+      var token = params.get("token");
+
+      if (token) {
+        document.getElementById("request-form").style.display = "none";
+        document.getElementById("verify-status").style.display = "block";
+        verifyToken(token);
+      }
+
+      function verifyToken(token) {
+        fetch(API_BASE + "/auth/verify?token=" + encodeURIComponent(token))
+          .then(function(res) { return res.json(); })
+          .then(function(data) {
+            if (data.ok) {
+              // Store session
+              localStorage.setItem("sis_session_token", data.session_token);
+              localStorage.setItem("sis_user", JSON.stringify(data.user));
+
+              // Redirect based on access level
+              var redirectPage = getRedirectForAccessLevel(data.user.access_level);
+              window.location.href = redirectPage;
+            } else {
+              document.getElementById("verify-message").textContent =
+                data.error || "Invalid or expired link. Please request a new one.";
+              document.querySelector(".spinner").style.display = "none";
+            }
+          })
+          .catch(function(err) {
+            document.getElementById("verify-message").textContent =
+              "Error verifying link. Please try again.";
+            document.querySelector(".spinner").style.display = "none";
+          });
+      }
+
+      function getRedirectForAccessLevel(level) {
+        if (level === "billing") return "./fi-api-billing.html";
+        if (level === "limited") return "./funnel.html";
+        return "./index.html";
+      }
+
+      // Request link form
+      document.getElementById("request-btn").addEventListener("click", function() {
+        var email = document.getElementById("email").value.trim();
+        var messageEl = document.getElementById("message");
+        var btn = document.getElementById("request-btn");
+
+        if (!email) {
+          messageEl.textContent = "Please enter your email.";
+          messageEl.className = "error";
+          return;
+        }
+
+        btn.disabled = true;
+        btn.textContent = "Sending...";
+
+        fetch(API_BASE + "/auth/request-link", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: email })
+        })
+          .then(function(res) { return res.json(); })
+          .then(function(data) {
+            messageEl.textContent = data.message || "Check your email for a sign-in link.";
+            messageEl.className = "success";
+            btn.textContent = "Link Sent";
+          })
+          .catch(function(err) {
+            messageEl.textContent = "Error sending link. Please try again.";
+            messageEl.className = "error";
+            btn.disabled = false;
+            btn.textContent = "Send Sign-In Link";
+          });
+      });
+
+      // Allow Enter key to submit
+      document.getElementById("email").addEventListener("keypress", function(e) {
+        if (e.key === "Enter") {
+          document.getElementById("request-btn").click();
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

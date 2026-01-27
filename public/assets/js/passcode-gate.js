@@ -1,9 +1,13 @@
 (function (global) {
-  var FULL_PASSCODE = "12345678";
-  var LIMITED_PASSCODE = "1234";
-  var BILLING_PASSCODE = "BILLING2026";
-  var STORAGE_KEY = "sis_passcode_ok";
-  var ACCESS_KEY = "sis_access_level";
+  // Session-based auth storage keys
+  var TOKEN_KEY = "sis_session_token";
+  var USER_KEY = "sis_user";
+
+  // Legacy passcode keys (kept for backward compatibility during transition)
+  var LEGACY_STORAGE_KEY = "sis_passcode_ok";
+  var LEGACY_ACCESS_KEY = "sis_access_level";
+
+  // Page access restrictions
   var LIMITED_PAGES = ["funnel.html", "troubleshoot.html"];
   var BILLING_PAGES = ["fi-api-billing.html"];
 
@@ -14,6 +18,10 @@
       return parts[parts.length - 1] || "index.html";
     } catch (e) {}
     return "index.html";
+  }
+
+  function isLoginPage() {
+    return getPageName().toLowerCase() === "login.html";
   }
 
   function isLimitedAllowedPage() {
@@ -34,163 +42,156 @@
     return false;
   }
 
-  function getAccessLevel() {
+  function getStoredUser() {
     try {
-      var level = sessionStorage.getItem(ACCESS_KEY);
+      var userJson = localStorage.getItem(USER_KEY);
+      if (userJson) return JSON.parse(userJson);
+    } catch (e) {}
+    return null;
+  }
+
+  function getSessionToken() {
+    try {
+      return localStorage.getItem(TOKEN_KEY);
+    } catch (e) {}
+    return null;
+  }
+
+  function getAccessLevel() {
+    // First check session-based auth
+    var user = getStoredUser();
+    if (user && user.access_level) {
+      return user.access_level;
+    }
+
+    // Legacy fallback for transition period
+    try {
+      var level = sessionStorage.getItem(LEGACY_ACCESS_KEY);
       if (level === "full" || level === "limited" || level === "billing") return level;
-      if (sessionStorage.getItem(STORAGE_KEY) === "1") return "full";
+      if (sessionStorage.getItem(LEGACY_STORAGE_KEY) === "1") return "full";
     } catch (e) {}
     return "";
   }
 
-  function unlock(level) {
+  function isAuthenticated() {
+    var token = getSessionToken();
+    var user = getStoredUser();
+    if (token && user) return true;
+
+    // Legacy fallback
     try {
-      sessionStorage.setItem(STORAGE_KEY, "1");
-      if (level) sessionStorage.setItem(ACCESS_KEY, level);
+      if (sessionStorage.getItem(LEGACY_STORAGE_KEY) === "1") return true;
     } catch (e) {}
-    document.documentElement.style.visibility = "";
-    var gate = document.getElementById("sis-passcode-gate");
-    if (gate) gate.remove();
-    if (level === "limited" && !isLimitedAllowedPage()) {
-      window.location.href = "./funnel.html";
-      return;
-    }
-    if (level === "billing" && !isBillingAllowedPage()) {
-      window.location.href = "./fi-api-billing.html";
-      return;
-    }
-    window.location.reload();
+    return false;
   }
 
-  function showGate() {
-    document.documentElement.style.visibility = "hidden";
+  function clearAuth() {
+    try {
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(USER_KEY);
+      sessionStorage.removeItem(LEGACY_STORAGE_KEY);
+      sessionStorage.removeItem(LEGACY_ACCESS_KEY);
+    } catch (e) {}
+  }
 
-    var gate = document.createElement("div");
-    gate.id = "sis-passcode-gate";
-    gate.style.position = "fixed";
-    gate.style.inset = "0";
-    gate.style.background = "#0b0f14";
-    gate.style.color = "#e6edf3";
-    gate.style.display = "flex";
-    gate.style.alignItems = "center";
-    gate.style.justifyContent = "center";
-    gate.style.zIndex = "999999";
+  function redirectToLogin() {
+    // Compute relative path to login based on current location
+    var path = window.location.pathname || "";
+    var prefix = path.indexOf("/dashboards/") !== -1 ? "../" : "./";
+    window.location.href = prefix + "login.html";
+  }
 
-    var card = document.createElement("div");
-    card.style.background = "#121822";
-    card.style.border = "1px solid #1f2937";
-    card.style.borderRadius = "16px";
-    card.style.padding = "28px";
-    card.style.width = "min(420px, 90vw)";
-    card.style.boxShadow = "0 24px 60px rgba(0,0,0,0.35)";
+  function checkPageAccess() {
+    var level = getAccessLevel();
+    var page = getPageName().toLowerCase();
 
-    var title = document.createElement("div");
-    title.textContent = "Enter Access Code";
-    title.style.fontSize = "18px";
-    title.style.fontWeight = "700";
-    title.style.marginBottom = "10px";
-
-    var hint = document.createElement("div");
-    hint.textContent = "This dashboard requires a passcode.";
-    hint.style.fontSize = "13px";
-    hint.style.color = "#94a3b8";
-    hint.style.marginBottom = "16px";
-
-    var input = document.createElement("input");
-    input.type = "password";
-    input.autocomplete = "off";
-    input.placeholder = "Passcode";
-    input.style.width = "100%";
-    input.style.padding = "10px 12px";
-    input.style.borderRadius = "10px";
-    input.style.border = "1px solid #334155";
-    input.style.background = "#0f172a";
-    input.style.color = "#e2e8f0";
-    input.style.outline = "none";
-    input.style.marginBottom = "12px";
-
-    var error = document.createElement("div");
-    error.textContent = "";
-    error.style.fontSize = "12px";
-    error.style.color = "#fca5a5";
-    error.style.minHeight = "16px";
-    error.style.marginBottom = "10px";
-
-    var button = document.createElement("button");
-    button.textContent = "Unlock";
-    button.type = "button";
-    button.style.width = "100%";
-    button.style.padding = "10px 12px";
-    button.style.borderRadius = "10px";
-    button.style.border = "0";
-    button.style.background = "#2563eb";
-    button.style.color = "white";
-    button.style.fontWeight = "700";
-    button.style.cursor = "pointer";
-
-    function attempt() {
-      if (input.value === FULL_PASSCODE) {
-        unlock("full");
-      } else if (input.value === LIMITED_PASSCODE) {
-        unlock("limited");
-      } else if (input.value === BILLING_PASSCODE) {
-        unlock("billing");
-      } else {
-        error.textContent = "Incorrect code.";
-        input.value = "";
-        input.focus();
-      }
+    if (level === "limited" && !isLimitedAllowedPage()) {
+      var prefix = page.indexOf("/dashboards/") !== -1 ? "../" : "./";
+      window.location.href = prefix + "funnel.html";
+      return false;
     }
+    if (level === "billing" && !isBillingAllowedPage()) {
+      var prefix = page.indexOf("/dashboards/") !== -1 ? "../" : "./";
+      window.location.href = prefix + "fi-api-billing.html";
+      return false;
+    }
+    return true;
+  }
 
-    button.addEventListener("click", attempt);
-    input.addEventListener("keydown", function (e) {
-      if (e.key === "Enter") attempt();
-    });
+  function validateSessionAsync() {
+    var API_BASE = global.SIS_API_BASE || "";
+    var token = getSessionToken();
 
-    card.appendChild(title);
-    card.appendChild(hint);
-    card.appendChild(input);
-    card.appendChild(error);
-    card.appendChild(button);
-    gate.appendChild(card);
+    if (!token) return;
 
-    document.body.appendChild(gate);
-    input.focus();
-    document.documentElement.style.visibility = "";
+    fetch(API_BASE + "/auth/me", {
+      headers: { "Authorization": "Bearer " + token }
+    })
+      .then(function(res) { return res.json(); })
+      .then(function(data) {
+        if (!data.ok) {
+          // Session invalid - redirect to login
+          clearAuth();
+          redirectToLogin();
+        } else {
+          // Update stored user in case it changed
+          try {
+            localStorage.setItem(USER_KEY, JSON.stringify(data.user));
+          } catch (e) {}
+        }
+      })
+      .catch(function(e) {
+        // Network error - allow offline access with cached session
+        console.warn("[auth] Could not validate session:", e);
+      });
   }
 
   function init() {
+    // Don't run on login page
+    if (isLoginPage()) return;
+
+    // Check URL for logout
     try {
       var params = new URLSearchParams(window.location.search || "");
-      if (params.get("sis-reset") === "1") {
+      if (params.get("logout") === "1" || params.get("sis-reset") === "1") {
+        params.delete("logout");
         params.delete("sis-reset");
         try {
           var nextUrl = window.location.pathname;
           var qs = params.toString();
           if (qs) nextUrl += "?" + qs;
-          if (window.location.hash) nextUrl += window.location.hash;
           window.history.replaceState({}, "", nextUrl);
         } catch (e) {}
-        sessionStorage.removeItem(STORAGE_KEY);
-        sessionStorage.removeItem(ACCESS_KEY);
-      }
-    } catch (e) {}
-    try {
-      var level = getAccessLevel();
-      if (level) {
-        if (level === "limited" && !isLimitedAllowedPage()) {
-          window.location.href = "./funnel.html";
-          return;
-        }
-        if (level === "billing" && !isBillingAllowedPage()) {
-          window.location.href = "./fi-api-billing.html";
-          return;
-        }
+        clearAuth();
+        redirectToLogin();
         return;
       }
     } catch (e) {}
-    showGate();
+
+    // Check if authenticated
+    if (!isAuthenticated()) {
+      redirectToLogin();
+      return;
+    }
+
+    // Check page access based on level
+    if (!checkPageAccess()) return;
+
+    // Validate session with server (async, non-blocking)
+    validateSessionAsync();
   }
+
+  // Expose auth API for other scripts
+  global.sisAuth = {
+    getUser: getStoredUser,
+    getToken: getSessionToken,
+    getAccessLevel: getAccessLevel,
+    isAuthenticated: isAuthenticated,
+    logout: function() {
+      clearAuth();
+      redirectToLogin();
+    }
+  };
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", init);

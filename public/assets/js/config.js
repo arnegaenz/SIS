@@ -28,19 +28,48 @@
     return str;
   }
 
+  function getAuthToken() {
+    try {
+      return localStorage.getItem("sis_session_token") || "";
+    } catch (e) {
+      return "";
+    }
+  }
+
   function wrapFetch(apiBase) {
     if (!global.fetch || global.__sisFetchWrapped) return;
-    if (!apiBase) return;
     global.__sisFetchWrapped = true;
     var origFetch = global.fetch.bind(global);
+
     global.fetch = function (input, init) {
+      init = init || {};
+
+      // Add auth token to all requests
+      var token = getAuthToken();
+      if (token) {
+        if (!init.headers) {
+          init.headers = {};
+        }
+        // Handle both Headers object and plain object
+        if (init.headers instanceof Headers) {
+          if (!init.headers.has("Authorization")) {
+            init.headers.set("Authorization", "Bearer " + token);
+          }
+        } else if (typeof init.headers === "object") {
+          if (!init.headers["Authorization"]) {
+            init.headers["Authorization"] = "Bearer " + token;
+          }
+        }
+      }
+
       try {
         if (typeof input === "string") {
-          return origFetch(withApiBase(input, apiBase), init);
+          var url = apiBase ? withApiBase(input, apiBase) : input;
+          return origFetch(url, init);
         }
         if (input && typeof input === "object" && input.url) {
-          var nextUrl = withApiBase(input.url, apiBase);
-          if (nextUrl === input.url) return origFetch(input, init);
+          var nextUrl = apiBase ? withApiBase(input.url, apiBase) : input.url;
+          if (nextUrl === input.url && !token) return origFetch(input, init);
           return origFetch(new Request(nextUrl, input), init);
         }
       } catch (err) {

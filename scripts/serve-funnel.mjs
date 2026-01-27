@@ -1,6 +1,7 @@
 import http from "node:http";
 import path from "node:path";
 import fs from "node:fs/promises";
+import crypto from "node:crypto";
 import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import url from "url";
@@ -326,7 +327,7 @@ const mime = (ext) =>
 const setCors = (res) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, X-SIS-ADMIN-KEY");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, X-SIS-ADMIN-KEY, Authorization");
 };
 
 const send = (res, code, body, type) => {
@@ -412,6 +413,215 @@ async function fileExists(fp) {
     return false;
   }
 }
+
+// ============================================================================
+// Magic Link Authentication
+// ============================================================================
+
+const USERS_FILE = path.join(ROOT, "secrets", "users.json");
+const SESSIONS_FILE = path.join(ROOT, "secrets", "sessions.json");
+const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY || "";
+const SENDGRID_FROM_EMAIL = process.env.SENDGRID_FROM_EMAIL || "arne@strivve.com";
+const SENDGRID_FROM_NAME = process.env.SENDGRID_FROM_NAME || "SIS Metrics Dashboard";
+const MAGIC_LINK_BASE = process.env.SIS_MAGIC_LINK_BASE || "http://localhost:8787";
+const MAGIC_TOKEN_EXPIRY_MS = 15 * 60 * 1000; // 15 minutes
+const SESSION_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+function generateMagicToken() {
+  return crypto.randomBytes(32).toString("base64url");
+}
+
+function generateSessionToken() {
+  return `sess_${crypto.randomBytes(32).toString("base64url")}`;
+}
+
+async function loadUsersFile() {
+  try {
+    const data = await fs.readFile(USERS_FILE, "utf8");
+    const parsed = JSON.parse(data);
+    return parsed.users || [];
+  } catch (err) {
+    console.warn("[auth] Could not load users file:", err.message);
+    return [];
+  }
+}
+
+async function loadSessionsFile() {
+  try {
+    const data = await fs.readFile(SESSIONS_FILE, "utf8");
+    return JSON.parse(data);
+  } catch {
+    return { magic_tokens: {}, sessions: {}, updated_at: new Date().toISOString() };
+  }
+}
+
+async function saveSessionsFile(sessions) {
+  sessions.updated_at = new Date().toISOString();
+  await fs.writeFile(SESSIONS_FILE, JSON.stringify(sessions, null, 2), "utf8");
+}
+
+async function storeMagicToken(token, data) {
+  const sessions = await loadSessionsFile();
+  sessions.magic_tokens = sessions.magic_tokens || {};
+  sessions.magic_tokens[token] = data;
+  await saveSessionsFile(sessions);
+}
+
+async function getMagicToken(token) {
+  if (!token) return null;
+  const sessions = await loadSessionsFile();
+  return sessions.magic_tokens?.[token] || null;
+}
+
+async function deleteMagicToken(token) {
+  if (!token) return;
+  const sessions = await loadSessionsFile();
+  if (sessions.magic_tokens?.[token]) {
+    delete sessions.magic_tokens[token];
+    await saveSessionsFile(sessions);
+  }
+}
+
+async function storeSession(token, data) {
+  const sessions = await loadSessionsFile();
+  sessions.sessions = sessions.sessions || {};
+  sessions.sessions[token] = data;
+  await saveSessionsFile(sessions);
+}
+
+async function getSession(token) {
+  if (!token) return null;
+  const sessions = await loadSessionsFile();
+  return sessions.sessions?.[token] || null;
+}
+
+async function deleteSession(token) {
+  if (!token) return;
+  const sessions = await loadSessionsFile();
+  if (sessions.sessions?.[token]) {
+    delete sessions.sessions[token];
+    await saveSessionsFile(sessions);
+  }
+}
+
+async function updateSessionLastUsed(token) {
+  if (!token) return;
+  const sessions = await loadSessionsFile();
+  if (sessions.sessions?.[token]) {
+    sessions.sessions[token].last_used_at = new Date().toISOString();
+    await saveSessionsFile(sessions);
+  }
+}
+
+function extractSessionToken(req) {
+  const auth = req.headers["authorization"] || "";
+  if (auth.startsWith("Bearer ")) {
+    return auth.slice(7);
+  }
+  return null;
+}
+
+async function validateSession(req) {
+  const token = extractSessionToken(req);
+  if (!token) return null;
+
+  const sessionData = await getSession(token);
+  if (!sessionData || new Date(sessionData.expires_at) < new Date()) {
+    if (sessionData) await deleteSession(token);
+    return null;
+  }
+
+  const users = await loadUsersFile();
+  const user = users.find(
+    (u) => u.email.toLowerCase() === sessionData.email.toLowerCase() && u.enabled
+  );
+  if (!user) return null;
+
+  // Update last_used_at (non-blocking)
+  updateSessionLastUsed(token).catch(() => {});
+
+  return {
+    session: sessionData,
+    user: {
+      email: user.email,
+      name: user.name,
+      access_level: user.access_level,
+      fi_keys: user.fi_keys,
+    },
+  };
+}
+
+async function sendMagicLinkEmail(email, name, magicLink) {
+  if (!SENDGRID_API_KEY) {
+    console.log("[auth] No SENDGRID_API_KEY - magic link for", email, ":", magicLink);
+    return;
+  }
+
+  const res = await fetch("https://api.sendgrid.com/v3/mail/send", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${SENDGRID_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      personalizations: [{ to: [{ email, name: name || email }] }],
+      from: { email: SENDGRID_FROM_EMAIL, name: SENDGRID_FROM_NAME },
+      subject: "Your Sign-In Link for SIS Metrics",
+      content: [
+        {
+          type: "text/html",
+          value: `
+            <p>Hi ${name || "there"},</p>
+            <p>Click the button below to sign in to SIS Metrics Dashboard:</p>
+            <p><a href="${magicLink}" style="display:inline-block;padding:12px 24px;background:#2563eb;color:white;text-decoration:none;border-radius:8px;">Sign In</a></p>
+            <p>Or copy this link: ${magicLink}</p>
+            <p>This link expires in 15 minutes.</p>
+            <p>If you didn't request this, you can ignore this email.</p>
+          `,
+        },
+      ],
+    }),
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`SendGrid error: ${res.status} ${text}`);
+  }
+}
+
+// Cleanup expired tokens/sessions every hour
+setInterval(async () => {
+  try {
+    const sessions = await loadSessionsFile();
+    const now = new Date();
+    let changed = false;
+
+    for (const [token, data] of Object.entries(sessions.magic_tokens || {})) {
+      if (new Date(data.expires_at) < now) {
+        delete sessions.magic_tokens[token];
+        changed = true;
+      }
+    }
+
+    for (const [token, data] of Object.entries(sessions.sessions || {})) {
+      if (new Date(data.expires_at) < now) {
+        delete sessions.sessions[token];
+        changed = true;
+      }
+    }
+
+    if (changed) {
+      await saveSessionsFile(sessions);
+      console.log("[auth] Cleaned expired tokens/sessions");
+    }
+  } catch (err) {
+    console.error("[auth] Cleanup error:", err);
+  }
+}, 60 * 60 * 1000);
+
+// ============================================================================
+// End Magic Link Authentication
+// ============================================================================
 
 let synthState = {
   loaded: false,
@@ -1422,7 +1632,7 @@ function normalizeSourceToken(value) {
   return value.toString().trim().toLowerCase();
 }
 
-function parseMetricsFilters(queryParams, payload = null) {
+function parseMetricsFilters(queryParams, payload = null, userContext = null) {
   const query = Object.fromEntries(queryParams.entries());
   const body = payload && typeof payload === "object" ? payload : {};
   const dateFrom =
@@ -1450,7 +1660,7 @@ function parseMetricsFilters(queryParams, payload = null) {
     "all";
   const fiScope = fiScopeRaw.toString().trim().toLowerCase() || "all";
 
-  const fiList = parseListParam(body.fi_list || body.fiList || query.fi_list || query.fiList);
+  let fiList = parseListParam(body.fi_list || body.fiList || query.fi_list || query.fiList);
   const sourceTypeList = parseListParam(
     body.source_type_list || body.sourceTypeList || query.source_type_list || query.sourceTypeList
   );
@@ -1466,6 +1676,24 @@ function parseMetricsFilters(queryParams, payload = null) {
   const merchantList = parseListParam(
     body.merchant_list || body.merchantList || query.merchant_list || query.merchantList
   );
+
+  // ENFORCE USER FI RESTRICTIONS
+  if (userContext && userContext.fi_keys !== "*" && Array.isArray(userContext.fi_keys)) {
+    const allowedFis = new Set(userContext.fi_keys.map((fi) => normalizeFiKey(fi)));
+
+    if (fiList.length === 0) {
+      // User requested all - restrict to their allowed FIs
+      fiList = userContext.fi_keys.slice();
+    } else {
+      // User requested specific - filter to intersection
+      fiList = fiList.filter((fi) => allowedFis.has(normalizeFiKey(fi)));
+    }
+
+    // If no overlap, use a placeholder that matches nothing
+    if (fiList.length === 0) {
+      fiList = ["__no_access__"];
+    }
+  }
 
   return {
     date_from: dateFrom,
@@ -2110,6 +2338,132 @@ const server = http.createServer(async (req, res) => {
     const queryStr = redactQueryForLogs(search);
     console.log(`${req.method} ${pathname}${queryStr}`);
   }
+
+  // ========== Auth Endpoints ==========
+
+  if (pathname === "/auth/request-link" && req.method === "POST") {
+    try {
+      const rawBody = await readRequestBody(req);
+      const body = rawBody ? JSON.parse(rawBody) : {};
+      const email = (body.email || "").trim().toLowerCase();
+
+      if (!email) {
+        return send(res, 400, { ok: false, error: "Email is required" });
+      }
+
+      const users = await loadUsersFile();
+      const user = users.find(
+        (u) => u.email.toLowerCase() === email && u.enabled
+      );
+
+      // Always return same response to prevent email enumeration
+      const successMessage = "If that email is registered, you'll receive a link shortly.";
+
+      if (!user) {
+        console.log("[auth] Login attempt for unknown email:", email);
+        return send(res, 200, { ok: true, message: successMessage });
+      }
+
+      const token = generateMagicToken();
+      const expiresAt = new Date(Date.now() + MAGIC_TOKEN_EXPIRY_MS).toISOString();
+
+      await storeMagicToken(token, {
+        email: user.email,
+        created_at: new Date().toISOString(),
+        expires_at: expiresAt,
+      });
+
+      const magicLink = `${MAGIC_LINK_BASE}/login.html?token=${token}`;
+
+      try {
+        await sendMagicLinkEmail(user.email, user.name, magicLink);
+        console.log("[auth] Magic link sent to:", user.email);
+      } catch (emailErr) {
+        console.error("[auth] Failed to send email:", emailErr);
+        // Still return success to prevent enumeration
+      }
+
+      return send(res, 200, { ok: true, message: successMessage });
+    } catch (err) {
+      console.error("[auth] request-link error:", err);
+      return send(res, 500, { ok: false, error: "Unable to process request" });
+    }
+  }
+
+  if (pathname === "/auth/verify" && req.method === "GET") {
+    try {
+      const token = queryParams.get("token");
+
+      if (!token) {
+        return send(res, 400, { ok: false, error: "Token is required" });
+      }
+
+      const magicData = await getMagicToken(token);
+      if (!magicData || new Date(magicData.expires_at) < new Date()) {
+        if (magicData) await deleteMagicToken(token);
+        return send(res, 401, { ok: false, error: "Invalid or expired link" });
+      }
+
+      const users = await loadUsersFile();
+      const user = users.find(
+        (u) => u.email.toLowerCase() === magicData.email.toLowerCase() && u.enabled
+      );
+
+      if (!user) {
+        await deleteMagicToken(token);
+        return send(res, 401, { ok: false, error: "User not found or disabled" });
+      }
+
+      const sessionToken = generateSessionToken();
+      const expiresAt = new Date(Date.now() + SESSION_EXPIRY_MS).toISOString();
+
+      await storeSession(sessionToken, {
+        email: user.email,
+        created_at: new Date().toISOString(),
+        expires_at: expiresAt,
+        last_used_at: new Date().toISOString(),
+        user_agent: req.headers["user-agent"] || "",
+      });
+
+      // Delete used magic token (one-time use)
+      await deleteMagicToken(token);
+
+      console.log("[auth] Session created for:", user.email);
+
+      return send(res, 200, {
+        ok: true,
+        session_token: sessionToken,
+        user: {
+          email: user.email,
+          name: user.name,
+          access_level: user.access_level,
+          fi_keys: user.fi_keys,
+        },
+      });
+    } catch (err) {
+      console.error("[auth] verify error:", err);
+      return send(res, 500, { ok: false, error: "Unable to verify" });
+    }
+  }
+
+  if (pathname === "/auth/me" && req.method === "GET") {
+    const session = await validateSession(req);
+    if (!session) {
+      return send(res, 401, { ok: false, error: "Not authenticated" });
+    }
+    return send(res, 200, { ok: true, user: session.user });
+  }
+
+  if (pathname === "/auth/logout" && req.method === "POST") {
+    const token = extractSessionToken(req);
+    if (token) {
+      await deleteSession(token);
+      console.log("[auth] Session logged out");
+    }
+    return send(res, 200, { ok: true });
+  }
+
+  // ========== End Auth Endpoints ==========
 
   if (pathname === "/run-update/status") {
     if (!requireAdmin(req, res, queryParams)) return;
@@ -3576,6 +3930,13 @@ const server = http.createServer(async (req, res) => {
     }
   }
   if (pathname === "/api/metrics/funnel") {
+    // Validate session (allow admin key as fallback)
+    const session = await validateSession(req);
+    if (!session && !isAdminAuthorized(req, queryParams)) {
+      return send(res, 401, { error: "Authentication required" });
+    }
+    const userContext = session ? session.user : null;
+
     let payload = null;
     if (req.method === "POST") {
       try {
@@ -3586,7 +3947,7 @@ const server = http.createServer(async (req, res) => {
       }
     }
     try {
-      const filters = parseMetricsFilters(queryParams, payload);
+      const filters = parseMetricsFilters(queryParams, payload, userContext);
       const { start, end } = resolveDateRange(filters);
       const days = daysBetween(start, end);
       const fiRegistry = await loadFiRegistrySafe();
@@ -3753,6 +4114,13 @@ const server = http.createServer(async (req, res) => {
     }
   }
   if (pathname === "/api/metrics/ops") {
+    // Validate session (allow admin key as fallback)
+    const session = await validateSession(req);
+    if (!session && !isAdminAuthorized(req, queryParams)) {
+      return send(res, 401, { error: "Authentication required" });
+    }
+    const userContext = session ? session.user : null;
+
     let payload = null;
     if (req.method === "POST") {
       try {
@@ -3763,7 +4131,7 @@ const server = http.createServer(async (req, res) => {
       }
     }
     try {
-      const filters = parseMetricsFilters(queryParams, payload);
+      const filters = parseMetricsFilters(queryParams, payload, userContext);
       const { start, end } = resolveDateRange(filters);
       const days = daysBetween(start, end);
       const fiRegistry = await loadFiRegistrySafe();
