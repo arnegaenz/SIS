@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Customer Success Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <link rel="stylesheet" href="../sis-shared.css?v=navfix" />
+  <link rel="stylesheet" href="../assets/css/sis.css" />
+  <link rel="stylesheet" href="../assets/css/dashboards.css" />
+  <link rel="stylesheet" href="../assets/css/mobile.css" />
+  <script src="../assets/js/config.js"></script>
+  <script src="../assets/js/passcode-gate.js"></script>
+  <script defer src="../assets/js/sis.js"></script>
+  <script defer src="../assets/js/nav.js"></script>
+  <script type="module" defer src="../assets/js/customer-success-dashboard.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function(){
+      if (window.renderHeaderNav && !window.__sisHeaderNav_customer_success) {
+        window.__sisHeaderNav_customer_success = true;
+        window.renderHeaderNav({
+          currentId: "customer-success",
+          title: "Customer Success Dashboard",
+          subtitle: "Funnel health, FI conversion quality, and top journeys by source."
+        });
+      }
+    });
+  </script>
+</head>
+<body>
+  <div id="sis-header"></div>
+  <div class="dashboard-shell">
+    <section class="dashboard-toolbar">
+      <div class="toolbar-left">
+        <div class="filter-group">
+          <label>Time Window</label>
+          <div class="segmented" id="timeWindow"></div>
+        </div>
+        <div class="filter-group">
+          <label>FI Scope</label>
+          <select id="fiScope">
+            <option value="all">All FIs</option>
+            <option value="sso_only">SSO FIs only</option>
+            <option value="non_sso_only">Non-SSO FIs only</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>FI Selection</label>
+          <div class="multi-select" id="fiSelect">
+            <button type="button" class="multi-select__button">All FIs</button>
+            <div class="multi-select__panel">
+              <input class="multi-select__search" type="text" placeholder="Search FIs" />
+              <div class="multi-select__options"></div>
+            </div>
+          </div>
+        </div>
+        <div class="filter-group">
+          <label>Source Type</label>
+          <div class="multi-select" id="sourceTypeSelect">
+            <button type="button" class="multi-select__button">All types</button>
+            <div class="multi-select__panel">
+              <input class="multi-select__search" type="text" placeholder="Search types" />
+              <div class="multi-select__options"></div>
+            </div>
+          </div>
+        </div>
+        <div class="filter-group">
+          <label>Source Category</label>
+          <div class="multi-select" id="sourceCategorySelect">
+            <button type="button" class="multi-select__button">All categories</button>
+            <div class="multi-select__panel">
+              <input class="multi-select__search" type="text" placeholder="Search categories" />
+              <div class="multi-select__options"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="toolbar-right">
+        <button class="btn-primary" id="exportOverall">Export FI CSV</button>
+      </div>
+    </section>
+
+    <section class="dashboard-grid">
+      <div class="card">
+        <h3>Total SM Sessions</h3>
+        <div class="kpi-value" id="kpiSmSessions">-</div>
+        <div class="kpi-delta" id="kpiSmSessionsDelta"></div>
+      </div>
+      <div class="card">
+        <h3>SM → Success Conversion</h3>
+        <div class="kpi-value" id="kpiSmToSuccess">-</div>
+        <div class="kpi-delta" id="kpiSmToSuccessDelta"></div>
+      </div>
+      <div class="card">
+        <h3>Jobs Success Rate</h3>
+        <div class="kpi-value" id="kpiJobsSuccessRate">-</div>
+        <div class="kpi-delta" id="kpiJobsSuccessRateDelta"></div>
+      </div>
+      <div class="card">
+        <h3>Jobs per Credentialed Session</h3>
+        <div class="kpi-value" id="kpiJobsPerCe">-</div>
+        <div class="kpi-delta" id="kpiJobsPerCeDelta"></div>
+      </div>
+    </section>
+
+    <section class="dashboard-grid two" style="margin-top: 18px;">
+      <div class="card chart-panel">
+        <h3>Funnel Overview</h3>
+        <div id="funnelChart" class="funnel-bars"></div>
+        <div class="legend" id="funnelRates"></div>
+      </div>
+      <div class="card chart-panel">
+        <h3>SSO vs Non-SSO</h3>
+        <div class="mini-funnels" id="ssoComparison"></div>
+      </div>
+    </section>
+
+    <section style="margin-top: 22px;">
+      <div class="section-title">FI Performance</div>
+      <div class="table-wrap">
+        <div class="table-toolbar">
+          <div class="muted" id="fiTableMeta">Loading…</div>
+        </div>
+        <div class="table-scroll">
+          <table id="fiTable">
+            <thead>
+              <tr>
+                <th data-key="fi_name">FI Name</th>
+                <th data-key="fi_lookup_key">FI Lookup Key</th>
+                <th data-key="SM_Sessions">SM Sessions</th>
+                <th data-key="CE_Sessions">CE Sessions</th>
+                <th data-key="Success_Sessions">Success Sessions</th>
+                <th data-key="sm_to_ce">% SM→CE</th>
+                <th data-key="ce_to_success">% CE→Success</th>
+                <th data-key="sm_to_success">% SM→Success</th>
+                <th data-key="jobs_per_ce">Jobs/CE Session</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section style="margin-top: 22px;">
+      <div class="section-title">Top Sources</div>
+      <div class="table-wrap">
+        <div class="table-toolbar">
+          <div class="muted" id="sourceTableMeta">Loading…</div>
+          <button class="btn-secondary" id="exportSources">Export Sources CSV</button>
+        </div>
+        <div class="table-scroll">
+          <table id="sourceTable">
+            <thead>
+              <tr>
+                <th data-key="source_type">Source Type</th>
+                <th data-key="source_category">Source Category</th>
+                <th data-key="SM_Sessions">SM Sessions</th>
+                <th data-key="Success_Sessions">Success Sessions</th>
+                <th data-key="sm_to_success">% SM→Success</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </div>
+</body>
+</html>

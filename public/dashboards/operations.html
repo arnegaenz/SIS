@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Operations Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <link rel="stylesheet" href="../sis-shared.css?v=navfix" />
+  <link rel="stylesheet" href="../assets/css/sis.css" />
+  <link rel="stylesheet" href="../assets/css/dashboards.css" />
+  <link rel="stylesheet" href="../assets/css/mobile.css" />
+  <script src="../assets/js/config.js"></script>
+  <script src="../assets/js/passcode-gate.js"></script>
+  <script defer src="../assets/js/sis.js"></script>
+  <script defer src="../assets/js/nav.js"></script>
+  <script type="module" defer src="../assets/js/operations-dashboard.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function(){
+      if (window.renderHeaderNav && !window.__sisHeaderNav_operations) {
+        window.__sisHeaderNav_operations = true;
+        window.renderHeaderNav({
+          currentId: "operations",
+          title: "Operations Dashboard",
+          subtitle: "Failure rates, error modes, and merchant stability signals."
+        });
+      }
+    });
+  </script>
+</head>
+<body>
+  <div id="sis-header"></div>
+  <div class="dashboard-shell">
+    <section class="dashboard-toolbar">
+      <div class="toolbar-left">
+        <div class="filter-group">
+          <label>Time Window</label>
+          <div class="segmented" id="timeWindow"></div>
+        </div>
+        <div class="filter-group">
+          <label>FI Scope</label>
+          <select id="fiScope">
+            <option value="all">All FIs</option>
+            <option value="sso_only">SSO FIs only</option>
+            <option value="non_sso_only">Non-SSO FIs only</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>FI Selection</label>
+          <div class="multi-select" id="fiSelect">
+            <button type="button" class="multi-select__button">All FIs</button>
+            <div class="multi-select__panel">
+              <input class="multi-select__search" type="text" placeholder="Search FIs" />
+              <div class="multi-select__options"></div>
+            </div>
+          </div>
+        </div>
+        <div class="filter-group">
+          <label>Instance</label>
+          <div class="multi-select" id="instanceSelect">
+            <button type="button" class="multi-select__button">All instances</button>
+            <div class="multi-select__panel">
+              <input class="multi-select__search" type="text" placeholder="Search instances" />
+              <div class="multi-select__options"></div>
+            </div>
+          </div>
+        </div>
+        <div class="filter-group">
+          <label>Merchant</label>
+          <div class="multi-select" id="merchantSelect">
+            <button type="button" class="multi-select__button">All merchants</button>
+            <div class="multi-select__panel">
+              <input class="multi-select__search" type="text" placeholder="Search merchants" />
+              <div class="multi-select__options"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="toolbar-right">
+        <button class="btn-primary" id="exportOps">Export Merchants CSV</button>
+      </div>
+    </section>
+
+    <section class="dashboard-grid">
+      <div class="card">
+        <h3>Total Jobs</h3>
+        <div class="kpi-value" id="kpiTotalJobs">-</div>
+      </div>
+      <div class="card">
+        <h3>Success Rate</h3>
+        <div class="kpi-value" id="kpiSuccessRate">-</div>
+      </div>
+      <div class="card">
+        <h3>Failure Rate</h3>
+        <div class="kpi-value" id="kpiFailureRate">-</div>
+      </div>
+      <div class="card">
+        <h3>Top Merchant Failure</h3>
+        <div class="kpi-value" id="kpiTopMerchant">-</div>
+        <div class="kpi-sub" id="kpiTopMerchantDetail"></div>
+      </div>
+    </section>
+
+    <section class="dashboard-grid two" style="margin-top: 18px;">
+      <div class="card chart-panel">
+        <h3>Failure Rate Over Time</h3>
+        <div id="failureLineChart" class="line-chart"></div>
+      </div>
+      <div class="card chart-panel">
+        <h3>Status Breakdown</h3>
+        <div id="statusStack" class="stack-bar"></div>
+        <div class="legend" id="statusLegend"></div>
+      </div>
+    </section>
+
+    <section style="margin-top: 22px;">
+      <div class="section-title">Top Problem Merchants</div>
+      <div class="table-wrap">
+        <div class="table-toolbar">
+          <div class="muted" id="merchantTableMeta">Loading…</div>
+        </div>
+        <div class="table-scroll">
+          <table id="merchantTable">
+            <thead>
+              <tr>
+                <th data-key="merchant_name">Merchant</th>
+                <th data-key="Jobs_Total">Jobs Total</th>
+                <th data-key="Jobs_Failed">Jobs Failed</th>
+                <th data-key="failure_rate">Failure Rate</th>
+                <th data-key="top_error_code">Top Error Code</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section style="margin-top: 22px;">
+      <div class="section-title">Hot FIs / Instances</div>
+      <div class="table-wrap">
+        <div class="table-toolbar">
+          <div class="muted" id="fiInstanceTableMeta">Loading…</div>
+        </div>
+        <div class="table-scroll">
+          <table id="fiInstanceTable">
+            <thead>
+              <tr>
+                <th data-key="fi_name">FI Name</th>
+                <th data-key="instance">Instance</th>
+                <th data-key="Jobs_Total">Jobs Total</th>
+                <th data-key="Jobs_Failed">Jobs Failed</th>
+                <th data-key="failure_rate">Failure Rate</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </div>
+</body>
+</html>
