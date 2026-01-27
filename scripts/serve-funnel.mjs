@@ -342,28 +342,18 @@ const send = (res, code, body, type) => {
   }
 };
 
-const ADMIN_KEY = process.env.SIS_ADMIN_KEY || "";
-const ADMIN_HEADER = "x-sis-admin-key";
-
-function getAdminKey(req, queryParams) {
-  const headerKey = req?.headers?.[ADMIN_HEADER] || "";
-  const paramKey =
-    queryParams?.get?.("adminKey") ||
-    queryParams?.get?.("admin_key") ||
-    queryParams?.get?.("admin") ||
-    "";
-  return (headerKey || paramKey || "").toString();
-}
-
-function isAdminAuthorized(req, queryParams) {
-  if (!ADMIN_KEY) return true;
-  return getAdminKey(req, queryParams) === ADMIN_KEY;
-}
-
-function requireAdmin(req, res, queryParams) {
-  if (isAdminAuthorized(req, queryParams)) return true;
-  send(res, 401, { error: "Admin key required" });
-  return false;
+// Session-based admin authorization (replaces old admin key)
+async function requireFullAccess(req, res, queryParams) {
+  const auth = await validateSession(req, queryParams);
+  if (!auth) {
+    send(res, 401, { error: "Authentication required" });
+    return null;
+  }
+  if (auth.user.access_level !== "full") {
+    send(res, 403, { error: "Full access required" });
+    return null;
+  }
+  return auth;
 }
 
 function redactInstanceEntry(entry = {}) {
@@ -513,16 +503,22 @@ async function updateSessionLastUsed(token) {
   }
 }
 
-function extractSessionToken(req) {
+function extractSessionToken(req, queryParams) {
+  // Check Authorization header first
   const auth = req.headers["authorization"] || "";
   if (auth.startsWith("Bearer ")) {
     return auth.slice(7);
   }
+  // Fall back to query param (for EventSource which can't set headers)
+  const tokenParam = queryParams?.get?.("token") || "";
+  if (tokenParam && tokenParam.startsWith("sess_")) {
+    return tokenParam;
+  }
   return null;
 }
 
-async function validateSession(req) {
-  const token = extractSessionToken(req);
+async function validateSession(req, queryParams) {
+  const token = extractSessionToken(req, queryParams);
   if (!token) return null;
 
   const sessionData = await getSession(token);
@@ -2447,7 +2443,7 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (pathname === "/auth/me" && req.method === "GET") {
-    const session = await validateSession(req);
+    const session = await validateSession(req, queryParams);
     if (!session) {
       return send(res, 401, { ok: false, error: "Not authenticated" });
     }
@@ -2466,12 +2462,12 @@ const server = http.createServer(async (req, res) => {
   // ========== End Auth Endpoints ==========
 
   if (pathname === "/run-update/status") {
-    if (!requireAdmin(req, res, queryParams)) return;
+    if (!(await requireFullAccess(req, res, queryParams))) return;
     return send(res, 200, currentUpdateSnapshot());
   }
 
   if (pathname === "/run-update/start") {
-    if (!requireAdmin(req, res, queryParams)) return;
+    if (!(await requireFullAccess(req, res, queryParams))) return;
     const qsStart = queryParams.get("start") || queryParams.get("startDate");
     const qsEnd = queryParams.get("end") || queryParams.get("endDate");
     const forceRaw = queryParams.get("forceRaw") === "true";
@@ -2484,7 +2480,7 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (pathname === "/run-update/stream") {
-    if (!requireAdmin(req, res, queryParams)) return;
+    if (!(await requireFullAccess(req, res, queryParams))) return;
     setCors(res);
     res.writeHead(200, {
       "Content-Type": "text/event-stream",
@@ -2898,7 +2894,7 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (pathname === "/server-logs") {
-    if (!requireAdmin(req, res, queryParams)) return;
+    if (!(await requireFullAccess(req, res, queryParams))) return;
     try {
       const query = new URLSearchParams(parsedUrl.searchParams);
       const limit = parseInt(query.get('limit')) || 500;
@@ -3341,7 +3337,7 @@ const server = http.createServer(async (req, res) => {
     }
   }
   if (pathname === "/fi-registry/update" && req.method === "POST") {
-    if (!requireAdmin(req, res, queryParams)) return;
+    if (!(await requireFullAccess(req, res, queryParams))) return;
     try {
       const rawBody = await readRequestBody(req);
       const payload = JSON.parse(rawBody || "{}");
@@ -3551,7 +3547,7 @@ const server = http.createServer(async (req, res) => {
     }
   }
   if (pathname === "/fi-registry/delete" && req.method === "POST") {
-    if (!requireAdmin(req, res, queryParams)) return;
+    if (!(await requireFullAccess(req, res, queryParams))) return;
     try {
       const rawBody = await readRequestBody(req);
       const payload = JSON.parse(rawBody || "{}");
@@ -3727,9 +3723,10 @@ const server = http.createServer(async (req, res) => {
   if (pathname === "/instances") {
     try {
       const { entries, path: foundAt } = await readInstancesFile();
-      const isAdmin = isAdminAuthorized(req, queryParams);
-      const payload = isAdmin ? entries : entries.map(redactInstanceEntry);
-      return send(res, 200, { instances: payload, path: foundAt, redacted: !isAdmin });
+      const auth = await validateSession(req, queryParams);
+      const isFullAccess = auth?.user?.access_level === "full";
+      const payload = isFullAccess ? entries : entries.map(redactInstanceEntry);
+      return send(res, 200, { instances: payload, path: foundAt, redacted: !isFullAccess });
     } catch (err) {
       console.error("instances load failed", err);
       const status = err?.status || 500;
@@ -3737,7 +3734,7 @@ const server = http.createServer(async (req, res) => {
     }
   }
   if (pathname === "/ga/service-account" && req.method === "GET") {
-    if (!requireAdmin(req, res, queryParams)) return;
+    if (!(await requireFullAccess(req, res, queryParams))) return;
     try {
       const data = await readGaCredentialSummary("prod");
       return send(res, 200, data);
@@ -3747,7 +3744,7 @@ const server = http.createServer(async (req, res) => {
     }
   }
   if (pathname === "/ga/service-account" && req.method === "POST") {
-    if (!requireAdmin(req, res, queryParams)) return;
+    if (!(await requireFullAccess(req, res, queryParams))) return;
     try {
       const rawBody = await readRequestBody(req);
       const payload = rawBody ? JSON.parse(rawBody) : {};
@@ -3759,7 +3756,7 @@ const server = http.createServer(async (req, res) => {
     }
   }
   if (pathname === "/ga/service-account/delete" && req.method === "POST") {
-    if (!requireAdmin(req, res, queryParams)) return;
+    if (!(await requireFullAccess(req, res, queryParams))) return;
     try {
       const saved = await deleteGaCredentialFile("prod");
       return send(res, 200, saved);
@@ -3769,7 +3766,7 @@ const server = http.createServer(async (req, res) => {
     }
   }
   if (pathname === "/ga/service-account/test" && req.method === "POST") {
-    if (!requireAdmin(req, res, queryParams)) return;
+    if (!(await requireFullAccess(req, res, queryParams))) return;
     try {
       const rawBody = await readRequestBody(req);
       const payload = rawBody ? JSON.parse(rawBody) : {};
@@ -3803,7 +3800,7 @@ const server = http.createServer(async (req, res) => {
     }
   }
   if (pathname === "/ga/credentials" && req.method === "GET") {
-    if (!requireAdmin(req, res, queryParams)) return;
+    if (!(await requireFullAccess(req, res, queryParams))) return;
     try {
       const credentials = await Promise.all(GA_CREDENTIALS.map((c) => readGaCredentialSummary(c.name)));
       return send(res, 200, { credentials });
@@ -3813,7 +3810,7 @@ const server = http.createServer(async (req, res) => {
     }
   }
   if (pathname === "/ga/credential" && req.method === "GET") {
-    if (!requireAdmin(req, res, queryParams)) return;
+    if (!(await requireFullAccess(req, res, queryParams))) return;
     try {
       const name = queryParams.get("name") || "";
       const data = await readGaCredentialContent(name);
@@ -3824,7 +3821,7 @@ const server = http.createServer(async (req, res) => {
     }
   }
   if (pathname === "/ga/credential/save" && req.method === "POST") {
-    if (!requireAdmin(req, res, queryParams)) return;
+    if (!(await requireFullAccess(req, res, queryParams))) return;
     try {
       const rawBody = await readRequestBody(req);
       const payload = rawBody ? JSON.parse(rawBody) : {};
@@ -3837,7 +3834,7 @@ const server = http.createServer(async (req, res) => {
     }
   }
   if (pathname === "/ga/credential/delete" && req.method === "POST") {
-    if (!requireAdmin(req, res, queryParams)) return;
+    if (!(await requireFullAccess(req, res, queryParams))) return;
     try {
       const rawBody = await readRequestBody(req);
       const payload = rawBody ? JSON.parse(rawBody) : {};
@@ -3850,7 +3847,7 @@ const server = http.createServer(async (req, res) => {
     }
   }
   if (pathname === "/ga/credential/test" && req.method === "POST") {
-    if (!requireAdmin(req, res, queryParams)) return;
+    if (!(await requireFullAccess(req, res, queryParams))) return;
     try {
       const rawBody = await readRequestBody(req);
       const payload = rawBody ? JSON.parse(rawBody) : {};
@@ -3888,7 +3885,7 @@ const server = http.createServer(async (req, res) => {
     }
   }
   if (pathname === "/instances/test" && req.method === "POST") {
-    if (!requireAdmin(req, res, queryParams)) return;
+    if (!(await requireFullAccess(req, res, queryParams))) return;
     try {
       const rawBody = await readRequestBody(req);
       const payload = rawBody ? JSON.parse(rawBody) : {};
@@ -3930,12 +3927,12 @@ const server = http.createServer(async (req, res) => {
     }
   }
   if (pathname === "/api/metrics/funnel") {
-    // Validate session (allow admin key as fallback)
-    const session = await validateSession(req);
-    if (!session && !isAdminAuthorized(req, queryParams)) {
+    // Validate session
+    const session = await validateSession(req, queryParams);
+    if (!session) {
       return send(res, 401, { error: "Authentication required" });
     }
-    const userContext = session ? session.user : null;
+    const userContext = session.user;
 
     let payload = null;
     if (req.method === "POST") {
@@ -4114,12 +4111,12 @@ const server = http.createServer(async (req, res) => {
     }
   }
   if (pathname === "/api/metrics/ops") {
-    // Validate session (allow admin key as fallback)
-    const session = await validateSession(req);
-    if (!session && !isAdminAuthorized(req, queryParams)) {
+    // Validate session
+    const session = await validateSession(req, queryParams);
+    if (!session) {
       return send(res, 401, { error: "Authentication required" });
     }
-    const userContext = session ? session.user : null;
+    const userContext = session.user;
 
     let payload = null;
     if (req.method === "POST") {
@@ -4425,7 +4422,7 @@ const server = http.createServer(async (req, res) => {
     }
   }
   if (pathname === "/instances/save" && req.method === "POST") {
-    if (!requireAdmin(req, res, queryParams)) return;
+    if (!(await requireFullAccess(req, res, queryParams))) return;
     try {
       const rawBody = await readRequestBody(req);
       const payload = JSON.parse(rawBody || "{}");
@@ -4484,7 +4481,7 @@ const server = http.createServer(async (req, res) => {
     }
   }
   if (pathname === "/instances/delete" && req.method === "POST") {
-    if (!requireAdmin(req, res, queryParams)) return;
+    if (!(await requireFullAccess(req, res, queryParams))) return;
     try {
       const rawBody = await readRequestBody(req);
       const payload = JSON.parse(rawBody || "{}");
