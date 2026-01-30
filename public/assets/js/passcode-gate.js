@@ -17,8 +17,8 @@
   var LEGACY_ACCESS_KEY = "sis_access_level";
 
   // Page access restrictions
-  var LIMITED_PAGES = ["funnel.html", "troubleshoot.html"];
-  var BILLING_PAGES = ["fi-api-billing.html"];
+  var LIMITED_PAGES = ["funnel.html", "troubleshoot.html", "realtime.html"];
+  var ADMIN_ONLY_PAGES = ["users.html"]; // Pages only admin can access (not internal)
 
   function getPageName() {
     try {
@@ -42,11 +42,11 @@
     return false;
   }
 
-  function isBillingAllowedPage() {
+  function isAdminOnlyPage() {
     var page = getPageName().toLowerCase();
     if (page === "" || page === "/") page = "index.html";
-    for (var i = 0; i < BILLING_PAGES.length; i++) {
-      if (page === BILLING_PAGES[i]) return true;
+    for (var i = 0; i < ADMIN_ONLY_PAGES.length; i++) {
+      if (page === ADMIN_ONLY_PAGES[i]) return true;
     }
     return false;
   }
@@ -76,8 +76,8 @@
     // Legacy fallback for transition period
     try {
       var level = sessionStorage.getItem(LEGACY_ACCESS_KEY);
-      if (level === "full" || level === "limited" || level === "billing") return level;
-      if (sessionStorage.getItem(LEGACY_STORAGE_KEY) === "1") return "full";
+      if (level === "full" || level === "admin" || level === "internal" || level === "limited") return level;
+      if (sessionStorage.getItem(LEGACY_STORAGE_KEY) === "1") return "admin";
     } catch (e) {}
     return "";
   }
@@ -113,17 +113,28 @@
   function checkPageAccess() {
     var level = getAccessLevel();
     var page = getPageName().toLowerCase();
+    var prefix = page.indexOf("/dashboards/") !== -1 ? "../" : "./";
 
+    // admin (and legacy "full") can access everything
+    if (level === "admin" || level === "full") {
+      return true;
+    }
+
+    // internal can access everything except admin-only pages (users.html)
+    if (level === "internal") {
+      if (isAdminOnlyPage()) {
+        window.location.href = prefix + "index.html";
+        return false;
+      }
+      return true;
+    }
+
+    // limited can only access specific pages
     if (level === "limited" && !isLimitedAllowedPage()) {
-      var prefix = page.indexOf("/dashboards/") !== -1 ? "../" : "./";
       window.location.href = prefix + "funnel.html";
       return false;
     }
-    if (level === "billing" && !isBillingAllowedPage()) {
-      var prefix = page.indexOf("/dashboards/") !== -1 ? "../" : "./";
-      window.location.href = prefix + "fi-api-billing.html";
-      return false;
-    }
+
     return true;
   }
 

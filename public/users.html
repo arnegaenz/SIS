@@ -109,8 +109,8 @@
     }
     .badge-admin { background: #dcfce7; color: #166534; }
     .badge-full { background: #dcfce7; color: #166534; } /* legacy */
+    .badge-internal { background: #dbeafe; color: #1e40af; }
     .badge-limited { background: #fef3c7; color: #92400e; }
-    .badge-billing { background: #dbeafe; color: #1e40af; }
     .badge-disabled { background: #f3f4f6; color: #6b7280; }
     .btn {
       padding: 8px 16px;
@@ -263,8 +263,8 @@
     @media (prefers-color-scheme: dark) {
       .badge-admin { background: #166534; color: #dcfce7; }
       .badge-full { background: #166534; color: #dcfce7; }
+      .badge-internal { background: #1e40af; color: #dbeafe; }
       .badge-limited { background: #92400e; color: #fef3c7; }
-      .badge-billing { background: #1e40af; color: #dbeafe; }
       .badge-disabled { background: #374151; color: #9ca3af; }
       .btn-danger { background: #7f1d1d; color: #fecaca; }
       .btn-danger:hover { background: #991b1b; }
@@ -332,9 +332,9 @@
                 <td>Funnel, Troubleshoot, Real-Time. Data filtered by instance/partner/FI access.</td>
               </tr>
               <tr>
-                <td><span class="badge badge-billing">billing</span></td>
-                <td>Billing access only</td>
-                <td>FI API Billing page only. Data filtered by instance/partner/FI access.</td>
+                <td><span class="badge badge-internal">internal</span></td>
+                <td>Strivve team (full data, no user mgmt)</td>
+                <td>All pages except User Management. Full data access.</td>
               </tr>
             </tbody>
           </table>
@@ -360,9 +360,9 @@
         <label>
           Access Level
           <select id="userAccessLevel" required>
-            <option value="admin">Admin (all pages, all data)</option>
+            <option value="admin">Admin (all pages + user management)</option>
+            <option value="internal">Internal (all pages, no user management)</option>
             <option value="limited">Limited (funnel + troubleshoot + realtime)</option>
-            <option value="billing">Billing (billing page only)</option>
           </select>
         </label>
         <div id="dataAccessSection">
@@ -433,8 +433,8 @@
     }
 
     function formatDataAccess(user) {
-      // Admin always has full access
-      if (user.access_level === "admin" || user.access_level === "full") {
+      // Admin and internal always have full access
+      if (user.access_level === "admin" || user.access_level === "full" || user.access_level === "internal") {
         return "All FIs";
       }
       const parts = [];
@@ -515,16 +515,18 @@
     }
 
     function updateDataAccessVisibility() {
-      const isAdmin = accessLevelField.value === "admin";
-      dataAccessSection.style.display = isAdmin ? "none" : "block";
-      if (isAdmin) {
-        previewCount.textContent = "all (admin)";
+      const level = accessLevelField.value;
+      const hasFullAccess = level === "admin" || level === "internal";
+      dataAccessSection.style.display = hasFullAccess ? "none" : "block";
+      if (hasFullAccess) {
+        previewCount.textContent = `all (${level})`;
       }
     }
 
     async function updateAccessPreview() {
-      if (accessLevelField.value === "admin") {
-        previewCount.textContent = "all (admin)";
+      const level = accessLevelField.value;
+      if (level === "admin" || level === "internal") {
+        previewCount.textContent = `all (${level})`;
         return;
       }
 
@@ -653,16 +655,17 @@
       const partnerKeys = parseAccessInput(partnerKeysField.value);
       const fiKeys = parseAccessInput(fiKeysField.value);
 
-      // For admin users, set all to wildcard
-      const isAdmin = accessLevelField.value === "admin";
+      // For admin and internal users, set all to wildcard (full data access)
+      const level = accessLevelField.value;
+      const hasFullAccess = level === "admin" || level === "internal";
 
       const userData = {
         email: emailField.value.trim().toLowerCase(),
         name: nameField.value.trim(),
-        access_level: accessLevelField.value,
-        instance_keys: isAdmin ? "*" : instanceKeys,
-        partner_keys: isAdmin ? "*" : partnerKeys,
-        fi_keys: isAdmin ? "*" : fiKeys,
+        access_level: level,
+        instance_keys: hasFullAccess ? "*" : instanceKeys,
+        partner_keys: hasFullAccess ? "*" : partnerKeys,
+        fi_keys: hasFullAccess ? "*" : fiKeys,
         enabled: enabledField.checked,
         notes: notesField.value.trim() || undefined
       };

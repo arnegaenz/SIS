@@ -1685,8 +1685,8 @@ function normalizeSourceToken(value) {
 function computeAllowedFis(userContext, fiRegistry) {
   if (!userContext) return null; // No user context = unrestricted
 
-  // Admin users always have full access
-  if (userContext.access_level === "admin") {
+  // Admin and internal users always have full data access
+  if (userContext.access_level === "admin" || userContext.access_level === "internal") {
     return null;
   }
 
@@ -4117,7 +4117,7 @@ const server = http.createServer(async (req, res) => {
       const userData = {
         email,
         name: user.name || "",
-        access_level: ["admin", "full", "limited", "billing"].includes(user.access_level) ? user.access_level : "limited",
+        access_level: ["admin", "full", "internal", "limited"].includes(user.access_level) ? user.access_level : "limited",
         instance_keys: normalizeAccessKeys(user.instance_keys),
         partner_keys: normalizeAccessKeys(user.partner_keys),
         fi_keys: normalizeAccessKeys(user.fi_keys),
@@ -4220,7 +4220,7 @@ const server = http.createServer(async (req, res) => {
         partners: Array.from(partners).filter((p) => p !== "Unknown").sort().concat(["Unknown"]),
         fis: fis.sort((a, b) => (a.label || "").localeCompare(b.label || "")),
         access: {
-          is_admin: userContext.access_level === "admin" || userContext.access_level === "full",
+          is_admin: userContext.access_level === "admin" || userContext.access_level === "full" || userContext.access_level === "internal",
           instance_keys: userContext.instance_keys,
           partner_keys: userContext.partner_keys,
           fi_keys: userContext.fi_keys,
