@@ -1,4 +1,13 @@
 (function (global) {
+  // Skip auth entirely on localhost for development
+  function isLocalhost() {
+    try {
+      var host = window.location.hostname;
+      return host === "localhost" || host === "127.0.0.1" || host.startsWith("192.168.");
+    } catch (e) {}
+    return false;
+  }
+
   // Session-based auth storage keys
   var TOKEN_KEY = "sis_session_token";
   var USER_KEY = "sis_user";
@@ -149,6 +158,12 @@
   function init() {
     // Don't run on login page
     if (isLoginPage()) return;
+
+    // Skip auth on localhost for development
+    if (isLocalhost()) {
+      console.log("[auth] Localhost detected - skipping auth");
+      return;
+    }
 
     // Check URL for logout
     try {

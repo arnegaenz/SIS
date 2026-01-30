@@ -83,6 +83,7 @@
       gap: 8px;
       flex-wrap: wrap;
       align-items: center;
+      margin-bottom: 16px;
     }
     .btn {
       background: linear-gradient(120deg, var(--accent), var(--accent-2));
@@ -133,6 +134,11 @@
       padding: 14px;
       box-shadow: 0 16px 40px rgba(15, 23, 42, 0.10);
     }
+    /* Sessions within GA4 realtime window get the same accent */
+    .session-card.in-ga4-window {
+      background: var(--realtime-accent);
+      border-color: var(--realtime-accent-border);
+    }
     .session-top {
       display: flex;
       flex-wrap: wrap;
@@ -164,6 +170,15 @@
     [data-theme="dark"] .chip.test {
       background: rgba(249, 115, 22, 0.18);
       color: #fb923c;
+    }
+    .chip.realtime-accent {
+      background: var(--realtime-accent);
+      border: 1px solid var(--realtime-accent-border);
+      color: var(--realtime-accent-text);
+    }
+    .chip.realtime-capped {
+      background: rgba(245, 158, 11, 0.12);
+      color: var(--badge-warn);
     }
     .session-meta {
       display: flex;
@@ -270,6 +285,155 @@
       height: 18px;
       cursor: pointer;
     }
+
+    /* Realtime accent color - subtle teal for "within GA4 window" */
+    :root {
+      --realtime-accent: rgba(20, 184, 166, 0.08);
+      --realtime-accent-border: rgba(20, 184, 166, 0.25);
+      --realtime-accent-text: #14b8a6;
+    }
+    [data-theme="dark"] {
+      --realtime-accent: rgba(45, 212, 191, 0.10);
+      --realtime-accent-border: rgba(45, 212, 191, 0.30);
+      --realtime-accent-text: #2dd4bf;
+    }
+
+    /* GA4 Realtime Section */
+    .ga4-section {
+      margin-bottom: 20px;
+      padding: 16px;
+      background: var(--realtime-accent);
+      border: 1px solid var(--realtime-accent-border);
+      border-radius: 14px;
+    }
+    .ga4-section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .ga4-section-title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text);
+      margin: 0;
+    }
+    .ga4-unavailable {
+      padding: 12px 16px;
+      background: rgba(245, 158, 11, 0.1);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      border-radius: 10px;
+      color: var(--badge-warn);
+      font-size: 0.9rem;
+    }
+    .ga4-unavailable a {
+      color: var(--accent);
+      text-decoration: underline;
+    }
+    .ga4-summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .ga4-summary-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 12px;
+      text-align: center;
+    }
+    .ga4-summary-card .label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+    .ga4-summary-card .value {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .ga4-pages-list {
+      max-height: 200px;
+      overflow-y: auto;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--panel);
+    }
+    .ga4-page-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.85rem;
+    }
+    .ga4-page-row:last-child {
+      border-bottom: none;
+    }
+    .ga4-page-name {
+      flex: 1;
+      color: var(--text);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .ga4-page-stats {
+      display: flex;
+      gap: 12px;
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+    }
+    .ga4-page-row.expandable {
+      cursor: pointer;
+    }
+    .ga4-page-row.expandable:hover {
+      background: var(--realtime-accent);
+    }
+    .ga4-page-row .expand-icon {
+      margin-right: 6px;
+      font-size: 0.7rem;
+      color: var(--muted);
+      transition: transform 0.15s ease;
+    }
+    .ga4-page-row.expanded .expand-icon {
+      transform: rotate(90deg);
+    }
+    .ga4-minute-breakdown {
+      display: none;
+      padding: 8px 12px 8px 24px;
+      background: var(--panel-light);
+      border-bottom: 1px solid var(--border);
+      font-size: 0.8rem;
+    }
+    .ga4-minute-breakdown.visible {
+      display: block;
+    }
+    .ga4-minute-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 3px 0;
+      color: var(--muted);
+    }
+    .ga4-minute-row .minute-label {
+      color: var(--text);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Section divider */
+    .section-divider {
+      margin: 20px 0;
+      border: none;
+      border-top: 1px dashed var(--border);
+    }
+    .cardsavr-section-title {
+      font-size: 1rem;
+      font-weight: 600;
+      margin: 0 0 12px 0;
+      color: var(--text);
+    }
   </style>
   <script defer src="./assets/js/card-tooltips.js"></script>
 </head>
@@ -293,12 +457,12 @@
         <div class="form-field">
           <label for="timeRange">Time Range</label>
           <select id="timeRange" class="form-select">
-            <option value="1">Last 1 hour</option>
-            <option value="2">Last 2 hours</option>
-            <option value="4" selected>Last 4 hours</option>
-            <option value="8">Last 8 hours</option>
-            <option value="12">Last 12 hours</option>
-            <option value="24">Last 24 hours</option>
+            <option value="5">Last 5 minutes</option>
+            <option value="15">Last 15 minutes</option>
+            <option value="30" selected>Last 30 minutes</option>
+            <option value="60">Last 1 hour</option>
+            <option value="120">Last 2 hours</option>
+            <option value="240">Last 4 hours</option>
           </select>
         </div>
         <div class="form-field">
@@ -325,6 +489,9 @@
 
       <div id="status" class="status-line">Select an instance and click "Fetch Live Data" to begin.</div>
 
+      <div id="ga4-section"></div>
+      <hr class="section-divider" id="section-divider" style="display:none;">
+      <h3 class="cardsavr-section-title" id="cardsavr-section-title" style="display:none;">CardSavr Sessions & Jobs</h3>
       <div id="results"></div>
     </section>
   </main>
@@ -340,10 +507,14 @@
       const autoRefreshCheckbox = document.getElementById('autoRefresh');
       const statusEl = document.getElementById('status');
       const resultsEl = document.getElementById('results');
+      const ga4SectionEl = document.getElementById('ga4-section');
+      const sectionDividerEl = document.getElementById('section-divider');
+      const cardsavrTitleEl = document.getElementById('cardsavr-section-title');
 
       let autoRefreshInterval = null;
       let instances = [];
       let currentData = null;
+      let ga4Data = null;
 
       // Load instances
       async function loadInstances() {
@@ -366,10 +537,183 @@
         }
       }
 
+      // Test instance names that should use GA test credentials
+      const TEST_INSTANCES = ['customer-dev'];
+
+      function isTestInstance(instanceName) {
+        if (!instanceName) return false;
+        const normalized = instanceName.toLowerCase().replace(/[^a-z0-9]/g, '');
+        return TEST_INSTANCES.some(t => t.toLowerCase().replace(/[^a-z0-9]/g, '') === normalized);
+      }
+
+      // Fetch GA4 Realtime data
+      async function fetchGa4Data() {
+        const minutes = parseInt(timeRangeSelect.value);
+        const instance = instanceSelect.value;
+        const credential = isTestInstance(instance) ? 'test' : 'prod';
+
+        try {
+          const res = await fetch(`/api/realtime-ga?minutes=${minutes}&credential=${credential}`);
+          if (!res.ok) {
+            throw new Error(`HTTP ${res.status}`);
+          }
+          const data = await res.json();
+          data.credentialUsed = credential; // Track which credential was used
+          ga4Data = data;
+          displayGa4Section(data);
+        } catch (err) {
+          console.error('[ga4] Error:', err);
+          ga4Data = { available: false, reason: err.message };
+          displayGa4Section(ga4Data);
+        }
+      }
+
+      // Display GA4 section
+      // Note: GA4 Realtime API doesn't provide hostname, so FI filtering is not available
+      // GA4 Realtime API max is 30 minutes for standard properties
+      const GA4_MAX_MINUTES = 30;
+
+      function displayGa4Section(data) {
+        const requestedMinutes = parseInt(timeRangeSelect.value);
+
+        if (!data.available) {
+          ga4SectionEl.innerHTML = `
+            <div class="ga4-section">
+              <div class="ga4-section-header">
+                <h3 class="ga4-section-title">Page Activity (GA4 Realtime)</h3>
+              </div>
+              <div class="ga4-unavailable">
+                <strong>GA4 Realtime data unavailable:</strong> ${escapeHtml(data.reason || 'Unknown error')}<br>
+                <small>Configure GA4 credentials in the <a href="./maintenance.html">Maintenance</a> page.</small>
+              </div>
+            </div>
+          `;
+          sectionDividerEl.style.display = 'block';
+          cardsavrTitleEl.style.display = 'block';
+          return;
+        }
+
+        const rows = data.rows || [];
+        const isCapped = requestedMinutes > GA4_MAX_MINUTES;
+
+        // Get the actual time range from the data
+        let minMinutesAgo = 0;
+        let maxMinutesAgo = 0;
+        rows.forEach(r => {
+          const m = parseInt(r.minutes_ago) || 0;
+          if (m > maxMinutesAgo) maxMinutesAgo = m;
+        });
+
+        // Use summary from server or compute locally
+        const summary = data.summary || {
+          total_views: rows.reduce((sum, r) => sum + r.views, 0),
+          total_active_users: rows.reduce((sum, r) => sum + r.active_users, 0),
+          unique_screens: new Set(rows.map(r => r.screen_name)).size,
+        };
+
+        // Aggregate by screen name, keeping per-minute breakdown
+        const byScreen = new Map();
+        rows.forEach(r => {
+          const existing = byScreen.get(r.screen_name) || { views: 0, users: 0, byMinute: new Map() };
+          existing.views += r.views;
+          existing.users += r.active_users;
+          // Store per-minute data
+          const minute = parseInt(r.minutes_ago) || 0;
+          const minuteData = existing.byMinute.get(minute) || { views: 0, users: 0 };
+          minuteData.views += r.views;
+          minuteData.users += r.active_users;
+          existing.byMinute.set(minute, minuteData);
+          byScreen.set(r.screen_name, existing);
+        });
+
+        // Sort by views descending
+        const sortedScreens = Array.from(byScreen.entries())
+          .sort((a, b) => b[1].views - a[1].views)
+          .slice(0, 20);
+
+        const pagesHtml = sortedScreens.length === 0
+          ? '<div class="ga4-page-row" style="justify-content:center;color:var(--muted);">No page activity in this time range</div>'
+          : sortedScreens.map(([screen, stats], idx) => {
+              // Build minute breakdown HTML
+              const minuteEntries = Array.from(stats.byMinute.entries())
+                .sort((a, b) => a[0] - b[0]); // Sort by minute ascending
+              const minuteHtml = minuteEntries.map(([minute, mStats]) => `
+                <div class="ga4-minute-row">
+                  <span class="minute-label">${minute} min ago</span>
+                  <span>${mStats.views} views, ${mStats.users} users</span>
+                </div>
+              `).join('');
+
+              return `
+                <div class="ga4-page-row expandable" data-idx="${idx}">
+                  <span class="expand-icon">▶</span>
+                  <span class="ga4-page-name" title="${escapeHtml(screen)}">${escapeHtml(screen)}</span>
+                  <span class="ga4-page-stats">
+                    <span title="Page Views">${stats.views} views</span>
+                    <span title="Active Users">${stats.users} users</span>
+                  </span>
+                </div>
+                <div class="ga4-minute-breakdown" data-idx="${idx}">
+                  ${minuteHtml}
+                </div>
+              `;
+            }).join('');
+
+        // Show the actual time range from the data
+        const chipClass = isCapped ? 'realtime-capped' : 'realtime-accent';
+        const rangeText = rows.length > 0
+          ? `${minMinutesAgo}-${maxMinutesAgo} min ago`
+          : 'No data';
+        const chipText = isCapped
+          ? `${rangeText} (of ${requestedMinutes})`
+          : rangeText;
+
+        const credLabel = data.credentialUsed === 'test' ? 'Test Property' : 'Prod Property';
+
+        ga4SectionEl.innerHTML = `
+          <div class="ga4-section">
+            <div class="ga4-section-header">
+              <h3 class="ga4-section-title">Page Activity (GA4 Realtime) <span class="chip muted" style="font-size:0.7rem;margin-left:6px;">${credLabel}</span></h3>
+              <span class="chip ${chipClass}">${chipText}</span>
+            </div>
+            <div class="ga4-summary-grid">
+              <div class="ga4-summary-card">
+                <div class="label">Page Views</div>
+                <div class="value">${summary.total_views.toLocaleString()}</div>
+              </div>
+              <div class="ga4-summary-card">
+                <div class="label">Active Users</div>
+                <div class="value">${summary.total_active_users.toLocaleString()}</div>
+              </div>
+              <div class="ga4-summary-card">
+                <div class="label">Unique Pages</div>
+                <div class="value">${summary.unique_screens.toLocaleString()}</div>
+              </div>
+            </div>
+            <div class="ga4-pages-list">
+              ${pagesHtml}
+            </div>
+          </div>
+        `;
+
+        // Add click handlers for expandable rows
+        ga4SectionEl.querySelectorAll('.ga4-page-row.expandable').forEach(row => {
+          row.addEventListener('click', () => {
+            const idx = row.dataset.idx;
+            const breakdown = ga4SectionEl.querySelector(`.ga4-minute-breakdown[data-idx="${idx}"]`);
+            row.classList.toggle('expanded');
+            breakdown.classList.toggle('visible');
+          });
+        });
+
+        sectionDividerEl.style.display = 'block';
+        cardsavrTitleEl.style.display = 'block';
+      }
+
       // Fetch live data
       async function fetchLiveData() {
         const instance = instanceSelect.value;
-        const hours = parseInt(timeRangeSelect.value);
+        const minutes = parseInt(timeRangeSelect.value);
 
         if (!instance) {
           statusEl.textContent = 'Please select an instance.';
@@ -377,12 +721,15 @@
           return;
         }
 
-        statusEl.textContent = `Fetching live data from ${instance} (last ${hours} hour${hours > 1 ? 's' : ''})...`;
+        statusEl.textContent = `Fetching live data from ${instance} (last ${minutes} min)...`;
         statusEl.className = 'status-line loading';
         fetchBtn.disabled = true;
 
+        // Fetch both GA4 and CardSavr data in parallel
+        const ga4Promise = fetchGa4Data();
+
         try {
-          const res = await fetch(`/api/realtime?instance=${encodeURIComponent(instance)}&hours=${hours}`);
+          const res = await fetch(`/api/realtime?instance=${encodeURIComponent(instance)}&minutes=${minutes}`);
           if (!res.ok) {
             throw new Error(`HTTP ${res.status}: ${res.statusText}`);
           }
@@ -400,6 +747,8 @@
           statusEl.className = 'status-line error';
         } finally {
           fetchBtn.disabled = false;
+          // Wait for GA4 to complete too
+          await ga4Promise;
         }
       }
 
@@ -432,7 +781,8 @@
           merchantOptions.map(m => `<option value="${m}" ${m === currentMerchant ? 'selected' : ''}>${m}</option>`).join('');
       }
 
-      // Apply filters and re-render
+      // Apply filters and re-render (filters apply to CardSavr data only)
+      // Note: GA4 Realtime API doesn't support FI filtering (no hostname dimension)
       function applyFilters() {
         if (!currentData) return;
         displayResults(currentData);
@@ -609,6 +959,15 @@
         return `<div class="clickstream">${items}</div>`;
       }
 
+      // Check if a session is within the GA4 realtime window (last 30 min)
+      function isSessionInGa4Window(session) {
+        const createdOn = session.created_on || session.last_updated_on;
+        if (!createdOn) return false;
+        const sessionTime = new Date(createdOn).getTime();
+        const cutoff = Date.now() - (GA4_MAX_MINUTES * 60 * 1000);
+        return sessionTime >= cutoff;
+      }
+
       // Render session card with full details
       function renderSessionCard(session, placements) {
         const stats = sessionJobStats(session, placements);
@@ -626,8 +985,13 @@
           session.partner_id ||
           "Unknown";
 
+        // Add accent class if session is within GA4's 30-minute window
+        const inGa4Window = isSessionInGa4Window(session);
+        const cardClasses = ['session-card'];
+        if (inGa4Window) cardClasses.push('in-ga4-window');
+
         return `
-          <div class="session-card"
+          <div class="${cardClasses.join(' ')}"
             data-fi="${escapeHtml(getSessionFiKey(session))}"
             data-partner="${escapeHtml(partnerLabel)}"
             data-integration="${escapeHtml(integrationLabel)}"

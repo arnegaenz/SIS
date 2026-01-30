@@ -22,7 +22,7 @@ import {
   buildDailySeries,
   buildMerchantSeries,
 } from "../src/lib/analytics/sources.mjs";
-import { fetchGaRowsForDay } from "../src/ga.mjs";
+import { fetchGaRowsForDay, resolveFiFromHost } from "../src/ga.mjs";
 const { URLSearchParams } = url;
 
 const __filename = fileURLToPath(import.meta.url);
@@ -4618,7 +4618,18 @@ const server = http.createServer(async (req, res) => {
   if (pathname === "/api/realtime") {
     try {
       const instance = queryParams.get("instance");
-      const hours = parseInt(queryParams.get("hours") || "4");
+      // Support both minutes (preferred for realtime) and hours (backwards compat)
+      const minutesParam = queryParams.get("minutes");
+      const hoursParam = queryParams.get("hours");
+
+      let minutes;
+      if (minutesParam) {
+        minutes = Math.min(60, Math.max(1, parseInt(minutesParam) || 30));
+      } else if (hoursParam) {
+        minutes = Math.min(1440, Math.max(1, parseInt(hoursParam) * 60));
+      } else {
+        minutes = 30; // Default to 30 minutes for realtime
+      }
 
       if (!instance) {
         return send(res, 400, { error: "Missing instance query param" });
@@ -4631,15 +4642,15 @@ const server = http.createServer(async (req, res) => {
         return send(res, 404, { error: `Instance "${instance}" not found` });
       }
 
-      // Calculate time range - use date strings for wider range
+      // Calculate time range based on minutes
       const now = new Date();
-      const startTime = new Date(now.getTime() - hours * 60 * 60 * 1000);
+      const startTime = new Date(now.getTime() - minutes * 60 * 1000);
 
       // Get date strings in YYYY-MM-DD format
       const startDate = startTime.toISOString().slice(0, 10);
       const endDate = now.toISOString().slice(0, 10);
 
-      console.log(`[realtime] Fetching live data for ${instance}: ${startDate} to ${endDate} (last ${hours} hours)`);
+      console.log(`[realtime] Fetching live data for ${instance}: ${startDate} to ${endDate} (last ${minutes} minutes)`);
 
       // Login to instance
       const { session } = await loginWithSdk(instanceConfig);
@@ -4647,9 +4658,13 @@ const server = http.createServer(async (req, res) => {
       // Fetch sessions with pagination - using exact pattern from fetchSessions.mjs
       const sessionsData = [];
 
+      // Use actual ISO timestamps for precise time range filtering
+      const startTimeIso = startTime.toISOString();
+      const endTimeIso = now.toISOString();
+
       const firstSessionResp = await session.get("cardholder_sessions", {
-        created_on_min: `${startDate}T00:00:00Z`,
-        created_on_max: `${endDate}T23:59:59Z`,
+        created_on_min: startTimeIso,
+        created_on_max: endTimeIso,
       }, {});
 
       const firstSessions = Array.isArray(firstSessionResp?.body) ? firstSessionResp.body :
@@ -4677,8 +4692,8 @@ const server = http.createServer(async (req, res) => {
         const nextPage = page + 1;
         const nextPaging = { ...paging, page: nextPage };
         const resp = await session.get("cardholder_sessions", {
-          created_on_min: `${startDate}T00:00:00Z`,
-          created_on_max: `${endDate}T23:59:59Z`,
+          created_on_min: startTimeIso,
+          created_on_max: endTimeIso,
         }, { "x-cardsavr-paging": JSON.stringify(nextPaging) });
 
         const rows = Array.isArray(resp?.body) ? resp.body : Array.isArray(resp) ? resp : [];
@@ -4693,8 +4708,8 @@ const server = http.createServer(async (req, res) => {
       const placementsData = [];
 
       const firstPlacementResp = await session.getCardPlacementResults({
-        created_on_min: `${startDate}T00:00:00Z`,
-        created_on_max: `${endDate}T23:59:59Z`,
+        created_on_min: startTimeIso,
+        created_on_max: endTimeIso,
       }, {});
 
       const extractPlacementRows = (resp) => {
@@ -4725,8 +4740,8 @@ const server = http.createServer(async (req, res) => {
           const requestPaging = { ...pagingMeta, page: nextPage };
 
           const resp = await session.getCardPlacementResults({
-            created_on_min: `${startDate}T00:00:00Z`,
-            created_on_max: `${endDate}T23:59:59Z`,
+            created_on_min: startTimeIso,
+            created_on_max: endTimeIso,
           }, { "x-cardsavr-paging": JSON.stringify(requestPaging) });
 
           const rows = extractPlacementRows(resp);
@@ -4795,7 +4810,7 @@ const server = http.createServer(async (req, res) => {
 
       return send(res, 200, {
         instance,
-        timeRange: { hours, start: `${startDate}T00:00:00Z`, end: `${endDate}T23:59:59Z` },
+        timeRange: { minutes, hours: Math.ceil(minutes / 60), start: startTime.toISOString(), end: now.toISOString() },
         sessions: enrichedSessions,
         placements: enrichedPlacements,
       });
@@ -4805,6 +4820,113 @@ const server = http.createServer(async (req, res) => {
       return send(res, status, { error: err.message || "Unable to fetch realtime data" });
     }
   }
+
+  // GA4 Realtime API endpoint - fetches page activity from GA4
+  if (pathname === "/api/realtime-ga") {
+    try {
+      const minutes = Math.min(30, Math.max(1, parseInt(queryParams.get("minutes") || "30")));
+      const credentialName = queryParams.get("credential") || "prod";
+
+      // Check if GA credentials exist
+      const cfg = GA_CREDENTIALS.find((c) => c.name === credentialName);
+      if (!cfg) {
+        return send(res, 400, { error: `Unknown GA credential: ${credentialName}` });
+      }
+
+      const credentialExists = await fileExists(cfg.file);
+      if (!credentialExists) {
+        return send(res, 200, {
+          available: false,
+          reason: "GA credentials not configured",
+          credentialName,
+          rows: [],
+          summary: null,
+        });
+      }
+
+      // Get property ID
+      const propertyId = process.env[cfg.envProperty] || cfg.defaultProperty;
+      if (!propertyId) {
+        return send(res, 200, {
+          available: false,
+          reason: "GA property ID not configured",
+          credentialName,
+          rows: [],
+          summary: null,
+        });
+      }
+
+      // Fetch GA4 Realtime data
+      const { google } = await import("googleapis");
+      const auth = new google.auth.GoogleAuth({
+        keyFile: cfg.file,
+        scopes: ["https://www.googleapis.com/auth/analytics.readonly"],
+      });
+      const analyticsData = google.analyticsdata({ version: "v1beta", auth });
+
+      console.log(`[realtime-ga] Fetching realtime data from property ${propertyId} (last ${minutes} minutes)`);
+
+      const response = await analyticsData.properties.runRealtimeReport({
+        property: `properties/${propertyId}`,
+        requestBody: {
+          dimensions: [
+            { name: "unifiedScreenName" },
+            { name: "minutesAgo" },
+          ],
+          metrics: [
+            { name: "screenPageViews" },
+            { name: "activeUsers" },
+          ],
+          limit: 10000,
+        },
+      });
+
+      const allRows = (response.data.rows || []).map((row) => {
+        const screenName = row.dimensionValues?.[0]?.value || "";
+        const minutesAgo = parseInt(row.dimensionValues?.[1]?.value || "0");
+        const views = Number(row.metricValues?.[0]?.value || "0");
+        const activeUsers = Number(row.metricValues?.[1]?.value || "0");
+
+        return {
+          screen_name: screenName,
+          minutes_ago: minutesAgo,
+          views,
+          active_users: activeUsers,
+        };
+      });
+
+      // Filter to requested time window
+      const rows = allRows.filter(row => row.minutes_ago <= minutes);
+
+      // Compute summary
+      const summary = {
+        total_views: rows.reduce((sum, r) => sum + r.views, 0),
+        total_active_users: rows.reduce((sum, r) => sum + r.active_users, 0),
+        unique_screens: new Set(rows.map(r => r.screen_name)).size,
+      };
+
+      console.log(`[realtime-ga] Fetched ${rows.length} rows: ${summary.total_views} views, ${summary.total_active_users} active users`);
+
+      return send(res, 200, {
+        available: true,
+        credentialName,
+        propertyId,
+        minutes,
+        fetchedAt: new Date().toISOString(),
+        rows,
+        summary,
+      });
+    } catch (err) {
+      console.error("[realtime-ga] Error:", err);
+      return send(res, 200, {
+        available: false,
+        reason: err.message || "GA4 Realtime API error",
+        rows: [],
+        summary: null,
+      });
+    }
+  }
+
   if (pathname === "/daily") {
     const dateStr = queryParams.get("date");
     if (!dateStr) {
