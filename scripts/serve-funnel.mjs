@@ -4059,6 +4059,8 @@ const server = http.createServer(async (req, res) => {
         email: u.email,
         name: u.name,
         access_level: u.access_level,
+        instance_keys: u.instance_keys,
+        partner_keys: u.partner_keys,
         fi_keys: u.fi_keys,
         enabled: u.enabled,
         notes: u.notes,
@@ -4100,15 +4102,18 @@ const server = http.createServer(async (req, res) => {
         return send(res, 400, { error: "A user with this email already exists" });
       }
 
-      // Normalize access keys input (handle string "*", arrays, or comma-separated strings)
+      // Normalize access keys input - wildcards no longer supported, must be explicit arrays
       const normalizeAccessKeys = (value) => {
-        if (value === "*") return "*";
+        if (value === "*") {
+          // Wildcards no longer supported - treat as empty (no access)
+          return [];
+        }
         if (Array.isArray(value)) {
           const filtered = value.map((v) => (v || "").toString().trim()).filter(Boolean);
-          return filtered.length > 0 ? filtered : [];
+          return filtered;
         }
         if (typeof value === "string" && value.trim()) {
-          if (value.trim() === "*") return "*";
+          if (value.trim() === "*") return []; // Wildcards no longer supported
           return value.split(",").map((v) => v.trim()).filter(Boolean);
         }
         return [];
@@ -4177,6 +4182,38 @@ const server = http.createServer(async (req, res) => {
       return send(res, 500, { error: err.message || "Unable to delete user" });
     }
   }
+  // GET /api/user-access-options - Returns all available instances/partners/FIs for user management
+  if (pathname === "/api/user-access-options" && req.method === "GET") {
+    if (!(await requireFullAccess(req, res, queryParams))) return;
+
+    try {
+      const fiRegistry = await loadFiRegistrySafe();
+      const instances = new Set();
+      const partners = new Set();
+      const fis = [];
+
+      for (const entry of Object.values(fiRegistry)) {
+        if (!entry || !entry.fi_lookup_key) continue;
+        instances.add(entry.instance || "unknown");
+        partners.add(entry.partner || "Unknown");
+        fis.push({
+          key: normalizeFiKey(entry.fi_lookup_key),
+          label: entry.fi_name || entry.fi_lookup_key,
+          instance: entry.instance,
+        });
+      }
+
+      return send(res, 200, {
+        instances: Array.from(instances).sort(),
+        partners: Array.from(partners).filter(p => p !== "Unknown").sort().concat(["Unknown"]),
+        fis: fis.sort((a, b) => (a.label || "").localeCompare(b.label || "")),
+      });
+    } catch (err) {
+      console.error("[user-access-options] Error:", err);
+      return send(res, 500, { error: err.message || "Unable to load access options" });
+    }
+  }
+
   // ========== End User Management Endpoints ==========
 
   // ========== Access Control Endpoints ==========

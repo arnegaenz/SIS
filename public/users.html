@@ -230,14 +230,89 @@
       justify-content: flex-end;
       margin-top: 8px;
     }
-    .fi-keys-input {
-      font-family: monospace;
-      font-size: 13px;
-    }
     .fi-keys-help {
       font-size: 12px;
       color: var(--muted);
       margin-top: 4px;
+    }
+    .access-multi-select {
+      position: relative;
+      width: 100%;
+    }
+    .access-multi-select button {
+      width: 100%;
+      background: var(--input-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 8px;
+      color: var(--panel-title);
+      padding: 10px 36px 10px 12px;
+      font-size: 14px;
+      text-align: left;
+      cursor: pointer;
+      position: relative;
+    }
+    .access-multi-select button::after {
+      content: "▾";
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--muted);
+      pointer-events: none;
+    }
+    .access-multi-select button:focus {
+      outline: none;
+      border-color: var(--accent, #2563eb);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18);
+    }
+    .access-multi-select .panel {
+      position: absolute;
+      z-index: 60;
+      min-width: 100%;
+      max-height: 200px;
+      overflow-y: auto;
+      border: 1px solid var(--panel-border);
+      background: var(--panel-bg);
+      padding: 8px;
+      border-radius: 8px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+      margin-top: 4px;
+    }
+    .access-multi-select .panel label {
+      display: flex;
+      align-items: center;
+      padding: 6px 4px;
+      cursor: pointer;
+      text-transform: none;
+      font-size: 13px;
+      color: var(--panel-title);
+      border-radius: 4px;
+    }
+    .access-multi-select .panel label:hover {
+      background: var(--hover-bg, rgba(0,0,0,0.04));
+    }
+    .access-multi-select .panel input[type="checkbox"] {
+      margin-right: 8px;
+      accent-color: var(--accent, #2563eb);
+      width: 14px;
+      height: 14px;
+      flex-shrink: 0;
+    }
+    .access-multi-select .panel .toggle-all {
+      font-weight: 600;
+      border-bottom: 1px solid var(--panel-border);
+      padding-bottom: 8px;
+      margin-bottom: 4px;
+    }
+    .access-multi-select .panel .search-box {
+      width: 100%;
+      padding: 6px 8px;
+      margin-bottom: 8px;
+      border: 1px solid var(--panel-border);
+      border-radius: 4px;
+      font-size: 13px;
+      background: var(--input-bg);
+      color: var(--panel-title);
     }
     .access-preview {
       padding: 10px 12px;
@@ -368,21 +443,30 @@
         <div id="dataAccessSection">
           <label>
             Instance Access
-            <input type="text" id="userInstanceKeys" class="fi-keys-input" placeholder="* or ss01, pscu" />
-            <span class="fi-keys-help">Use * for all instances, or comma-separated list</span>
+            <div class="access-multi-select" id="instanceAccessSelect">
+              <button type="button" id="instanceAccessBtn">Select instances...</button>
+              <div class="panel" hidden id="instanceAccessPanel"></div>
+            </div>
+            <span class="fi-keys-help">Select which instances this user can access</span>
           </label>
           <label>
             Partner Access
-            <input type="text" id="userPartnerKeys" class="fi-keys-input" placeholder="* or Alkami, DigitalOnboarding" />
-            <span class="fi-keys-help">Use * for all partners, or comma-separated list</span>
+            <div class="access-multi-select" id="partnerAccessSelect">
+              <button type="button" id="partnerAccessBtn">Select partners...</button>
+              <div class="panel" hidden id="partnerAccessPanel"></div>
+            </div>
+            <span class="fi-keys-help">Select which partners this user can access</span>
           </label>
           <label>
             FI Access (specific FIs)
-            <input type="text" id="userFiKeys" class="fi-keys-input" placeholder="* or bigbank, bigbank-prod" />
-            <span class="fi-keys-help">Use * for all FIs, or comma-separated list</span>
+            <div class="access-multi-select" id="fiAccessSelect">
+              <button type="button" id="fiAccessBtn">Select FIs...</button>
+              <div class="panel" hidden id="fiAccessPanel"></div>
+            </div>
+            <span class="fi-keys-help">Select specific FIs this user can access (in addition to instance/partner access)</span>
           </label>
           <div class="access-preview" id="accessPreview">
-            <span class="fi-keys-help">User will have access to <strong id="previewCount">calculating...</strong> FIs</span>
+            <span class="fi-keys-help">User will have access to <strong id="previewCount">0</strong> FIs</span>
           </div>
         </div>
         <label class="checkbox-label">
@@ -418,13 +502,24 @@
     const emailField = document.getElementById("userEmail");
     const nameField = document.getElementById("userName");
     const accessLevelField = document.getElementById("userAccessLevel");
-    const instanceKeysField = document.getElementById("userInstanceKeys");
-    const partnerKeysField = document.getElementById("userPartnerKeys");
-    const fiKeysField = document.getElementById("userFiKeys");
     const enabledField = document.getElementById("userEnabled");
     const notesField = document.getElementById("userNotes");
     const dataAccessSection = document.getElementById("dataAccessSection");
     const previewCount = document.getElementById("previewCount");
+
+    // Multi-select elements
+    const instanceAccessBtn = document.getElementById("instanceAccessBtn");
+    const instanceAccessPanel = document.getElementById("instanceAccessPanel");
+    const partnerAccessBtn = document.getElementById("partnerAccessBtn");
+    const partnerAccessPanel = document.getElementById("partnerAccessPanel");
+    const fiAccessBtn = document.getElementById("fiAccessBtn");
+    const fiAccessPanel = document.getElementById("fiAccessPanel");
+
+    // State for available options and selections
+    let accessOptions = { instances: [], partners: [], fis: [] };
+    let selectedInstances = new Set();
+    let selectedPartners = new Set();
+    let selectedFis = new Set();
 
     function showStatus(message, isError = false) {
       statusMessage.textContent = message;
@@ -438,13 +533,6 @@
         return "All FIs";
       }
       const parts = [];
-      const hasFullInstance = user.instance_keys === "*";
-      const hasFullPartner = user.partner_keys === "*";
-      const hasFullFi = user.fi_keys === "*";
-
-      if (hasFullInstance || hasFullPartner || hasFullFi) {
-        return "All FIs";
-      }
 
       if (Array.isArray(user.instance_keys) && user.instance_keys.length > 0) {
         parts.push(`<span class="access-item">${user.instance_keys.length} instance(s)</span>`);
@@ -456,12 +544,6 @@
         parts.push(`<span class="access-item">${user.fi_keys.length} FI(s)</span>`);
       }
       return parts.length > 0 ? parts.join(" ") : '<span class="access-item">No access</span>';
-    }
-
-    function parseAccessInput(value) {
-      const trimmed = (value || "").trim();
-      if (trimmed === "*" || trimmed === "") return trimmed === "*" ? "*" : [];
-      return trimmed.split(",").map(k => k.trim()).filter(k => k);
     }
 
     function renderUsers(users) {
@@ -508,10 +590,17 @@
       }
     }
 
-    function formatAccessValue(value) {
-      if (value === "*") return "*";
-      if (Array.isArray(value) && value.length > 0) return value.join(", ");
-      return "";
+    async function loadAccessOptions() {
+      try {
+        const res = await fetch(API_BASE + "/api/user-access-options");
+        if (!res.ok) {
+          console.error("Failed to load access options");
+          return;
+        }
+        accessOptions = await res.json();
+      } catch (err) {
+        console.error("Error loading access options:", err);
+      }
     }
 
     function updateDataAccessVisibility() {
@@ -530,15 +619,9 @@
         return;
       }
 
-      const instanceKeys = parseAccessInput(instanceKeysField.value);
-      const partnerKeys = parseAccessInput(partnerKeysField.value);
-      const fiKeys = parseAccessInput(fiKeysField.value);
-
-      // If any is wildcard, show "all"
-      if (instanceKeys === "*" || partnerKeys === "*" || fiKeys === "*") {
-        previewCount.textContent = "all";
-        return;
-      }
+      const instanceKeys = Array.from(selectedInstances);
+      const partnerKeys = Array.from(selectedPartners);
+      const fiKeys = Array.from(selectedFis);
 
       // If all empty, show "0"
       if (instanceKeys.length === 0 && partnerKeys.length === 0 && fiKeys.length === 0) {
@@ -568,7 +651,164 @@
       previewTimeout = setTimeout(updateAccessPreview, 300);
     }
 
+    // Multi-select dropdown helpers
+    function updateButtonText(btnEl, selectedSet, singular, plural, allLabel) {
+      const count = selectedSet.size;
+      if (count === 0) {
+        btnEl.textContent = `Select ${plural}...`;
+      } else if (count === 1) {
+        btnEl.textContent = Array.from(selectedSet)[0];
+      } else {
+        btnEl.textContent = `${count} ${plural} selected`;
+      }
+    }
+
+    function renderMultiSelectPanel(panelEl, options, selectedSet, onChange, hasSearch = false) {
+      panelEl.innerHTML = "";
+
+      // Add search box for large lists
+      let searchValue = "";
+      if (hasSearch && options.length > 10) {
+        const searchBox = document.createElement("input");
+        searchBox.type = "text";
+        searchBox.className = "search-box";
+        searchBox.placeholder = "Search...";
+        searchBox.addEventListener("input", (e) => {
+          searchValue = e.target.value.toLowerCase();
+          renderOptions();
+        });
+        panelEl.appendChild(searchBox);
+      }
+
+      // Toggle all checkbox
+      const toggleLabel = document.createElement("label");
+      toggleLabel.className = "toggle-all";
+      const toggleCb = document.createElement("input");
+      toggleCb.type = "checkbox";
+      toggleCb.checked = selectedSet.size === options.length && options.length > 0;
+      toggleLabel.appendChild(toggleCb);
+      toggleLabel.appendChild(document.createTextNode(" Select all"));
+      panelEl.appendChild(toggleLabel);
+
+      const optionsContainer = document.createElement("div");
+      optionsContainer.className = "options-container";
+      panelEl.appendChild(optionsContainer);
+
+      function renderOptions() {
+        optionsContainer.innerHTML = "";
+        const filteredOptions = searchValue
+          ? options.filter(opt => {
+              const label = typeof opt === "object" ? opt.label : opt;
+              return label.toLowerCase().includes(searchValue);
+            })
+          : options;
+
+        filteredOptions.forEach(opt => {
+          const value = typeof opt === "object" ? opt.key : opt;
+          const label = typeof opt === "object" ? opt.label : opt;
+          const sublabel = typeof opt === "object" && opt.instance ? ` (${opt.instance})` : "";
+
+          const optLabel = document.createElement("label");
+          const cb = document.createElement("input");
+          cb.type = "checkbox";
+          cb.value = value;
+          cb.checked = selectedSet.has(value);
+          optLabel.appendChild(cb);
+          optLabel.appendChild(document.createTextNode(" " + label + sublabel));
+          optionsContainer.appendChild(optLabel);
+
+          cb.addEventListener("change", () => {
+            if (cb.checked) {
+              selectedSet.add(value);
+            } else {
+              selectedSet.delete(value);
+            }
+            toggleCb.checked = selectedSet.size === options.length;
+            onChange();
+          });
+        });
+      }
+
+      toggleCb.addEventListener("change", () => {
+        if (toggleCb.checked) {
+          options.forEach(opt => {
+            const value = typeof opt === "object" ? opt.key : opt;
+            selectedSet.add(value);
+          });
+        } else {
+          selectedSet.clear();
+        }
+        renderOptions();
+        onChange();
+      });
+
+      renderOptions();
+    }
+
+    function togglePanel(panelEl) {
+      const isOpen = !panelEl.hasAttribute("hidden");
+      // Close all panels first
+      [instanceAccessPanel, partnerAccessPanel, fiAccessPanel].forEach(p => {
+        p.setAttribute("hidden", "hidden");
+      });
+      if (!isOpen) {
+        panelEl.removeAttribute("hidden");
+      }
+    }
+
+    function closeAllPanels(ev) {
+      const target = ev.target;
+      const inInstanceSelect = document.getElementById("instanceAccessSelect")?.contains(target);
+      const inPartnerSelect = document.getElementById("partnerAccessSelect")?.contains(target);
+      const inFiSelect = document.getElementById("fiAccessSelect")?.contains(target);
+
+      if (!inInstanceSelect) instanceAccessPanel.setAttribute("hidden", "hidden");
+      if (!inPartnerSelect) partnerAccessPanel.setAttribute("hidden", "hidden");
+      if (!inFiSelect) fiAccessPanel.setAttribute("hidden", "hidden");
+    }
+
+    function renderAllMultiSelects() {
+      renderMultiSelectPanel(
+        instanceAccessPanel,
+        accessOptions.instances,
+        selectedInstances,
+        () => {
+          updateButtonText(instanceAccessBtn, selectedInstances, "instance", "instances");
+          debouncedPreview();
+        }
+      );
+      updateButtonText(instanceAccessBtn, selectedInstances, "instance", "instances");
+
+      renderMultiSelectPanel(
+        partnerAccessPanel,
+        accessOptions.partners,
+        selectedPartners,
+        () => {
+          updateButtonText(partnerAccessBtn, selectedPartners, "partner", "partners");
+          debouncedPreview();
+        }
+      );
+      updateButtonText(partnerAccessBtn, selectedPartners, "partner", "partners");
+
+      renderMultiSelectPanel(
+        fiAccessPanel,
+        accessOptions.fis,
+        selectedFis,
+        () => {
+          updateButtonText(fiAccessBtn, selectedFis, "FI", "FIs");
+          debouncedPreview();
+        },
+        true // enable search for FIs
+      );
+      updateButtonText(fiAccessBtn, selectedFis, "FI", "FIs");
+    }
+
     function openModal(user = null) {
+      // Clear selections
+      selectedInstances.clear();
+      selectedPartners.clear();
+      selectedFis.clear();
+
       if (user) {
         modalTitle.textContent = "Edit User";
         originalEmailField.value = user.email;
@@ -576,23 +816,30 @@
         nameField.value = user.name || "";
         // Map legacy "full" to "admin" in the dropdown
         accessLevelField.value = user.access_level === "full" ? "admin" : (user.access_level || "limited");
-        instanceKeysField.value = formatAccessValue(user.instance_keys);
-        partnerKeysField.value = formatAccessValue(user.partner_keys);
-        fiKeysField.value = formatAccessValue(user.fi_keys);
         enabledField.checked = user.enabled !== false;
         notesField.value = user.notes || "";
+
+        // Populate selections from user data (handle both arrays and legacy wildcards)
+        if (Array.isArray(user.instance_keys)) {
+          user.instance_keys.forEach(k => selectedInstances.add(k));
+        }
+        if (Array.isArray(user.partner_keys)) {
+          user.partner_keys.forEach(k => selectedPartners.add(k));
+        }
+        if (Array.isArray(user.fi_keys)) {
+          user.fi_keys.forEach(k => selectedFis.add(k));
+        }
       } else {
         modalTitle.textContent = "Add User";
         originalEmailField.value = "";
         emailField.value = "";
         nameField.value = "";
         accessLevelField.value = "limited";
-        instanceKeysField.value = "";
-        partnerKeysField.value = "";
-        fiKeysField.value = "*";
         enabledField.checked = true;
         notesField.value = "";
       }
+
+      renderAllMultiSelects();
       updateDataAccessVisibility();
       updateAccessPreview();
       userModal.hidden = false;
@@ -602,6 +849,10 @@
     function closeModal() {
       userModal.hidden = true;
       userForm.reset();
+      // Close any open panels
+      [instanceAccessPanel, partnerAccessPanel, fiAccessPanel].forEach(p => {
+        p.setAttribute("hidden", "hidden");
+      });
     }
 
     window.editUser = function(email) {
@@ -629,20 +880,36 @@
       }
     };
 
+    // Event listeners
     addUserBtn.addEventListener("click", () => openModal());
     refreshBtn.addEventListener("click", loadUsers);
     cancelBtn.addEventListener("click", closeModal);
 
-    // Update data access section visibility and preview when access level changes
+    // Update data access section visibility when access level changes
     accessLevelField.addEventListener("change", () => {
       updateDataAccessVisibility();
       updateAccessPreview();
     });
 
-    // Update preview when access inputs change
-    instanceKeysField.addEventListener("input", debouncedPreview);
-    partnerKeysField.addEventListener("input", debouncedPreview);
-    fiKeysField.addEventListener("input", debouncedPreview);
+    // Multi-select button click handlers
+    instanceAccessBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      togglePanel(instanceAccessPanel);
+    });
+    partnerAccessBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      togglePanel(partnerAccessPanel);
+    });
+    fiAccessBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      togglePanel(fiAccessPanel);
+    });
+
+    // Close panels when clicking outside
+    document.addEventListener("click", closeAllPanels);
 
     userModal.addEventListener("click", (e) => {
       if (e.target === userModal) closeModal();
@@ -651,11 +918,11 @@
     userForm.addEventListener("submit", async (e) => {
       e.preventDefault();
 
-      const instanceKeys = parseAccessInput(instanceKeysField.value);
-      const partnerKeys = parseAccessInput(partnerKeysField.value);
-      const fiKeys = parseAccessInput(fiKeysField.value);
+      const instanceKeys = Array.from(selectedInstances);
+      const partnerKeys = Array.from(selectedPartners);
+      const fiKeys = Array.from(selectedFis);
 
-      // For admin and internal users, set all to wildcard (full data access)
+      // For admin and internal users, access keys are ignored (they have full access)
       const level = accessLevelField.value;
       const hasFullAccess = level === "admin" || level === "internal";
 
@@ -663,9 +930,9 @@
         email: emailField.value.trim().toLowerCase(),
         name: nameField.value.trim(),
         access_level: level,
-        instance_keys: hasFullAccess ? "*" : instanceKeys,
-        partner_keys: hasFullAccess ? "*" : partnerKeys,
-        fi_keys: hasFullAccess ? "*" : fiKeys,
+        instance_keys: hasFullAccess ? [] : instanceKeys,
+        partner_keys: hasFullAccess ? [] : partnerKeys,
+        fi_keys: hasFullAccess ? [] : fiKeys,
         enabled: enabledField.checked,
         notes: notesField.value.trim() || undefined
       };
@@ -692,6 +959,7 @@
     });
 
     // Initial load
+    loadAccessOptions();
     loadUsers();
   })();
   </script>
