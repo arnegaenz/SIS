@@ -147,6 +147,43 @@
     }
   }
 
+  // User-scoped filter options (based on access control)
+  let userScopedOptions = null;
+
+  async function loadUserScopedOptions() {
+    try {
+      const apiBase =
+        typeof window !== "undefined" &&
+        typeof window.SIS_API_BASE === "string" &&
+        window.SIS_API_BASE.trim()
+          ? window.SIS_API_BASE.replace(/\/+$/, "")
+          : "";
+      const url = apiBase ? `${apiBase}/api/filter-options` : "/api/filter-options";
+      const res = await fetch(url);
+      if (!res.ok) {
+        console.warn("[filters] user-scoped options not available (HTTP " + res.status + ")");
+        return null;
+      }
+      const json = await res.json();
+      if (json && json.fis && json.fis.length > 0) {
+        console.log("[filters] user-scoped options loaded:", json.fis.length, "FIs,", json.access?.is_admin ? "admin" : "restricted");
+        return json;
+      }
+    } catch (err) {
+      console.warn("[filters] user-scoped options load failed", err);
+    }
+    return null;
+  }
+
+  function filterRegistryByUserScope(registry, scopedOptions) {
+    if (!scopedOptions || !scopedOptions.fis) return registry;
+    const allowedFiKeys = new Set(scopedOptions.fis.map(fi => normalizeFiKey(fi.key)));
+    return registry.filter(entry => {
+      const fiKey = normalizeFiKey(entry.fi_lookup_key);
+      return allowedFiKeys.has(fiKey);
+    });
+  }
+
   const normalizeFiKey = (val) =>
     val ? val.toString().trim().toLowerCase() : "";
   const normalizeInstanceKey = (val) => {
@@ -1148,8 +1185,22 @@
     container.innerHTML = `<div class="filter-group"><label>Filters</label><div class="muted">Loading filters…</div></div>`;
     console.log("[filters] initFilters start", pageId);
     fiInstanceSelection.clear();
-    await loadInstanceAllowList();
-    const registry = await loadRegistry();
+
+    // Load user-scoped options and instance allow-list in parallel
+    const [scopedOptions] = await Promise.all([
+      loadUserScopedOptions(),
+      loadInstanceAllowList()
+    ]);
+    userScopedOptions = scopedOptions;
+
+    // Load full registry, then filter by user scope if applicable
+    let registry = await loadRegistry();
+    if (scopedOptions && !scopedOptions.access?.is_admin) {
+      const originalCount = registry.length;
+      registry = filterRegistryByUserScope(registry, scopedOptions);
+      console.log("[filters] filtered registry by user scope:", originalCount, "->", registry.length, "FIs");
+    }
+
     registryCache = getBaseRegistry(registry);
     console.log("[filters] registry loaded", registry.length, "page", pageId);
     const state = {

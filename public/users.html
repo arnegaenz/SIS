@@ -107,7 +107,8 @@
       font-size: 12px;
       font-weight: 500;
     }
-    .badge-full { background: #dcfce7; color: #166534; }
+    .badge-admin { background: #dcfce7; color: #166534; }
+    .badge-full { background: #dcfce7; color: #166534; } /* legacy */
     .badge-limited { background: #fef3c7; color: #92400e; }
     .badge-billing { background: #dbeafe; color: #1e40af; }
     .badge-disabled { background: #f3f4f6; color: #6b7280; }
@@ -238,7 +239,29 @@
       color: var(--muted);
       margin-top: 4px;
     }
+    .access-preview {
+      padding: 10px 12px;
+      background: var(--hover-bg, #f3f4f6);
+      border-radius: 8px;
+      margin-top: 8px;
+    }
+    .access-preview strong {
+      color: var(--accent, #2563eb);
+    }
+    .data-access-cell {
+      max-width: 200px;
+      font-size: 13px;
+    }
+    .data-access-cell .access-item {
+      display: inline-block;
+      background: var(--hover-bg, #f3f4f6);
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin: 1px;
+      font-size: 11px;
+    }
     @media (prefers-color-scheme: dark) {
+      .badge-admin { background: #166534; color: #dcfce7; }
       .badge-full { background: #166534; color: #dcfce7; }
       .badge-limited { background: #92400e; color: #fef3c7; }
       .badge-billing { background: #1e40af; color: #dbeafe; }
@@ -247,6 +270,7 @@
       .btn-danger:hover { background: #991b1b; }
       .status-message.success { background: #166534; color: #dcfce7; }
       .status-message.error { background: #7f1d1d; color: #fecaca; }
+      .access-preview { background: #374151; }
     }
   </style>
 </head>
@@ -274,7 +298,7 @@
                 <th>Email</th>
                 <th>Name</th>
                 <th>Access Level</th>
-                <th>FI Access</th>
+                <th>Data Access</th>
                 <th>Status</th>
                 <th>Actions</th>
               </tr>
@@ -298,19 +322,19 @@
             </thead>
             <tbody>
               <tr>
-                <td><span class="badge badge-full">full</span></td>
+                <td><span class="badge badge-admin">admin</span></td>
                 <td>Full administrative access</td>
-                <td>All pages including Admin tools</td>
+                <td>All pages including Admin tools. <strong>Always has full data access.</strong></td>
               </tr>
               <tr>
                 <td><span class="badge badge-limited">limited</span></td>
                 <td>Partner/customer access</td>
-                <td>Funnel and Troubleshoot only</td>
+                <td>Funnel, Troubleshoot, Real-Time. Data filtered by instance/partner/FI access.</td>
               </tr>
               <tr>
                 <td><span class="badge badge-billing">billing</span></td>
                 <td>Billing access only</td>
-                <td>FI API Billing page only</td>
+                <td>FI API Billing page only. Data filtered by instance/partner/FI access.</td>
               </tr>
             </tbody>
           </table>
@@ -336,16 +360,31 @@
         <label>
           Access Level
           <select id="userAccessLevel" required>
-            <option value="full">Full (all pages)</option>
-            <option value="limited">Limited (funnel + troubleshoot)</option>
+            <option value="admin">Admin (all pages, all data)</option>
+            <option value="limited">Limited (funnel + troubleshoot + realtime)</option>
             <option value="billing">Billing (billing page only)</option>
           </select>
         </label>
-        <label>
-          FI Keys (which FIs this user can access)
-          <input type="text" id="userFiKeys" class="fi-keys-input" placeholder="* or bigbank, bigbank-prod" />
-          <span class="fi-keys-help">Use * for all FIs, or comma-separated list of FI keys</span>
-        </label>
+        <div id="dataAccessSection">
+          <label>
+            Instance Access
+            <input type="text" id="userInstanceKeys" class="fi-keys-input" placeholder="* or ss01, pscu" />
+            <span class="fi-keys-help">Use * for all instances, or comma-separated list</span>
+          </label>
+          <label>
+            Partner Access
+            <input type="text" id="userPartnerKeys" class="fi-keys-input" placeholder="* or Alkami, DigitalOnboarding" />
+            <span class="fi-keys-help">Use * for all partners, or comma-separated list</span>
+          </label>
+          <label>
+            FI Access (specific FIs)
+            <input type="text" id="userFiKeys" class="fi-keys-input" placeholder="* or bigbank, bigbank-prod" />
+            <span class="fi-keys-help">Use * for all FIs, or comma-separated list</span>
+          </label>
+          <div class="access-preview" id="accessPreview">
+            <span class="fi-keys-help">User will have access to <strong id="previewCount">calculating...</strong> FIs</span>
+          </div>
+        </div>
         <label class="checkbox-label">
           <input type="checkbox" id="userEnabled" checked />
           Account enabled
@@ -379,9 +418,13 @@
     const emailField = document.getElementById("userEmail");
     const nameField = document.getElementById("userName");
     const accessLevelField = document.getElementById("userAccessLevel");
+    const instanceKeysField = document.getElementById("userInstanceKeys");
+    const partnerKeysField = document.getElementById("userPartnerKeys");
     const fiKeysField = document.getElementById("userFiKeys");
     const enabledField = document.getElementById("userEnabled");
     const notesField = document.getElementById("userNotes");
+    const dataAccessSection = document.getElementById("dataAccessSection");
+    const previewCount = document.getElementById("previewCount");
 
     function showStatus(message, isError = false) {
       statusMessage.textContent = message;
@@ -389,10 +432,36 @@
       setTimeout(() => { statusMessage.textContent = ""; }, 5000);
     }
 
-    function formatFiKeys(fiKeys) {
-      if (fiKeys === "*") return "All FIs";
-      if (Array.isArray(fiKeys)) return fiKeys.join(", ");
-      return fiKeys || "All FIs";
+    function formatDataAccess(user) {
+      // Admin always has full access
+      if (user.access_level === "admin" || user.access_level === "full") {
+        return "All FIs";
+      }
+      const parts = [];
+      const hasFullInstance = user.instance_keys === "*";
+      const hasFullPartner = user.partner_keys === "*";
+      const hasFullFi = user.fi_keys === "*";
+
+      if (hasFullInstance || hasFullPartner || hasFullFi) {
+        return "All FIs";
+      }
+
+      if (Array.isArray(user.instance_keys) && user.instance_keys.length > 0) {
+        parts.push(`<span class="access-item">${user.instance_keys.length} instance(s)</span>`);
+      }
+      if (Array.isArray(user.partner_keys) && user.partner_keys.length > 0) {
+        parts.push(`<span class="access-item">${user.partner_keys.length} partner(s)</span>`);
+      }
+      if (Array.isArray(user.fi_keys) && user.fi_keys.length > 0) {
+        parts.push(`<span class="access-item">${user.fi_keys.length} FI(s)</span>`);
+      }
+      return parts.length > 0 ? parts.join(" ") : '<span class="access-item">No access</span>';
+    }
+
+    function parseAccessInput(value) {
+      const trimmed = (value || "").trim();
+      if (trimmed === "*" || trimmed === "") return trimmed === "*" ? "*" : [];
+      return trimmed.split(",").map(k => k.trim()).filter(k => k);
     }
 
     function renderUsers(users) {
@@ -406,8 +475,8 @@
           <td>${escapeHtml(user.email)}</td>
           <td>${escapeHtml(user.name || "")}</td>
           <td><span class="badge badge-${user.access_level}">${user.access_level}</span></td>
-          <td>${escapeHtml(formatFiKeys(user.fi_keys))}</td>
-          <td>${user.enabled ? '<span class="badge badge-full">Active</span>' : '<span class="badge badge-disabled">Disabled</span>'}</td>
+          <td class="data-access-cell">${formatDataAccess(user)}</td>
+          <td>${user.enabled ? '<span class="badge badge-admin">Active</span>' : '<span class="badge badge-disabled">Disabled</span>'}</td>
           <td class="actions">
             <button class="btn btn-secondary" onclick="window.editUser('${escapeHtml(user.email)}')">Edit</button>
             <button class="btn btn-danger" onclick="window.deleteUser('${escapeHtml(user.email)}')">Delete</button>
@@ -439,14 +508,75 @@
       }
     }
 
+    function formatAccessValue(value) {
+      if (value === "*") return "*";
+      if (Array.isArray(value) && value.length > 0) return value.join(", ");
+      return "";
+    }
+
+    function updateDataAccessVisibility() {
+      const isAdmin = accessLevelField.value === "admin";
+      dataAccessSection.style.display = isAdmin ? "none" : "block";
+      if (isAdmin) {
+        previewCount.textContent = "all (admin)";
+      }
+    }
+
+    async function updateAccessPreview() {
+      if (accessLevelField.value === "admin") {
+        previewCount.textContent = "all (admin)";
+        return;
+      }
+
+      const instanceKeys = parseAccessInput(instanceKeysField.value);
+      const partnerKeys = parseAccessInput(partnerKeysField.value);
+      const fiKeys = parseAccessInput(fiKeysField.value);
+
+      // If any is wildcard, show "all"
+      if (instanceKeys === "*" || partnerKeys === "*" || fiKeys === "*") {
+        previewCount.textContent = "all";
+        return;
+      }
+
+      // If all empty, show "0"
+      if (instanceKeys.length === 0 && partnerKeys.length === 0 && fiKeys.length === 0) {
+        previewCount.textContent = "0 (no access configured)";
+        return;
+      }
+
+      try {
+        previewCount.textContent = "calculating...";
+        const res = await fetch(API_BASE + "/api/access-preview", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ instance_keys: instanceKeys, partner_keys: partnerKeys, fi_keys: fiKeys })
+        });
+        if (!res.ok) throw new Error("API error");
+        const data = await res.json();
+        previewCount.textContent = data.unlimited ? "all" : data.count;
+      } catch (err) {
+        previewCount.textContent = "?";
+      }
+    }
+
+    // Debounce helper
+    let previewTimeout = null;
+    function debouncedPreview() {
+      clearTimeout(previewTimeout);
+      previewTimeout = setTimeout(updateAccessPreview, 300);
+    }
+
     function openModal(user = null) {
       if (user) {
         modalTitle.textContent = "Edit User";
         originalEmailField.value = user.email;
         emailField.value = user.email;
         nameField.value = user.name || "";
-        accessLevelField.value = user.access_level || "limited";
-        fiKeysField.value = user.fi_keys === "*" ? "*" : (Array.isArray(user.fi_keys) ? user.fi_keys.join(", ") : "");
+        // Map legacy "full" to "admin" in the dropdown
+        accessLevelField.value = user.access_level === "full" ? "admin" : (user.access_level || "limited");
+        instanceKeysField.value = formatAccessValue(user.instance_keys);
+        partnerKeysField.value = formatAccessValue(user.partner_keys);
+        fiKeysField.value = formatAccessValue(user.fi_keys);
         enabledField.checked = user.enabled !== false;
         notesField.value = user.notes || "";
       } else {
@@ -455,10 +585,14 @@
         emailField.value = "";
         nameField.value = "";
         accessLevelField.value = "limited";
+        instanceKeysField.value = "";
+        partnerKeysField.value = "";
         fiKeysField.value = "*";
         enabledField.checked = true;
         notesField.value = "";
       }
+      updateDataAccessVisibility();
+      updateAccessPreview();
       userModal.hidden = false;
       emailField.focus();
     }
@@ -497,6 +631,17 @@
     refreshBtn.addEventListener("click", loadUsers);
     cancelBtn.addEventListener("click", closeModal);
 
+    // Update data access section visibility and preview when access level changes
+    accessLevelField.addEventListener("change", () => {
+      updateDataAccessVisibility();
+      updateAccessPreview();
+    });
+
+    // Update preview when access inputs change
+    instanceKeysField.addEventListener("input", debouncedPreview);
+    partnerKeysField.addEventListener("input", debouncedPreview);
+    fiKeysField.addEventListener("input", debouncedPreview);
+
     userModal.addEventListener("click", (e) => {
       if (e.target === userModal) closeModal();
     });
@@ -504,19 +649,20 @@
     userForm.addEventListener("submit", async (e) => {
       e.preventDefault();
 
-      const fiKeysRaw = fiKeysField.value.trim();
-      let fiKeys;
-      if (fiKeysRaw === "*" || fiKeysRaw === "") {
-        fiKeys = "*";
-      } else {
-        fiKeys = fiKeysRaw.split(",").map(k => k.trim()).filter(k => k);
-      }
+      const instanceKeys = parseAccessInput(instanceKeysField.value);
+      const partnerKeys = parseAccessInput(partnerKeysField.value);
+      const fiKeys = parseAccessInput(fiKeysField.value);
+
+      // For admin users, set all to wildcard
+      const isAdmin = accessLevelField.value === "admin";
 
       const userData = {
         email: emailField.value.trim().toLowerCase(),
         name: nameField.value.trim(),
         access_level: accessLevelField.value,
-        fi_keys: fiKeys,
+        instance_keys: isAdmin ? "*" : instanceKeys,
+        partner_keys: isAdmin ? "*" : partnerKeys,
+        fi_keys: isAdmin ? "*" : fiKeys,
         enabled: enabledField.checked,
         notes: notesField.value.trim() || undefined
       };

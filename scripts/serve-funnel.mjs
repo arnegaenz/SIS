@@ -349,8 +349,9 @@ async function requireFullAccess(req, res, queryParams) {
     send(res, 401, { error: "Authentication required" });
     return null;
   }
-  if (auth.user.access_level !== "full") {
-    send(res, 403, { error: "Full access required" });
+  // Support both "admin" (new) and "full" (legacy) for backward compatibility
+  if (auth.user.access_level !== "admin" && auth.user.access_level !== "full") {
+    send(res, 403, { error: "Admin access required" });
     return null;
   }
   return auth;
@@ -517,6 +518,47 @@ function extractSessionToken(req, queryParams) {
   return null;
 }
 
+/**
+ * Normalize user access fields for backward compatibility.
+ * - Renames "full" access_level to "admin"
+ * - Ensures instance_keys, partner_keys, fi_keys exist with proper defaults
+ */
+function normalizeUserAccessFields(user) {
+  // Handle legacy "full" access_level
+  let accessLevel = user.access_level;
+  if (accessLevel === "full") {
+    accessLevel = "admin";
+  }
+
+  // Handle legacy fi_keys-only format
+  let instanceKeys = user.instance_keys;
+  let partnerKeys = user.partner_keys;
+  let fiKeys = user.fi_keys;
+
+  if (instanceKeys === undefined && partnerKeys === undefined) {
+    // Legacy user: only has fi_keys
+    if (fiKeys === "*") {
+      instanceKeys = "*";
+      partnerKeys = "*";
+    } else {
+      instanceKeys = [];
+      partnerKeys = [];
+    }
+  }
+
+  // Ensure defaults
+  if (instanceKeys === undefined) instanceKeys = [];
+  if (partnerKeys === undefined) partnerKeys = [];
+  if (fiKeys === undefined) fiKeys = [];
+
+  return {
+    access_level: accessLevel,
+    instance_keys: instanceKeys,
+    partner_keys: partnerKeys,
+    fi_keys: fiKeys,
+  };
+}
+
 async function validateSession(req, queryParams) {
   const token = extractSessionToken(req, queryParams);
   if (!token) return null;
@@ -536,13 +578,18 @@ async function validateSession(req, queryParams) {
   // Update last_used_at (non-blocking)
   updateSessionLastUsed(token).catch(() => {});
 
+  // Normalize access fields for backward compatibility
+  const accessFields = normalizeUserAccessFields(user);
+
   return {
     session: sessionData,
     user: {
       email: user.email,
       name: user.name,
-      access_level: user.access_level,
-      fi_keys: user.fi_keys,
+      access_level: accessFields.access_level,
+      instance_keys: accessFields.instance_keys,
+      partner_keys: accessFields.partner_keys,
+      fi_keys: accessFields.fi_keys,
     },
   };
 }
@@ -1628,7 +1675,83 @@ function normalizeSourceToken(value) {
   return value.toString().trim().toLowerCase();
 }
 
-function parseMetricsFilters(queryParams, payload = null, userContext = null) {
+/**
+ * Compute the set of FI lookup keys a user can access based on their access configuration.
+ * Returns null if user has unrestricted access (admin or any wildcard).
+ * Returns Set<string> of normalized fi_lookup_keys otherwise.
+ *
+ * Uses UNION semantics: user can access an FI if it matches ANY of their access criteria.
+ */
+function computeAllowedFis(userContext, fiRegistry) {
+  if (!userContext) return null; // No user context = unrestricted
+
+  // Admin users always have full access
+  if (userContext.access_level === "admin") {
+    return null;
+  }
+
+  // Check for wildcard access on any dimension
+  const hasFullInstanceAccess = userContext.instance_keys === "*";
+  const hasFullPartnerAccess = userContext.partner_keys === "*";
+  const hasFullFiAccess = userContext.fi_keys === "*";
+
+  // If any dimension is "*", user has full access
+  if (hasFullInstanceAccess || hasFullPartnerAccess || hasFullFiAccess) {
+    return null;
+  }
+
+  // Normalize access arrays
+  const instanceKeys = Array.isArray(userContext.instance_keys)
+    ? new Set(userContext.instance_keys.map((k) => normalizeInstanceKey(k)))
+    : new Set();
+  const partnerKeys = Array.isArray(userContext.partner_keys)
+    ? new Set(userContext.partner_keys.map((k) => (k || "").toString().trim().toLowerCase()))
+    : new Set();
+  const fiKeys = Array.isArray(userContext.fi_keys)
+    ? new Set(userContext.fi_keys.map((k) => normalizeFiKey(k)))
+    : new Set();
+
+  // If all dimensions are empty, no access
+  if (instanceKeys.size === 0 && partnerKeys.size === 0 && fiKeys.size === 0) {
+    return new Set(); // empty = no access
+  }
+
+  // Build allowed FI set from registry using UNION logic
+  const allowed = new Set();
+
+  // Add directly specified FIs
+  for (const fi of fiKeys) {
+    allowed.add(fi);
+  }
+
+  // Add FIs matching instance or partner criteria from registry
+  if (fiRegistry && typeof fiRegistry === "object") {
+    for (const entry of Object.values(fiRegistry)) {
+      if (!entry || !entry.fi_lookup_key) continue;
+      const fiKey = normalizeFiKey(entry.fi_lookup_key);
+
+      // Check instance match
+      if (instanceKeys.size > 0 && entry.instance) {
+        if (instanceKeys.has(normalizeInstanceKey(entry.instance))) {
+          allowed.add(fiKey);
+          continue;
+        }
+      }
+
+      // Check partner match
+      if (partnerKeys.size > 0 && entry.partner) {
+        const normalizedPartner = entry.partner.toString().trim().toLowerCase();
+        if (partnerKeys.has(normalizedPartner)) {
+          allowed.add(fiKey);
+        }
+      }
+    }
+  }
+
+  return allowed;
+}
+
+function parseMetricsFilters(queryParams, payload = null, userContext = null, fiRegistry = null) {
   const query = Object.fromEntries(queryParams.entries());
   const body = payload && typeof payload === "object" ? payload : {};
   const dateFrom =
@@ -1673,13 +1796,13 @@ function parseMetricsFilters(queryParams, payload = null, userContext = null) {
     body.merchant_list || body.merchantList || query.merchant_list || query.merchantList
   );
 
-  // ENFORCE USER FI RESTRICTIONS
-  if (userContext && userContext.fi_keys !== "*" && Array.isArray(userContext.fi_keys)) {
-    const allowedFis = new Set(userContext.fi_keys.map((fi) => normalizeFiKey(fi)));
-
+  // ENFORCE USER FI RESTRICTIONS (instance, partner, or specific FIs)
+  const allowedFis = computeAllowedFis(userContext, fiRegistry);
+  if (allowedFis !== null) {
+    // User has restricted access
     if (fiList.length === 0) {
       // User requested all - restrict to their allowed FIs
-      fiList = userContext.fi_keys.slice();
+      fiList = Array.from(allowedFis);
     } else {
       // User requested specific - filter to intersection
       fiList = fiList.filter((fi) => allowedFis.has(normalizeFiKey(fi)));
@@ -3724,7 +3847,7 @@ const server = http.createServer(async (req, res) => {
     try {
       const { entries, path: foundAt } = await readInstancesFile();
       const auth = await validateSession(req, queryParams);
-      const isFullAccess = auth?.user?.access_level === "full";
+      const isFullAccess = auth?.user?.access_level === "admin" || auth?.user?.access_level === "full";
       const payload = isFullAccess ? entries : entries.map(redactInstanceEntry);
       return send(res, 200, { instances: payload, path: foundAt, redacted: !isFullAccess });
     } catch (err) {
@@ -3977,11 +4100,27 @@ const server = http.createServer(async (req, res) => {
         return send(res, 400, { error: "A user with this email already exists" });
       }
 
+      // Normalize access keys input (handle string "*", arrays, or comma-separated strings)
+      const normalizeAccessKeys = (value) => {
+        if (value === "*") return "*";
+        if (Array.isArray(value)) {
+          const filtered = value.map((v) => (v || "").toString().trim()).filter(Boolean);
+          return filtered.length > 0 ? filtered : [];
+        }
+        if (typeof value === "string" && value.trim()) {
+          if (value.trim() === "*") return "*";
+          return value.split(",").map((v) => v.trim()).filter(Boolean);
+        }
+        return [];
+      };
+
       const userData = {
         email,
         name: user.name || "",
-        access_level: ["full", "limited", "billing"].includes(user.access_level) ? user.access_level : "limited",
-        fi_keys: user.fi_keys || "*",
+        access_level: ["admin", "full", "limited", "billing"].includes(user.access_level) ? user.access_level : "limited",
+        instance_keys: normalizeAccessKeys(user.instance_keys),
+        partner_keys: normalizeAccessKeys(user.partner_keys),
+        fi_keys: normalizeAccessKeys(user.fi_keys),
         enabled: user.enabled !== false,
         notes: user.notes || "",
         created_at: originalIdx !== -1 ? users[originalIdx].created_at : new Date().toISOString()
@@ -4040,6 +4179,94 @@ const server = http.createServer(async (req, res) => {
   }
   // ========== End User Management Endpoints ==========
 
+  // ========== Access Control Endpoints ==========
+
+  // GET /api/filter-options - Returns user-scoped filter dropdown options
+  if (pathname === "/api/filter-options" && req.method === "GET") {
+    const session = await validateSession(req, queryParams);
+    if (!session) {
+      return send(res, 401, { error: "Authentication required" });
+    }
+
+    try {
+      const fiRegistry = await loadFiRegistrySafe();
+      const userContext = session.user;
+      const allowedFis = computeAllowedFis(userContext, fiRegistry);
+
+      // Build scoped options
+      const instances = new Set();
+      const partners = new Set();
+      const fis = [];
+
+      for (const entry of Object.values(fiRegistry)) {
+        if (!entry || !entry.fi_lookup_key) continue;
+        const fiKey = normalizeFiKey(entry.fi_lookup_key);
+
+        // Check if this FI is accessible (allowedFis === null means unrestricted)
+        if (allowedFis !== null && !allowedFis.has(fiKey)) continue;
+
+        instances.add(entry.instance || "unknown");
+        partners.add(entry.partner || "Unknown");
+        fis.push({
+          key: fiKey,
+          label: entry.fi_name || fiKey,
+          instance: entry.instance,
+          partner: entry.partner || "Unknown",
+        });
+      }
+
+      return send(res, 200, {
+        instances: Array.from(instances).sort(),
+        partners: Array.from(partners).filter((p) => p !== "Unknown").sort().concat(["Unknown"]),
+        fis: fis.sort((a, b) => (a.label || "").localeCompare(b.label || "")),
+        access: {
+          is_admin: userContext.access_level === "admin" || userContext.access_level === "full",
+          instance_keys: userContext.instance_keys,
+          partner_keys: userContext.partner_keys,
+          fi_keys: userContext.fi_keys,
+        },
+      });
+    } catch (err) {
+      console.error("[filter-options] Error:", err);
+      return send(res, 500, { error: err.message || "Unable to load filter options" });
+    }
+  }
+
+  // POST /api/access-preview - Returns count of FIs for given access config
+  if (pathname === "/api/access-preview" && req.method === "POST") {
+    if (!(await requireFullAccess(req, res, queryParams))) return;
+
+    try {
+      const rawBody = await readRequestBody(req);
+      const payload = JSON.parse(rawBody || "{}");
+
+      const fiRegistry = await loadFiRegistrySafe();
+
+      // Build a mock user context from the payload
+      const mockUserContext = {
+        access_level: "limited", // Not admin, so access rules apply
+        instance_keys: payload.instance_keys ?? [],
+        partner_keys: payload.partner_keys ?? [],
+        fi_keys: payload.fi_keys ?? [],
+      };
+
+      const allowedFis = computeAllowedFis(mockUserContext, fiRegistry);
+
+      // If null, user would have full access
+      if (allowedFis === null) {
+        const totalFis = Object.values(fiRegistry).filter((e) => e && e.fi_lookup_key).length;
+        return send(res, 200, { count: totalFis, unlimited: true });
+      }
+
+      return send(res, 200, { count: allowedFis.size, unlimited: false });
+    } catch (err) {
+      console.error("[access-preview] Error:", err);
+      return send(res, 500, { error: err.message || "Unable to compute access preview" });
+    }
+  }
+
+  // ========== End Access Control Endpoints ==========
+
   if (pathname === "/api/metrics/funnel") {
     // Validate session
     const session = await validateSession(req, queryParams);
@@ -4058,10 +4285,10 @@ const server = http.createServer(async (req, res) => {
       }
     }
     try {
-      const filters = parseMetricsFilters(queryParams, payload, userContext);
+      const fiRegistry = await loadFiRegistrySafe();
+      const filters = parseMetricsFilters(queryParams, payload, userContext, fiRegistry);
       const { start, end } = resolveDateRange(filters);
       const days = daysBetween(start, end);
-      const fiRegistry = await loadFiRegistrySafe();
       const fiMeta = buildFiMetaMap(fiRegistry);
       const instanceMeta = await loadInstanceMetaMap();
       const fiList = filters.fi_list.map((fi) => normalizeFiKey(fi)).filter(Boolean);
@@ -4242,10 +4469,10 @@ const server = http.createServer(async (req, res) => {
       }
     }
     try {
-      const filters = parseMetricsFilters(queryParams, payload, userContext);
+      const fiRegistry = await loadFiRegistrySafe();
+      const filters = parseMetricsFilters(queryParams, payload, userContext, fiRegistry);
       const { start, end } = resolveDateRange(filters);
       const days = daysBetween(start, end);
-      const fiRegistry = await loadFiRegistrySafe();
       const fiMeta = buildFiMetaMap(fiRegistry);
       const fiList = filters.fi_list.map((fi) => normalizeFiKey(fi)).filter(Boolean);
       const fiSet = fiList.length ? new Set(fiList) : null;
