@@ -4624,7 +4624,8 @@ const server = http.createServer(async (req, res) => {
 
       let minutes;
       if (minutesParam) {
-        minutes = Math.min(60, Math.max(1, parseInt(minutesParam) || 30));
+        // Allow up to 4 hours (240 minutes) for realtime queries
+        minutes = Math.min(240, Math.max(1, parseInt(minutesParam) || 30));
       } else if (hoursParam) {
         minutes = Math.min(1440, Math.max(1, parseInt(hoursParam) * 60));
       } else {
