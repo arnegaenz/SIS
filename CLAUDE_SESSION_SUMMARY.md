@@ -2,6 +2,49 @@
 
 ---
 
+## Session: Multi-Select Dropdowns for User Access (2026-01-30)
+
+### Goal
+Replace text input fields for instance/partner/FI access in the user edit modal with multi-select dropdown components. Remove wildcard (`*`) support - users must explicitly select what they need access to.
+
+### Changes
+
+1. **New API Endpoint**
+   - `GET /api/user-access-options` - Returns all available instances, partners, and FIs from the FI registry (admin-only)
+
+2. **User Edit Modal Redesign**
+   - Replaced text inputs with multi-select dropdown components
+   - Each dropdown has "Select all" toggle and individual checkboxes
+   - FI dropdown includes search box (for large lists)
+   - Tightened CSS spacing for compact display
+
+3. **Removed Wildcard Support**
+   - Backend now converts `"*"` to empty arrays
+   - Users must explicitly select instances/partners/FIs
+   - Principle of least privilege enforced
+
+4. **Bug Fix**
+   - `/api/users` GET now returns `instance_keys` and `partner_keys` (were missing)
+
+### Files Modified
+
+**[scripts/serve-funnel.mjs](scripts/serve-funnel.mjs)**
+- Added `/api/user-access-options` endpoint
+- Updated `/api/users` to return instance_keys/partner_keys
+- Updated `/api/users/save` to reject wildcards
+
+**[public/users.html](public/users.html)**
+- New `.access-multi-select` CSS component
+- Multi-select dropdowns for instance/partner/FI access
+- JavaScript for dropdown rendering, toggle, search
+
+### Git Commits
+
+1. `59f9d01` - Replace user access text inputs with multi-select dropdowns
+2. `a9347fd` - Tighten multi-select dropdown spacing
+
+---
+
 ## Session: Granular Access Control (2026-01-30)
 
 ### Goal
@@ -22,18 +65,19 @@ Enhance the magic link authentication system to support granular data access con
   "email": "partner@alkami.com",
   "name": "Alkami Partner",
   "access_level": "limited",
-  "instance_keys": [],
+  "instance_keys": ["ss01"],
   "partner_keys": ["Alkami"],
   "fi_keys": ["special-test-fi"],
   "enabled": true,
-  "notes": "Sees all Alkami FIs + one test FI"
+  "notes": "Sees ss01 instance + all Alkami FIs + one test FI"
 }
 ```
 
 **Access Key Options:**
-- `"*"` = All (wildcard)
 - `[]` = None via this dimension
-- `["val1", "val2"]` = Specific values
+- `["val1", "val2"]` = Specific values (selected via dropdowns)
+
+**Note:** Wildcards (`"*"`) are no longer supported. Use the multi-select dropdowns to explicitly select access.
 
 **UNION Semantics:** User can access an FI if it matches ANY of their access criteria (instance OR partner OR fi_keys).
 
@@ -49,12 +93,13 @@ Enhance the magic link authentication system to support granular data access con
    - `parseMetricsFilters()` updated to use new access model
    - Admin and internal users always get full data access
 
-3. **New API Endpoints**
+3. **API Endpoints**
    - `GET /api/filter-options` - Returns user-scoped filter dropdown options
-   - `POST /api/access-preview` - Returns FI count for given access config (for admin UI)
+   - `GET /api/user-access-options` - Returns all options for admin user management
+   - `POST /api/access-preview` - Returns FI count for given access config
 
-4. **User Management UI Enhancements**
-   - New form fields for instance/partner/FI access
+4. **User Management UI**
+   - Multi-select dropdowns for instance/partner/FI access
    - Live preview: "User will have access to X FIs"
    - Data access section hidden for admin/internal users
 
@@ -73,11 +118,12 @@ Enhance the magic link authentication system to support granular data access con
 - `normalizeUserAccessFields()` - Backward compatibility for legacy users
 - `parseMetricsFilters()` - Now accepts fiRegistry, uses new access model
 - `/api/filter-options` - New endpoint for scoped dropdown options
+- `/api/user-access-options` - New endpoint for admin UI
 - `/api/access-preview` - New endpoint for admin UI preview
 - `/api/users/save` - Accepts new instance_keys, partner_keys fields
 
 **[public/users.html](public/users.html)**
-- New form fields for instance/partner/FI access
+- Multi-select dropdowns for instance/partner/FI access
 - Access preview with live FI count
 - Updated access level dropdown (admin/internal/limited)
 - Updated reference table
@@ -101,6 +147,8 @@ Enhance the magic link authentication system to support granular data access con
 2. `63a7d6f` - Fix realtime API to allow up to 4 hour time range
 3. `87a7f91` - Add granular access control by instance, partner, or FI
 4. `1ca5adc` - Replace billing access level with internal
+5. `59f9d01` - Replace user access text inputs with multi-select dropdowns
+6. `a9347fd` - Tighten multi-select dropdown spacing
 
 ---
 
@@ -180,24 +228,26 @@ ssh -i secrets/LightsailDefaultKey-us-west-2.pem ubuntu@34.220.57.7 "tail -50 ~/
 ## Example User Configurations
 
 ```json
-// Admin - full access, can manage users
-{ "access_level": "admin", "instance_keys": "*", "partner_keys": "*", "fi_keys": "*" }
+// Admin - full access, can manage users (access keys ignored)
+{ "access_level": "admin", "instance_keys": [], "partner_keys": [], "fi_keys": [] }
 
-// Internal (Strivve team) - full data, no user management
-{ "access_level": "internal", "instance_keys": "*", "partner_keys": "*", "fi_keys": "*" }
+// Internal (Strivve team) - full data, no user management (access keys ignored)
+{ "access_level": "internal", "instance_keys": [], "partner_keys": [], "fi_keys": [] }
 
-// Partner sees all their FIs
+// Partner sees all their FIs (select partner from dropdown)
 { "access_level": "limited", "instance_keys": [], "partner_keys": ["Alkami"], "fi_keys": [] }
 
-// Instance-scoped user
+// Instance-scoped user (select instance from dropdown)
 { "access_level": "limited", "instance_keys": ["ss01"], "partner_keys": [], "fi_keys": [] }
 
-// Specific FI access only
+// Specific FI access only (select FIs from dropdown)
 { "access_level": "limited", "instance_keys": [], "partner_keys": [], "fi_keys": ["bigbank", "bigbank-prod"] }
 
 // Combo: Partner + extra test FI (UNION semantics)
 { "access_level": "limited", "instance_keys": [], "partner_keys": ["DigitalOnboarding"], "fi_keys": ["test-fi"] }
 ```
+
+**Note:** Wildcards (`"*"`) are no longer supported. Access is configured via multi-select dropdowns in the user edit modal.
 
 ## Known Issues
 
