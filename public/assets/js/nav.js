@@ -91,7 +91,7 @@ var GROUPS = [
 { id:"operations", label:"Operations Dashboard", href:NAV_PREFIX+"dashboards/operations.html" },
 { id:"troubleshoot", label:"Troubleshoot", href:NAV_PREFIX+"troubleshoot.html" },
 { id:"realtime", label:"Real-Time", href:NAV_PREFIX+"realtime.html" },
-{ id:"synthetic-traffic", label:"Synthetic Traffic", href:NAV_PREFIX+"synthetic-traffic.html" },
+{ id:"synthetic-traffic", label:"Synthetic Traffic", href:NAV_PREFIX+"synthetic-traffic.html", adminOnly: true },
 { id:"fi-api", label:"FI API", href:NAV_PREFIX+"fi-api.html" },
 { id:"logs", label:"Server Logs", href:NAV_PREFIX+"logs.html" }
 ]},
@@ -124,12 +124,13 @@ function getCurrentUser() {
 
 function getGroupsForAccess() {
   var access = getAccessLevel();
-  var isFullAccess = access === "admin" || access === "full" || access === "internal";
+  var isAdmin = access === "admin" || access === "full";
+  var isInternal = access === "internal";
   var isLimited = access === "limited";
 
-  // Limited access: only funnel and troubleshoot
+  // Limited access: only funnel, troubleshoot, realtime
   if (isLimited) {
-    var allowed = { funnel: true, troubleshoot: true };
+    var allowed = { funnel: true, troubleshoot: true, realtime: true };
     var next = [];
     for (var g = 0; g < GROUPS.length; g++) {
       var group = GROUPS[g];
@@ -144,8 +145,24 @@ function getGroupsForAccess() {
     return next;
   }
 
-  // Full access: all groups
-  if (isFullAccess) return GROUPS;
+  // Admin/full access: all groups and items
+  if (isAdmin) return GROUPS;
+
+  // Internal access: all groups except Admin, exclude adminOnly items
+  if (isInternal) {
+    var filtered = [];
+    for (var g = 0; g < GROUPS.length; g++) {
+      var group = GROUPS[g];
+      if (group.fullAccessOnly) continue; // Skip Admin group
+      var items = [];
+      for (var i = 0; i < group.items.length; i++) {
+        var item = group.items[i];
+        if (!item.adminOnly) items.push(item);
+      }
+      if (items.length) filtered.push({ label: group.label, items: items });
+    }
+    return filtered;
+  }
 
   // Default (non-full): exclude fullAccessOnly groups
   var filtered = [];

@@ -18,7 +18,7 @@
 
   // Page access restrictions
   var LIMITED_PAGES = ["funnel.html", "troubleshoot.html", "realtime.html"];
-  var ADMIN_ONLY_PAGES = ["users.html"]; // Pages only admin can access (not internal)
+  var ADMIN_ONLY_PAGES = ["users.html", "synthetic-traffic.html", "maintenance.html"]; // Pages only admin can access (not internal)
 
   function getPageName() {
     try {
