@@ -87,6 +87,18 @@ function migrateRegistry(raw = {}) {
       if ('cardholder_as_of' in value && value.cardholder_as_of !== undefined) {
         existing.cardholder_as_of = value.cardholder_as_of;
       }
+      if ('core_vendor' in value && value.core_vendor !== undefined) {
+        existing.core_vendor = value.core_vendor;
+      }
+      if ('core_product' in value && value.core_product !== undefined) {
+        existing.core_product = value.core_product;
+      }
+      if ('debit_processor' in value && value.debit_processor !== undefined) {
+        existing.debit_processor = value.debit_processor;
+      }
+      if ('credit_processor' in value && value.credit_processor !== undefined) {
+        existing.credit_processor = value.credit_processor;
+      }
 
       const mergedSources = new Set([
         ...(existing.sources || []),
@@ -337,6 +349,18 @@ function normalizeEntryForOutput(nameKey, entry, ssoLookupSet) {
   }
   if ('cardholder_as_of' in entry && entry.cardholder_as_of !== undefined) {
     normalized.cardholder_as_of = entry.cardholder_as_of;
+  }
+  if ('core_vendor' in entry && entry.core_vendor !== undefined) {
+    normalized.core_vendor = entry.core_vendor;
+  }
+  if ('core_product' in entry && entry.core_product !== undefined) {
+    normalized.core_product = entry.core_product;
+  }
+  if ('debit_processor' in entry && entry.debit_processor !== undefined) {
+    normalized.debit_processor = entry.debit_processor;
+  }
+  if ('credit_processor' in entry && entry.credit_processor !== undefined) {
+    normalized.credit_processor = entry.credit_processor;
   }
 
   return normalized;
