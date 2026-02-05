@@ -1456,7 +1456,7 @@
 
     function isFullAccess() {
       const level = window.sisAuth?.getAccessLevel?.() || "";
-      return level === "full";
+      return level === "admin" || level === "internal";
     }
 
     async function fetchJson(url) {

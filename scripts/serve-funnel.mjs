@@ -349,9 +349,10 @@ async function requireFullAccess(req, res, queryParams) {
     send(res, 401, { error: "Authentication required" });
     return null;
   }
-  // Support both "admin" (new) and "full" (legacy) for backward compatibility
-  if (auth.user.access_level !== "admin" && auth.user.access_level !== "full") {
-    send(res, 403, { error: "Admin access required" });
+  // admin and internal (Strivve team) have full data access
+  const level = auth.user.access_level;
+  if (level !== "admin" && level !== "internal") {
+    send(res, 403, { error: "Full access required" });
     return null;
   }
   return auth;
