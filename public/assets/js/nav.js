@@ -109,7 +109,7 @@ function getAccessLevel() {
   // Legacy fallback
   try {
     var level = sessionStorage.getItem("sis_access_level");
-    if (level === "full" || level === "limited") return level;
+    if (level === "admin" || level === "full" || level === "internal" || level === "limited") return level;
     if (sessionStorage.getItem("sis_passcode_ok") === "1") return "full";
   } catch (e) {}
   return "";
@@ -124,7 +124,7 @@ function getCurrentUser() {
 
 function getGroupsForAccess() {
   var access = getAccessLevel();
-  var isFullAccess = access === "full";
+  var isFullAccess = access === "admin" || access === "full" || access === "internal";
   var isLimited = access === "limited";
 
   // Limited access: only funnel and troubleshoot
