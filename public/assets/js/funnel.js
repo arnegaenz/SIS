@@ -103,13 +103,6 @@ import { renderFunnelView } from "./funnel.view.js";
     const median = quantileSorted(jobCounts, start, n, 0.5);
     const p75 = quantileSorted(jobCounts, start, n, 0.75);
 
-    for (let i = 0; i < values.length; i++) {
-      const key = values[i].getAttribute("data-key") || "";
-      if (key === "median") values[i].textContent = formatJobs(median);
-      else if (key === "avg") values[i].textContent = formatJobs(avg);
-      else if (key === "p75") values[i].textContent = formatJobs(p75);
-    }
-
     const distRows = [];
     let cur = +jobCounts[start] || 0;
     let curCount = 0;
@@ -123,6 +116,26 @@ import { renderFunnelView } from "./funnel.view.js";
       }
     }
     if (cur > 0 && curCount > 0) distRows.push({ jobsPerSession: cur, sessions: curCount });
+
+    // Calculate mode (job count with most sessions)
+    let mode = null;
+    if (distRows.length > 0) {
+      let maxSessions = 0;
+      for (let i = 0; i < distRows.length; i++) {
+        if (distRows[i].sessions > maxSessions) {
+          maxSessions = distRows[i].sessions;
+          mode = distRows[i].jobsPerSession;
+        }
+      }
+    }
+
+    for (let i = 0; i < values.length; i++) {
+      const key = values[i].getAttribute("data-key") || "";
+      if (key === "median") values[i].textContent = median !== null ? String(Math.round(median)) : "—";
+      else if (key === "mode") values[i].textContent = mode !== null ? String(mode) : "—";
+      else if (key === "p75") values[i].textContent = formatJobs(p75);
+      else if (key === "avg") values[i].textContent = formatJobs(avg);
+    }
 
     window.sisAttemptsDistribution = distRows;
 

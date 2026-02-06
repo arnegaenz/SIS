@@ -1188,43 +1188,44 @@
       <div id="conversionAnalysis" class="conversion-analysis-panel" style="display: none;">
         <div class="conversion-header">Session Conversion & Failure Analysis</div>
         <div class="conversion-grid">
-          <div class="conversion-metric">
+          <div class="conversion-metric" title="Number of unique CardUpdatr page loads from Google Analytics. This is the top of the funnel - users who landed on the card update experience.">
             <div class="metric-label">Unique CardUpdatr Views</div>
             <div class="metric-value" id="convMetricGaSelect">-</div>
           </div>
-          <div class="conversion-metric">
+          <div class="conversion-metric" title="Sessions created in CardSavr API when a grant is issued and the Select Merchant page loads. This is when a user is ready to choose merchants.">
             <div class="metric-label">Total Sessions</div>
             <div class="metric-value" id="convMetricTotalSessions">-</div>
             <div class="metric-pct" id="convMetricSessionsPct">-</div>
           </div>
-          <div class="conversion-metric">
+          <div class="conversion-metric" title="Sessions where the user saw the merchant selection page but never attempted to update any merchant. Often 'not the right time' - users see the options and decide to come back later.">
             <div class="metric-label">Sessions w/o Jobs (Abandoned)</div>
             <div class="metric-value" id="convMetricNoJobs">-</div>
             <div class="metric-pct" id="convMetricNoJobsPct">-</div>
           </div>
-          <div class="conversion-metric with-jobs-theme">
+          <div class="conversion-metric with-jobs-theme" title="Total card placement attempts across all merchants. One session can have multiple jobs if the user updates their card on several merchant sites.">
             <div class="metric-label">Total Jobs</div>
             <div class="metric-value" id="convMetricTotalJobs">-</div>
           </div>
-          <div class="conversion-metric with-jobs-theme">
+          <div class="conversion-metric with-jobs-theme" title="Sessions where the user selected at least one merchant and attempted to enter credentials to place their card.">
             <div class="metric-label">Sessions w/ Jobs</div>
             <div class="metric-value" id="convMetricWithJobs">-</div>
             <div class="metric-pct" id="convMetricWithJobsPct">-</div>
           </div>
-          <div class="conversion-metric with-jobs-theme">
+          <div class="conversion-metric with-jobs-theme" title="Sessions with at least one successful card placement. A session can have mixed results - some merchants succeed, others fail.">
             <div class="metric-label">Sessions w/ Successful Jobs</div>
             <div class="metric-value" id="convMetricSuccessfulSessions">-</div>
             <div class="metric-pct" id="convMetricSuccessfulSessionsPct">-</div>
           </div>
-          <div class="conversion-metric with-jobs-theme funnel-dist-card" data-sis-card="attempts">
+          <div class="conversion-metric with-jobs-theme funnel-dist-card" data-sis-card="attempts" title="Statistics on how many merchants users attempt per session, counting only sessions that started at least one job.">
             <div class="funnel-dist-header">
               <div class="metric-label">Merchant Attempts (sess w/ jobs)</div>
               <button class="funnel-dist-toggle" id="toggle-distribution" data-sis-action="distribution" type="button" aria-expanded="false" aria-label="Show distribution ▾">Show distribution ▾</button>
             </div>
             <div class="funnel-dist-row chips-row" aria-label="Merchant attempts stats">
-              <span class="funnel-dist-chip ui-chip" data-chip="median" title="Median jobs per session (sessions with jobs)" aria-label="Median jobs per session (sessions with jobs)"><b>MEDIAN</b><span class="funnel-dist-value" data-key="median">—</span></span>
-              <span class="funnel-dist-chip ui-chip" data-chip="p75" title="75th percentile of jobs per session (sessions with jobs)" aria-label="75th percentile of jobs per session (sessions with jobs)"><b>P75</b><span class="funnel-dist-value" data-key="p75">—</span></span>
-              <span class="funnel-dist-chip ui-chip" data-chip="avg" title="Average jobs per session (sessions with jobs)" aria-label="Average jobs per session (sessions with jobs)"><b>AVG</b><span class="funnel-dist-value" data-key="avg">—</span></span>
+              <span class="funnel-dist-chip ui-chip" data-chip="median" title="The middle value when sessions are sorted by job count. Half of sessions attempted fewer merchants, half attempted more." aria-label="Median merchant attempts per session"><b>MEDIAN</b><span class="funnel-dist-value" data-key="median">—</span></span>
+              <span class="funnel-dist-chip ui-chip" data-chip="mode" title="The most common number of merchant attempts per session. This is what a typical user does." aria-label="Most common merchant attempts per session"><b>MODE</b><span class="funnel-dist-value" data-key="mode">—</span></span>
+              <span class="funnel-dist-chip ui-chip" data-chip="p75" title="75th percentile - 75% of sessions attempted this many merchants or fewer. Shows what engaged users do." aria-label="75th percentile merchant attempts per session"><b>P75</b><span class="funnel-dist-value" data-key="p75">—</span></span>
+              <span class="funnel-dist-chip ui-chip" data-chip="avg" title="Average merchant attempts per session. Can be skewed by power users who update many merchants at once." aria-label="Average merchant attempts per session"><b>AVG</b><span class="funnel-dist-value" data-key="avg">—</span></span>
             </div>
             <div class="funnel-dist-panel" id="distribution-wrap" tabindex="-1" aria-label="Jobs per session distribution" hidden>
               <table class="funnel-dist-table">
@@ -1239,7 +1240,7 @@
               <div class="funnel-dist-empty" hidden>No distribution available for current filters.</div>
             </div>
           </div>
-          <div class="conversion-metric with-jobs-theme">
+          <div class="conversion-metric with-jobs-theme" title="Average number of successful card placements per session, counting only sessions that had at least one job.">
             <div class="metric-label">Avg Successful Jobs Per Session</div>
             <div class="metric-value" id="convMetricAvgSuccessfulJobs">-</div>
           </div>
@@ -1248,7 +1249,7 @@
         <div class="conversion-breakdown">
           <div class="breakdown-header">Job Outcome Breakdown</div>
           <div class="breakdown-grid">
-            <div class="breakdown-item breakdown-success">
+            <div class="breakdown-item breakdown-success" title="Card successfully placed on the merchant site. The cardholder's payment method is now updated.">
               <div class="breakdown-label">✓ Successful</div>
               <div class="breakdown-value" id="convBreakdownSuccess">-</div>
               <div class="breakdown-pct" id="convBreakdownSuccessPct">-</div>
@@ -1268,7 +1269,7 @@
                 </div>
               </details>
             </div>
-            <div class="breakdown-item breakdown-system">
+            <div class="breakdown-item breakdown-system" title="Failures caused by technical issues on Strivve's side that likely need engineering fixes - site changes, API errors, or infrastructure problems.">
               <div class="breakdown-label">⚠ System Failures</div>
               <div class="breakdown-value" id="convBreakdownSystem">-</div>
               <div class="breakdown-pct" id="convBreakdownSystemPct">-</div>
@@ -1288,7 +1289,7 @@
                 </div>
               </details>
             </div>
-            <div class="breakdown-item breakdown-ux">
+            <div class="breakdown-item breakdown-ux" title="Failures where the user experience may have contributed - most commonly the cardholder doesn't know or incorrectly enters their merchant credentials.">
               <div class="breakdown-label">⊗ UX Failures</div>
               <div class="breakdown-value" id="convBreakdownUX">-</div>
               <div class="breakdown-pct" id="convBreakdownUXPct">-</div>
@@ -1308,7 +1309,7 @@
                 </div>
               </details>
             </div>
-            <div class="breakdown-item breakdown-nojobs">
+            <div class="breakdown-item breakdown-nojobs" title="Sessions where the user loaded CardUpdatr, saw the merchant options, but didn't attempt any updates. Not necessarily abandoned - often just 'not the right time.'">
               <div class="breakdown-label">⊘ Sessions Without Jobs</div>
               <div class="breakdown-value" id="convBreakdownNoJobs">-</div>
               <div class="breakdown-pct" id="convBreakdownNoJobsPct">-</div>

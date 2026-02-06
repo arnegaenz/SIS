@@ -2548,6 +2548,20 @@ const server = http.createServer(async (req, res) => {
       // Delete used magic token (one-time use)
       await deleteMagicToken(token);
 
+      // Update user's last_login and login_count
+      try {
+        const allUsers = await loadUsersFile();
+        const userIdx = allUsers.findIndex(u => u.email.toLowerCase() === user.email.toLowerCase());
+        if (userIdx !== -1) {
+          allUsers[userIdx].last_login = new Date().toISOString();
+          allUsers[userIdx].login_count = (allUsers[userIdx].login_count || 0) + 1;
+          const usersData = { users: allUsers, updated_at: new Date().toISOString() };
+          await fs.writeFile(USERS_FILE, JSON.stringify(usersData, null, 2), "utf8");
+        }
+      } catch (loginTrackErr) {
+        console.warn("[auth] Could not update login stats:", loginTrackErr.message);
+      }
+
       console.log("[auth] Session created for:", user.email);
 
       return send(res, 200, {
@@ -2584,6 +2598,57 @@ const server = http.createServer(async (req, res) => {
   }
 
   // ========== End Auth Endpoints ==========
+
+  // ========== Activity Logging ==========
+  const ACTIVITY_LOG_FILE = path.join(DATA_DIR, "activity.log");
+
+  if (pathname === "/analytics/log" && req.method === "POST") {
+    try {
+      const session = await validateSession(req, queryParams);
+      if (!session) return send(res, 401, { ok: false });
+
+      const body = await readRequestBody(req);
+      const payload = JSON.parse(body || "{}");
+      const page = (payload.page || "").replace(/^\//, "");
+      const fi = payload.fi || "";
+
+      const logLine = JSON.stringify({
+        ts: new Date().toISOString(),
+        email: session.user.email,
+        type: "pageview",
+        page,
+        fi,
+      }) + "\n";
+
+      await fs.appendFile(ACTIVITY_LOG_FILE, logLine);
+      return send(res, 200, { ok: true });
+    } catch (err) {
+      console.error("[analytics] log error:", err);
+      return send(res, 500, { ok: false });
+    }
+  }
+
+  if (pathname === "/analytics/activity" && req.method === "GET") {
+    const auth = await validateSession(req, queryParams);
+    if (!auth) return send(res, 401, { error: "Authentication required" });
+    if (auth.user.access_level !== "admin" && auth.user.access_level !== "full") {
+      return send(res, 403, { error: "Admin access required" });
+    }
+
+    try {
+      const content = await fs.readFile(ACTIVITY_LOG_FILE, "utf8").catch(() => "");
+      const lines = content.trim().split("\n").filter(Boolean);
+      const entries = lines.map(line => {
+        try { return JSON.parse(line); } catch { return null; }
+      }).filter(Boolean);
+      return send(res, 200, { entries });
+    } catch (err) {
+      console.error("[analytics] read error:", err);
+      return send(res, 500, { error: "Failed to read activity log" });
+    }
+  }
+
+  // ========== End Activity Logging ==========
 
   if (pathname === "/run-update/status") {
     if (!(await requireFullAccess(req, res, queryParams))) return;
@@ -2657,6 +2722,19 @@ const server = http.createServer(async (req, res) => {
     return send(res, 200, {
       jobs: synthState.jobs,
       runner_mode: SYNTHETIC_RUNNER_MODE || "disabled",
+    });
+  }
+
+  // Lightweight endpoint for runner to check if there's work to do
+  if (pathname === "/api/synth/status" && req.method === "GET") {
+    await loadSynthJobs();
+    const dueJobs = synthState.jobs.filter(
+      (job) => job?.due && job.status !== "canceled" && job.status !== "completed"
+    );
+    return send(res, 200, {
+      has_due_jobs: dueJobs.length > 0,
+      due_count: dueJobs.length,
+      total_count: synthState.jobs.length,
     });
   }
 
@@ -4065,7 +4143,9 @@ const server = http.createServer(async (req, res) => {
         fi_keys: u.fi_keys,
         enabled: u.enabled,
         notes: u.notes,
-        created_at: u.created_at
+        created_at: u.created_at,
+        last_login: u.last_login || null,
+        login_count: u.login_count || 0
       }));
       return send(res, 200, { users: safeUsers });
     } catch (err) {
