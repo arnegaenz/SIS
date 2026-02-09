@@ -1688,8 +1688,6 @@
         if (!startDateInput.value) startDateInput.value = defaultStartDateStr;
         if (!endDateInput.value) endDateInput.value = defaultEndDateStr;
         enforceEndDateBounds();
-        const preset = document.getElementById("datePreset");
-        if (preset && !preset.value) preset.value = "last7";
       }
 
       function applyDefaultDateRange(force = false) {
@@ -6042,8 +6040,14 @@ function applyColumnTitles(root = document) {
         }).finally(() => stopLoading());
       });
 
-      endDateInput?.addEventListener("change", renderDateWarning);
-      startDateInput?.addEventListener("change", renderDateWarning);
+      endDateInput?.addEventListener("change", () => {
+        if (presetSelect) presetSelect.value = "";
+        renderDateWarning();
+      });
+      startDateInput?.addEventListener("change", () => {
+        if (presetSelect) presetSelect.value = "";
+        renderDateWarning();
+      });
 
       includeTestCheckbox.addEventListener("change", () => {
         startLoading("Loading data…");
@@ -6149,11 +6153,12 @@ function applyColumnTitles(root = document) {
       const presetSelect = document.getElementById("datePreset");
       if (presetSelect) {
         presetSelect.addEventListener("change", () => {
-          const val = presetSelect.value || "last7";
+          const val = presetSelect.value;
           if (val) {
             applyPresetRange(val);
             safeApplyFilters();
           }
+          // When "Custom" is selected (value=""), do nothing — let user enter dates manually
         });
       }
 
