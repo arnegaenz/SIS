@@ -583,6 +583,12 @@
       .breakdown-bar-nojobs {
         background: linear-gradient(90deg, #94a3b8, #64748b);
       }
+      .breakdown-bar-sysrate {
+        background: linear-gradient(90deg, #3b82f6, #2563eb);
+      }
+      .breakdown-sysrate .breakdown-value {
+        color: #3b82f6;
+      }
 
       /* Placement Details Expandable Sections */
       .placement-details {
@@ -1249,6 +1255,14 @@
         <div class="conversion-breakdown">
           <div class="breakdown-header">Job Outcome Breakdown</div>
           <div class="breakdown-grid">
+            <div class="breakdown-item breakdown-sysrate" title="System Success Rate — of all jobs where Strivve's system was fully in play (Successful + System Failures), what percentage succeeded? UX failures (wrong credentials, user canceled, etc.) are excluded from this calculation.">
+              <div class="breakdown-label">◎ System Success Rate</div>
+              <div class="breakdown-value" id="convBreakdownSysRate">-</div>
+              <div class="breakdown-pct" id="convBreakdownSysRatePct">-</div>
+              <div class="breakdown-bar">
+                <div class="breakdown-bar-fill breakdown-bar-sysrate" id="convBarSysRate" style="width: 0%;"></div>
+              </div>
+            </div>
             <div class="breakdown-item breakdown-success" title="Card successfully placed on the merchant site. The cardholder's payment method is now updated.">
               <div class="breakdown-label">✓ Successful</div>
               <div class="breakdown-value" id="convBreakdownSuccess">-</div>
@@ -3964,6 +3978,14 @@ function applyColumnTitles(root = document) {
 
         document.getElementById("convMetricAvgSuccessfulJobs").textContent = avgSuccessfulJobsPerSession;
 
+        // Update System Success Rate (successful / (successful + system failures))
+        const sysDenom = successful + systemFail;
+        const sysRatePct = sysDenom > 0 ? ((successful / sysDenom) * 100).toFixed(1) : "0.0";
+        document.getElementById("convBreakdownSysRate").textContent = `${sysRatePct}%`;
+        document.getElementById("convBreakdownSysRatePct").textContent = sysDenom > 0
+          ? `(${successful.toLocaleString()} of ${sysDenom.toLocaleString()})`
+          : "";
+
         // Update breakdown metrics
         document.getElementById("convBreakdownSuccess").textContent = successful.toLocaleString();
         document.getElementById("convBreakdownSuccessPct").textContent = totalPlacements > 0
@@ -3986,11 +4008,13 @@ function applyColumnTitles(root = document) {
           const systemPct = totalPlacements > 0 ? (systemFail / totalPlacements) * 100 : 0;
           const uxPct = totalPlacements > 0 ? (uxFail / totalPlacements) * 100 : 0;
           const noJobsPct = totalSessions > 0 ? (noJobs / totalSessions) * 100 : 0;
+          document.getElementById("convBarSysRate").style.width = `${sysDenom > 0 ? (successful / sysDenom) * 100 : 0}%`;
           document.getElementById("convBarSuccess").style.width = `${successPct}%`;
           document.getElementById("convBarSystem").style.width = `${systemPct}%`;
           document.getElementById("convBarUX").style.width = `${uxPct}%`;
           document.getElementById("convBarNoJobs").style.width = `${noJobsPct}%`;
         } else {
+          document.getElementById("convBarSysRate").style.width = "0%";
           document.getElementById("convBarSuccess").style.width = "0%";
           document.getElementById("convBarSystem").style.width = "0%";
           document.getElementById("convBarUX").style.width = "0%";
