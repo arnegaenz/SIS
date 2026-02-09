@@ -1,4 +1,27 @@
 (function (global) {
+  // Intercept history methods IMMEDIATELY (before other scripts cache references)
+  var originalPushState = history.pushState;
+  var originalReplaceState = history.replaceState;
+  var pendingUrlChanges = [];
+
+  history.pushState = function() {
+    originalPushState.apply(this, arguments);
+    if (global.__sisLogPageview) {
+      global.__sisLogPageview();
+    } else {
+      pendingUrlChanges.push(window.location.href);
+    }
+  };
+
+  history.replaceState = function() {
+    originalReplaceState.apply(this, arguments);
+    if (global.__sisLogPageview) {
+      global.__sisLogPageview();
+    } else {
+      pendingUrlChanges.push(window.location.href);
+    }
+  };
+
   // Skip auth entirely on localhost for development
   function isLocalhost() {
     try {
@@ -18,7 +41,7 @@
 
   // Page access restrictions
   var LIMITED_PAGES = ["funnel.html", "troubleshoot.html", "realtime.html"];
-  var ADMIN_ONLY_PAGES = ["users.html", "synthetic-traffic.html", "maintenance.html"]; // Pages only admin can access (not internal)
+  var ADMIN_ONLY_PAGES = ["users.html", "synthetic-traffic.html", "maintenance.html", "activity-log.html"]; // Pages only admin can access (not internal)
 
   function getPageName() {
     try {
@@ -205,6 +228,23 @@
 
     // Validate session with server (async, non-blocking)
     validateSessionAsync();
+
+    // Log pageview (fire-and-forget)
+    logPageview();
+
+    // Expose logPageview globally for the history interceptors
+    global.__sisLogPageview = logPageview;
+
+    // Process any URL changes that happened before init
+    if (pendingUrlChanges.length > 0) {
+      pendingUrlChanges = [];
+      logPageview();
+    }
+
+    // Listen for back/forward navigation
+    window.addEventListener("popstate", function() {
+      logPageview();
+    });
   }
 
   // Expose auth API for other scripts

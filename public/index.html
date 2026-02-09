@@ -268,7 +268,55 @@
     </main>
   </div>
   <script>
-    // No JS required on the overview at this time.
+    // Hide cards based on access level
+    (function() {
+      var ADMIN_ONLY_PAGES = ["maintenance.html", "users.html", "synthetic-traffic.html", "activity-log.html"];
+      var LIMITED_ALLOWED_PAGES = ["funnel.html", "troubleshoot.html", "realtime.html"];
+
+      function getAccessLevel() {
+        if (window.sisAuth && window.sisAuth.getAccessLevel) {
+          return window.sisAuth.getAccessLevel();
+        }
+        return "";
+      }
+
+      function filterCards() {
+        var level = getAccessLevel();
+        var isAdmin = level === "admin" || level === "full";
+        var isInternal = level === "internal";
+        var isLimited = level === "limited";
+
+        var cards = document.querySelectorAll(".card");
+        cards.forEach(function(card) {
+          var link = card.querySelector("a.btn");
+          if (!link) return;
+
+          var href = link.getAttribute("href") || "";
+          var page = href.split("/").pop().split("?")[0];
+
+          // Admin can see everything
+          if (isAdmin) return;
+
+          // Internal users: hide admin-only pages
+          if (isInternal && ADMIN_ONLY_PAGES.indexOf(page) !== -1) {
+            card.style.display = "none";
+            return;
+          }
+
+          // Limited users: only show allowed pages
+          if (isLimited && LIMITED_ALLOWED_PAGES.indexOf(page) === -1) {
+            card.style.display = "none";
+            return;
+          }
+        });
+      }
+
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", filterCards);
+      } else {
+        filterCards();
+      }
+    })();
   </script>
   <script src="./theme-toggle.js"></script>
 </body>

@@ -143,20 +143,23 @@
     (function() {
       var API_BASE = window.SIS_API_BASE || "";
 
-      // Check if already logged in
-      try {
-        var existingToken = localStorage.getItem("sis_session_token");
-        var existingUser = localStorage.getItem("sis_user");
-        if (existingToken && existingUser) {
-          var user = JSON.parse(existingUser);
-          window.location.href = getRedirectForAccessLevel(user.access_level);
-          return;
-        }
-      } catch (e) {}
-
-      // Check for token in URL (magic link clicked)
+      // Check for token in URL (magic link clicked) - do this FIRST
       var params = new URLSearchParams(window.location.search);
       var token = params.get("token");
+
+      // Only check existing session if there's no magic link token
+      // (If there's a token, the user clicked a magic link and wants to log in fresh)
+      if (!token) {
+        try {
+          var existingToken = localStorage.getItem("sis_session_token");
+          var existingUser = localStorage.getItem("sis_user");
+          if (existingToken && existingUser) {
+            var user = JSON.parse(existingUser);
+            window.location.href = getRedirectForAccessLevel(user.access_level);
+            return;
+          }
+        } catch (e) {}
+      }
 
       if (token) {
         document.getElementById("request-form").style.display = "none";

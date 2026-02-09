@@ -97,7 +97,8 @@ var GROUPS = [
 ]},
 { label: "Admin", fullAccessOnly: true, items: [
 { id:"maintenance", label:"Data & Config", href:NAV_PREFIX+"maintenance.html" },
-{ id:"users", label:"Users", href:NAV_PREFIX+"users.html" }
+{ id:"users", label:"Users", href:NAV_PREFIX+"users.html" },
+{ id:"activity-log", label:"User Activity", href:NAV_PREFIX+"activity-log.html" }
 ]}
 ];
 

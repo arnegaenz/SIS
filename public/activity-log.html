@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>User Activity Log</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <link rel="stylesheet" href="./sis-shared.css?v=navfix" />
+  <link rel="stylesheet" href="./assets/css/sis.css">
+  <link rel="stylesheet" href="./assets/css/mobile.css">
+  <script src="./assets/js/passcode-gate.js"></script>
+  <script defer src="./assets/js/sis.js"></script>
+  <script src="./assets/js/config.js"></script>
+  <script defer src="./assets/js/nav.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function(){
+      if (window.renderHeaderNav && !window.__sisHeaderNav_activity) {
+        window.__sisHeaderNav_activity = true;
+        window.renderHeaderNav({
+          currentId: "activity-log",
+          title: "User Activity",
+          subtitle: "Track user logins and page views across SIS."
+        });
+      }
+    });
+  </script>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      background: var(--bg);
+      color: var(--panel-title);
+      font-family: "Inter", "Segoe UI", ui-sans-serif, system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    .activity-card {
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 18px;
+      padding: 26px;
+      margin-top: 24px;
+    }
+    .activity-card h2 {
+      margin: 0 0 8px 0;
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--ink);
+    }
+    .activity-card .description {
+      margin: 0 0 20px 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    .activity-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: flex-end;
+      margin-bottom: 16px;
+    }
+    .activity-controls label {
+      display: flex;
+      flex-direction: column;
+      font-size: 12px;
+      text-transform: uppercase;
+      color: var(--muted);
+      gap: 4px;
+      min-width: 150px;
+    }
+    .activity-controls input,
+    .activity-controls select {
+      border-radius: 8px;
+      border: 1px solid var(--panel-border);
+      background: var(--input-bg);
+      color: var(--panel-title);
+      padding: 8px 10px;
+      font-size: 14px;
+      height: 40px;
+    }
+    .btn {
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      text-decoration: none;
+      color: #f8fafc;
+      border-radius: 999px;
+      font-weight: 600;
+      letter-spacing: 0.2px;
+      border: none;
+      background: linear-gradient(120deg, var(--accent), var(--accent-2));
+      transition: transform 0.15s ease, filter 0.15s ease;
+      cursor: pointer;
+      height: 40px;
+      padding: 0 18px;
+      min-width: 120px;
+    }
+    .btn:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.05);
+    }
+    .status-line {
+      font-size: 13px;
+      min-height: 20px;
+      margin-bottom: 12px;
+      color: var(--muted);
+    }
+    .status-line.success { color: var(--success); }
+    .status-line.error { color: var(--danger); }
+    .activity-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .activity-table th,
+    .activity-table td {
+      text-align: left;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--panel-border);
+    }
+    .activity-table th {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      background: var(--panel-bg);
+      position: sticky;
+      top: 0;
+    }
+    .activity-table tbody tr:hover {
+      background: rgba(148, 163, 184, 0.08);
+    }
+    .table-wrap {
+      max-height: 600px;
+      overflow-y: auto;
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+    }
+    .activity-empty {
+      padding: 40px 20px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 14px;
+    }
+    .user-pill {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 12px;
+      background: rgba(59, 130, 246, 0.15);
+      color: #3b82f6;
+      font-size: 12px;
+    }
+    .page-pill {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 12px;
+      background: rgba(148, 163, 184, 0.15);
+      color: var(--muted);
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div id="sis-header"></div>
+
+  <div class="sis-content">
+    <main class="sis-main">
+      <section class="sis-panel">
+        <div class="activity-card">
+          <h2>User Activity Log</h2>
+          <p class="description">
+            View user login and page view activity. Filter by user email or page name.
+          </p>
+
+          <div class="activity-controls">
+            <label>
+              Filter by User
+              <select id="userFilter">
+                <option value="">All Users</option>
+              </select>
+            </label>
+            <label>
+              Filter by Page
+              <select id="pageFilter">
+                <option value="">All Pages</option>
+              </select>
+            </label>
+            <label>
+              Search
+              <input type="text" id="searchFilter" placeholder="Search..." />
+            </label>
+            <button class="btn" id="refreshBtn">Refresh</button>
+          </div>
+
+          <div id="status" class="status-line">Loading activity...</div>
+
+          <div class="table-wrap">
+            <table class="activity-table">
+              <thead>
+                <tr>
+                  <th>Timestamp</th>
+                  <th>User</th>
+                  <th>Page</th>
+                  <th>FI Filter</th>
+                </tr>
+              </thead>
+              <tbody id="activityBody">
+                <tr><td colspan="4" class="activity-empty">Loading...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="./theme-toggle.js"></script>
+  <script>
+    (function() {
+      var API_BASE = window.SIS_API_BASE || "";
+      var userFilter = document.getElementById("userFilter");
+      var pageFilter = document.getElementById("pageFilter");
+      var searchFilter = document.getElementById("searchFilter");
+      var refreshBtn = document.getElementById("refreshBtn");
+      var status = document.getElementById("status");
+      var activityBody = document.getElementById("activityBody");
+
+      var allEntries = [];
+
+      function getToken() {
+        if (window.sisAuth && window.sisAuth.getToken) {
+          return window.sisAuth.getToken();
+        }
+        return localStorage.getItem("sis_session_token") || "";
+      }
+
+      function setStatus(msg, kind) {
+        status.textContent = msg;
+        status.className = "status-line " + (kind || "");
+      }
+
+      function formatTimestamp(iso) {
+        var d = new Date(iso);
+        return d.toLocaleString();
+      }
+
+      function escapeHtml(text) {
+        var div = document.createElement("div");
+        div.textContent = text || "";
+        return div.innerHTML;
+      }
+
+      function populateFilters() {
+        var users = {};
+        var pages = {};
+        allEntries.forEach(function(e) {
+          if (e.email) users[e.email] = true;
+          if (e.page) pages[e.page] = true;
+        });
+
+        userFilter.innerHTML = '<option value="">All Users</option>';
+        Object.keys(users).sort().forEach(function(u) {
+          var opt = document.createElement("option");
+          opt.value = u;
+          opt.textContent = u;
+          userFilter.appendChild(opt);
+        });
+
+        pageFilter.innerHTML = '<option value="">All Pages</option>';
+        Object.keys(pages).sort().forEach(function(p) {
+          var opt = document.createElement("option");
+          opt.value = p;
+          opt.textContent = p;
+          pageFilter.appendChild(opt);
+        });
+      }
+
+      function render() {
+        var userVal = userFilter.value;
+        var pageVal = pageFilter.value;
+        var searchVal = (searchFilter.value || "").toLowerCase();
+
+        var filtered = allEntries.filter(function(e) {
+          if (userVal && e.email !== userVal) return false;
+          if (pageVal && e.page !== pageVal) return false;
+          if (searchVal) {
+            var combined = (e.email + " " + e.page + " " + (e.fi || "")).toLowerCase();
+            if (combined.indexOf(searchVal) === -1) return false;
+          }
+          return true;
+        });
+
+        if (filtered.length === 0) {
+          activityBody.innerHTML = '<tr><td colspan="4" class="activity-empty">No activity found.</td></tr>';
+          setStatus("0 entries");
+          return;
+        }
+
+        // Show newest first
+        filtered = filtered.slice().reverse();
+
+        var html = filtered.map(function(e) {
+          return '<tr>' +
+            '<td>' + escapeHtml(formatTimestamp(e.ts)) + '</td>' +
+            '<td><span class="user-pill">' + escapeHtml(e.email) + '</span></td>' +
+            '<td><span class="page-pill">' + escapeHtml(e.page) + '</span></td>' +
+            '<td>' + escapeHtml(e.fi || "-") + '</td>' +
+            '</tr>';
+        }).join("");
+
+        activityBody.innerHTML = html;
+        setStatus("Showing " + filtered.length + " of " + allEntries.length + " entries", "success");
+      }
+
+      function loadActivity() {
+        setStatus("Loading...");
+        var token = getToken();
+        fetch(API_BASE + "/analytics/activity", {
+          headers: { "Authorization": "Bearer " + token }
+        })
+          .then(function(res) {
+            if (!res.ok) throw new Error("HTTP " + res.status);
+            return res.json();
+          })
+          .then(function(data) {
+            allEntries = data.entries || [];
+            populateFilters();
+            render();
+          })
+          .catch(function(err) {
+            console.error("Failed to load activity", err);
+            setStatus("Failed to load activity log", "error");
+            activityBody.innerHTML = '<tr><td colspan="4" class="activity-empty">Failed to load activity.</td></tr>';
+          });
+      }
+
+      userFilter.addEventListener("change", render);
+      pageFilter.addEventListener("change", render);
+      searchFilter.addEventListener("input", render);
+      refreshBtn.addEventListener("click", loadActivity);
+
+      // Initial load
+      loadActivity();
+    })();
+  </script>
+</body>
+</html>

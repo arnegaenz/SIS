@@ -374,6 +374,8 @@
                 <th>Name</th>
                 <th>Access Level</th>
                 <th>Data Access</th>
+                <th>Last Login</th>
+                <th>Logins</th>
                 <th>Status</th>
                 <th>Actions</th>
               </tr>
@@ -546,9 +548,24 @@
       return parts.length > 0 ? parts.join(" ") : '<span class="access-item">No access</span>';
     }
 
+    function formatLastLogin(isoDate) {
+      if (!isoDate) return '<span style="color: var(--muted);">Never</span>';
+      const date = new Date(isoDate);
+      const now = new Date();
+      const diffMs = now - date;
+      const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+      if (diffDays === 0) return "Today";
+      if (diffDays === 1) return "Yesterday";
+      if (diffDays < 7) return `${diffDays} days ago`;
+      if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
+      if (diffDays < 365) return `${Math.floor(diffDays / 30)} months ago`;
+      return date.toLocaleDateString();
+    }
+
     function renderUsers(users) {
       if (!users || users.length === 0) {
-        tableBody.innerHTML = '<tr><td colspan="6">No users configured.</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="8">No users configured.</td></tr>';
         return;
       }
 
@@ -558,6 +575,8 @@
           <td>${escapeHtml(user.name || "")}</td>
           <td><span class="badge badge-${user.access_level}">${user.access_level}</span></td>
           <td class="data-access-cell">${formatDataAccess(user)}</td>
+          <td title="${user.last_login ? new Date(user.last_login).toLocaleString() : ''}">${formatLastLogin(user.last_login)}</td>
+          <td style="text-align: center;">${user.login_count || 0}</td>
           <td>${user.enabled ? '<span class="badge badge-admin">Active</span>' : '<span class="badge badge-disabled">Disabled</span>'}</td>
           <td class="actions">
             <button class="btn btn-secondary" onclick="window.editUser('${escapeHtml(user.email)}')">Edit</button>
@@ -575,7 +594,7 @@
     let currentUsers = [];
 
     async function loadUsers() {
-      tableBody.innerHTML = '<tr><td colspan="6">Loading...</td></tr>';
+      tableBody.innerHTML = '<tr><td colspan="8">Loading...</td></tr>';
       try {
         const res = await fetch(API_BASE + "/api/users");
         if (!res.ok) {
@@ -586,7 +605,7 @@
         currentUsers = data.users || [];
         renderUsers(currentUsers);
       } catch (err) {
-        tableBody.innerHTML = `<tr><td colspan="6" style="color: #991b1b;">Error: ${escapeHtml(err.message)}</td></tr>`;
+        tableBody.innerHTML = `<tr><td colspan="8" style="color: #991b1b;">Error: ${escapeHtml(err.message)}</td></tr>`;
       }
     }
 
