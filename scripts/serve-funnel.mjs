@@ -3143,8 +3143,8 @@ const server = http.createServer(async (req, res) => {
         return send(res, 400, { error: 'Missing required parameters: type, startDate, endDate' });
       }
 
-      if (!['success', 'system', 'ux', 'nojobs'].includes(type)) {
-        return send(res, 400, { error: 'Invalid type. Must be success, system, ux, or nojobs' });
+      if (!['success', 'system', 'ux', 'nojobs', 'sysrate'].includes(type)) {
+        return send(res, 400, { error: 'Invalid type. Must be success, system, ux, nojobs, or sysrate' });
       }
 
       // Load FI registry for integration type lookups
@@ -3438,9 +3438,11 @@ const server = http.createServer(async (req, res) => {
       const sortedMerchants = Object.keys(merchantGroups).sort((a, b) => {
         const countA = type === 'success' ? merchantGroups[a].successCount :
                        type === 'ux' ? merchantGroups[a].uxCount :
+                       type === 'sysrate' ? (merchantGroups[a].successCount + merchantGroups[a].systemCount) :
                        merchantGroups[a].systemCount;
         const countB = type === 'success' ? merchantGroups[b].successCount :
                        type === 'ux' ? merchantGroups[b].uxCount :
+                       type === 'sysrate' ? (merchantGroups[b].successCount + merchantGroups[b].systemCount) :
                        merchantGroups[b].systemCount;
         return countB - countA;
       });
@@ -3454,7 +3456,10 @@ const server = http.createServer(async (req, res) => {
         const group = merchantGroups[merchant];
 
         // Filter placements to only show the requested type
-        const typedPlacements = group.allPlacements.filter(p => p.placementType === type);
+        // sysrate includes both success and system placements
+        const typedPlacements = type === 'sysrate'
+          ? group.allPlacements.filter(p => p.placementType === 'success' || p.placementType === 'system')
+          : group.allPlacements.filter(p => p.placementType === type);
         const typeCount = typedPlacements.length;
 
         // Skip merchants with zero of the requested type

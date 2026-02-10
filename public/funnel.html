@@ -1262,6 +1262,18 @@
               <div class="breakdown-bar">
                 <div class="breakdown-bar-fill breakdown-bar-sysrate" id="convBarSysRate" style="width: 0%;"></div>
               </div>
+
+              <details class="placement-details" data-type="sysrate">
+                <summary class="placement-summary">View system rate placements</summary>
+                <div class="placement-content">
+                  <div class="placement-loading" style="display: none;">
+                    <div class="spinner"></div>
+                    <span>Loading placements...</span>
+                  </div>
+                  <div class="placement-error" style="display: none;"></div>
+                  <div class="placement-table-container"></div>
+                </div>
+              </details>
             </div>
             <div class="breakdown-item breakdown-success" title="Card successfully placed on the merchant site. The cardholder's payment method is now updated.">
               <div class="breakdown-label">✓ Successful</div>
@@ -4212,6 +4224,7 @@ function applyColumnTitles(root = document) {
         let activeCard = null;
 
         const typeLabels = {
+          sysrate: 'System Success Rate — All Placements',
           success: 'Successful Placements',
           system: 'System Failures',
           ux: 'UX Failures',
@@ -4600,8 +4613,8 @@ function applyColumnTitles(root = document) {
           const successCount = merchantGroup.successCount || 0;
           successBadge.textContent = `${successCount} success${successCount !== 1 ? 'es' : ''}`;
           successBadge.title = 'Successful placements';
-          // Dim if not the active view type
-          if (type !== 'success') {
+          // Dim if not the active view type (sysrate highlights both success and system)
+          if (type !== 'success' && type !== 'sysrate') {
             successBadge.style.opacity = '0.35';
           }
 
@@ -4610,8 +4623,8 @@ function applyColumnTitles(root = document) {
           const systemCount = merchantGroup.systemCount || 0;
           systemBadge.textContent = `${systemCount} system failure${systemCount !== 1 ? 's' : ''}`;
           systemBadge.title = 'System failures';
-          // Dim if not the active view type
-          if (type !== 'system') {
+          // Dim if not the active view type (sysrate highlights both success and system)
+          if (type !== 'system' && type !== 'sysrate') {
             systemBadge.style.opacity = '0.35';
           }
 
@@ -4648,10 +4661,10 @@ function applyColumnTitles(root = document) {
 
             // Store filter value for filtering
             let filterValue = '';
-            if (type === 'system') {
+            if (type === 'system' || type === 'ux') {
               filterValue = placement.terminationType || '';
-            } else if (type === 'ux') {
-              filterValue = placement.terminationType || '';
+            } else if (type === 'sysrate') {
+              filterValue = placement.placementType === 'success' ? 'BILLABLE' : (placement.terminationType || '');
             }
             itemDiv.dataset.filterValue = filterValue;
 
@@ -4680,6 +4693,16 @@ function applyColumnTitles(root = document) {
               const badge = document.createElement('div');
               badge.className = 'badge ux';
               badge.textContent = placement.terminationType || 'UX Fail';
+              itemHeaderDiv.appendChild(badge);
+            } else if (type === 'sysrate') {
+              const badge = document.createElement('div');
+              if (placement.placementType === 'success') {
+                badge.className = 'badge success';
+                badge.textContent = 'Success';
+              } else {
+                badge.className = 'badge fail';
+                badge.textContent = placement.terminationType || 'System Fail';
+              }
               itemHeaderDiv.appendChild(badge);
             }
 
