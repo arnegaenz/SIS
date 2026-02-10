@@ -2564,14 +2564,17 @@ const server = http.createServer(async (req, res) => {
 
       console.log("[auth] Session created for:", user.email);
 
+      const accessFields = normalizeUserAccessFields(user);
       return send(res, 200, {
         ok: true,
         session_token: sessionToken,
         user: {
           email: user.email,
           name: user.name,
-          access_level: user.access_level,
-          fi_keys: user.fi_keys,
+          access_level: accessFields.access_level,
+          instance_keys: accessFields.instance_keys,
+          partner_keys: accessFields.partner_keys,
+          fi_keys: accessFields.fi_keys,
         },
       });
     } catch (err) {
@@ -4314,7 +4317,22 @@ const server = http.createServer(async (req, res) => {
     try {
       const fiRegistry = await loadFiRegistrySafe();
       const userContext = session.user;
-      const allowedFis = computeAllowedFis(userContext, fiRegistry);
+      const accessFields = normalizeUserAccessFields(userContext);
+
+      // Build instance/partner allow-sets for direct filtering
+      const userInstanceKeys = Array.isArray(accessFields.instance_keys)
+        ? new Set(accessFields.instance_keys.map((k) => normalizeInstanceKey(k)))
+        : null; // null = unrestricted
+      const userPartnerKeys = Array.isArray(accessFields.partner_keys) && accessFields.partner_keys.length > 0
+        ? new Set(accessFields.partner_keys.map((k) => (k || "").toString().trim().toLowerCase()))
+        : null;
+      const userFiKeys = Array.isArray(accessFields.fi_keys) && accessFields.fi_keys.length > 0
+        ? new Set(accessFields.fi_keys.map((k) => normalizeFiKey(k)))
+        : null;
+
+      const isUnrestricted =
+        accessFields.access_level === "admin" || accessFields.access_level === "internal" ||
+        accessFields.instance_keys === "*" || accessFields.partner_keys === "*" || accessFields.fi_keys === "*";
 
       // Build scoped options
       const instances = new Set();
@@ -4325,8 +4343,20 @@ const server = http.createServer(async (req, res) => {
         if (!entry || !entry.fi_lookup_key) continue;
         const fiKey = normalizeFiKey(entry.fi_lookup_key);
 
-        // Check if this FI is accessible (allowedFis === null means unrestricted)
-        if (allowedFis !== null && !allowedFis.has(fiKey)) continue;
+        if (!isUnrestricted) {
+          // Check each dimension; entry must match at least one specified dimension
+          const instanceMatch = userInstanceKeys && userInstanceKeys.size > 0 && entry.instance
+            ? userInstanceKeys.has(normalizeInstanceKey(entry.instance))
+            : false;
+          const partnerMatch = userPartnerKeys && userPartnerKeys.size > 0 && entry.partner
+            ? userPartnerKeys.has((entry.partner || "").toString().trim().toLowerCase())
+            : false;
+          const fiMatch = userFiKeys && userFiKeys.size > 0
+            ? userFiKeys.has(fiKey)
+            : false;
+
+          if (!instanceMatch && !partnerMatch && !fiMatch) continue;
+        }
 
         instances.add(entry.instance || "unknown");
         partners.add(entry.partner || "Unknown");

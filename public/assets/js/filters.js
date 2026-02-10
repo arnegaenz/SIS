@@ -177,10 +177,13 @@
 
   function filterRegistryByUserScope(registry, scopedOptions) {
     if (!scopedOptions || !scopedOptions.fis) return registry;
-    const allowedFiKeys = new Set(scopedOptions.fis.map(fi => normalizeFiKey(fi.key)));
+    // Build a set of allowed fi__instance composite keys for precise matching
+    const allowedComposite = new Set(
+      scopedOptions.fis.map(fi => normalizeFiKey(fi.key) + "__" + normalizeInstanceKey(fi.instance))
+    );
     return registry.filter(entry => {
-      const fiKey = normalizeFiKey(entry.fi_lookup_key);
-      return allowedFiKeys.has(fiKey);
+      const composite = normalizeFiKey(entry.fi_lookup_key) + "__" + normalizeInstanceKey(entry.instance);
+      return allowedComposite.has(composite);
     });
   }
 

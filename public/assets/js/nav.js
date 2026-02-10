@@ -129,21 +129,9 @@ function getGroupsForAccess() {
   var isInternal = access === "internal";
   var isLimited = access === "limited";
 
-  // Limited access: only funnel, troubleshoot, realtime
+  // Limited access: funnel only, no nav menu needed
   if (isLimited) {
-    var allowed = { funnel: true, troubleshoot: true, realtime: true };
-    var next = [];
-    for (var g = 0; g < GROUPS.length; g++) {
-      var group = GROUPS[g];
-      if (group.fullAccessOnly) continue;
-      var items = [];
-      for (var i = 0; i < group.items.length; i++) {
-        var item = group.items[i];
-        if (allowed[item.id]) items.push(item);
-      }
-      if (items.length) next.push({ label: group.label, items: items });
-    }
-    return next;
+    return [];
   }
 
   // Admin/full access: all groups and items
