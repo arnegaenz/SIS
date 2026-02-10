@@ -1301,6 +1301,22 @@
     };
 
     renderFilterBar(container, state, options, apply);
+
+    // For limited users, only show the FI dropdown (hide Instance, Partner, Integration, Clear)
+    if (scopedOptions && scopedOptions.access && !scopedOptions.access.is_admin) {
+      try {
+        const user = typeof window !== "undefined" && window.sisAuth && window.sisAuth.getUser ? window.sisAuth.getUser() : null;
+        if (user && user.access_level === "limited") {
+          var groups = container.querySelectorAll(".filter-group");
+          for (var g = 0; g < groups.length; g++) {
+            var grp = groups[g];
+            var hasFi = grp.querySelector("#filter-fi");
+            if (!hasFi) grp.style.display = "none";
+          }
+        }
+      } catch (e) {}
+    }
+
     console.log("[filters] render complete", {
       partners: options.partners.length,
       integrations: options.integrations.length,

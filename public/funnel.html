@@ -5968,15 +5968,6 @@ function applyColumnTitles(root = document) {
         try {
           startLoading("Loading funnel data…");
 
-          // Hide filter bar for limited users (they only see their assigned FI)
-          try {
-            const user = window.sisAuth?.getUser?.();
-            if (user && user.access_level === "limited") {
-              const filterBar = document.getElementById("filter-bar");
-              if (filterBar) filterBar.style.display = "none";
-            }
-          } catch (e) {}
-
           try {
             registryMap = await fetchRegistry();
             updateRegistryLookups(registryMap);
