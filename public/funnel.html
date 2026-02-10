@@ -4633,8 +4633,11 @@ function applyColumnTitles(root = document) {
           const uxCount = merchantGroup.uxCount || 0;
           uxBadge.textContent = `${uxCount} UX failure${uxCount !== 1 ? 's' : ''}`;
           uxBadge.title = 'UX failures';
-          // Dim if not the active view type
-          if (type !== 'ux') {
+          // Dim if not the active view type; extra subtle for sysrate since UX is excluded
+          if (type === 'sysrate') {
+            uxBadge.style.opacity = '0.15';
+            uxBadge.style.fontSize = '0.7em';
+          } else if (type !== 'ux') {
             uxBadge.style.opacity = '0.35';
           }
 
