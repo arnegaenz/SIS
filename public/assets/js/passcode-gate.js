@@ -41,7 +41,7 @@
 
   // Page access restrictions
   var LIMITED_PAGES = ["funnel.html"];
-  var ADMIN_ONLY_PAGES = ["users.html", "synthetic-traffic.html", "maintenance.html", "activity-log.html"]; // Pages only admin can access (not internal)
+  var ADMIN_ONLY_PAGES = ["users.html", "synthetic-traffic.html", "maintenance.html", "activity-log.html", "logs.html"]; // Pages only admin can access (not internal)
 
   function getPageName() {
     try {
@@ -187,6 +187,33 @@
         // Network error - allow offline access with cached session
         console.warn("[auth] Could not validate session:", e);
       });
+  }
+
+  var lastLoggedUrl = "";
+
+  function logPageview() {
+    try {
+      var token = getSessionToken();
+      if (!token) return;
+
+      var page = getPageName();
+      var qs = window.location.search || "";
+      var fullPage = page + qs;
+
+      // Deduplicate consecutive identical pageviews
+      if (fullPage === lastLoggedUrl) return;
+      lastLoggedUrl = fullPage;
+
+      var API_BASE = global.SIS_API_BASE || "";
+      fetch(API_BASE + "/analytics/log", {
+        method: "POST",
+        headers: {
+          "Authorization": "Bearer " + token,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ page: fullPage })
+      }).catch(function() {});
+    } catch (e) {}
   }
 
   function init() {

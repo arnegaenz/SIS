@@ -92,13 +92,13 @@ var GROUPS = [
 { id:"troubleshoot", label:"Troubleshoot", href:NAV_PREFIX+"troubleshoot.html" },
 { id:"realtime", label:"Real-Time", href:NAV_PREFIX+"realtime.html" },
 { id:"synthetic-traffic", label:"Synthetic Traffic", href:NAV_PREFIX+"synthetic-traffic.html", adminOnly: true },
-{ id:"fi-api", label:"FI API", href:NAV_PREFIX+"fi-api.html" },
-{ id:"logs", label:"Server Logs", href:NAV_PREFIX+"logs.html" }
+{ id:"fi-api", label:"FI API", href:NAV_PREFIX+"fi-api.html" }
 ]},
 { label: "Admin", fullAccessOnly: true, items: [
 { id:"maintenance", label:"Data & Config", href:NAV_PREFIX+"maintenance.html" },
 { id:"users", label:"Users", href:NAV_PREFIX+"users.html" },
-{ id:"activity-log", label:"User Activity", href:NAV_PREFIX+"activity-log.html" }
+{ id:"activity-log", label:"User Activity", href:NAV_PREFIX+"activity-log.html" },
+{ id:"logs", label:"Server Logs", href:NAV_PREFIX+"logs.html" }
 ]}
 ];
 
