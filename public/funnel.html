@@ -590,6 +590,21 @@
         color: #3b82f6;
       }
 
+      .breakdown-detail {
+        font-size: 0.75rem;
+        color: var(--muted);
+        margin-top: 4px;
+        line-height: 1.5;
+      }
+      .breakdown-detail-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+      }
+      .breakdown-detail-count {
+        white-space: nowrap;
+      }
+
       /* Placement Details Expandable Sections */
       .placement-details {
         margin-top: 10px;
@@ -1069,6 +1084,11 @@
         z-index: 1000;
         display: none;
       }
+      .column-filter-dropdown.column-filter-dropdown-wide {
+        min-width: 400px;
+        max-width: 700px;
+        width: max-content;
+      }
 
       .column-filter-dropdown.active {
         display: block;
@@ -1098,6 +1118,16 @@
         cursor: pointer;
         flex: 1;
         user-select: none;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+      }
+      .filter-option-count {
+        color: var(--muted);
+        font-size: 0.8rem;
+        white-space: nowrap;
+        flex-shrink: 0;
       }
 
       .column-filter-controls {
@@ -1299,6 +1329,7 @@
               <div class="breakdown-label">⚠ System Failures</div>
               <div class="breakdown-value" id="convBreakdownSystem">-</div>
               <div class="breakdown-pct" id="convBreakdownSystemPct">-</div>
+              <div class="breakdown-detail" id="convBreakdownSystemDetail"></div>
               <div class="breakdown-bar">
                 <div class="breakdown-bar-fill breakdown-bar-system" id="convBarSystem" style="width: 0%;"></div>
               </div>
@@ -1319,6 +1350,7 @@
               <div class="breakdown-label">⊗ UX Failures</div>
               <div class="breakdown-value" id="convBreakdownUX">-</div>
               <div class="breakdown-pct" id="convBreakdownUXPct">-</div>
+              <div class="breakdown-detail" id="convBreakdownUXDetail"></div>
               <div class="breakdown-bar">
                 <div class="breakdown-bar-fill breakdown-bar-ux" id="convBarUX" style="width: 0%;"></div>
               </div>
@@ -2088,7 +2120,7 @@ function applyColumnTitles(root = document) {
       if (startDateInput && !startDateInput.value) startDateInput.value = defaultStartDateStr;
       if (endDateInput && !endDateInput.value) endDateInput.value = defaultEndDateStr;
       const presetEl = document.getElementById("datePreset");
-      if (presetEl) presetEl.value = "last30";
+      if (presetEl) presetEl.value = "last7";
 
       async function fetchJson(url) {
         const res = await fetch(url);
@@ -3785,21 +3817,21 @@ function applyColumnTitles(root = document) {
 
       // Termination rules for categorizing placement outcomes
       const TERMINATION_RULES = {
-        BILLABLE: { includeInHealth: true, includeInUx: false, severity: "success" },
-        SITE_INTERACTION_FAILURE: { includeInHealth: true, includeInUx: false, severity: "site-failure" },
-        UNSUCCESSFUL: { includeInHealth: true, includeInUx: false, severity: "site-failure" },
-        USER_DATA_FAILURE: { includeInHealth: false, includeInUx: true, severity: "ux" },
-        NEVER_STARTED: { includeInHealth: false, includeInUx: true, severity: "ux" },
-        TIMEOUT_CREDENTIALS: { includeInHealth: false, includeInUx: true, severity: "ux" },
-        TIMEOUT_TFA: { includeInHealth: false, includeInUx: true, severity: "ux" },
-        ABANDONED_QUICKSTART: { includeInHealth: false, includeInUx: true, severity: "ux" },
-        CANCELED: { includeInHealth: false, includeInUx: true, severity: "ux" },
-        ACCOUNT_SETUP_INCOMPLETE: { includeInHealth: false, includeInUx: true, severity: "ux" },
-        TOO_MANY_LOGIN_FAILURES: { includeInHealth: false, includeInUx: true, severity: "ux" },
-        ACCOUNT_LOCKED: { includeInHealth: false, includeInUx: true, severity: "ux" },
-        PASSWORD_RESET_REQUIRED: { includeInHealth: false, includeInUx: true, severity: "ux" },
-        INVALID_CARD_DETAILS: { includeInHealth: false, includeInUx: true, severity: "ux" },
-        UNKNOWN: { includeInHealth: false, includeInUx: false, severity: "unknown" },
+        BILLABLE: { label: "Successful", includeInHealth: true, includeInUx: false, severity: "success" },
+        SITE_INTERACTION_FAILURE: { label: "Automation / site failed", includeInHealth: true, includeInUx: false, severity: "site-failure" },
+        UNSUCCESSFUL: { label: "Ran but didn't complete", includeInHealth: true, includeInUx: false, severity: "site-failure" },
+        USER_DATA_FAILURE: { label: "Bad or missing user data", includeInHealth: false, includeInUx: true, severity: "ux" },
+        NEVER_STARTED: { label: "User didn't proceed", includeInHealth: false, includeInUx: true, severity: "ux" },
+        TIMEOUT_CREDENTIALS: { label: "User didn't finish login", includeInHealth: false, includeInUx: true, severity: "ux" },
+        TIMEOUT_TFA: { label: "User didn't finish MFA", includeInHealth: false, includeInUx: true, severity: "ux" },
+        ABANDONED_QUICKSTART: { label: "User bailed from QuickStart", includeInHealth: false, includeInUx: true, severity: "ux" },
+        CANCELED: { label: "User canceled", includeInHealth: false, includeInUx: true, severity: "ux" },
+        ACCOUNT_SETUP_INCOMPLETE: { label: "User didn't finish setup", includeInHealth: false, includeInUx: true, severity: "ux" },
+        TOO_MANY_LOGIN_FAILURES: { label: "User kept failing login", includeInHealth: false, includeInUx: true, severity: "ux" },
+        ACCOUNT_LOCKED: { label: "User account locked", includeInHealth: false, includeInUx: true, severity: "ux" },
+        PASSWORD_RESET_REQUIRED: { label: "Password reset needed", includeInHealth: false, includeInUx: true, severity: "ux" },
+        INVALID_CARD_DETAILS: { label: "Bad card info", includeInHealth: false, includeInUx: true, severity: "ux" },
+        UNKNOWN: { label: "Unknown", includeInHealth: false, includeInUx: false, severity: "unknown" },
       };
 
       function calculateConversionMetrics(startDate, endDate, visibleRows) {
@@ -3815,6 +3847,8 @@ function applyColumnTitles(root = document) {
           successful: 0,
           systemFailures: 0,
           uxFailures: 0,
+          uxByType: {},
+          systemByType: {},
           totalPlacements: 0,
           sessionJobCounts: null,
         };
@@ -3938,11 +3972,14 @@ function applyColumnTitles(root = document) {
                 metrics.successful += count;
               } else if (rule.includeInHealth) {
                 metrics.systemFailures += count;
+                metrics.systemByType[termType] = (metrics.systemByType[termType] || 0) + count;
               } else if (rule.includeInUx) {
                 metrics.uxFailures += count;
+                metrics.uxByType[termType] = (metrics.uxByType[termType] || 0) + count;
               } else {
                 // Unknown - default to system failures
                 metrics.systemFailures += count;
+                metrics.systemByType[termType] = (metrics.systemByType[termType] || 0) + count;
               }
               metrics.totalPlacements += count;
             }
@@ -4026,6 +4063,24 @@ function applyColumnTitles(root = document) {
           : "(0.0%)";
         document.getElementById("convBreakdownNoJobs").textContent = noJobs.toLocaleString();
         document.getElementById("convBreakdownNoJobsPct").textContent = "";
+
+        // Render per-type sub-breakdowns
+        const renderByTypeDetail = (containerId, byType, total) => {
+          const el = document.getElementById(containerId);
+          if (!el) return;
+          const entries = Object.entries(byType)
+            .filter(([, c]) => c > 0)
+            .sort((a, b) => b[1] - a[1]);
+          if (!entries.length) { el.innerHTML = ""; return; }
+          el.innerHTML = entries.map(([type, count]) => {
+            const rule = TERMINATION_RULES[type];
+            const label = rule?.label || type;
+            const pct = total > 0 ? ((count / total) * 100).toFixed(1) : "0.0";
+            return `<div class="breakdown-detail-row"><span>${label}</span><span class="breakdown-detail-count">${count.toLocaleString()} (${pct}%)</span></div>`;
+          }).join("");
+        };
+        renderByTypeDetail("convBreakdownSystemDetail", metrics.systemByType || {}, systemFail);
+        renderByTypeDetail("convBreakdownUXDetail", metrics.uxByType || {}, uxFail);
 
         // Update progress bars
         if (totalPlacements > 0 || totalSessions > 0) {
@@ -4683,6 +4738,9 @@ function applyColumnTitles(root = document) {
               filterValue = placement.placementType === 'success' ? 'BILLABLE' : (placement.terminationType || '');
             }
             itemDiv.dataset.filterValue = filterValue;
+            if (placement.statusMessage) {
+              itemDiv.dataset.errorMessage = placement.statusMessage;
+            }
 
             // Item header with FI name and badges
             const itemHeaderDiv = document.createElement('div');
@@ -4903,37 +4961,35 @@ function applyColumnTitles(root = document) {
           return;
         }
 
-        // Collect unique filter values from placement items
-        const uniqueValues = new Set();
         const items = listDiv.querySelectorAll('.placement-item');
 
+        // Build composite keys: "TERM_TYPE: error message" with counts
+        const compositeCountMap = {};
         items.forEach(item => {
-          const filterValue = item.dataset.filterValue;
-          if (filterValue) {
-            uniqueValues.add(filterValue);
-          }
+          const term = item.dataset.filterValue || '';
+          const error = item.dataset.errorMessage || '';
+          const key = error ? `${term}: ${error}` : term;
+          if (!key) return;
+          compositeCountMap[key] = (compositeCountMap[key] || 0) + 1;
+          item.dataset.compositeFilter = key;
         });
 
-        // Build filter options
-        const valueArray = Array.from(uniqueValues).sort();
-        if (valueArray.length === 0) {
+        const compositeArray = Object.keys(compositeCountMap).sort();
+        if (compositeArray.length === 0) {
           filtersDiv.style.display = 'none';
           return;
         }
 
-        const selectedValues = new Set(valueArray); // All selected by default
+        const selectedValues = new Set(compositeArray);
 
-        // Create filter row
         const filterRow = document.createElement('div');
         filterRow.className = 'placement-filter-row';
 
-        // Filter label
         const filterLabel = document.createElement('div');
         filterLabel.className = 'placement-filter-label';
         filterLabel.textContent = type === 'system' ? 'Termination Type:' : 'Failure Reason:';
         filterRow.appendChild(filterLabel);
 
-        // Filter wrapper
         const filterWrapper = document.createElement('div');
         filterWrapper.className = 'column-filter-wrapper';
 
@@ -4942,9 +4998,8 @@ function applyColumnTitles(root = document) {
         filterToggle.textContent = 'Filter';
 
         const filterDropdown = document.createElement('div');
-        filterDropdown.className = 'column-filter-dropdown';
+        filterDropdown.className = 'column-filter-dropdown column-filter-dropdown-wide';
 
-        // Add controls (Select All / Deselect All)
         const controls = document.createElement('div');
         controls.className = 'column-filter-controls';
         controls.innerHTML = `
@@ -4953,8 +5008,31 @@ function applyColumnTitles(root = document) {
         `;
         filterDropdown.appendChild(controls);
 
-        // Add checkboxes for each value
-        valueArray.forEach(value => {
+        const applyCardFilter = () => {
+          items.forEach(item => {
+            const key = item.dataset.compositeFilter;
+            item.style.display = (!key || selectedValues.has(key)) ? '' : 'none';
+          });
+          const groups = listDiv.querySelectorAll('.placement-group');
+          groups.forEach(group => {
+            const groupItems = group.querySelectorAll('.placement-item');
+            const allHidden = Array.from(groupItems).every(item => item.style.display === 'none');
+            group.style.display = allHidden ? 'none' : '';
+          });
+        };
+
+        const updateFilterCount = () => {
+          const existingBadge = filterToggle.querySelector('.column-filter-count');
+          if (existingBadge) existingBadge.remove();
+          if (selectedValues.size < compositeArray.length) {
+            const badge = document.createElement('span');
+            badge.className = 'column-filter-count';
+            badge.textContent = selectedValues.size;
+            filterToggle.appendChild(badge);
+          }
+        };
+
+        compositeArray.forEach(value => {
           const option = document.createElement('div');
           option.className = 'column-filter-option';
 
@@ -4963,21 +5041,25 @@ function applyColumnTitles(root = document) {
           checkbox.checked = true;
           checkbox.id = `filter-${type}-${value.replace(/[^a-z0-9]/gi, '-')}`;
 
-          const label = document.createElement('label');
-          label.htmlFor = checkbox.id;
-          label.textContent = value;
+          const labelEl = document.createElement('label');
+          labelEl.htmlFor = checkbox.id;
+
+          const labelText = document.createElement('span');
+          labelText.textContent = value;
+          labelEl.appendChild(labelText);
+
+          const countBadge = document.createElement('span');
+          countBadge.className = 'filter-option-count';
+          countBadge.textContent = `(${compositeCountMap[value]})`;
+          labelEl.appendChild(countBadge);
 
           option.appendChild(checkbox);
-          option.appendChild(label);
+          option.appendChild(labelEl);
           filterDropdown.appendChild(option);
 
-          // Handle checkbox change
           checkbox.addEventListener('change', () => {
-            if (checkbox.checked) {
-              selectedValues.add(value);
-            } else {
-              selectedValues.delete(value);
-            }
+            if (checkbox.checked) selectedValues.add(value);
+            else selectedValues.delete(value);
             applyCardFilter();
             updateFilterCount();
           });
@@ -4988,76 +5070,33 @@ function applyColumnTitles(root = document) {
         filterRow.appendChild(filterWrapper);
         filtersDiv.appendChild(filterRow);
 
-        // Apply filter function
-        const applyCardFilter = () => {
-          items.forEach(item => {
-            const filterValue = item.dataset.filterValue;
-
-            if (filterValue && !selectedValues.has(filterValue)) {
-              item.style.display = 'none';
-            } else {
-              item.style.display = '';
-            }
-          });
-
-          // Hide placement groups if all items are hidden
-          const groups = listDiv.querySelectorAll('.placement-group');
-          groups.forEach(group => {
-            const groupItems = group.querySelectorAll('.placement-item');
-            const allHidden = Array.from(groupItems).every(item => item.style.display === 'none');
-            group.style.display = allHidden ? 'none' : '';
-          });
-        };
-
-        // Update filter count badge
-        const updateFilterCount = () => {
-          const activeCount = selectedValues.size;
-          const totalCount = valueArray.length;
-
-          // Remove existing count badge
-          const existingBadge = filterToggle.querySelector('.column-filter-count');
-          if (existingBadge) {
-            existingBadge.remove();
-          }
-
-          // Add count badge if not all selected
-          if (activeCount < totalCount) {
-            const badge = document.createElement('span');
-            badge.className = 'column-filter-count';
-            badge.textContent = activeCount;
-            filterToggle.appendChild(badge);
-          }
-        };
-
-        // Toggle dropdown visibility
         filterToggle.addEventListener('click', (e) => {
           e.stopPropagation();
           filterDropdown.classList.toggle('active');
         });
 
-        // Select All button
         controls.querySelector('.select-all-btn').addEventListener('click', () => {
           filterDropdown.querySelectorAll('input[type="checkbox"]').forEach(cb => {
             cb.checked = true;
-            const value = cb.labels[0]?.textContent;
-            if (value) selectedValues.add(value);
+            const spans = cb.labels[0]?.querySelectorAll('span');
+            const v = spans?.[0]?.textContent;
+            if (v) selectedValues.add(v);
           });
           applyCardFilter();
           updateFilterCount();
         });
 
-        // Deselect All button
         controls.querySelector('.deselect-all-btn').addEventListener('click', () => {
           filterDropdown.querySelectorAll('input[type="checkbox"]').forEach(cb => {
             cb.checked = false;
-            const value = cb.labels[0]?.textContent;
-            if (value) selectedValues.delete(value);
+            const spans = cb.labels[0]?.querySelectorAll('span');
+            const v = spans?.[0]?.textContent;
+            if (v) selectedValues.delete(v);
           });
           applyCardFilter();
           updateFilterCount();
         });
 
-        // Close dropdown when clicking outside
         document.addEventListener('click', (e) => {
           if (!filterWrapper.contains(e.target)) {
             filterDropdown.classList.remove('active');
@@ -5642,6 +5681,11 @@ function applyColumnTitles(root = document) {
           renderQuarterSummary(null);
         }
         latestSingleFiBreakdowns = null;
+
+        // Update the date window label for all modes (must happen before single-FI early return)
+        const visibleCount = visibleRows.length;
+        dateWindowLabel.textContent = `Date window: ${startDate} → ${endDate} (${visibleCount} FI${visibleCount !== 1 ? "s" : ""})`;
+
         if (singleFiMode) {
           singleFiView.style.display = "";
           multiFiView.style.display = "none";
@@ -5808,9 +5852,6 @@ function applyColumnTitles(root = document) {
           attachSortHandlers(tableEl, tableId, "multi");
         });
         applyColumnTitles(multiFiView);
-
-        const visibleCount = visibleRows.length;
-        dateWindowLabel.textContent = `Date window: ${startDate} → ${endDate} (${visibleCount} FIs)`;
 
         if (visibleCount > 1) {
           const totals = sumMetrics(visibleRows);
