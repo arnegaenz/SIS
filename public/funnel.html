@@ -645,7 +645,8 @@
       .placement-content {
         margin-top: 8px;
         max-width: 100%;
-        overflow: hidden;
+        overflow: visible;
+        min-height: 60px;
       }
       .breakdown-details-wide {
         margin-top: 16px;
@@ -1076,13 +1077,18 @@
         border: 1px solid var(--border);
         border-radius: 6px;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-        padding: 8px;
+        padding: 0;
         min-width: 200px;
         max-width: 300px;
-        max-height: 300px;
-        overflow-y: auto;
-        z-index: 1000;
+        max-height: 350px;
         display: none;
+        z-index: 1000;
+        flex-direction: column;
+      }
+      .column-filter-dropdown-options {
+        overflow-y: auto;
+        flex: 1;
+        padding: 4px 8px 8px 8px;
       }
       .column-filter-dropdown.column-filter-dropdown-wide {
         min-width: 400px;
@@ -1091,7 +1097,7 @@
       }
 
       .column-filter-dropdown.active {
-        display: block;
+        display: flex;
       }
 
       .column-filter-option {
@@ -1153,6 +1159,15 @@
       .column-filter-controls button:hover {
         background: var(--surface);
         border-color: var(--accent);
+      }
+      .column-filter-controls .apply-filter-btn {
+        background: var(--accent);
+        color: #fff;
+        border-color: var(--accent);
+        font-weight: 600;
+      }
+      .column-filter-controls .apply-filter-btn:hover {
+        opacity: 0.85;
       }
 
       .column-filter-count {
@@ -2494,12 +2509,18 @@ function applyColumnTitles(root = document) {
           });
         }
 
-        // Enforce user-level instance scope even before shared filter state loads
+        // Enforce user-level scope even before shared filter state loads
         let allowedInstances = null;
+        let allowedPartners = null;
         try {
           const user = window.sisAuth?.getUser?.();
-          if (user && user.access_level === "limited" && Array.isArray(user.instance_keys) && user.instance_keys.length > 0) {
-            allowedInstances = new Set(user.instance_keys.map(k => (k || "").toString().trim().toLowerCase()));
+          if (user && user.access_level === "limited") {
+            if (Array.isArray(user.instance_keys) && user.instance_keys.length > 0) {
+              allowedInstances = new Set(user.instance_keys.map(k => (k || "").toString().trim().toLowerCase()));
+            }
+            if (Array.isArray(user.partner_keys) && user.partner_keys.length > 0) {
+              allowedPartners = new Set(user.partner_keys.map(k => (k || "").toString().trim().toLowerCase()));
+            }
           }
         } catch (e) {}
 
@@ -2510,6 +2531,10 @@ function applyColumnTitles(root = document) {
           if (allowedInstances) {
             const rowInstance = (row.instance || "").toString().trim().toLowerCase();
             if (!allowedInstances.has(rowInstance)) return false;
+          }
+          if (allowedPartners) {
+            const rowPartner = (row.partner || "").toString().trim().toLowerCase();
+            if (!allowedPartners.has(rowPartner)) return false;
           }
           return true;
         });
@@ -4980,7 +5005,9 @@ function applyColumnTitles(root = document) {
           return;
         }
 
-        const selectedValues = new Set(compositeArray);
+        // Applied = what's currently visible; pending = what checkboxes show while dropdown is open
+        const appliedValues = new Set(compositeArray);
+        const pendingValues = new Set(compositeArray);
 
         const filterRow = document.createElement('div');
         filterRow.className = 'placement-filter-row';
@@ -5005,13 +5032,22 @@ function applyColumnTitles(root = document) {
         controls.innerHTML = `
           <button class="select-all-btn">Select All</button>
           <button class="deselect-all-btn">Deselect All</button>
+          <button class="apply-filter-btn">Apply</button>
         `;
         filterDropdown.appendChild(controls);
 
+        const optionsContainer = document.createElement('div');
+        optionsContainer.className = 'column-filter-dropdown-options';
+        filterDropdown.appendChild(optionsContainer);
+
         const applyCardFilter = () => {
+          // Sync applied from pending
+          appliedValues.clear();
+          pendingValues.forEach(v => appliedValues.add(v));
+
           items.forEach(item => {
             const key = item.dataset.compositeFilter;
-            item.style.display = (!key || selectedValues.has(key)) ? '' : 'none';
+            item.style.display = (!key || appliedValues.has(key)) ? '' : 'none';
           });
           const groups = listDiv.querySelectorAll('.placement-group');
           groups.forEach(group => {
@@ -5019,15 +5055,17 @@ function applyColumnTitles(root = document) {
             const allHidden = Array.from(groupItems).every(item => item.style.display === 'none');
             group.style.display = allHidden ? 'none' : '';
           });
+          updateFilterCount();
+          filterDropdown.classList.remove('active');
         };
 
         const updateFilterCount = () => {
           const existingBadge = filterToggle.querySelector('.column-filter-count');
           if (existingBadge) existingBadge.remove();
-          if (selectedValues.size < compositeArray.length) {
+          if (appliedValues.size < compositeArray.length) {
             const badge = document.createElement('span');
             badge.className = 'column-filter-count';
-            badge.textContent = selectedValues.size;
+            badge.textContent = appliedValues.size;
             filterToggle.appendChild(badge);
           }
         };
@@ -5055,13 +5093,12 @@ function applyColumnTitles(root = document) {
 
           option.appendChild(checkbox);
           option.appendChild(labelEl);
-          filterDropdown.appendChild(option);
+          optionsContainer.appendChild(option);
 
+          // Checkboxes only update pending set — no immediate filter
           checkbox.addEventListener('change', () => {
-            if (checkbox.checked) selectedValues.add(value);
-            else selectedValues.delete(value);
-            applyCardFilter();
-            updateFilterCount();
+            if (checkbox.checked) pendingValues.add(value);
+            else pendingValues.delete(value);
           });
         });
 
@@ -5072,7 +5109,27 @@ function applyColumnTitles(root = document) {
 
         filterToggle.addEventListener('click', (e) => {
           e.stopPropagation();
-          filterDropdown.classList.toggle('active');
+          if (filterDropdown.classList.contains('active')) {
+            // Closing without apply — reset checkboxes to match applied state
+            filterDropdown.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+              const spans = cb.labels[0]?.querySelectorAll('span');
+              const v = spans?.[0]?.textContent;
+              if (v) {
+                cb.checked = appliedValues.has(v);
+                if (cb.checked) pendingValues.add(v);
+                else pendingValues.delete(v);
+              }
+            });
+            filterDropdown.classList.remove('active');
+          } else {
+            filterDropdown.classList.add('active');
+          }
+        });
+
+        // Apply button
+        controls.querySelector('.apply-filter-btn').addEventListener('click', (e) => {
+          e.stopPropagation();
+          applyCardFilter();
         });
 
         controls.querySelector('.select-all-btn').addEventListener('click', () => {
@@ -5080,10 +5137,8 @@ function applyColumnTitles(root = document) {
             cb.checked = true;
             const spans = cb.labels[0]?.querySelectorAll('span');
             const v = spans?.[0]?.textContent;
-            if (v) selectedValues.add(v);
+            if (v) pendingValues.add(v);
           });
-          applyCardFilter();
-          updateFilterCount();
         });
 
         controls.querySelector('.deselect-all-btn').addEventListener('click', () => {
@@ -5091,14 +5146,22 @@ function applyColumnTitles(root = document) {
             cb.checked = false;
             const spans = cb.labels[0]?.querySelectorAll('span');
             const v = spans?.[0]?.textContent;
-            if (v) selectedValues.delete(v);
+            if (v) pendingValues.delete(v);
           });
-          applyCardFilter();
-          updateFilterCount();
         });
 
         document.addEventListener('click', (e) => {
-          if (!filterWrapper.contains(e.target)) {
+          if (!filterWrapper.contains(e.target) && filterDropdown.classList.contains('active')) {
+            // Clicking outside — reset pending to applied
+            filterDropdown.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+              const spans = cb.labels[0]?.querySelectorAll('span');
+              const v = spans?.[0]?.textContent;
+              if (v) {
+                cb.checked = appliedValues.has(v);
+                if (cb.checked) pendingValues.add(v);
+                else pendingValues.delete(v);
+              }
+            });
             filterDropdown.classList.remove('active');
           }
         });

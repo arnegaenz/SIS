@@ -326,8 +326,14 @@
       instancesOut = unique(baseRegistry.map((r) => r.instance));
     }
 
-    // Always include "Other" so missing/unknown partners are user-selectable.
-    const partners = unique([...baseRegistry.map((r) => r.partner), "Other"]);
+    // Include "Other" for admins so missing/unknown partners are user-selectable.
+    // Skip it for limited users who only see their scoped partners.
+    const partnersList = baseRegistry.map((r) => r.partner);
+    try {
+      const u = typeof window !== "undefined" && window.sisAuth?.getUser?.();
+      if (!u || u.access_level !== "limited") partnersList.push("Other");
+    } catch (e) { partnersList.push("Other"); }
+    const partners = unique(partnersList);
 
     // Create FI options with instance labels: "fi_name (instance)"
     const fiOptions = baseRegistry.map((r) => ({
@@ -1302,7 +1308,7 @@
 
     renderFilterBar(container, state, options, apply);
 
-    // For limited users, only show the FI dropdown (hide Instance, Partner, Integration, Clear)
+    // For limited users, show Partner + FI dropdowns; hide Instance, Integration, Clear
     if (scopedOptions && scopedOptions.access && !scopedOptions.access.is_admin) {
       try {
         const user = typeof window !== "undefined" && window.sisAuth && window.sisAuth.getUser ? window.sisAuth.getUser() : null;
@@ -1311,7 +1317,8 @@
           for (var g = 0; g < groups.length; g++) {
             var grp = groups[g];
             var hasFi = grp.querySelector("#filter-fi");
-            if (!hasFi) grp.style.display = "none";
+            var hasPartner = grp.querySelector("#filter-partner");
+            if (!hasFi && !hasPartner) grp.style.display = "none";
           }
         }
       } catch (e) {}
