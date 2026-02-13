@@ -79,6 +79,7 @@ var HOME_LINK = { id:"overview", label:"Home", href:NAV_PREFIX+"index.html" };
 var GROUPS = [
 { label: "Conversions", items: [
 { id:"funnel", label:"FI Funnel", href:NAV_PREFIX+"funnel.html" },
+{ id:"funnel-customer", label:"Cardholder Engagement", href:NAV_PREFIX+"funnel-customer.html" },
 { id:"customer-success", label:"Customer Success Dashboard", href:NAV_PREFIX+"dashboards/customer-success.html" },
 { id:"sources", label:"Sources", href:NAV_PREFIX+"sources.html" },
 { id:"ux-paths", label:"UX Paths", href:NAV_PREFIX+"ux-paths.html" },
@@ -134,9 +135,13 @@ function getGroupsForAccess() {
   var isInternal = access === "internal";
   var isLimited = access === "limited";
 
-  // Limited access: funnel only, no nav menu needed
+  // Limited access: customer-facing pages only
   if (isLimited) {
-    return [];
+    return [
+      { label: "Dashboards", items: [
+        { id:"funnel-customer", label:"Cardholder Engagement", href:NAV_PREFIX+"funnel-customer.html" }
+      ]}
+    ];
   }
 
   // Admin/full access: all groups and items
@@ -237,7 +242,11 @@ list.style.maxHeight = "calc(100vh - " + (top + 8) + "px)";
 }
 
 function addDropdown(group, targetWrap){
-var btn = h("button", { class:"sis-pill", type:"button", "aria-expanded":"false" }, [group.label]);
+var groupHasActive = false;
+for (var j=0; j<group.items.length; j++){
+  if (group.items[j].id === currentId) { groupHasActive = true; break; }
+}
+var btn = h("button", { class:"sis-pill" + (groupHasActive ? " sis-active" : ""), type:"button", "aria-expanded":"false" }, [group.label]);
 var list = h("div", { class:"sis-menu", "data-open":"0" }, []);
 for (var i=0; i<group.items.length; i++){
 var item = group.items[i];
@@ -496,7 +505,11 @@ list.style.maxHeight = "calc(100vh - " + (top + 8) + "px)";
 }
 
 function addDropdown(group, targetWrap){
-var btn = h("button", { class:"sis-pill", type:"button", "aria-expanded":"false" }, [group.label]);
+var groupHasActive = false;
+for (var j=0; j<group.items.length; j++){
+  if (group.items[j].id === currentId) { groupHasActive = true; break; }
+}
+var btn = h("button", { class:"sis-pill" + (groupHasActive ? " sis-active" : ""), type:"button", "aria-expanded":"false" }, [group.label]);
 var list = h("div", { class:"sis-menu", "data-open":"0" }, []);
 for (var i=0; i<group.items.length; i++){
 var item = group.items[i];

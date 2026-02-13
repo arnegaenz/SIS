@@ -40,7 +40,7 @@
   var LEGACY_ACCESS_KEY = "sis_access_level";
 
   // Page access restrictions
-  var LIMITED_PAGES = ["funnel.html"];
+  var LIMITED_PAGES = ["funnel.html", "funnel-customer.html"];
   var ADMIN_ONLY_PAGES = ["users.html", "synthetic-traffic.html", "maintenance.html", "activity-log.html", "shared-views.html", "logs.html"]; // Pages only admin can access (not internal)
 
   function getPageName() {
@@ -154,7 +154,7 @@
 
     // limited can only access specific pages
     if (level === "limited" && !isLimitedAllowedPage()) {
-      window.location.href = prefix + "funnel.html";
+      window.location.href = prefix + "funnel-customer.html";
       return false;
     }
 

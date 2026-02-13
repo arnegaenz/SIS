@@ -23,6 +23,9 @@ import {
   buildMerchantSeries,
 } from "../src/lib/analytics/sources.mjs";
 import { fetchGaRowsForDay, resolveFiFromHost } from "../src/ga.mjs";
+import puppeteer from "puppeteer";
+import { buildReportHtml } from "../templates/funnel-report-template.mjs";
+import { buildCustomerReportHtml } from "../templates/funnel-customer-report-template.mjs";
 const { URLSearchParams } = url;
 
 const __filename = fileURLToPath(import.meta.url);
@@ -105,6 +108,18 @@ let currentUpdateJob = {
   error: null,
   forceRaw: false,
 };
+
+// ========== PUPPETEER PDF BROWSER (lazy singleton) ==========
+let _pdfBrowser = null;
+async function getPdfBrowser() {
+  if (!_pdfBrowser || !_pdfBrowser.isConnected()) {
+    _pdfBrowser = await puppeteer.launch({
+      headless: "new",
+      args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"],
+    });
+  }
+  return _pdfBrowser;
+}
 
 // ========== SERVER LOGS CAPTURE ==========
 const MAX_LOG_LINES = 2000;
@@ -2650,6 +2665,114 @@ const server = http.createServer(async (req, res) => {
       console.error("[analytics] read error:", err);
       return send(res, 500, { error: "Failed to read activity log" });
     }
+  }
+
+  // ========== PDF Export ==========
+
+  if (pathname === "/api/export-pdf" && req.method === "POST") {
+    const auth = await validateSession(req, queryParams);
+    if (!auth) return send(res, 401, { error: "Authentication required" });
+
+    try {
+      const rawBody = await readRequestBody(req);
+      const body = rawBody ? JSON.parse(rawBody) : {};
+
+      if (!body.startDate || !body.endDate || !body.metrics) {
+        return send(res, 400, { error: "Missing required fields" });
+      }
+
+      const html = buildReportHtml({
+        startDate: body.startDate,
+        endDate: body.endDate,
+        filterContext: body.filterContext || "",
+        generatedAt:
+          new Date().toISOString().replace("T", " ").slice(0, 19) + " UTC",
+        metrics: body.metrics,
+        highlights: body.highlights || [],
+        partnerSummary: body.partnerSummary || null,
+      });
+
+      const browser = await getPdfBrowser();
+      const page = await browser.newPage();
+      try {
+        await page.setContent(html, {
+          waitUntil: "networkidle0",
+          timeout: 15000,
+        });
+        const pdfBuffer = await page.pdf({
+          format: "Letter",
+          printBackground: true,
+          margin: { top: "0", right: "0", bottom: "0", left: "0" },
+        });
+
+        setCors(res);
+        res.writeHead(200, {
+          "Content-Type": "application/pdf",
+          "Content-Disposition": `attachment; filename="sis-funnel-${body.startDate}-to-${body.endDate}.pdf"`,
+          "Content-Length": pdfBuffer.length,
+        });
+        res.end(pdfBuffer);
+      } finally {
+        await page.close();
+      }
+    } catch (err) {
+      console.error("[pdf] Export error:", err);
+      return send(res, 500, { error: "PDF generation failed: " + err.message });
+    }
+    return;
+  }
+
+  if (pathname === "/api/export-pdf-customer" && req.method === "POST") {
+    const auth = await validateSession(req, queryParams);
+    if (!auth) return send(res, 401, { error: "Authentication required" });
+
+    try {
+      const rawBody = await readRequestBody(req);
+      const body = rawBody ? JSON.parse(rawBody) : {};
+
+      if (!body.startDate || !body.endDate || !body.metrics) {
+        return send(res, 400, { error: "Missing required fields" });
+      }
+
+      const html = buildCustomerReportHtml({
+        startDate: body.startDate,
+        endDate: body.endDate,
+        filterContext: body.filterContext || "",
+        generatedAt:
+          new Date().toISOString().replace("T", " ").slice(0, 19) + " UTC",
+        metrics: body.metrics,
+        highlights: body.highlights || [],
+        partnerSummary: body.partnerSummary || null,
+      });
+
+      const browser = await getPdfBrowser();
+      const page = await browser.newPage();
+      try {
+        await page.setContent(html, {
+          waitUntil: "networkidle0",
+          timeout: 15000,
+        });
+        const pdfBuffer = await page.pdf({
+          format: "Letter",
+          printBackground: true,
+          margin: { top: "0", right: "0", bottom: "0", left: "0" },
+        });
+
+        setCors(res);
+        res.writeHead(200, {
+          "Content-Type": "application/pdf",
+          "Content-Disposition": `attachment; filename="cardholder-engagement-${body.startDate}-to-${body.endDate}.pdf"`,
+          "Content-Length": pdfBuffer.length,
+        });
+        res.end(pdfBuffer);
+      } finally {
+        await page.close();
+      }
+    } catch (err) {
+      console.error("[pdf] Customer export error:", err);
+      return send(res, 500, { error: "PDF generation failed: " + err.message });
+    }
+    return;
   }
 
   // ========== Shared Link Tracking ==========
@@ -5571,6 +5694,11 @@ const server = http.createServer(async (req, res) => {
 
   if (pathname === "/funnel" || pathname === "/funnel.html") {
     const fp = path.join(PUBLIC_DIR, "funnel.html");
+    if (await fileExists(fp)) return serveFile(res, fp);
+  }
+
+  if (pathname === "/funnel-customer" || pathname === "/funnel-customer.html") {
+    const fp = path.join(PUBLIC_DIR, "funnel-customer.html");
     if (await fileExists(fp)) return serveFile(res, fp);
   }
 

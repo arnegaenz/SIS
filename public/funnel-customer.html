@@ -1,0 +1,1830 @@
+<!doctype html>
+<html lang="en">
+  <head>
+  <meta charset="utf-8" />
+  <title>Cardholder Engagement Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <link rel="stylesheet" href="./sis-shared.css?v=navfix" />
+  <link rel="stylesheet" href="./assets/css/sis.css">
+  <link rel="stylesheet" href="./assets/css/funnel.css">
+  <link rel="stylesheet" href="./assets/css/mobile.css">
+  <link rel="stylesheet" href="./assets/css/filters.css">
+  <script src="./assets/js/config.js"></script>
+  <script src="./assets/js/passcode-gate.js"></script>
+  <script defer src="./assets/js/sis.js"></script>
+  <script defer src="./assets/js/nav.js"></script>
+  <script type="module" defer src="./assets/js/data-cache.js?v=3"></script>
+  <script defer src="./assets/js/filters.js?v=shared"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function(){
+      if (window.renderHeaderNav && !window.__sisHeaderNav_funnel_customer) {
+        window.__sisHeaderNav_funnel_customer = true;
+        window.renderHeaderNav({
+          currentId: "funnel-customer",
+          title: "Cardholder Engagement Dashboard",
+          subtitle: "Track cardholder adoption and card-on-file success metrics."
+        });
+      }
+    });
+  </script>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+
+    .funnel-header { margin-bottom: 12px; }
+    .form-grid {
+      display: flex; flex-wrap: wrap; gap: 6px; align-items: flex-end;
+    }
+    .form-grid--dates { margin-top: 8px; }
+    .form-field {
+      display: flex; flex-direction: column; gap: 6px;
+      min-width: 160px; min-height: 54px;
+    }
+    .form-field label {
+      font-size: 0.85rem; color: var(--muted, #64748b);
+      letter-spacing: 0.03em; text-transform: uppercase; padding-left: 2px;
+    }
+    .form-select, .form-input {
+      background: var(--input-bg, #fff); border: 1px solid var(--input-border, #cbd5e1);
+      border-radius: 10px; color: var(--text, #0f172a);
+      padding: 10px 12px; font-size: 0.92rem;
+      min-width: 160px; height: 42px; line-height: 22px;
+    }
+    .form-select:focus, .form-input:focus {
+      outline: none; border-color: var(--accent, #2563eb);
+      box-shadow: 0 0 0 3px rgba(37,99,235,0.2);
+    }
+    .form-field-actions { min-width: 200px; }
+    .form-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    @media (max-width: 767px) {
+      .funnel-header .form-grid,
+      .funnel-header .form-grid--dates {
+        display: flex; flex-direction: column; width: 100%;
+      }
+      .funnel-header .form-field { min-width: 0; width: 100%; }
+    }
+    .form-button {
+      background: linear-gradient(120deg, var(--accent), var(--accent-2));
+      border: none; border-radius: 999px;
+      padding: 10px 28px; min-width: 170px;
+      font-size: 0.9rem; cursor: pointer;
+      color: #f8fafc; font-weight: 600; letter-spacing: 0.2px;
+      white-space: nowrap;
+    }
+    .form-button.secondary {
+      background: transparent;
+      border: 1px solid var(--border, #cbd5e1);
+      color: var(--muted, #64748b);
+      min-width: auto;
+    }
+    .date-warning {
+      margin-top: 6px; padding: 6px 10px; background: #fef3c7; border: 1px solid #fcd34d;
+      border-radius: 6px; font-size: 12px; color: #92400e; display: none;
+    }
+
+    /* Performance Overview */
+    .perf-section-title {
+      font-size: 13px; font-weight: 700; color: #0f172a;
+      margin: 20px 0 10px; padding-bottom: 4px;
+      border-bottom: 2px solid #e2e8f0;
+    }
+    .perf-section-title:first-child { margin-top: 0; }
+
+    .perf-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 10px; margin-bottom: 16px;
+    }
+    .perf-card {
+      background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;
+      padding: 14px 16px; text-align: center; transition: box-shadow 0.15s;
+    }
+    .perf-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+    .perf-card .card-label {
+      font-size: 10px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.04em; color: #64748b; margin-bottom: 4px;
+    }
+    .perf-card .card-value {
+      font-size: 26px; font-weight: 800; color: #0f172a; line-height: 1.1;
+    }
+    .perf-card .card-sub {
+      font-size: 11px; color: #94a3b8; margin-top: 3px;
+    }
+    .perf-card.highlight {
+      background: #eff6ff; border-color: #93c5fd;
+    }
+    .perf-card.highlight .card-value { color: #2563eb; }
+    .perf-card.success {
+      background: #f0fdf4; border-color: #86efac;
+    }
+    .perf-card.success .card-value { color: #16a34a; }
+
+    /* Highlights table */
+    .highlights-table {
+      width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 8px;
+    }
+    .highlights-table th {
+      text-align: left; padding: 6px 8px; font-size: 10px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.03em; color: #475569;
+      background: #f1f5f9; border-bottom: 2px solid #e2e8f0;
+    }
+    .highlights-table td {
+      padding: 6px 8px; border-bottom: 1px solid #e2e8f0;
+    }
+    .highlights-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+    .highlights-table .hl-label { font-weight: 600; }
+    .highlights-table .nowrap { white-space: nowrap; }
+    .highlights-table tbody tr:nth-child(even) { background: #f8fafc; }
+    .muted { color: #94a3b8; font-size: 11px; }
+
+    /* Partner summary */
+    .partner-summary { margin-top: 16px; }
+    .partner-summary table {
+      width: 100%; border-collapse: collapse; font-size: 12px;
+    }
+    .partner-summary th {
+      text-align: left; padding: 6px 8px; font-size: 10px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.03em; color: #475569;
+      background: #f1f5f9; border-bottom: 2px solid #e2e8f0;
+    }
+    .partner-summary td { padding: 6px 8px; border-bottom: 1px solid #e2e8f0; }
+    .partner-summary .num { text-align: right; font-variant-numeric: tabular-nums; }
+    .partner-summary .total-row td { border-top: 2px solid #cbd5e1; font-weight: 700; background: #f1f5f9; }
+
+    /* Totals bar */
+    .totals-bar {
+      font-size: 12px; color: #475569; margin-bottom: 12px; line-height: 1.5;
+    }
+
+    /* Per-FI tables */
+    .group-block { margin-bottom: 16px; }
+    .group-header {
+      font-size: 13px; font-weight: 700; color: #0f172a;
+      padding: 6px 0; border-bottom: 2px solid #e2e8f0;
+      margin-bottom: 4px;
+    }
+    .table-scroll { overflow-x: auto; }
+    .fi-table {
+      width: 100%; border-collapse: collapse; font-size: 12px;
+      white-space: nowrap;
+    }
+    .fi-table th {
+      text-align: left; padding: 5px 8px; font-size: 10px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.03em; color: #475569;
+      background: #f1f5f9; border-bottom: 2px solid #e2e8f0;
+      cursor: pointer; user-select: none;
+    }
+    .fi-table th:hover { color: #0f172a; }
+    .fi-table td { padding: 5px 8px; border-bottom: 1px solid #f1f5f9; }
+    .fi-table tbody tr:hover { background: #f8fafc; }
+    .fi-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+    .fi-table .totals-row td {
+      border-top: 2px solid #cbd5e1; font-weight: 700; background: #f8fafc;
+    }
+    .fi-table .muted { color: #94a3b8; font-size: 10px; }
+    .fi-table .reach-good { color: #16a34a; font-weight: 600; }
+    .fi-table .reach-low { color: #d97706; }
+
+    /* Date window label */
+    .date-window { font-weight: 400; color: #64748b; font-size: 12px; }
+
+    /* Loading */
+    .loading-banner {
+      display: none; align-items: center; gap: 10px; padding: 12px 16px;
+      background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;
+      margin-bottom: 12px;
+    }
+    .spinner {
+      width: 18px; height: 18px; border: 2px solid #cbd5e1;
+      border-top-color: #2563eb; border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text { font-size: 13px; color: #64748b; }
+  </style>
+</head>
+<body>
+  <div id="sis-header"></div>
+  <div class="sis-content">
+  <main class="sis-main">
+    <section class="sis-panel">
+      <div id="pageLoader" class="loading-banner">
+        <div class="spinner" aria-hidden="true"></div>
+        <div class="loading-text">Loading data…</div>
+      </div>
+      <div id="filter-bar"></div>
+      <div class="funnel-header">
+        <div class="form-grid form-grid--dates">
+          <div class="form-field">
+            <label for="datePreset">Range preset</label>
+            <select id="datePreset" class="form-select">
+              <option value="last7" selected>Last 7 days</option>
+              <option value="last14">Last 14 days</option>
+              <option value="last30">Last 30 days</option>
+              <option value="last60">Last 60 days</option>
+              <option value="last90">Last 90 days</option>
+              <option value="ytd">Year to date</option>
+              <option value="">Custom</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label for="startDate">Start date</label>
+            <input id="startDate" type="date" class="form-input" />
+          </div>
+          <div class="form-field">
+            <label for="endDate">End date</label>
+            <input id="endDate" type="date" class="form-input" />
+          </div>
+          <div class="form-field form-field-actions">
+            <label>Actions</label>
+            <div class="form-actions">
+              <button id="applyBtn" class="form-button">Apply filters</button>
+              <button id="exportCsvBtn" class="form-button secondary">Export CSV</button>
+              <button id="exportPdfBtn" class="form-button secondary">Export PDF</button>
+              <button id="shareLinkBtn" class="form-button secondary" type="button" title="Copy shareable link to clipboard" style="display:none;">Share</button>
+            </div>
+          </div>
+        </div>
+        <div id="dateWarning" class="date-warning" aria-live="polite"></div>
+      </div>
+
+      <!-- Performance Overview -->
+      <div id="perfOverview" style="display:none;">
+        <div class="perf-section-title">Performance Overview <span class="muted date-window" id="dateWindowLabel"></span></div>
+        <div id="totalsBar" class="totals-bar" style="display:none;"></div>
+        <div class="perf-grid" id="metricsGrid">
+          <div class="perf-card" id="cardGaSelect">
+            <div class="card-label">CardUpdatr Launches</div>
+            <div class="card-value" id="valGaSelect">-</div>
+            <div class="card-sub" id="subGaSelect"></div>
+          </div>
+          <div class="perf-card" id="cardGaUser">
+            <div class="card-label">User Data Page Views</div>
+            <div class="card-value" id="valGaUser">-</div>
+            <div class="card-sub" id="subGaUser"></div>
+          </div>
+          <div class="perf-card" id="cardGaCred">
+            <div class="card-label">Credential Entry Views</div>
+            <div class="card-value" id="valGaCred">-</div>
+            <div class="card-sub" id="subGaCred"></div>
+          </div>
+          <div class="perf-card" id="cardSessions">
+            <div class="card-label">Total Sessions</div>
+            <div class="card-value" id="valSessions">-</div>
+            <div class="card-sub" id="subSessions"></div>
+          </div>
+          <div class="perf-card highlight" id="cardSuccessSessions">
+            <div class="card-label">Sessions w/ Successful Placements</div>
+            <div class="card-value" id="valSuccessSessions">-</div>
+            <div class="card-sub" id="subSuccessSessions"></div>
+          </div>
+          <div class="perf-card highlight" id="cardSuccessRate">
+            <div class="card-label">Success Rate</div>
+            <div class="card-value" id="valSuccessRate">-</div>
+            <div class="card-sub" id="subSuccessRate">Sessions w/ success ÷ Total sessions</div>
+          </div>
+          <div class="perf-card success" id="cardSuccessful">
+            <div class="card-label">Successful Placements</div>
+            <div class="card-value" id="valSuccessful">-</div>
+            <div class="card-sub" id="subSuccessful"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Per-FI Conversion Tables -->
+      <div id="fiTablesSection" style="display:none;">
+        <div class="perf-section-title">FI Performance Detail</div>
+
+        <div class="group-block" data-group="SSO" style="display:none;">
+          <div class="group-header">SSO</div>
+          <div class="table-scroll">
+          <table class="fi-table" id="table-SSO">
+          <thead><tr>
+            <th data-sort="fi">FI</th>
+            <th data-sort="instances">Instance</th>
+            <th data-sort="integration">Integration</th>
+            <th data-sort="ga_select" class="num">GA Select</th>
+            <th data-sort="ga_user" class="num">GA User</th>
+            <th data-sort="ga_cred" class="num">GA Cred</th>
+            <th data-sort="reach" class="num">Monthly Reach %</th>
+            <th data-sort="sel_user_pct" class="num">Sel→User %</th>
+            <th data-sort="sel_cred_pct" class="num">Sel→Cred %</th>
+            <th data-sort="sel_success_pct" class="num">Sel→Success %</th>
+            <th data-sort="sessions" class="num">Sessions</th>
+            <th data-sort="sess_with_success" class="num">Sess w/ Success</th>
+            <th data-sort="sess_success_pct" class="num">Sess→Success %</th>
+            <th data-sort="placements" class="num">Placements</th>
+          </tr></thead>
+          <tbody></tbody>
+          </table>
+          </div>
+        </div>
+
+        <div class="group-block" data-group="NON-SSO" style="display:none;">
+          <div class="group-header">NON-SSO</div>
+          <div class="table-scroll">
+          <table class="fi-table" id="table-NON-SSO">
+          <thead><tr>
+            <th data-sort="fi">FI</th>
+            <th data-sort="instances">Instance</th>
+            <th data-sort="integration">Integration</th>
+            <th data-sort="ga_select" class="num">GA Select</th>
+            <th data-sort="ga_user" class="num">GA User</th>
+            <th data-sort="ga_cred" class="num">GA Cred</th>
+            <th data-sort="reach" class="num">Monthly Reach %</th>
+            <th data-sort="sel_user_pct" class="num">Sel→User %</th>
+            <th data-sort="sel_cred_pct" class="num">Sel→Cred %</th>
+            <th data-sort="sel_success_pct" class="num">Sel→Success %</th>
+            <th data-sort="sessions" class="num">Sessions</th>
+            <th data-sort="sess_with_success" class="num">Sess w/ Success</th>
+            <th data-sort="sess_success_pct" class="num">Sess→Success %</th>
+            <th data-sort="placements" class="num">Placements</th>
+          </tr></thead>
+          <tbody></tbody>
+          </table>
+          </div>
+        </div>
+
+        <div class="group-block" data-group="CardSavr" style="display:none;">
+          <div class="group-header">CardSavr</div>
+          <div class="table-scroll">
+          <table class="fi-table" id="table-CardSavr">
+          <thead><tr>
+            <th data-sort="fi">FI</th>
+            <th data-sort="instances">Instance</th>
+            <th data-sort="integration">Integration</th>
+            <th data-sort="ga_select" class="num">GA Select</th>
+            <th data-sort="ga_user" class="num">GA User</th>
+            <th data-sort="ga_cred" class="num">GA Cred</th>
+            <th data-sort="reach" class="num">Monthly Reach %</th>
+            <th data-sort="sel_user_pct" class="num">Sel→User %</th>
+            <th data-sort="sel_cred_pct" class="num">Sel→Cred %</th>
+            <th data-sort="sel_success_pct" class="num">Sel→Success %</th>
+            <th data-sort="sessions" class="num">Sessions</th>
+            <th data-sort="sess_with_success" class="num">Sess w/ Success</th>
+            <th data-sort="sess_success_pct" class="num">Sess→Success %</th>
+            <th data-sort="placements" class="num">Placements</th>
+          </tr></thead>
+          <tbody></tbody>
+          </table>
+          </div>
+        </div>
+
+        <div class="group-block" data-group="UNKNOWN" style="display:none;">
+          <div class="group-header">Other</div>
+          <div class="table-scroll">
+          <table class="fi-table" id="table-UNKNOWN">
+          <thead><tr>
+            <th data-sort="fi">FI</th>
+            <th data-sort="instances">Instance</th>
+            <th data-sort="integration">Integration</th>
+            <th data-sort="ga_select" class="num">GA Select</th>
+            <th data-sort="ga_user" class="num">GA User</th>
+            <th data-sort="ga_cred" class="num">GA Cred</th>
+            <th data-sort="reach" class="num">Monthly Reach %</th>
+            <th data-sort="sel_user_pct" class="num">Sel→User %</th>
+            <th data-sort="sel_cred_pct" class="num">Sel→Cred %</th>
+            <th data-sort="sel_success_pct" class="num">Sel→Success %</th>
+            <th data-sort="sessions" class="num">Sessions</th>
+            <th data-sort="sess_with_success" class="num">Sess w/ Success</th>
+            <th data-sort="sess_success_pct" class="num">Sess→Success %</th>
+            <th data-sort="placements" class="num">Placements</th>
+          </tr></thead>
+          <tbody></tbody>
+          </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Highlights -->
+      <div id="highlightsSection" style="display:none;">
+        <div class="perf-section-title">Performance Highlights <span class="muted">(Best 7-Day Windows)</span></div>
+        <div id="bestWindows"></div>
+      </div>
+
+      <!-- Partner Integration Mix -->
+      <div id="partnerSummary" class="partner-summary" style="display:none;"></div>
+
+    </section>
+  </main>
+  </div>
+
+  <script>
+    // ─── DOM references ───
+    const startDateInput = document.getElementById("startDate");
+    const endDateInput = document.getElementById("endDate");
+    const dateWarningEl = document.getElementById("dateWarning");
+    const applyBtn = document.getElementById("applyBtn");
+    const exportCsvBtn = document.getElementById("exportCsvBtn");
+    const loaderEl = document.getElementById("pageLoader");
+    const loaderTextEl = loaderEl?.querySelector(".loading-text");
+    const bestWindowsDiv = document.getElementById("bestWindows");
+    const partnerSummaryBox = document.getElementById("partnerSummary");
+    const dateWindowLabel = document.getElementById("dateWindowLabel");
+    const perfOverview = document.getElementById("perfOverview");
+    const highlightsSection = document.getElementById("highlightsSection");
+    const totalsBar = document.getElementById("totalsBar");
+
+    // ─── Constants ───
+    const FI_ALL_VALUE = "__all__";
+    const PARTNER_ALL_VALUE = "__all_partners__";
+    const INSTANCE_ALL_VALUE = "__all_instances__";
+    const MIN_SELECTS = 10;
+
+    // ─── State ───
+    let registryMap = {};
+    let dailyFiles = [];
+    let dailyData = {};
+    let lastAggregated = null;
+    let lastRenderContext = null;
+    let lastFilterSnapshot = null;
+    let latestVisibleRows = [];
+    let latestHighlights = [];
+    let latestPartnerSummary = null;
+    let latestDailyDate = null;
+    let earliestDailyDate = null;
+
+    // ─── Helpers ───
+    const nextFrame = () => new Promise((resolve) => requestAnimationFrame(resolve));
+    const dayMs = 86400000;
+
+    const isoLocalFromDate = (d) => {
+      const copy = new Date(d.getTime());
+      copy.setHours(0, 0, 0, 0);
+      const tzOffset = copy.getTimezoneOffset() * 60000;
+      return new Date(copy.getTime() - tzOffset).toISOString().slice(0, 10);
+    };
+    const isoLocalToday = () => isoLocalFromDate(new Date());
+    const isoLocalDaysAgo = (n) => {
+      const d = new Date();
+      d.setDate(d.getDate() - n);
+      return isoLocalFromDate(d);
+    };
+    const isoLocalYesterday = () => isoLocalDaysAgo(1);
+    const defaultEndDateStr = isoLocalYesterday();
+    const defaultStartDateStr = isoLocalDaysAgo(6);
+
+    const getLatestUsableDateIso = () => isoLocalYesterday();
+    const getMaxSelectableDateIso = () => isoLocalToday();
+
+    function getReferenceDate() {
+      return new Date(`${getLatestUsableDateIso()}T00:00:00Z`);
+    }
+
+    function enforceEndDateBounds() {
+      try {
+        const baseIso = getMaxSelectableDateIso();
+        if (endDateInput && endDateInput.value && endDateInput.value > baseIso) {
+          endDateInput.value = baseIso;
+        }
+        if (startDateInput && endDateInput && startDateInput.value && endDateInput.value && startDateInput.value > endDateInput.value) {
+          startDateInput.value = endDateInput.value;
+        }
+      } catch (err) {}
+    }
+
+    function renderDateWarning() {
+      if (!dateWarningEl) return;
+      try {
+        if (!latestDailyDate) { dateWarningEl.style.display = "none"; dateWarningEl.textContent = ""; return; }
+        const chosenEnd = endDateInput?.value;
+        if (!chosenEnd || chosenEnd <= latestDailyDate) { dateWarningEl.style.display = "none"; dateWarningEl.textContent = ""; return; }
+        dateWarningEl.innerHTML = `Note: data is available through ${latestDailyDate}. You selected ${chosenEnd}.`;
+        dateWarningEl.style.display = "block";
+      } catch (err) {}
+    }
+
+    function applyPresetRange(value) {
+      const ref = getReferenceDate();
+      const iso = (d) => d.toISOString().slice(0, 10);
+      const daysAgo = (n) => iso(new Date(ref.getTime() - n * dayMs));
+      const startOfYear = `${ref.getUTCFullYear()}-01-01`;
+      let start = daysAgo(6);
+      let end = iso(ref);
+      switch (value) {
+        case "last7": start = daysAgo(6); break;
+        case "last14": start = daysAgo(13); break;
+        case "last30": start = daysAgo(29); break;
+        case "last60": start = daysAgo(59); break;
+        case "last90": start = daysAgo(89); break;
+        case "ytd": start = startOfYear; break;
+        default: start = daysAgo(6);
+      }
+      startDateInput.value = start;
+      endDateInput.value = end;
+      renderDateWarning();
+    }
+
+    function applyDefaultDateRange(force = false) {
+      if (force || !startDateInput.value || !endDateInput.value) {
+        applyPresetRange("last7");
+        const preset = document.getElementById("datePreset");
+        if (preset) preset.value = "last7";
+      }
+    }
+
+    function ensureDateDefaults() {
+      if (!startDateInput.value) startDateInput.value = defaultStartDateStr;
+      if (!endDateInput.value) endDateInput.value = defaultEndDateStr;
+      enforceEndDateBounds();
+    }
+
+    const normalizeFiKey = (value) => value ? value.toString().trim().toLowerCase() : "";
+    const normalizeInstanceKey = (value) => {
+      if (!value) return "unknown";
+      const str = value.toString().trim().toLowerCase();
+      const normalized = str.replace(/[^a-z0-9]/g, "");
+      return normalized || "unknown";
+    };
+    const makeFiInstanceKey = (fi, instance) => `${normalizeFiKey(fi)}__${normalizeInstanceKey(instance)}`;
+    const parseFiInstanceKey = (key = "") => {
+      if (!key.includes("__")) return { fi: key, instance: "unknown" };
+      const [fi, instance] = key.split("__");
+      return { fi, instance: instance || "unknown" };
+    };
+
+    const normalizeIntegrationKey = (val) => {
+      const upper = (val || "").toString().trim().toUpperCase();
+      if (upper === "NON-SSO" || upper === "NON_SSO" || upper === "NONSSO") return "NON-SSO";
+      if (upper === "SSO") return "SSO";
+      return upper;
+    };
+
+    function normalizeIntegrationLabel(value) {
+      if (!value) return "NON-SSO";
+      const raw = value.toString().trim().toUpperCase().replace(/[_\s-]+/g, "-");
+      if (raw === "SSO") return "SSO";
+      if (raw === "CARDSAVR" || raw === "CARD-SAVR" || raw === "CARDSAVER") return "CardSavr";
+      if (raw === "TEST") return "TEST";
+      if (raw === "UNKNOWN") return "UNKNOWN";
+      return "NON-SSO";
+    }
+
+    function formatPartnerLabel(value) {
+      if (!value) return "Unknown";
+      return value.toString();
+    }
+
+    function parseDateUtc(dateStr) { return new Date(`${dateStr}T00:00:00Z`); }
+    function formatDateUtc(dateObj) { return dateObj.toISOString().slice(0, 10); }
+
+    function dayCountInclusive(start, end) {
+      if (!start || !end) return null;
+      const diff = Math.floor((parseDateUtc(end) - parseDateUtc(start)) / dayMs);
+      return diff >= 0 ? diff + 1 : null;
+    }
+
+    function inRange(date, start, end) {
+      if (!date) return false;
+      if (start && date < start) return false;
+      if (end && date > end) return false;
+      return true;
+    }
+
+    function dayBefore(dateStr) {
+      const d = new Date(dateStr + "T00:00:00Z");
+      d.setUTCDate(d.getUTCDate() - 1);
+      return d.toISOString().slice(0, 10);
+    }
+
+    const INSTANCE_DISPLAY_OVERRIDES = new Map([["digital-onboarding", "digitalonboarding"]]);
+    function formatInstanceDisplay(value) {
+      if (!value) return "unknown";
+      const base = value.toString().trim().toLowerCase().replace(/[\s_]+/g, "-");
+      const display = base || "unknown";
+      return INSTANCE_DISPLAY_OVERRIDES.get(display) || display;
+    }
+
+    function getBillablePlacementCount(placements) {
+      if (!placements || typeof placements !== "object") return 0;
+      if (typeof placements.successful_placements === "number") return placements.successful_placements;
+      if (placements.by_termination && typeof placements.by_termination.BILLABLE === "number") return placements.by_termination.BILLABLE;
+      if (typeof placements.total_placements === "number") return placements.total_placements;
+      if (typeof placements.total === "number") return placements.total;
+      return 0;
+    }
+
+    // ─── Registry lookups ───
+    const registryInfoMap = new Map();
+    const registryCardholderMap = new Map();
+
+    function buildRegistryLookupKey(fiName, instanceValue) {
+      return makeFiInstanceKey(normalizeFiKey(fiName), normalizeInstanceKey(instanceValue));
+    }
+
+    function updateRegistryLookups(registryData = {}) {
+      registryInfoMap.clear();
+      registryCardholderMap.clear();
+      Object.values(registryData || {}).forEach((entry) => {
+        if (!entry || typeof entry !== "object") return;
+        const fiKey = normalizeFiKey(entry.fi_lookup_key || entry.fi_name);
+        const instanceValue = entry.instance || null;
+        const comboKey = buildRegistryLookupKey(fiKey, instanceValue);
+        if (comboKey && !registryInfoMap.has(comboKey)) registryInfoMap.set(comboKey, entry);
+        if (fiKey && !registryInfoMap.has(fiKey)) registryInfoMap.set(fiKey, entry);
+        const total = Number(entry.cardholder_total);
+        if (!Number.isFinite(total) || total <= 0) return;
+        const info = { total, as_of: entry.cardholder_as_of || null, source: entry.cardholder_source || null };
+        if (comboKey && !registryCardholderMap.has(comboKey)) registryCardholderMap.set(comboKey, info);
+        if (fiKey && !registryCardholderMap.has(fiKey)) registryCardholderMap.set(fiKey, info);
+      });
+    }
+
+    function getRegistryEntry(fiName, instanceValue) {
+      const fiKey = normalizeFiKey(fiName);
+      const comboKey = buildRegistryLookupKey(fiName, instanceValue);
+      return registryInfoMap.get(comboKey) || registryInfoMap.get(fiKey) || null;
+    }
+
+    function getRegistryCardholderInfo(fiName, instanceValue) {
+      const fiKey = normalizeFiKey(fiName);
+      const comboKey = buildRegistryLookupKey(fiName, instanceValue);
+      return registryCardholderMap.get(comboKey) || registryCardholderMap.get(fiKey) || null;
+    }
+
+    // ─── Data loading ───
+    async function fetchJson(url) {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`${url} → ${res.status}`);
+      return res.json();
+    }
+
+    function deriveIntegration(meta) {
+      const raw = (meta?.integration_type || "").toString().toLowerCase();
+      const instances = (meta?.instances || []).map((inst) => (inst || "").toString().toLowerCase());
+      const hasOnDot = instances.some((inst) => inst.includes("ondot"));
+      if (hasOnDot || raw === "cardsavr") return "CardSavr";
+      if (raw === "sso") return "SSO";
+      return "NON-SSO";
+    }
+
+    function extractInstances(meta) {
+      if (!meta || typeof meta !== "object") return [];
+      const list = Array.isArray(meta.instances) ? meta.instances.slice() : [];
+      if (meta.instance) list.push(meta.instance);
+      return Array.from(new Set(list.filter(Boolean).map((inst) => inst.toString()))).sort((a, b) => a.localeCompare(b));
+    }
+
+    async function fetchRegistry() {
+      const data = await fetchJson("/fi-registry");
+      const map = {};
+      const precedence = { CardSavr: 3, SSO: 2, "NON-SSO": 1 };
+      const mergeEntry = (key, payload) => {
+        if (!key) return;
+        if (!map[key]) { map[key] = { ...payload }; return; }
+        const existing = map[key];
+        const incomingPriority = precedence[payload.integration || "NON-SSO"] || 0;
+        const existingPriority = precedence[existing.integration || "NON-SSO"] || 0;
+        if (incomingPriority > existingPriority) existing.integration = payload.integration;
+        const mergedInstances = new Set(existing.instances || []);
+        (payload.instances || []).forEach((inst) => mergedInstances.add(inst));
+        existing.instances = Array.from(mergedInstances).sort((a, b) => a.localeCompare(b));
+        if (!existing.instance && payload.instance) existing.instance = payload.instance;
+        if (!existing.fi_lookup_key && payload.fi_lookup_key) existing.fi_lookup_key = payload.fi_lookup_key;
+        if (!existing.fi_name && payload.fi_name) existing.fi_name = payload.fi_name;
+        if (!existing.partner && payload.partner) existing.partner = payload.partner;
+        const incomingCardholders = Number(payload.cardholder_total);
+        if (Number.isFinite(incomingCardholders) && incomingCardholders > 0 && (!Number.isFinite(Number(existing.cardholder_total)) || Number(existing.cardholder_total) <= 0)) {
+          existing.cardholder_total = payload.cardholder_total;
+        }
+        if (!existing.cardholder_source && payload.cardholder_source) existing.cardholder_source = payload.cardholder_source;
+        if (!existing.cardholder_as_of && payload.cardholder_as_of) existing.cardholder_as_of = payload.cardholder_as_of;
+      };
+      const assignMeta = (metaLike = {}) => {
+        const fiKey = normalizeFiKey(metaLike.fi_lookup_key || metaLike.fi_name || metaLike.fi || "");
+        if (!fiKey) return;
+        const integration = deriveIntegration(metaLike);
+        const instances = extractInstances(metaLike);
+        const basePayload = {
+          integration, instances, fi_lookup_key: fiKey,
+          fi_name: metaLike.fi_name || metaLike.fi || metaLike.fi_lookup_key || "",
+          partner: metaLike.partner || null,
+          cardholder_total: metaLike.cardholder_total !== undefined ? metaLike.cardholder_total : null,
+          cardholder_as_of: metaLike.cardholder_as_of || null,
+          cardholder_source: metaLike.cardholder_source || null,
+          traffic_first_seen_sso: metaLike.traffic_first_seen_sso || null,
+        };
+        mergeEntry(fiKey, { ...basePayload });
+        if (instances.length) {
+          instances.forEach((instance) => {
+            const normInstance = normalizeInstanceKey(instance);
+            const comboKey = makeFiInstanceKey(fiKey, normInstance);
+            mergeEntry(comboKey, { ...basePayload, instances: [instance], instance });
+          });
+        } else {
+          const comboKey = makeFiInstanceKey(fiKey, "unknown");
+          mergeEntry(comboKey, { ...basePayload, instances: ["unknown"], instance: "unknown" });
+        }
+      };
+      if (Array.isArray(data)) {
+        data.forEach((row) => assignMeta(row || {}));
+      } else if (data && typeof data === "object") {
+        for (const [fiName, meta] of Object.entries(data)) {
+          assignMeta({ fi_name: fiName, ...(meta || {}) });
+        }
+      }
+      return map;
+    }
+
+    async function fetchDailyList() {
+      const payload = await fetch("/list-daily", { cache: 'no-store' }).then(r => r.json());
+      return payload.files || [];
+    }
+
+    async function fetchDaily(date) {
+      if (window.DataCache) {
+        const cached = await window.DataCache.getAsync(`daily_${date}`);
+        if (cached) return cached;
+      }
+      const payload = await fetchJson(`/daily?date=${date}`);
+      const result = payload?.error ? null : payload;
+      if (result && window.DataCache) await window.DataCache.set(`daily_${date}`, result);
+      return result;
+    }
+
+    async function fetchDailyRange(startDate, endDate) {
+      if (!startDate || !endDate) return null;
+      try {
+        const payload = await fetchJson(`/daily-range?start=${startDate}&end=${endDate}`);
+        if (!payload || payload.error) return null;
+        return payload.entries || null;
+      } catch (err) { return null; }
+    }
+
+    function getCardholderMap() { return {}; }
+
+    // ─── Aggregation ───
+    function getFiInstanceEntriesForDay(day) {
+      if (day?.fi_instances && Object.keys(day.fi_instances).length) {
+        return Object.entries(day.fi_instances).map(([key, row]) => {
+          const parsed = parseFiInstanceKey(key);
+          const instanceDisplay = formatInstanceDisplay(row.instance || parsed.instance);
+          const comboKey = key || makeFiInstanceKey(row.fi_lookup_key || parsed.fi, instanceDisplay);
+          return { key: comboKey, fi: row.fi_lookup_key || parsed.fi, instance: instanceDisplay, row };
+        });
+      }
+      if (!day?.fi) return [];
+      return Object.entries(day.fi).map(([fiName, row]) => {
+        const instances = Array.isArray(row.ga_instances) && row.ga_instances.length ? row.ga_instances : ["unknown"];
+        const instanceDisplay = formatInstanceDisplay(instances[0]);
+        const comboKey = makeFiInstanceKey(fiName, instanceDisplay);
+        return { key: comboKey, fi: fiName, instance: instanceDisplay, row };
+      });
+    }
+
+    function aggregateData(startDate, endDate, cardholderMap) {
+      const perFi = {};
+      const dates = Object.keys(dailyData).sort();
+      for (const date of dates) {
+        if (!inRange(date, startDate, endDate)) continue;
+        const day = dailyData[date];
+        if (!day?.fi) continue;
+        const entries = getFiInstanceEntriesForDay(day);
+        for (const entry of entries) {
+          const fiName = entry.fi || "unknown_fi";
+          const instanceName = entry.instance || "unknown";
+          const fiNorm = normalizeFiKey(fiName);
+          const comboKey = entry.key || makeFiInstanceKey(fiNorm, instanceName);
+          const registryEntry = getRegistryEntry(fiName, instanceName);
+          const row = entry.row || {};
+          const rowIsTest = Boolean(row.is_test);
+          const baseIntegration = normalizeIntegrationLabel(registryEntry?.integration || registryEntry?.integration_type);
+          const integration = rowIsTest ? "TEST" : baseIntegration;
+          const partnerLabel = formatPartnerLabel(registryEntry?.partner);
+          const agg = perFi[comboKey] || {
+            key: comboKey, fi: fiName, instance: instanceName, integration_type: integration,
+            partner: partnerLabel, ga_select: 0, ga_user: 0, ga_cred: 0,
+            sessions: 0, sess_with_jobs: 0, sess_with_success: 0,
+            total_jobs: 0, successful_jobs: 0, placements: 0,
+            instances: [instanceName], is_test: rowIsTest,
+            cardholders: null, cardholder_source: null, cardholder_as_of: null,
+          };
+          agg.integration_type = integration;
+          agg.is_test = agg.is_test || rowIsTest;
+          const existingInstanceKey = normalizeInstanceKey(agg.instance);
+          const incomingInstanceKey = normalizeInstanceKey(instanceName);
+          if (agg.instance === "unknown" || (existingInstanceKey === incomingInstanceKey && agg.instance.indexOf("-") === -1 && instanceName.indexOf("-") !== -1)) {
+            agg.instance = instanceName;
+          }
+          if (!agg.instances.some((v) => normalizeInstanceKey(v) === incomingInstanceKey)) {
+            agg.instances.push(instanceName);
+          }
+          if (row.ga) {
+            agg.ga_select += row.ga.select_merchants || 0;
+            agg.ga_user += row.ga.user_data_collection || 0;
+            agg.ga_cred += row.ga.credential_entry || 0;
+          }
+          if (row.sessions) {
+            agg.sessions += row.sessions.total || 0;
+            agg.sess_with_jobs += row.sessions.with_jobs || 0;
+            agg.sess_with_success += row.sessions.with_success || 0;
+            agg.total_jobs += row.sessions.total_jobs || 0;
+            agg.successful_jobs += row.sessions.successful_jobs || 0;
+          }
+          if (row.placements) agg.placements += getBillablePlacementCount(row.placements);
+          if (rowIsTest) agg.is_test = true;
+          const cardholders = cardholderMap[fiNorm];
+          if (typeof cardholders === "number" && cardholders > 0) {
+            agg.cardholders = cardholders; agg.cardholder_source = "manual"; agg.cardholder_as_of = null;
+          } else {
+            const registryInfo = getRegistryCardholderInfo(fiName, instanceName);
+            if (registryInfo?.total) {
+              agg.cardholders = registryInfo.total; agg.cardholder_source = registryInfo.source || null; agg.cardholder_as_of = registryInfo.as_of || null;
+            }
+          }
+          if (!agg.partner || agg.partner === "Unknown") agg.partner = partnerLabel;
+          perFi[comboKey] = agg;
+        }
+      }
+      for (const agg of Object.values(perFi)) {
+        const registryInfo = getRegistryEntry(agg.fi, agg.instance);
+        const derivedIntegration = registryInfo?.integration || registryInfo?.integration_type || agg.integration_type;
+        const instanceKey = normalizeInstanceKey(agg.instance);
+        let normalized = agg.is_test ? "TEST" : normalizeIntegrationLabel(derivedIntegration);
+        if (instanceKey === "ondot" && normalized !== "TEST") normalized = "CardSavr";
+        agg.integration_type = normalized;
+      }
+      return perFi;
+    }
+
+    // ─── Filtering ───
+    function getVisibleRows(perFi) {
+      const shared = window.__FILTER_STATE;
+      // Customer page: never include test data
+      const includeTests = false;
+      const fiTouched = shared && shared.__fiTouched;
+      if (shared && shared.page === "funnel-customer") {
+        const sharedFiSet = shared.fis ? new Set(Array.from(shared.fis).map((fi) => normalizeFiKey(fi))) : new Set();
+        const partnerSet = shared.partnerSetNormalized instanceof Set ? shared.partnerSetNormalized : null;
+        const integrationSet = shared.integrationSetNormalized instanceof Set ? shared.integrationSetNormalized : null;
+        const partnerSetActive = Boolean(shared.__partnerSetTouched);
+        const integrationSetActive = Boolean(shared.__integrationSetTouched);
+        const instanceSet = shared.instanceSetNormalized instanceof Set ? shared.instanceSetNormalized : null;
+        const instanceSetActive = Boolean(shared.__instanceSetTouched);
+        return Object.values(perFi).filter((row) => {
+          if (!includeTests && row.is_test) return false;
+          if (fiTouched && sharedFiSet.size === 0) return false;
+          if (partnerSetActive && (!partnerSet || partnerSet.size === 0)) return false;
+          if (integrationSetActive && (!integrationSet || integrationSet.size === 0)) return false;
+          if (partnerSetActive && partnerSet && partnerSet.size) {
+            const rowPartner = row.partner || "Unknown";
+            if (!partnerSet.has(rowPartner)) return false;
+          }
+          if (integrationSetActive && integrationSet && integrationSet.size) {
+            const rowIntegration = normalizeIntegrationKey(row.integration_type || "");
+            const allowed = new Set(Array.from(integrationSet).map((v) => normalizeIntegrationKey(v)));
+            if (!allowed.has(rowIntegration)) return false;
+          }
+          if (instanceSetActive) {
+            if (!instanceSet || instanceSet.size === 0) return false;
+            const rowInstanceKey = normalizeInstanceKey(row.instance);
+            if (!instanceSet.has(rowInstanceKey)) return false;
+          }
+          if (sharedFiSet.size) {
+            const fiKey = normalizeFiKey(row.fi);
+            if (!sharedFiSet.has(fiKey)) return false;
+          }
+          return true;
+        });
+      }
+      // Fallback: enforce user scope
+      let allowedInstances = null;
+      let allowedPartners = null;
+      try {
+        const user = window.sisAuth?.getUser?.();
+        if (user && user.access_level === "limited") {
+          if (Array.isArray(user.instance_keys) && user.instance_keys.length > 0) {
+            allowedInstances = new Set(user.instance_keys.map(k => (k || "").toString().trim().toLowerCase()));
+          }
+          if (Array.isArray(user.partner_keys) && user.partner_keys.length > 0) {
+            allowedPartners = new Set(user.partner_keys.map(k => (k || "").toString().trim().toLowerCase()));
+          }
+        }
+      } catch (e) {}
+      return Object.values(perFi).filter((row) => {
+        if (!includeTests && row.is_test) return false;
+        if (allowedInstances) {
+          const rowInstance = (row.instance || "").toString().trim().toLowerCase();
+          if (!allowedInstances.has(rowInstance)) return false;
+        }
+        if (allowedPartners) {
+          const rowPartner = (row.partner || "").toString().trim().toLowerCase();
+          if (!allowedPartners.has(rowPartner)) return false;
+        }
+        return true;
+      });
+    }
+
+    function isSingleFiSelected() {
+      const shared = window.__FILTER_STATE;
+      if (shared && shared.page === "funnel-customer") {
+        return shared.fis && shared.fis.size === 1;
+      }
+      return false;
+    }
+
+    // ─── Termination rules (needed for placement categorization) ───
+    const TERMINATION_RULES = {
+      BILLABLE: { label: "Successful", severity: "success" },
+      SITE_INTERACTION_FAILURE: { label: "Automation / site failed", severity: "site-failure" },
+      UNSUCCESSFUL: { label: "Ran but didn't complete", severity: "site-failure" },
+      USER_DATA_FAILURE: { label: "Bad or missing user data", severity: "ux" },
+      NEVER_STARTED: { label: "User didn't proceed", severity: "ux" },
+      TIMEOUT_CREDENTIALS: { label: "User didn't finish login", severity: "ux" },
+      TIMEOUT_TFA: { label: "User didn't finish MFA", severity: "ux" },
+      ABANDONED_QUICKSTART: { label: "User bailed from QuickStart", severity: "ux" },
+      CANCELED: { label: "User canceled", severity: "ux" },
+      ACCOUNT_SETUP_INCOMPLETE: { label: "User didn't finish setup", severity: "ux" },
+      TOO_MANY_LOGIN_FAILURES: { label: "User kept failing login", severity: "ux" },
+      ACCOUNT_LOCKED: { label: "User account locked", severity: "ux" },
+      PASSWORD_RESET_REQUIRED: { label: "Password reset needed", severity: "ux" },
+      INVALID_CARD_DETAILS: { label: "Bad card info", severity: "ux" },
+      UNKNOWN: { label: "Unknown", severity: "unknown" },
+    };
+
+    // ─── Metrics calculation (customer-facing: only positive metrics) ───
+    function calculateMetrics(startDate, endDate, visibleRows) {
+      const metrics = {
+        totalGaSelect: 0, totalGaUser: 0, totalGaCred: 0,
+        totalSessions: 0, sessionsWithJobs: 0, sessionsWithSuccessfulJobs: 0,
+        totalJobs: 0, successful: 0, totalPlacements: 0,
+      };
+      for (const row of visibleRows) {
+        metrics.totalGaSelect += row.ga_select || 0;
+        metrics.totalGaUser += row.ga_user || 0;
+        metrics.totalGaCred += row.ga_cred || 0;
+        metrics.totalSessions += row.sessions || 0;
+        metrics.sessionsWithJobs += row.sess_with_jobs || 0;
+        metrics.sessionsWithSuccessfulJobs += row.sess_with_success || 0;
+        metrics.totalJobs += row.total_jobs || 0;
+      }
+      // Count placements from daily data (only successful)
+      const dates = Object.keys(dailyData).sort();
+      for (const date of dates) {
+        if (!inRange(date, startDate, endDate)) continue;
+        const day = dailyData[date];
+        if (!day?.fi_instances) continue;
+        for (const fiInstanceKey in day.fi_instances) {
+          const fid = day.fi_instances[fiInstanceKey];
+          if (!fid?.placements?.by_termination) continue;
+          const fiName = fid.fi_lookup_key || fid.fi_name || "";
+          const instanceName = fid.instance || "";
+          const isVisible = visibleRows.some(row => {
+            const rowFi = normalizeFiKey(row.fi || "");
+            const dayFi = normalizeFiKey(fiName);
+            if (rowFi !== dayFi) return false;
+            const rowInstance = normalizeInstanceKey(row.instance);
+            const dayInstance = normalizeInstanceKey(instanceName);
+            if (rowInstance && rowInstance !== "any" && dayInstance !== rowInstance) return false;
+            return true;
+          });
+          if (!isVisible) continue;
+          for (const termType in fid.placements.by_termination) {
+            const count = fid.placements.by_termination[termType];
+            const rule = TERMINATION_RULES[termType] || TERMINATION_RULES.UNKNOWN;
+            if (rule.severity === "success") metrics.successful += count;
+            metrics.totalPlacements += count;
+          }
+        }
+      }
+      return metrics;
+    }
+
+    // ─── Best windows (highlights) ───
+    function computeBestWindows(startDate, endDate, perFiLookup = {}, visibleRows = [], monthlyFactor = 1, options = {}) {
+      const dates = Object.keys(dailyData).filter((d) => inRange(d, startDate, endDate)).sort();
+      if (!dates.length) return [];
+      const allowLowVolume = Boolean(options.allowLowVolume);
+      const allowedSet = new Set(visibleRows.map((row) => row.key || makeFiInstanceKey(normalizeFiKey(row.fi), normalizeInstanceKey(row.instance))));
+      const restrict = allowedSet.size > 0;
+      const fiDaily = {};
+      for (const date of dates) {
+        const day = dailyData[date];
+        if (!day?.fi) continue;
+        const entries = getFiInstanceEntriesForDay(day);
+        for (const entry of entries) {
+          const fiDay = entry.row;
+          const comboKey = entry.key || makeFiInstanceKey(entry.fi, entry.instance);
+          const ga = fiDay.ga || {};
+          if (!fiDaily[comboKey]) fiDaily[comboKey] = {};
+          fiDaily[comboKey][date] = {
+            select: ga.select_merchants || 0, user: ga.user_data_collection || 0,
+            cred: ga.credential_entry || 0, sessions: fiDay.sessions?.total || 0,
+            sess_with_jobs: fiDay.sessions?.with_jobs || 0, sess_with_success: fiDay.sessions?.with_success || 0,
+            placements: getBillablePlacementCount(fiDay.placements),
+          };
+        }
+      }
+      const perFiByKey = {};
+      Object.entries(perFiLookup || {}).forEach(([key, data]) => {
+        perFiByKey[key] = data;
+        if (data && data.fi) {
+          const combo = data.key || makeFiInstanceKey(data.fi, data.instance);
+          if (!perFiByKey[combo]) perFiByKey[combo] = data;
+        }
+      });
+      const windows = [
+        { label: "Most CardUpdatr Launches", len: 7, minSelects: MIN_SELECTS, minSessions: 0,
+          compare: (c, b) => { if (c.sel !== b.sel) return c.sel - b.sel; if (c.sessionSuccessRatio !== b.sessionSuccessRatio) return c.sessionSuccessRatio - b.sessionSuccessRatio; return c.sessions - b.sessions; } },
+        { label: "Most CardUpdatr Launches with Successful Placements", len: 7, minSelects: 25, minSessions: 14,
+          compare: (c, b) => { if (c.selSuccessRatio !== b.selSuccessRatio) return c.selSuccessRatio - b.selSuccessRatio; if (c.sel !== b.sel) return c.sel - b.sel; return c.sessions - b.sessions; } },
+        { label: "Most Cardholders Starting Merchant Placements", len: 7, minSelects: MIN_SELECTS, minSessions: MIN_SELECTS,
+          compare: (c, b) => { if (c.sessions !== b.sessions) return c.sessions - b.sessions; if (c.sessionSuccessRatio !== b.sessionSuccessRatio) return c.sessionSuccessRatio - b.sessionSuccessRatio; return c.sel - b.sel; } },
+        { label: "Most Cardholders Successfully Placing a Card", len: 7, minSelects: MIN_SELECTS, minSessions: MIN_SELECTS,
+          compare: (c, b) => { if (c.sess_with_success !== b.sess_with_success) return c.sess_with_success - b.sess_with_success; if (c.sessions !== b.sessions) return c.sessions - b.sessions; return c.sel - b.sel; } },
+      ];
+      const results = [];
+      for (const config of windows) {
+        const { label, len } = config;
+        if (dates.length < len) { results.push({ label, empty: true }); continue; }
+        const compareFn = config.compare;
+        const minSelects = allowLowVolume ? 1 : config.minSelects || MIN_SELECTS;
+        const minSessions = allowLowVolume ? 1 : config.minSessions || 0;
+        let best = null;
+        for (const [comboKey, dailyMap] of Object.entries(fiDaily)) {
+          if (restrict && !allowedSet.has(comboKey)) continue;
+          for (let idx = 0; idx <= dates.length - len; idx += 1) {
+            let sel = 0, user = 0, cred = 0, sessions = 0, sessWithJobs = 0, sessWithSuccess = 0, placements = 0;
+            for (let offset = 0; offset < len; offset += 1) {
+              const stats = dailyMap[dates[idx + offset]];
+              if (stats) {
+                sel += stats.select || 0; user += stats.user || 0; cred += stats.cred || 0;
+                sessions += stats.sessions || 0; sessWithJobs += stats.sess_with_jobs || 0;
+                sessWithSuccess += stats.sess_with_success || 0; placements += stats.placements || 0;
+              }
+            }
+            if (sel < minSelects || sessions < minSessions) continue;
+            const sessionSuccessRatio = sessions ? sessWithSuccess / sessions : 0;
+            const selSuccessRatio = sel ? sessWithSuccess / sel : 0;
+            const candidate = {
+              label, key: comboKey,
+              fi: perFiByKey[comboKey]?.fi || comboKey,
+              instance: perFiByKey[comboKey]?.instance || parseFiInstanceKey(comboKey).instance,
+              start: dates[idx], end: dates[idx + len - 1],
+              sel, user, cred, sessionSuccessRatio, selSuccessRatio,
+              sessions, sess_with_jobs: sessWithJobs, sess_with_success: sessWithSuccess, placements,
+            };
+            if (!best || compareFn(candidate, best) > 0) best = candidate;
+          }
+        }
+        if (best) {
+          const aggRow = perFiByKey[best.key] || {};
+          const registryInfo = getRegistryEntry(best.fi, best.instance);
+          best.instances = (aggRow.instances || registryInfo?.instances || [best.instance]).join(", ");
+          best.integration = normalizeIntegrationLabel(aggRow.integration_type || registryInfo?.integration || "UNKNOWN");
+          best.partner = aggRow.partner || registryInfo?.partner || "";
+          results.push(best);
+        } else {
+          results.push({ label, empty: true });
+        }
+      }
+      return results;
+    }
+
+    // ─── Partner summary ───
+    function buildPartnerSummaryData(rows = [], daySpan = 0, partnerValue = PARTNER_ALL_VALUE) {
+      if (!rows || !rows.length || !partnerValue || partnerValue === PARTNER_ALL_VALUE) return null;
+      const relevant = rows.filter((row) => (row.partner || "Unknown") === partnerValue);
+      if (!relevant.length) return null;
+      const makeBucket = () => ({ fiCount: 0, ga_select: 0, sessions: 0, sess_with_success: 0, placements: 0, cardholders: 0 });
+      const buckets = { SSO: makeBucket(), "NON-SSO": makeBucket() };
+      relevant.forEach((row) => {
+        const key = row.integration_type === "SSO" ? "SSO" : row.integration_type === "NON-SSO" ? "NON-SSO" : null;
+        if (!key) return;
+        const bucket = buckets[key];
+        bucket.ga_select += row.ga_select || 0;
+        bucket.sessions += row.sessions || 0;
+        bucket.sess_with_success += row.sess_with_success || 0;
+        bucket.placements += row.placements || 0;
+        if (typeof row.cardholders === "number" && row.cardholders > 0) bucket.cardholders += row.cardholders;
+        bucket.fiCount += 1;
+      });
+      const monthlyFactor = daySpan ? 30 / daySpan : 1;
+      const totals = makeBucket();
+      const bucketSummaries = Object.entries(buckets).map(([key, bucket]) => {
+        bucket.selSuccessPct = bucket.ga_select > 0 && bucket.sess_with_success > 0 ? (bucket.sess_with_success / bucket.ga_select) * 100 : null;
+        bucket.sessionSuccessPct = bucket.sessions > 0 && bucket.sess_with_success > 0 ? (bucket.sess_with_success / bucket.sessions) * 100 : null;
+        totals.ga_select += bucket.ga_select; totals.sessions += bucket.sessions;
+        totals.sess_with_success += bucket.sess_with_success; totals.placements += bucket.placements;
+        totals.cardholders += bucket.cardholders; totals.fiCount += bucket.fiCount;
+        return { key, bucket };
+      });
+      const rowsOut = bucketSummaries.map(({ key, bucket }) => ({
+        integration: key, fiCount: bucket.fiCount, ga_select: bucket.ga_select,
+        selSuccessPct: bucket.selSuccessPct, sessions: bucket.sessions,
+        sess_with_success: bucket.sess_with_success, sessionSuccessPct: bucket.sessionSuccessPct,
+      }));
+      totals.selSuccessPct = totals.ga_select > 0 && totals.sess_with_success > 0 ? (totals.sess_with_success / totals.ga_select) * 100 : null;
+      totals.sessionSuccessPct = totals.sessions > 0 && totals.sess_with_success > 0 ? (totals.sess_with_success / totals.sessions) * 100 : null;
+      return {
+        partner: partnerValue, daySpan, rows: rowsOut,
+        totals: { integration: "Total", fiCount: totals.fiCount, ga_select: totals.ga_select, selSuccessPct: totals.selSuccessPct, sessions: totals.sessions, sess_with_success: totals.sess_with_success, sessionSuccessPct: totals.sessionSuccessPct },
+        instanceCount: relevant.length,
+      };
+    }
+
+    // ─── Loading UI ───
+    let loaderTimer = null;
+    let loaderStartedAt = 0;
+    const MIN_LOADER_MS = 350;
+    const setLoaderMessage = (msg) => { if (loaderTextEl && msg) loaderTextEl.textContent = msg; };
+    function startLoading(message = "Loading data…") {
+      if (!loaderEl) return;
+      if (loaderTimer) { clearTimeout(loaderTimer); loaderTimer = null; }
+      loaderStartedAt = Date.now();
+      loaderEl.style.display = "flex"; loaderEl.style.visibility = "visible"; loaderEl.style.opacity = "1";
+      setLoaderMessage(message);
+    }
+    function stopLoading() {
+      if (!loaderEl) return;
+      const elapsed = Date.now() - loaderStartedAt;
+      if (elapsed < MIN_LOADER_MS) { loaderTimer = setTimeout(stopLoading, MIN_LOADER_MS - elapsed); return; }
+      loaderTimer = null;
+      loaderEl.style.display = "none"; loaderEl.style.visibility = "hidden"; loaderEl.style.opacity = "0";
+      if (loaderTextEl) loaderTextEl.textContent = "";
+    }
+
+    // ─── Rendering ───
+    const fmt = (n) => typeof n === "number" && Number.isFinite(n) ? n.toLocaleString("en-US") : "0";
+    const pct = (num, den) => den > 0 ? ((num / den) * 100).toFixed(1) + "%" : "—";
+
+    function renderMetrics(metrics, startDate, endDate, daySpan, fiCount) {
+      perfOverview.style.display = "";
+      dateWindowLabel.textContent = `Date window: ${startDate} → ${endDate} (${fiCount} FIs)`;
+
+      document.getElementById("valGaSelect").textContent = fmt(metrics.totalGaSelect);
+      document.getElementById("valGaUser").textContent = fmt(metrics.totalGaUser);
+      document.getElementById("subGaUser").textContent = pct(metrics.totalGaUser, metrics.totalGaSelect) + " of launches";
+      document.getElementById("valGaCred").textContent = fmt(metrics.totalGaCred);
+      document.getElementById("subGaCred").textContent = pct(metrics.totalGaCred, metrics.totalGaSelect) + " of launches";
+      document.getElementById("valSessions").textContent = fmt(metrics.totalSessions);
+      document.getElementById("subSessions").textContent = pct(metrics.totalSessions, metrics.totalGaSelect) + " of launches";
+      document.getElementById("valSuccessSessions").textContent = fmt(metrics.sessionsWithSuccessfulJobs);
+      document.getElementById("subSuccessSessions").textContent = pct(metrics.sessionsWithSuccessfulJobs, metrics.totalSessions) + " of sessions";
+
+      const successRate = metrics.totalSessions > 0 ? ((metrics.sessionsWithSuccessfulJobs / metrics.totalSessions) * 100).toFixed(1) + "%" : "—";
+      document.getElementById("valSuccessRate").textContent = successRate;
+
+      document.getElementById("valSuccessful").textContent = fmt(metrics.successful);
+      document.getElementById("subSuccessful").textContent = "Cards updated at merchants";
+
+      // Totals bar
+      const parts = [];
+      parts.push(`sel ${fmt(metrics.totalGaSelect)}`);
+      parts.push(`user ${fmt(metrics.totalGaUser)}`);
+      parts.push(`cred ${fmt(metrics.totalGaCred)}`);
+      parts.push(`sessions ${fmt(metrics.totalSessions)}`);
+      parts.push(`sess w/ success ${fmt(metrics.sessionsWithSuccessfulJobs)}`);
+      totalsBar.innerHTML = `Totals (${fiCount} FIs): ${parts.join(" | ")}`;
+      totalsBar.style.display = "";
+    }
+
+    // ─── Per-FI table rendering ───
+    const fiTablesSection = document.getElementById("fiTablesSection");
+    const fiTableBodies = {};
+    const fiGroupBlocks = {};
+    const fiGroupHeaders = {};
+    ["SSO", "NON-SSO", "CardSavr", "UNKNOWN"].forEach(key => {
+      const block = fiTablesSection?.querySelector(`[data-group="${key}"]`);
+      if (block) {
+        fiGroupBlocks[key] = block;
+        fiGroupHeaders[key] = block.querySelector(".group-header");
+        fiTableBodies[key] = block.querySelector("tbody");
+      }
+    });
+
+    const tableSortState = {};
+
+    function getMonthlyReachValue(row) {
+      const cardholders = row?.cardholders;
+      if (!cardholders || cardholders <= 0) return 0;
+      const dayCount = row.dayCount || dayCountInclusive(row.periodStart || row.start, row.periodEnd || row.end) || lastRenderContext?.daySpan || 1;
+      const reachBase = row.ga_select > 0 ? row.ga_select : row.sessions;
+      if (!reachBase || dayCount <= 0) return 0;
+      const reachMonthly = reachBase * (30 / dayCount);
+      return reachMonthly > 0 ? reachMonthly / cardholders : 0;
+    }
+
+    function formatMonthlyReachPct(row) {
+      const value = getMonthlyReachValue(row);
+      return value > 0 ? (value * 100).toFixed(1) + "%" : "";
+    }
+
+    function formatSessSuccessPct(row) {
+      if (!row.sessions) return "";
+      return (((row.sess_with_success || 0) / row.sessions) * 100).toFixed(1) + "%";
+    }
+
+    function formatSelSuccessPct(row) {
+      const sel = row.ga_select || row.sel || 0;
+      if (!sel || !row.sess_with_success) return "";
+      return ((row.sess_with_success / sel) * 100).toFixed(1) + "%";
+    }
+
+    function getSortValue(row, key) {
+      switch (key) {
+        case "fi": return (row.fi || "").toLowerCase();
+        case "instances": return (row.instance || "").toLowerCase();
+        case "integration": return (row.integration_type || "").toLowerCase();
+        case "ga_select": return row.ga_select || 0;
+        case "ga_user": return row.ga_user || 0;
+        case "ga_cred": return row.ga_cred || 0;
+        case "reach": return getMonthlyReachValue(row);
+        case "sel_user_pct": return row.ga_select ? row.ga_user / row.ga_select : 0;
+        case "sel_cred_pct": return row.ga_select ? row.ga_cred / row.ga_select : 0;
+        case "sel_success_pct": return row.ga_select && row.sess_with_success ? row.sess_with_success / row.ga_select : 0;
+        case "sessions": return row.sessions || 0;
+        case "sess_with_success": return row.sess_with_success || 0;
+        case "sess_success_pct": return row.sessions ? (row.sess_with_success || 0) / row.sessions : 0;
+        case "placements": return row.placements || 0;
+        default: return 0;
+      }
+    }
+
+    function renderFiRow(row, integration) {
+      const instancesText = row.instance || (Array.isArray(row.instances) ? row.instances.join(", ") : "");
+      const selUserPct = row.ga_select ? ((row.ga_user / row.ga_select) * 100).toFixed(1) + "%" : "";
+      const selCredPct = row.ga_select ? ((row.ga_cred / row.ga_select) * 100).toFixed(1) + "%" : "";
+      const selSuccPct = formatSelSuccessPct(row);
+      const reachPct = formatMonthlyReachPct(row);
+      const reachVal = getMonthlyReachValue(row);
+      const reachCls = reachVal >= 0.025 ? " reach-good" : reachVal > 0 ? " reach-low" : "";
+      const sessSuccPct = formatSessSuccessPct(row);
+
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${row.fi}</td>
+        <td>${instancesText}</td>
+        <td>${integration}</td>
+        <td class="num">${row.ga_select || 0}</td>
+        <td class="num">${row.ga_user || 0}</td>
+        <td class="num">${row.ga_cred || 0}</td>
+        <td class="num${reachCls}">${reachPct}</td>
+        <td class="num">${selUserPct}</td>
+        <td class="num">${selCredPct}</td>
+        <td class="num">${selSuccPct}</td>
+        <td class="num">${row.sessions || 0}</td>
+        <td class="num">${row.sess_with_success || 0}</td>
+        <td class="num">${sessSuccPct}</td>
+        <td class="num">${row.placements || 0}</td>
+      `;
+      return tr;
+    }
+
+    function buildFiTotalsRow(rows, integration) {
+      if (!rows.length) return null;
+      const t = rows.reduce((acc, r) => {
+        acc.ga_select += r.ga_select || 0;
+        acc.ga_user += r.ga_user || 0;
+        acc.ga_cred += r.ga_cred || 0;
+        acc.sessions += r.sessions || 0;
+        acc.sess_with_success += r.sess_with_success || 0;
+        acc.placements += r.placements || 0;
+        return acc;
+      }, { ga_select: 0, ga_user: 0, ga_cred: 0, sessions: 0, sess_with_success: 0, placements: 0 });
+
+      const selUserPct = t.ga_select ? ((t.ga_user / t.ga_select) * 100).toFixed(1) + "%" : "";
+      const selCredPct = t.ga_select ? ((t.ga_cred / t.ga_select) * 100).toFixed(1) + "%" : "";
+      const selSuccPct = t.ga_select && t.sess_with_success ? ((t.sess_with_success / t.ga_select) * 100).toFixed(1) + "%" : "";
+      const sessSuccPct = t.sessions ? ((t.sess_with_success / t.sessions) * 100).toFixed(1) + "%" : "";
+
+      const tr = document.createElement("tr");
+      tr.className = "totals-row";
+      tr.innerHTML = `
+        <td>Total</td>
+        <td>—</td>
+        <td>${integration}</td>
+        <td class="num">${t.ga_select}</td>
+        <td class="num">${t.ga_user}</td>
+        <td class="num">${t.ga_cred}</td>
+        <td class="num"></td>
+        <td class="num">${selUserPct}</td>
+        <td class="num">${selCredPct}</td>
+        <td class="num">${selSuccPct}</td>
+        <td class="num">${t.sessions}</td>
+        <td class="num">${t.sess_with_success}</td>
+        <td class="num">${sessSuccPct}</td>
+        <td class="num">${t.placements}</td>
+      `;
+      return tr;
+    }
+
+    function renderTables(visibleRows) {
+      if (!fiTablesSection) return;
+      if (!visibleRows.length) { fiTablesSection.style.display = "none"; return; }
+      fiTablesSection.style.display = "";
+
+      // Bucket by integration type (no TEST bucket on customer page)
+      const bucketed = { SSO: [], "NON-SSO": [], CardSavr: [], UNKNOWN: [] };
+      visibleRows.forEach(row => {
+        const integration = normalizeIntegrationLabel(row.integration_type || "UNKNOWN");
+        row.integration_type = integration;
+        // Skip test rows entirely
+        if (integration === "TEST") return;
+        const key = bucketed[integration] ? integration : "UNKNOWN";
+        bucketed[key].push(row);
+      });
+
+      Object.entries(bucketed).forEach(([integration, rows]) => {
+        const tbody = fiTableBodies[integration];
+        if (!tbody) return;
+        tbody.innerHTML = "";
+
+        // Sort
+        const state = tableSortState[integration];
+        let sorted = rows;
+        if (state && state.key) {
+          const dir = state.dir === "desc" ? -1 : 1;
+          sorted = [...rows].sort((a, b) => {
+            const va = getSortValue(a, state.key);
+            const vb = getSortValue(b, state.key);
+            if (typeof va === "string") return dir * va.localeCompare(vb);
+            return dir * (va - vb);
+          });
+        } else {
+          sorted = [...rows].sort((a, b) => (b.ga_select || 0) - (a.ga_select || 0));
+        }
+
+        sorted.forEach(row => tbody.appendChild(renderFiRow(row, integration)));
+        const totalsRow = buildFiTotalsRow(rows, integration);
+        if (totalsRow) tbody.appendChild(totalsRow);
+
+        const block = fiGroupBlocks[integration];
+        if (block) block.style.display = rows.length ? "" : "none";
+        const header = fiGroupHeaders[integration];
+        if (header) header.textContent = rows.length ? `${integration} (${rows.length})` : integration;
+      });
+
+      // Attach sort handlers
+      fiTablesSection.querySelectorAll("th[data-sort]").forEach(th => {
+        if (th.__sortBound) return;
+        th.__sortBound = true;
+        th.addEventListener("click", () => {
+          const key = th.getAttribute("data-sort");
+          const table = th.closest("table");
+          const group = table?.closest("[data-group]")?.getAttribute("data-group");
+          if (!group) return;
+          const prev = tableSortState[group];
+          if (prev && prev.key === key) {
+            tableSortState[group] = { key, dir: prev.dir === "asc" ? "desc" : "asc" };
+          } else {
+            tableSortState[group] = { key, dir: key === "fi" || key === "instances" ? "asc" : "desc" };
+          }
+          if (latestVisibleRows) renderTables(latestVisibleRows);
+        });
+      });
+    }
+
+    function renderHighlights(highlights) {
+      const valid = (highlights || []).filter(h => h && !h.empty);
+      if (!valid.length) { highlightsSection.style.display = "none"; return; }
+      highlightsSection.style.display = "";
+      const rows = valid.map(h => {
+        const dateRange = h.start === h.end ? h.start : `${h.start} → ${h.end}`;
+        const selSuccessPct = typeof h.selSuccessRatio === "number" ? (h.selSuccessRatio * 100).toFixed(1) + "%" : "—";
+        const sessSuccessPct = typeof h.sessionSuccessRatio === "number" ? (h.sessionSuccessRatio * 100).toFixed(1) + "%" : "—";
+        return `<tr>
+          <td class="hl-label">${h.label || ""}</td>
+          <td>${h.fi || ""}${h.instance ? ' <span class="muted">(' + h.instance + ')</span>' : ""}</td>
+          <td>${h.integration || ""}</td>
+          <td class="nowrap">${dateRange}</td>
+          <td class="num">${fmt(h.sel)}</td>
+          <td class="num">${fmt(h.sessions)}</td>
+          <td class="num">${fmt(h.sess_with_success)}</td>
+          <td class="num">${selSuccessPct}</td>
+          <td class="num">${sessSuccessPct}</td>
+          <td class="num">${fmt(h.placements)}</td>
+        </tr>`;
+      }).join("");
+      bestWindowsDiv.innerHTML = `<table class="highlights-table">
+        <thead><tr>
+          <th>Highlight</th><th>FI</th><th>Integration</th><th>Window</th>
+          <th class="num">GA Select</th><th class="num">Sessions</th><th class="num">Sess w/ Success</th>
+          <th class="num">Sel→Succ %</th><th class="num">Sess→Succ %</th><th class="num">Placements</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+    }
+
+    function renderPartnerSummary(summaryData) {
+      if (!partnerSummaryBox) return;
+      if (!summaryData) { partnerSummaryBox.style.display = "none"; partnerSummaryBox.innerHTML = ""; return; }
+      const pctStr = (v) => typeof v === "number" && Number.isFinite(v) ? v.toFixed(1) + "%" : "—";
+      const rows = summaryData.rows.map(r => `<tr>
+        <td>${r.integration}</td><td class="num">${r.fiCount}</td><td class="num">${fmt(r.ga_select)}</td>
+        <td class="num">${pctStr(r.selSuccessPct)}</td><td class="num">${fmt(r.sessions)}</td>
+        <td class="num">${fmt(r.sess_with_success)}</td><td class="num">${pctStr(r.sessionSuccessPct)}</td>
+      </tr>`).join("");
+      const t = summaryData.totals || {};
+      const totalRow = `<tr class="total-row">
+        <td><strong>Total</strong></td><td class="num"><strong>${t.fiCount || ""}</strong></td>
+        <td class="num"><strong>${fmt(t.ga_select)}</strong></td><td class="num"><strong>${pctStr(t.selSuccessPct)}</strong></td>
+        <td class="num"><strong>${fmt(t.sessions)}</strong></td><td class="num"><strong>${fmt(t.sess_with_success)}</strong></td>
+        <td class="num"><strong>${pctStr(t.sessionSuccessPct)}</strong></td>
+      </tr>`;
+      partnerSummaryBox.innerHTML = `
+        <div class="perf-section-title">${summaryData.partner || "Partner"} Integration Mix <span class="muted">${summaryData.rows.length} integration types</span></div>
+        <table><thead><tr>
+          <th>Integration</th><th class="num">FIs</th><th class="num">GA Select</th>
+          <th class="num">Sel→Succ %</th><th class="num">Sessions</th>
+          <th class="num">Sess w/ Success</th><th class="num">Sess→Succ %</th>
+        </tr></thead><tbody>${rows}${totalRow}</tbody></table>`;
+      partnerSummaryBox.style.display = "";
+    }
+
+    // ─── CSV Export ───
+    function csvEscape(value) {
+      if (value === null || value === undefined) return "";
+      const str = String(value);
+      if (/[",\n]/.test(str)) return `"${str.replace(/"/g, '""')}"`;
+      return str;
+    }
+
+    function buildCustomerCsv(visibleRows, highlights, partnerSummary, startDate, endDate) {
+      const lines = [];
+      const title = `Cardholder Engagement Report ${startDate || ""} → ${endDate || ""}`.trim();
+      lines.push(`"${title}"`, "", "");
+
+      // Highlights
+      const validH = (highlights || []).filter(h => h && !h.empty);
+      if (validH.length) {
+        lines.push("Performance Highlights");
+        lines.push(["Highlight","FI","Integration","Window Start","Window End","GA Select","Sessions","Sess w/ Success","Sel→Succ %","Sess→Succ %","Placements"].map(csvEscape).join(","));
+        validH.forEach(h => {
+          const selSuccPct = typeof h.selSuccessRatio === "number" ? (h.selSuccessRatio * 100).toFixed(1) + "%" : "";
+          const sessSuccPct = typeof h.sessionSuccessRatio === "number" ? (h.sessionSuccessRatio * 100).toFixed(1) + "%" : "";
+          lines.push([h.label, h.fi, h.integration, h.start, h.end, h.sel || 0, h.sessions || 0, h.sess_with_success || 0, selSuccPct, sessSuccPct, h.placements || 0].map(csvEscape).join(","));
+        });
+        lines.push("", "");
+      }
+
+      // Summary by FI
+      if (visibleRows.length) {
+        const header = ["FI","Partner","Integration","Instance","GA Select","GA User","GA Cred","Monthly Reach %","Select→User %","Select→Cred %","Select→Succ %","Sessions","Sessions w/ Success","Session Success %","Placements"];
+        lines.push("Summary by FI");
+        lines.push(header.map(csvEscape).join(","));
+        visibleRows.forEach(row => {
+          const reachPct = formatMonthlyReachPct(row);
+          const selUserPct = row.ga_select ? (((row.ga_user || 0) / row.ga_select) * 100).toFixed(1) + "%" : "";
+          const selCredPct = row.ga_select ? (((row.ga_cred || 0) / row.ga_select) * 100).toFixed(1) + "%" : "";
+          const selSuccPct = row.ga_select && row.sess_with_success ? ((row.sess_with_success / row.ga_select) * 100).toFixed(1) + "%" : "";
+          const sessSuccPct = row.sessions && row.sess_with_success ? ((row.sess_with_success / row.sessions) * 100).toFixed(1) + "%" : "";
+          lines.push([
+            row.fi, row.partner, row.integration_type, row.instance,
+            row.ga_select || 0, row.ga_user || 0, row.ga_cred || 0,
+            reachPct, selUserPct, selCredPct, selSuccPct,
+            row.sessions || 0, row.sess_with_success || 0, sessSuccPct,
+            row.placements || 0,
+          ].map(csvEscape).join(","));
+        });
+        lines.push("", "");
+      }
+
+      // Partner mix
+      if (partnerSummary && partnerSummary.rows && partnerSummary.rows.length) {
+        const pctStr = (v) => typeof v === "number" && Number.isFinite(v) ? v.toFixed(1) + "%" : "";
+        lines.push(`${partnerSummary.partner} Integration Mix`);
+        lines.push(["Integration","FIs","GA Select","Sel→Succ %","Sessions","Sessions w/ Success","Sess→Succ %"].map(csvEscape).join(","));
+        partnerSummary.rows.forEach(r => {
+          lines.push([r.integration, r.fiCount, r.ga_select, pctStr(r.selSuccessPct), r.sessions, r.sess_with_success, pctStr(r.sessionSuccessPct)].map(csvEscape).join(","));
+        });
+        const t = partnerSummary.totals || {};
+        lines.push([t.integration || "Total", t.fiCount || 0, t.ga_select || 0, pctStr(t.selSuccessPct), t.sessions || 0, t.sess_with_success || 0, pctStr(t.sessionSuccessPct)].map(csvEscape).join(","));
+      }
+
+      return lines.join("\n");
+    }
+
+    function downloadCsv(filename, contents) {
+      const blob = new Blob([contents], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = filename;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 0);
+    }
+
+    // ─── Apply filters ───
+    async function applyFilters() {
+      await nextFrame();
+      const startDate = startDateInput.value || defaultStartDateStr;
+      const endDate = endDateInput.value || defaultEndDateStr;
+      const startDt = new Date(`${startDate}T00:00:00Z`);
+      const endDt = new Date(`${endDate}T00:00:00Z`);
+      const daySpan = Math.max(1, Math.floor((endDt - startDt) / (1000 * 60 * 60 * 24)) + 1);
+      const cardholderMap = getCardholderMap();
+      const perFi = aggregateData(startDate, endDate, cardholderMap);
+      lastAggregated = perFi;
+      const visibleRows = getVisibleRows(perFi);
+      latestVisibleRows = visibleRows;
+      const singleFiMode = isSingleFiSelected();
+      const best = computeBestWindows(startDate, endDate, perFi, visibleRows, 30 / daySpan, { allowLowVolume: singleFiMode });
+      latestHighlights = best;
+
+      // Metrics
+      const metrics = calculateMetrics(startDate, endDate, visibleRows);
+      renderMetrics(metrics, startDate, endDate, daySpan, visibleRows.length);
+
+      // Per-FI tables
+      renderTables(visibleRows);
+
+      // Highlights
+      renderHighlights(best);
+
+      // Partner summary
+      const shared = window.__FILTER_STATE;
+      let partnerValue = PARTNER_ALL_VALUE;
+      if (shared && shared.page === "funnel-customer" && shared.__partnerSetTouched && shared.partnerSet && shared.partnerSet.size === 1) {
+        partnerValue = Array.from(shared.partnerSet)[0];
+      }
+      const partnerSummary = buildPartnerSummaryData(visibleRows, daySpan, partnerValue);
+      latestPartnerSummary = partnerSummary;
+      renderPartnerSummary(partnerSummary);
+
+      lastRenderContext = { perFi, startDate, endDate, daySpan, best, metrics };
+      const snapshot = shared && shared.page === "funnel-customer";
+      lastFilterSnapshot = {
+        fis: snapshot && shared.fis ? Array.from(shared.fis).sort().join(',') : '',
+        partner: snapshot ? (shared.partner || '') : '',
+      };
+    }
+
+    async function safeApplyFilters() {
+      ensureDateDefaults();
+      enforceEndDateBounds();
+      renderDateWarning();
+      await applyFilters();
+    }
+
+    function rerenderFromCache() {
+      if (!lastRenderContext) return;
+      const shared = window.__FILTER_STATE;
+      const snapshot = shared && shared.page === "funnel-customer";
+      const current = {
+        fis: snapshot && shared.fis ? Array.from(shared.fis).sort().join(',') : '',
+        partner: snapshot ? (shared.partner || '') : '',
+      };
+      const changed = !lastFilterSnapshot || lastFilterSnapshot.fis !== current.fis || lastFilterSnapshot.partner !== current.partner;
+      if (changed) {
+        startLoading("Loading data…");
+        applyFilters().finally(() => stopLoading());
+        return;
+      }
+    }
+
+    // ─── View mode ───
+    const __viewParams = new URLSearchParams(window.location.search);
+    const __isViewMode = __viewParams.get("view") === "1";
+
+    if (__isViewMode) {
+      const __viewSid = __viewParams.get("sid");
+      if (__viewSid) {
+        try { fetch("/api/share-log/view?sid=" + encodeURIComponent(__viewSid)).catch(function() {}); } catch (e) {}
+      }
+      const vpFrom = __viewParams.get("from");
+      const vpTo = __viewParams.get("to");
+      if (startDateInput) startDateInput.value = vpFrom || defaultStartDateStr;
+      if (endDateInput) endDateInput.value = vpTo || defaultEndDateStr;
+      const presetEl = document.getElementById("datePreset");
+      if (presetEl) { presetEl.value = ""; presetEl.disabled = true; }
+      if (startDateInput) startDateInput.disabled = true;
+      if (endDateInput) endDateInput.disabled = true;
+      if (applyBtn) applyBtn.style.display = "none";
+      if (exportCsvBtn) exportCsvBtn.style.display = "none";
+      const exportPdfBtnView = document.getElementById("exportPdfBtn");
+      if (exportPdfBtnView) exportPdfBtnView.style.display = "none";
+      const presetParent = document.getElementById("datePreset");
+      if (presetParent) presetParent.parentElement.style.display = "none";
+    } else {
+      // Check for date params from redirect
+      const urlFrom = __viewParams.get("from");
+      const urlTo = __viewParams.get("to");
+      if (urlFrom && urlTo) {
+        if (startDateInput) startDateInput.value = urlFrom;
+        if (endDateInput) endDateInput.value = urlTo;
+        const presetEl = document.getElementById("datePreset");
+        if (presetEl) presetEl.value = "";
+      } else {
+        if (startDateInput && !startDateInput.value) startDateInput.value = defaultStartDateStr;
+        if (endDateInput && !endDateInput.value) endDateInput.value = defaultEndDateStr;
+        const presetEl = document.getElementById("datePreset");
+        if (presetEl) presetEl.value = "last7";
+      }
+      // Share button
+      const shareLinkBtn = document.getElementById("shareLinkBtn");
+      if (shareLinkBtn) {
+        shareLinkBtn.style.display = "";
+        shareLinkBtn.addEventListener("click", function() {
+          const fs = window.__FILTER_STATE || {};
+          const params = new URLSearchParams();
+          params.set("view", "1");
+          const sidBytes = new Uint8Array(4);
+          crypto.getRandomValues(sidBytes);
+          const sid = Array.from(sidBytes).map(b => b.toString(16).padStart(2, "0")).join("");
+          params.set("sid", sid);
+          if (startDateInput && startDateInput.value) params.set("from", startDateInput.value);
+          if (endDateInput && endDateInput.value) params.set("to", endDateInput.value);
+          if (fs.fis && fs.fis.size > 0) {
+            const fiArr = Array.from(fs.fis);
+            if (fiArr.length === 1) params.set("fi", fiArr[0]);
+          }
+          if (fs.__partnerSetTouched && fs.partnerSet && fs.partnerSet.size > 0) {
+            const arr = Array.from(fs.partnerSet);
+            if (arr.length === 1) params.set("partner", arr[0]);
+          }
+          const shareUrl = window.location.origin + window.location.pathname + "?" + params.toString();
+          navigator.clipboard.writeText(shareUrl).then(function() {
+            shareLinkBtn.textContent = "Copied!";
+            setTimeout(function() { shareLinkBtn.textContent = "Share"; }, 2000);
+          }).catch(function() { prompt("Copy this link:", shareUrl); });
+          try { fetch("/api/share-log", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sid, url: shareUrl }) }).catch(function() {}); } catch (e) {}
+        });
+      }
+    }
+
+    // ─── Event listeners ───
+    applyBtn.addEventListener("click", () => {
+      lastRenderContext = null;
+      lastFilterSnapshot = null;
+      startLoading("Loading data…");
+      safeApplyFilters().catch(err => console.error("apply failed", err)).finally(() => stopLoading());
+    });
+
+    endDateInput?.addEventListener("change", () => {
+      const presetEl = document.getElementById("datePreset");
+      if (presetEl) presetEl.value = "";
+      renderDateWarning();
+    });
+    startDateInput?.addEventListener("change", () => {
+      const presetEl = document.getElementById("datePreset");
+      if (presetEl) presetEl.value = "";
+      renderDateWarning();
+    });
+
+    exportCsvBtn.addEventListener("click", () => {
+      const csv = buildCustomerCsv(
+        latestVisibleRows, latestHighlights, latestPartnerSummary,
+        lastRenderContext?.startDate || startDateInput.value,
+        lastRenderContext?.endDate || endDateInput.value,
+      );
+      const start = (startDateInput.value || "start").replace(/[^0-9-]/g, "");
+      const end = (endDateInput.value || "end").replace(/[^0-9-]/g, "");
+      downloadCsv(`cardholder-engagement-${start}-to-${end}.csv`, csv);
+    });
+
+    document.getElementById("exportPdfBtn")?.addEventListener("click", async () => {
+      const btn = document.getElementById("exportPdfBtn");
+      const origText = btn.textContent;
+      btn.textContent = "Generating…"; btn.disabled = true;
+      try {
+        const startDate = startDateInput.value || defaultStartDateStr;
+        const endDate = endDateInput.value || defaultEndDateStr;
+        const visibleRows = latestVisibleRows || [];
+        const metrics = calculateMetrics(startDate, endDate, visibleRows);
+        const parts = [];
+        const fs = window.__FILTER_STATE || {};
+        if (fs.__partnerSetTouched && fs.partnerSet && fs.partnerSet.size > 0) parts.push("Partner: " + Array.from(fs.partnerSet).join(", "));
+        if (fs.__fiTouched && fs.fis && fs.fis.size > 0 && fs.fis.size <= 3) parts.push("FI: " + Array.from(fs.fis).join(", "));
+        const filterContext = parts.length ? parts.join(" | ") : `All data (${visibleRows.length} FIs)`;
+
+        const payload = {
+          startDate, endDate, filterContext,
+          metrics: {
+            totalGaSelect: metrics.totalGaSelect, totalGaUser: metrics.totalGaUser, totalGaCred: metrics.totalGaCred,
+            totalSessions: metrics.totalSessions, sessionsWithSuccessfulJobs: metrics.sessionsWithSuccessfulJobs,
+            successful: metrics.successful,
+          },
+          highlights: (latestHighlights || []).map(h => ({
+            label: h.label, fi: h.fi, instance: h.instance, integration: h.integration,
+            start: h.start, end: h.end, sel: h.sel, sessions: h.sessions,
+            sess_with_success: h.sess_with_success, placements: h.placements,
+            selSuccessRatio: h.selSuccessRatio, sessionSuccessRatio: h.sessionSuccessRatio, empty: h.empty,
+          })),
+          partnerSummary: latestPartnerSummary || null,
+        };
+        const token = window.sisAuth?.getToken?.() || localStorage.getItem("sis_session_token") || "";
+        const resp = await fetch("/api/export-pdf-customer", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", ...(token ? { Authorization: "Bearer " + token } : {}) },
+          body: JSON.stringify(payload),
+        });
+        if (!resp.ok) {
+          const err = await resp.json().catch(() => ({ error: "Unknown error" }));
+          throw new Error(err.error || `HTTP ${resp.status}`);
+        }
+        const blob = await resp.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url; a.download = `cardholder-engagement-${startDate}-to-${endDate}.pdf`;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 0);
+      } catch (err) {
+        console.error("[pdf] Export failed:", err);
+        alert("PDF export failed: " + err.message);
+      } finally {
+        btn.textContent = origText; btn.disabled = false;
+      }
+    });
+
+    // ─── Init ───
+    async function init() {
+      try {
+        startLoading("Loading engagement data…");
+        try {
+          registryMap = await fetchRegistry();
+          updateRegistryLookups(registryMap);
+        } catch (err) { console.error("Failed to load registry:", err); registryMap = {}; }
+
+        try {
+          const fetched = await fetchDailyList();
+          dailyFiles = Array.isArray(fetched) ? fetched : [];
+          if (dailyFiles.length) {
+            const sortedDates = dailyFiles.map(f => f.replace(".json", "")).filter(d => /^\d{4}-\d{2}-\d{2}$/.test(d)).sort();
+            earliestDailyDate = sortedDates[0] || null;
+            latestDailyDate = sortedDates[sortedDates.length - 1] || null;
+            const baseIso = getMaxSelectableDateIso();
+            if (endDateInput && (!endDateInput.value || endDateInput.value > baseIso)) endDateInput.value = baseIso;
+            if (startDateInput && startDateInput.value > (endDateInput?.value || baseIso)) startDateInput.value = endDateInput.value || baseIso;
+            renderDateWarning();
+          }
+          // Bulk cache
+          const dataVersion = window.DataCache?.currentVersion || 'unknown';
+          const bulkCacheKey = `funnel_all_daily_data_v${dataVersion}`;
+          if (window.DataCache) {
+            const cachedBulk = await window.DataCache.getAsync(bulkCacheKey);
+            if (cachedBulk && typeof cachedBulk === 'object' && Object.keys(cachedBulk).length > 0) {
+              setLoaderMessage('Loading from cache…');
+              dailyData = cachedBulk;
+            } else {
+              const totalDays = dailyFiles.length;
+              let loadedDays = 0;
+              if (earliestDailyDate && latestDailyDate) {
+                setLoaderMessage(`Loading daily data… ${loadedDays}/${totalDays}`);
+                const rangeEntries = await fetchDailyRange(earliestDailyDate, latestDailyDate);
+                if (rangeEntries && typeof rangeEntries === "object") { dailyData = rangeEntries; loadedDays = Object.keys(dailyData).length; }
+              }
+              if (loadedDays === 0) {
+                for (const file of dailyFiles) {
+                  const date = file.replace(".json", "");
+                  setLoaderMessage(`Loading daily data… ${loadedDays}/${totalDays}`);
+                  const data = await fetchDaily(date);
+                  if (data) dailyData[date] = data;
+                  loadedDays += 1;
+                }
+              }
+              if (Object.keys(dailyData).length > 0) {
+                window.DataCache.set(bulkCacheKey, dailyData).catch(() => {});
+              }
+            }
+          } else {
+            const totalDays = dailyFiles.length;
+            let loadedDays = 0;
+            for (const file of dailyFiles) {
+              const date = file.replace(".json", "");
+              setLoaderMessage(`Loading daily data… ${loadedDays}/${totalDays}`);
+              const data = await fetchDaily(date);
+              if (data) dailyData[date] = data;
+              loadedDays += 1;
+            }
+          }
+        } catch (err) { console.error("Failed to load daily data:", err); }
+
+        await safeApplyFilters();
+      } catch (err) {
+        console.error("Init failed", err);
+        stopLoading();
+      } finally {
+        stopLoading();
+      }
+    }
+
+    init().catch(err => { console.error("Init failed", err); stopLoading(); });
+
+    const presetSelect = document.getElementById("datePreset");
+    if (presetSelect) {
+      presetSelect.addEventListener("change", () => {
+        const val = presetSelect.value;
+        if (val) { applyPresetRange(val); safeApplyFilters(); }
+      });
+    }
+
+    applyDefaultDateRange(false);
+
+    // Initialize filters
+    (function ensureFilters(pageId){
+      const run = () => { if (window.initFilters) window.initFilters(pageId); };
+      if (window.initFilters) return run();
+      const candidates = ["./assets/js/filters.js?v=shared-fallback", "/assets/js/filters.js?v=shared-fallback"];
+      const loadNext = (idx) => {
+        if (idx >= candidates.length) return;
+        const s = document.createElement("script");
+        s.src = candidates[idx] + "&ts=" + Date.now();
+        s.onload = () => run();
+        s.onerror = () => loadNext(idx + 1);
+        document.head.appendChild(s);
+      };
+      loadNext(0);
+    })("funnel-customer");
+  </script>
+</body>
+</html>

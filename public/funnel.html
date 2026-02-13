@@ -1274,6 +1274,7 @@
               <div class="form-actions">
                 <button id="applyBtn" class="form-button">Apply filters</button>
                 <button id="exportCsvBtn" class="form-button secondary">Export CSV</button>
+                <button id="exportPdfBtn" class="form-button secondary">Export PDF</button>
                 <button id="shareLinkBtn" class="form-button secondary" type="button" title="Copy shareable link to clipboard" style="display:none;">Share</button>
                 <label class="form-checkbox" style="margin: 0">
                   <input type="checkbox" id="includeTestDataCheckbox" />
@@ -2224,6 +2225,8 @@ function applyColumnTitles(root = document) {
         const testCheckbox = document.getElementById("includeTestDataCheckbox");
         if (applyBtn) applyBtn.style.display = "none";
         if (exportCsvBtn) exportCsvBtn.style.display = "none";
+        const exportPdfBtnView = document.getElementById("exportPdfBtn");
+        if (exportPdfBtnView) exportPdfBtnView.style.display = "none";
         if (testCheckbox) testCheckbox.parentElement.style.display = "none";
         // Hide Range preset entirely
         if (presetEl) presetEl.parentElement.style.display = "none";
@@ -3867,7 +3870,7 @@ function applyColumnTitles(root = document) {
 
         const windows = [
           {
-            label: "Most Select Merchant Loads",
+            label: "Most CardUpdatr Launches",
             len: 7,
             minSelects: MIN_SELECTS,
             minSessions: 0,
@@ -3880,7 +3883,7 @@ function applyColumnTitles(root = document) {
             },
           },
           {
-            label: "Most Select Merchant Loads with Successful Placements",
+            label: "Most CardUpdatr Launches with Successful Placements",
             len: 7,
             minSelects: 25,
             minSessions: 14,
@@ -3893,7 +3896,7 @@ function applyColumnTitles(root = document) {
             },
           },
           {
-            label: "Most Total Sessions",
+            label: "Most Cardholders Starting Merchant Placements",
             len: 7,
             minSelects: MIN_SELECTS,
             minSessions: MIN_SELECTS,
@@ -3906,7 +3909,7 @@ function applyColumnTitles(root = document) {
             },
           },
           {
-            label: "Highest Sessions with Success %",
+            label: "Most Cardholders Successfully Placing a Card",
             len: 7,
             minSelects: MIN_SELECTS,
             minSessions: MIN_SELECTS,
@@ -6671,6 +6674,109 @@ function applyColumnTitles(root = document) {
         const start = ((startDateInput.value || lastRenderContext?.startDate || "start")).replace(/[^0-9-]/g, "");
         const end = ((endDateInput.value || lastRenderContext?.endDate || "end")).replace(/[^0-9-]/g, "");
         downloadCsv(`sis-funnel-${start}-to-${end}.csv`, csv);
+      });
+
+      document.getElementById("exportPdfBtn")?.addEventListener("click", async () => {
+        const btn = document.getElementById("exportPdfBtn");
+        const origText = btn.textContent;
+        btn.textContent = "Generating…";
+        btn.disabled = true;
+
+        try {
+          const startDate = startDateInput.value || lastRenderContext?.startDate || defaultStartDateStr;
+          const endDate = endDateInput.value || lastRenderContext?.endDate || defaultEndDateStr;
+          const visibleRows = latestVisibleRows || (lastRenderContext?.perFi ? Object.values(lastRenderContext.perFi) : []);
+          const convMetrics = calculateConversionMetrics(startDate, endDate, visibleRows);
+
+          // Sum GA user/cred from visible rows (not in conversionMetrics)
+          let totalGaUser = 0, totalGaCred = 0;
+          for (const row of visibleRows) {
+            totalGaUser += Number(row.ga_user || 0);
+            totalGaCred += Number(row.ga_cred || 0);
+          }
+
+          // Build filter context string
+          const parts = [];
+          const fiSel = document.getElementById("fiFilter");
+          const partnerSel = document.getElementById("partnerFilter");
+          const instSel = document.getElementById("instanceFilter");
+          const intSel = document.getElementById("integrationFilter");
+          if (fiSel && fiSel.value && fiSel.value !== "__all__") parts.push("FI: " + fiSel.options[fiSel.selectedIndex]?.text);
+          if (partnerSel && partnerSel.value && partnerSel.value !== "__all_partners__") parts.push("Partner: " + partnerSel.options[partnerSel.selectedIndex]?.text);
+          if (instSel && instSel.value && instSel.value !== "All") parts.push("Instance: " + instSel.value);
+          if (intSel && intSel.value && intSel.value !== "(all)") parts.push("Integration: " + intSel.value);
+          const filterContext = parts.length ? parts.join(" | ") : `All data (${visibleRows.length} FIs)`;
+
+          const payload = {
+            startDate,
+            endDate,
+            filterContext,
+            metrics: {
+              totalGaSelect: convMetrics.totalGaSelect,
+              totalGaUser,
+              totalGaCred,
+              totalSessions: convMetrics.totalSessions,
+              sessionsWithJobs: convMetrics.sessionsWithJobs,
+              sessionsWithSuccessfulJobs: convMetrics.sessionsWithSuccessfulJobs,
+              sessionsWithoutJobs: convMetrics.sessionsWithoutJobs,
+              totalJobs: convMetrics.totalJobs,
+              totalPlacements: convMetrics.totalPlacements,
+              successful: convMetrics.successful,
+              systemFailures: convMetrics.systemFailures,
+              uxFailures: convMetrics.uxFailures,
+            },
+            highlights: (latestHighlights || []).map((h) => ({
+              label: h.label,
+              fi: h.fi,
+              instance: h.instance,
+              integration: h.integration,
+              start: h.start,
+              end: h.end,
+              sel: h.sel,
+              user: h.user,
+              cred: h.cred,
+              sessions: h.sessions,
+              sess_with_jobs: h.sess_with_jobs,
+              sess_with_success: h.sess_with_success,
+              placements: h.placements,
+              selSuccessRatio: h.selSuccessRatio,
+              sessionSuccessRatio: h.sessionSuccessRatio,
+              empty: h.empty,
+            })),
+            partnerSummary: latestPartnerSummary || null,
+          };
+
+          const token = window.sisAuth?.getToken?.() || localStorage.getItem("sis_session_token") || "";
+          const resp = await fetch("/api/export-pdf", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              ...(token ? { Authorization: "Bearer " + token } : {}),
+            },
+            body: JSON.stringify(payload),
+          });
+
+          if (!resp.ok) {
+            const err = await resp.json().catch(() => ({ error: "Unknown error" }));
+            throw new Error(err.error || `HTTP ${resp.status}`);
+          }
+
+          const blob = await resp.blob();
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `sis-funnel-${startDate}-to-${endDate}.pdf`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          setTimeout(() => URL.revokeObjectURL(url), 0);
+        } catch (err) {
+          console.error("[pdf] Export failed:", err);
+          alert("PDF export failed: " + err.message);
+        } finally {
+          btn.textContent = origText;
+          btn.disabled = false;
+        }
       });
 
       fiFilterSelect?.addEventListener("change", () => {
