@@ -589,6 +589,12 @@
       .breakdown-sysrate .breakdown-value {
         color: #3b82f6;
       }
+      .breakdown-bar-overall {
+        background: linear-gradient(90deg, #8b5cf6, #6d28d9);
+      }
+      .breakdown-overall .breakdown-value {
+        color: #7c3aed;
+      }
 
       .breakdown-detail {
         font-size: 0.75rem;
@@ -1352,6 +1358,7 @@
               <div class="breakdown-label">◎ System Success Rate</div>
               <div class="breakdown-value" id="convBreakdownSysRate">-</div>
               <div class="breakdown-pct" id="convBreakdownSysRatePct">-</div>
+              <div class="breakdown-detail" id="convBreakdownSysRateDetail"></div>
               <div class="breakdown-bar">
                 <div class="breakdown-bar-fill breakdown-bar-sysrate" id="convBarSysRate" style="width: 0%;"></div>
               </div>
@@ -1372,6 +1379,7 @@
               <div class="breakdown-label">✓ Successful</div>
               <div class="breakdown-value" id="convBreakdownSuccess">-</div>
               <div class="breakdown-pct" id="convBreakdownSuccessPct">-</div>
+              <div class="breakdown-detail" id="convBreakdownSuccessDetail"></div>
               <div class="breakdown-bar">
                 <div class="breakdown-bar-fill breakdown-bar-success" id="convBarSuccess" style="width: 0%;"></div>
               </div>
@@ -1430,20 +1438,21 @@
                 </div>
               </details>
             </div>
-            <div class="breakdown-item breakdown-nojobs" title="Sessions where the user loaded CardUpdatr, saw the merchant options, but didn't attempt any updates. Not necessarily abandoned - often just 'not the right time.'">
-              <div class="breakdown-label">⊘ Sessions Without Jobs</div>
-              <div class="breakdown-value" id="convBreakdownNoJobs">-</div>
-              <div class="breakdown-pct" id="convBreakdownNoJobsPct">-</div>
+            <div class="breakdown-item breakdown-overall" id="convBreakdownOverallCard" title="Overall Success Rate — of all job outcomes (Successful + System Failures + UX Failures), what percentage succeeded? This is the end-to-end cardholder success rate regardless of failure cause.">
+              <div class="breakdown-label">★ Overall Success Rate</div>
+              <div class="breakdown-value" id="convBreakdownOverall">-</div>
+              <div class="breakdown-pct" id="convBreakdownOverallPct">-</div>
+              <div class="breakdown-detail" id="convBreakdownOverallDetail"></div>
               <div class="breakdown-bar">
-                <div class="breakdown-bar-fill breakdown-bar-nojobs" id="convBarNoJobs" style="width: 0%;"></div>
+                <div class="breakdown-bar-fill breakdown-bar-overall" id="convBarOverall" style="width: 0%;"></div>
               </div>
 
-              <details class="placement-details" data-type="nojobs">
-                <summary class="placement-summary">View sessions without jobs</summary>
+              <details class="placement-details" data-type="overall">
+                <summary class="placement-summary">View all placements</summary>
                 <div class="placement-content">
                   <div class="placement-loading" style="display: none;">
                     <div class="spinner"></div>
-                    <span>Loading sessions...</span>
+                    <span>Loading placements...</span>
                   </div>
                   <div class="placement-error" style="display: none;"></div>
                   <div class="placement-table-container"></div>
@@ -4229,6 +4238,14 @@ function applyColumnTitles(root = document) {
 
         document.getElementById("convMetricAvgSuccessfulJobs").textContent = avgSuccessfulJobsPerSession;
 
+        // Update Overall Success Rate (successful / (successful + system failures + ux failures))
+        const overallDenom = successful + systemFail + uxFail;
+        const overallRatePct = overallDenom > 0 ? ((successful / overallDenom) * 100).toFixed(1) : "0.0";
+        document.getElementById("convBreakdownOverall").textContent = `${overallRatePct}%`;
+        document.getElementById("convBreakdownOverallPct").textContent = overallDenom > 0
+          ? `(${successful.toLocaleString()} of ${overallDenom.toLocaleString()})`
+          : "";
+
         // Update System Success Rate (successful / (successful + system failures))
         const sysDenom = successful + systemFail;
         const sysRatePct = sysDenom > 0 ? ((successful / sysDenom) * 100).toFixed(1) : "0.0";
@@ -4250,8 +4267,6 @@ function applyColumnTitles(root = document) {
         document.getElementById("convBreakdownUXPct").textContent = totalPlacements > 0
           ? `(${((uxFail / totalPlacements) * 100).toFixed(1)}%)`
           : "(0.0%)";
-        document.getElementById("convBreakdownNoJobs").textContent = noJobs.toLocaleString();
-        document.getElementById("convBreakdownNoJobsPct").textContent = "";
 
         // Render per-type sub-breakdowns
         const renderByTypeDetail = (containerId, byType, total) => {
@@ -4271,23 +4286,78 @@ function applyColumnTitles(root = document) {
         renderByTypeDetail("convBreakdownSystemDetail", metrics.systemByType || {}, systemFail);
         renderByTypeDetail("convBreakdownUXDetail", metrics.uxByType || {}, uxFail);
 
+        // Render Overall Success Rate sub-breakdown (3 outcome buckets)
+        const overallDetailEl = document.getElementById("convBreakdownOverallDetail");
+        if (overallDetailEl && overallDenom > 0) {
+          overallDetailEl.innerHTML = [
+            { label: "Successful", count: successful },
+            { label: "System failures", count: systemFail },
+            { label: "UX failures", count: uxFail },
+          ].filter(r => r.count > 0).map(r => {
+            const pct = ((r.count / overallDenom) * 100).toFixed(1);
+            return `<div class="breakdown-detail-row"><span>${r.label}</span><span class="breakdown-detail-count">${r.count.toLocaleString()} (${pct}%)</span></div>`;
+          }).join("");
+        } else if (overallDetailEl) {
+          overallDetailEl.innerHTML = "";
+        }
+
+        // Render System Success Rate sub-breakdown (2 components)
+        const sysRateDetailEl = document.getElementById("convBreakdownSysRateDetail");
+        if (sysRateDetailEl && sysDenom > 0) {
+          sysRateDetailEl.innerHTML = [
+            { label: "Successful", count: successful },
+            { label: "System failures", count: systemFail },
+          ].filter(r => r.count > 0).map(r => {
+            const pct = ((r.count / sysDenom) * 100).toFixed(1);
+            return `<div class="breakdown-detail-row"><span>${r.label}</span><span class="breakdown-detail-count">${r.count.toLocaleString()} (${pct}%)</span></div>`;
+          }).join("");
+        } else if (sysRateDetailEl) {
+          sysRateDetailEl.innerHTML = "";
+        }
+
+        // Render Successful card sub-breakdown (top merchants, capped to max sibling card item count)
+        const siblingCounts = [
+          Object.values(metrics.systemByType || {}).filter(c => c > 0).length,
+          Object.values(metrics.uxByType || {}).filter(c => c > 0).length,
+          overallDenom > 0 ? [successful, systemFail, uxFail].filter(c => c > 0).length : 0,
+          sysDenom > 0 ? [successful, systemFail].filter(c => c > 0).length : 0,
+        ];
+        const maxSiblingItems = Math.max(...siblingCounts, 1);
+
+        const successDetailEl = document.getElementById("convBreakdownSuccessDetail");
+        if (successDetailEl && successful > 0) {
+          successDetailEl.innerHTML = '<span style="font-size:10px;color:var(--muted);">Loading merchants...</span>';
+          fetchPlacementDetails("success").then(data => {
+            if (!data?.results?.length) { successDetailEl.innerHTML = ""; return; }
+            const topMerchants = data.results
+              .sort((a, b) => (b.successCount || b.count || 0) - (a.successCount || a.count || 0))
+              .slice(0, maxSiblingItems);
+            successDetailEl.innerHTML = topMerchants.map(m => {
+              const count = m.successCount || m.count || 0;
+              const pct = successful > 0 ? ((count / successful) * 100).toFixed(1) : "0.0";
+              return `<div class="breakdown-detail-row"><span>${escapeHtml(m.merchant)}</span><span class="breakdown-detail-count">${count.toLocaleString()} (${pct}%)</span></div>`;
+            }).join("");
+          }).catch(() => { successDetailEl.innerHTML = ""; });
+        } else if (successDetailEl) {
+          successDetailEl.innerHTML = "";
+        }
+
         // Update progress bars
         if (totalPlacements > 0 || totalSessions > 0) {
           const successPct = totalPlacements > 0 ? (successful / totalPlacements) * 100 : 0;
           const systemPct = totalPlacements > 0 ? (systemFail / totalPlacements) * 100 : 0;
           const uxPct = totalPlacements > 0 ? (uxFail / totalPlacements) * 100 : 0;
-          const noJobsPct = totalSessions > 0 ? (noJobs / totalSessions) * 100 : 0;
+          document.getElementById("convBarOverall").style.width = `${overallDenom > 0 ? (successful / overallDenom) * 100 : 0}%`;
           document.getElementById("convBarSysRate").style.width = `${sysDenom > 0 ? (successful / sysDenom) * 100 : 0}%`;
           document.getElementById("convBarSuccess").style.width = `${successPct}%`;
           document.getElementById("convBarSystem").style.width = `${systemPct}%`;
           document.getElementById("convBarUX").style.width = `${uxPct}%`;
-          document.getElementById("convBarNoJobs").style.width = `${noJobsPct}%`;
         } else {
+          document.getElementById("convBarOverall").style.width = "0%";
           document.getElementById("convBarSysRate").style.width = "0%";
           document.getElementById("convBarSuccess").style.width = "0%";
           document.getElementById("convBarSystem").style.width = "0%";
           document.getElementById("convBarUX").style.width = "0%";
-          document.getElementById("convBarNoJobs").style.width = "0%";
         }
 
         // Show the panel if there's data
@@ -4336,11 +4406,15 @@ function applyColumnTitles(root = document) {
 
         const totalJobs = m.totalJobs || 0;
 
+        const overallDenom = successful + systemFail + uxFail;
+        const overallRate = overallDenom > 0 ? ((successful / overallDenom) * 100).toFixed(1) : "0.0";
+
         const cards = [
           { label: "Unique CardUpdatr Views", value: gaSelect.toLocaleString(), pct: "", cls: "" },
           { label: "Total Sessions", value: totalSessions.toLocaleString(), pct: gaSelect > 0 ? pct(totalSessions, gaSelect) : "", cls: "" },
           { label: "Total Jobs", value: totalJobs.toLocaleString(), pct: "", cls: "" },
           { label: "Sessions w/ Successful Jobs", value: sessWithSuccess.toLocaleString(), pct: totalSessions > 0 ? pct(sessWithSuccess, totalSessions) : "", cls: "breakdown-success" },
+          { label: "Overall Success Rate", value: overallRate + "%", pct: overallDenom > 0 ? `${successful.toLocaleString()} of ${overallDenom.toLocaleString()}` : "", cls: "breakdown-overall" },
           { label: "System Success Rate", value: sysRate + "%", pct: sysDenom > 0 ? `${successful.toLocaleString()} of ${sysDenom.toLocaleString()}` : "", cls: "breakdown-sysrate" },
           { label: "UX Failures", value: uxFail.toLocaleString(), pct: "", cls: "breakdown-ux" },
         ];
@@ -4528,6 +4602,7 @@ function applyColumnTitles(root = document) {
         let activeCard = null;
 
         const typeLabels = {
+          overall: 'Overall Success Rate — All Placements',
           sysrate: 'System Success Rate — All Placements',
           success: 'Successful Placements',
           system: 'System Failures',
@@ -4917,8 +4992,8 @@ function applyColumnTitles(root = document) {
           const successCount = merchantGroup.successCount || 0;
           successBadge.textContent = `${successCount} success${successCount !== 1 ? 'es' : ''}`;
           successBadge.title = 'Successful placements';
-          // Dim if not the active view type (sysrate highlights both success and system)
-          if (type !== 'success' && type !== 'sysrate') {
+          // Dim if not the active view type (sysrate/overall highlight relevant badges)
+          if (type !== 'success' && type !== 'sysrate' && type !== 'overall') {
             successBadge.style.opacity = '0.35';
           }
 
@@ -4927,8 +5002,8 @@ function applyColumnTitles(root = document) {
           const systemCount = merchantGroup.systemCount || 0;
           systemBadge.textContent = `${systemCount} system failure${systemCount !== 1 ? 's' : ''}`;
           systemBadge.title = 'System failures';
-          // Dim if not the active view type (sysrate highlights both success and system)
-          if (type !== 'system' && type !== 'sysrate') {
+          // Dim if not the active view type (sysrate/overall highlight relevant badges)
+          if (type !== 'system' && type !== 'sysrate' && type !== 'overall') {
             systemBadge.style.opacity = '0.35';
           }
 
@@ -4941,7 +5016,7 @@ function applyColumnTitles(root = document) {
           if (type === 'sysrate') {
             uxBadge.style.opacity = '0.15';
             uxBadge.style.fontSize = '0.7em';
-          } else if (type !== 'ux') {
+          } else if (type !== 'ux' && type !== 'overall') {
             uxBadge.style.opacity = '0.35';
           }
 
@@ -4971,6 +5046,8 @@ function applyColumnTitles(root = document) {
             if (type === 'system' || type === 'ux') {
               filterValue = placement.terminationType || '';
             } else if (type === 'sysrate') {
+              filterValue = placement.placementType === 'success' ? 'BILLABLE' : (placement.terminationType || '');
+            } else if (type === 'overall') {
               filterValue = placement.placementType === 'success' ? 'BILLABLE' : (placement.terminationType || '');
             }
             itemDiv.dataset.filterValue = filterValue;
@@ -5009,6 +5086,19 @@ function applyColumnTitles(root = document) {
               if (placement.placementType === 'success') {
                 badge.className = 'badge success';
                 badge.textContent = 'Success';
+              } else {
+                badge.className = 'badge fail';
+                badge.textContent = placement.terminationType || 'System Fail';
+              }
+              itemHeaderDiv.appendChild(badge);
+            } else if (type === 'overall') {
+              const badge = document.createElement('div');
+              if (placement.placementType === 'success') {
+                badge.className = 'badge success';
+                badge.textContent = 'Success';
+              } else if (placement.placementType === 'ux') {
+                badge.className = 'badge ux';
+                badge.textContent = placement.terminationType || 'UX Fail';
               } else {
                 badge.className = 'badge fail';
                 badge.textContent = placement.terminationType || 'System Fail';
@@ -5064,6 +5154,20 @@ function applyColumnTitles(root = document) {
                 const errorMsg = document.createElement('div');
                 errorMsg.innerHTML = `<strong>Error:</strong> ${escapeHtml(placement.statusMessage)}`;
                 metaDiv.appendChild(errorMsg);
+              }
+            } else if (type === 'overall') {
+              if (placement.placementType === 'success') {
+                if (placement.timeElapsed) {
+                  const duration = document.createElement('div');
+                  duration.innerHTML = `<strong>Duration:</strong> ${formatDuration(placement.timeElapsed)}`;
+                  metaDiv.appendChild(duration);
+                }
+              } else {
+                if (placement.statusMessage) {
+                  const errorMsg = document.createElement('div');
+                  errorMsg.innerHTML = `<strong>Error:</strong> ${escapeHtml(placement.statusMessage)}`;
+                  metaDiv.appendChild(errorMsg);
+                }
               }
             }
 
@@ -6393,6 +6497,15 @@ function applyColumnTitles(root = document) {
 
           // Initialize placement details handlers
           initPlacementDetailsHandlers();
+
+          // Hide Overall Success Rate card for limited users
+          try {
+            const _u = window.sisAuth?.getUser?.();
+            if (_u && _u.access_level === "limited") {
+              const overallCard = document.getElementById("convBreakdownOverallCard");
+              if (overallCard) overallCard.style.display = "none";
+            }
+          } catch (e) {}
 
           await safeApplyFilters();
         } catch (err) {

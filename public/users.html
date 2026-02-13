@@ -324,7 +324,7 @@
       color: var(--accent, #2563eb);
     }
     .data-access-cell {
-      max-width: 200px;
+      max-width: 280px;
       font-size: 13px;
     }
     .data-access-cell .access-item {
@@ -335,6 +335,172 @@
       margin: 1px;
       font-size: 11px;
     }
+    /* Filter bar */
+    .users-filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: flex-end;
+      margin-bottom: 16px;
+      padding: 12px 16px;
+      background: var(--hover-bg, #f9fafb);
+      border-radius: 10px;
+      border: 1px solid var(--panel-border);
+    }
+    .users-filters label {
+      display: flex;
+      flex-direction: column;
+      font-size: 11px;
+      text-transform: uppercase;
+      color: var(--muted);
+      gap: 4px;
+      letter-spacing: 0.03em;
+    }
+    .users-filters input[type="text"] {
+      border-radius: 8px;
+      border: 1px solid var(--panel-border);
+      background: var(--input-bg);
+      color: var(--panel-title);
+      padding: 7px 10px;
+      font-size: 13px;
+      min-width: 200px;
+    }
+    .users-filters select {
+      border-radius: 8px;
+      border: 1px solid var(--panel-border);
+      background: var(--input-bg);
+      color: var(--panel-title);
+      padding: 7px 10px;
+      font-size: 13px;
+      min-width: 120px;
+    }
+    .users-filters .filter-data-access {
+      position: relative;
+    }
+    .users-filters .filter-data-access button {
+      background: var(--input-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 8px;
+      color: var(--panel-title);
+      padding: 7px 28px 7px 10px;
+      font-size: 13px;
+      cursor: pointer;
+      min-width: 180px;
+      text-align: left;
+      position: relative;
+    }
+    .users-filters .filter-data-access button::after {
+      content: "▾";
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--muted);
+      pointer-events: none;
+    }
+    .users-filters .filter-data-access .da-panel {
+      position: absolute;
+      z-index: 60;
+      min-width: 280px;
+      max-height: 300px;
+      overflow-y: auto;
+      border: 1px solid var(--panel-border);
+      background: var(--panel-bg);
+      padding: 8px;
+      border-radius: 8px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.14);
+      margin-top: 2px;
+    }
+    .users-filters .filter-data-access .da-panel[hidden] { display: none; }
+    .users-filters .filter-data-access .da-panel .da-group-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      margin: 6px 0 2px 2px;
+    }
+    .users-filters .filter-data-access .da-panel .da-group-label:first-child { margin-top: 0; }
+    .users-filters .filter-data-access .da-panel label {
+      display: flex;
+      align-items: center;
+      padding: 3px 4px;
+      cursor: pointer;
+      text-transform: none;
+      font-size: 12px;
+      color: var(--panel-title);
+      border-radius: 3px;
+    }
+    .users-filters .filter-data-access .da-panel label:hover {
+      background: var(--hover-bg, rgba(0,0,0,0.04));
+    }
+    .users-filters .filter-data-access .da-panel input[type="checkbox"] {
+      margin-right: 6px;
+      accent-color: var(--accent, #2563eb);
+      width: 12px;
+      height: 12px;
+      flex-shrink: 0;
+    }
+    .users-filters .filter-data-access .da-clear {
+      font-size: 11px;
+      color: var(--accent, #2563eb);
+      cursor: pointer;
+      border: none;
+      background: none;
+      padding: 4px 2px;
+      margin-top: 4px;
+    }
+    .users-filters .filter-data-access .da-clear:hover { text-decoration: underline; }
+    .users-filter-count {
+      font-size: 12px;
+      color: var(--muted);
+      align-self: center;
+      margin-left: auto;
+      white-space: nowrap;
+    }
+
+    /* Sortable table headers */
+    .users-table th.sortable-th {
+      cursor: pointer;
+      user-select: none;
+      white-space: nowrap;
+      transition: color 0.15s;
+    }
+    .users-table th.sortable-th:hover {
+      color: var(--accent, #2563eb);
+    }
+    .users-table th .sort-arrow {
+      display: inline-block;
+      margin-left: 4px;
+      font-size: 10px;
+      opacity: 0.3;
+    }
+    .users-table th.sort-active .sort-arrow {
+      opacity: 1;
+      color: var(--accent, #2563eb);
+    }
+
+    /* Enhanced data access display */
+    .data-access-cell .access-line {
+      display: block;
+      margin-bottom: 1px;
+    }
+    .data-access-cell .access-type {
+      font-size: 10px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-right: 3px;
+      letter-spacing: 0.02em;
+    }
+    .data-access-cell .access-values {
+      font-size: 11px;
+    }
+    .data-access-cell .access-more {
+      font-size: 10px;
+      color: var(--muted);
+      cursor: help;
+    }
+
     @media (prefers-color-scheme: dark) {
       .badge-admin { background: #166534; color: #dcfce7; }
       .badge-full { background: #166534; color: #dcfce7; }
@@ -367,21 +533,53 @@
             <button class="btn btn-secondary" id="refreshBtn" type="button">Refresh</button>
           </div>
 
+          <div class="users-filters">
+            <label>
+              Search
+              <input type="text" id="filterSearch" placeholder="Email or name..." />
+            </label>
+            <label>
+              Access Level
+              <select id="filterLevel">
+                <option value="">All</option>
+                <option value="admin">Admin</option>
+                <option value="internal">Internal</option>
+                <option value="limited">Limited</option>
+              </select>
+            </label>
+            <label>
+              Status
+              <select id="filterStatus">
+                <option value="">All</option>
+                <option value="active">Active</option>
+                <option value="disabled">Disabled</option>
+              </select>
+            </label>
+            <label>
+              Data Access
+              <div class="filter-data-access" id="filterDataAccessWrap">
+                <button type="button" id="filterDataAccessBtn">All</button>
+                <div class="da-panel" hidden id="filterDataAccessPanel"></div>
+              </div>
+            </label>
+            <span class="users-filter-count" id="filterCount"></span>
+          </div>
+
           <table class="users-table">
             <thead>
               <tr>
-                <th>Email</th>
-                <th>Name</th>
-                <th>Access Level</th>
+                <th class="sortable-th" data-sort="email">Email <span class="sort-arrow">▲</span></th>
+                <th class="sortable-th" data-sort="name">Name <span class="sort-arrow">▲</span></th>
+                <th class="sortable-th" data-sort="access_level">Access Level <span class="sort-arrow">▲</span></th>
                 <th>Data Access</th>
-                <th>Last Login</th>
-                <th>Logins</th>
-                <th>Status</th>
+                <th class="sortable-th" data-sort="last_login">Last Login <span class="sort-arrow">▲</span></th>
+                <th class="sortable-th" data-sort="login_count">Logins <span class="sort-arrow">▲</span></th>
+                <th class="sortable-th" data-sort="status">Status <span class="sort-arrow">▲</span></th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody id="usersTableBody">
-              <tr><td colspan="6">Loading...</td></tr>
+              <tr><td colspan="8">Loading...</td></tr>
             </tbody>
           </table>
         </div>
@@ -529,23 +727,31 @@
       setTimeout(() => { statusMessage.textContent = ""; }, 5000);
     }
 
+    function formatAccessList(items, typeLabel) {
+      if (!Array.isArray(items) || items.length === 0) return "";
+      const MAX_SHOW = 2;
+      const escaped = items.map(escapeHtml);
+      let valuesHtml;
+      if (escaped.length <= MAX_SHOW) {
+        valuesHtml = `<span class="access-values">${escaped.join(", ")}</span>`;
+      } else {
+        const shown = escaped.slice(0, MAX_SHOW).join(", ");
+        const allTitle = escaped.join(", ");
+        valuesHtml = `<span class="access-values">${shown}</span> <span class="access-more" title="${allTitle}">+${escaped.length - MAX_SHOW} more</span>`;
+      }
+      return `<span class="access-line"><span class="access-type">${typeLabel}:</span>${valuesHtml}</span>`;
+    }
+
     function formatDataAccess(user) {
-      // Admin and internal always have full access
       if (user.access_level === "admin" || user.access_level === "full" || user.access_level === "internal") {
         return "All FIs";
       }
-      const parts = [];
-
-      if (Array.isArray(user.instance_keys) && user.instance_keys.length > 0) {
-        parts.push(`<span class="access-item">${user.instance_keys.length} instance(s)</span>`);
-      }
-      if (Array.isArray(user.partner_keys) && user.partner_keys.length > 0) {
-        parts.push(`<span class="access-item">${user.partner_keys.length} partner(s)</span>`);
-      }
-      if (Array.isArray(user.fi_keys) && user.fi_keys.length > 0) {
-        parts.push(`<span class="access-item">${user.fi_keys.length} FI(s)</span>`);
-      }
-      return parts.length > 0 ? parts.join(" ") : '<span class="access-item">No access</span>';
+      const lines = [];
+      lines.push(formatAccessList(user.instance_keys, "Inst"));
+      lines.push(formatAccessList(user.partner_keys, "Partner"));
+      lines.push(formatAccessList(user.fi_keys, "FI"));
+      const html = lines.filter(Boolean).join("");
+      return html || '<span class="access-item">No access</span>';
     }
 
     function formatLastLogin(isoDate) {
@@ -563,9 +769,9 @@
       return date.toLocaleDateString();
     }
 
-    function renderUsers(users) {
+    function renderUsersRows(users) {
       if (!users || users.length === 0) {
-        tableBody.innerHTML = '<tr><td colspan="8">No users configured.</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="8">No users found.</td></tr>';
         return;
       }
 
@@ -577,7 +783,7 @@
           <td class="data-access-cell">${formatDataAccess(user)}</td>
           <td title="${user.last_login ? new Date(user.last_login).toLocaleString() : ''}">${formatLastLogin(user.last_login)}</td>
           <td style="text-align: center;">${user.login_count || 0}</td>
-          <td>${user.enabled ? '<span class="badge badge-admin">Active</span>' : '<span class="badge badge-disabled">Disabled</span>'}</td>
+          <td>${user.enabled !== false ? '<span class="badge badge-admin">Active</span>' : '<span class="badge badge-disabled">Disabled</span>'}</td>
           <td class="actions">
             <button class="btn btn-secondary" onclick="window.editUser('${escapeHtml(user.email)}')">Edit</button>
             <button class="btn btn-danger" onclick="window.deleteUser('${escapeHtml(user.email)}')">Delete</button>
@@ -586,12 +792,198 @@
       `).join("");
     }
 
+    function renderUsers() {
+      applyFiltersAndRender();
+    }
+
     function escapeHtml(str) {
       if (!str) return "";
       return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
     }
 
     let currentUsers = [];
+
+    // --- Filter / Sort state ---
+    let filterText = "";
+    let filterLevel = "";
+    let filterStatus = "";
+    let filterDataAccess = new Set(); // values like "inst:ss01", "partner:Alkami", "fi:metrocu"
+    let sortColumn = "email";
+    let sortDirection = "asc";
+
+    const filterSearchEl = document.getElementById("filterSearch");
+    const filterLevelEl = document.getElementById("filterLevel");
+    const filterStatusEl = document.getElementById("filterStatus");
+    const filterDataAccessBtn = document.getElementById("filterDataAccessBtn");
+    const filterDataAccessPanel = document.getElementById("filterDataAccessPanel");
+    const filterCountEl = document.getElementById("filterCount");
+
+    function getFilteredSortedUsers() {
+      let list = currentUsers.slice();
+
+      // Text filter (email + name)
+      if (filterText) {
+        const q = filterText.toLowerCase();
+        list = list.filter(u =>
+          (u.email || "").toLowerCase().includes(q) ||
+          (u.name || "").toLowerCase().includes(q)
+        );
+      }
+
+      // Access level filter
+      if (filterLevel) {
+        list = list.filter(u => {
+          const lvl = u.access_level === "full" ? "admin" : u.access_level;
+          return lvl === filterLevel;
+        });
+      }
+
+      // Status filter
+      if (filterStatus === "active") {
+        list = list.filter(u => u.enabled !== false);
+      } else if (filterStatus === "disabled") {
+        list = list.filter(u => u.enabled === false);
+      }
+
+      // Data access filter
+      if (filterDataAccess.size > 0) {
+        list = list.filter(u => {
+          // Admin/internal/full have all access — they match any data access filter
+          if (u.access_level === "admin" || u.access_level === "full" || u.access_level === "internal") {
+            return true;
+          }
+          for (const key of filterDataAccess) {
+            const [type, value] = key.split(":", 2);
+            if (type === "inst" && Array.isArray(u.instance_keys) && u.instance_keys.includes(value)) return true;
+            if (type === "partner" && Array.isArray(u.partner_keys) && u.partner_keys.includes(value)) return true;
+            if (type === "fi" && Array.isArray(u.fi_keys) && u.fi_keys.includes(value)) return true;
+          }
+          return false;
+        });
+      }
+
+      // Sort
+      const dir = sortDirection === "asc" ? 1 : -1;
+      const accessOrder = { admin: 0, full: 0, internal: 1, limited: 2 };
+
+      list.sort((a, b) => {
+        let cmp = 0;
+        switch (sortColumn) {
+          case "email":
+            cmp = (a.email || "").localeCompare(b.email || "");
+            break;
+          case "name":
+            cmp = (a.name || "").localeCompare(b.name || "");
+            break;
+          case "access_level": {
+            const aLvl = accessOrder[a.access_level] ?? 3;
+            const bLvl = accessOrder[b.access_level] ?? 3;
+            cmp = aLvl - bLvl;
+            break;
+          }
+          case "last_login": {
+            const aTime = a.last_login ? new Date(a.last_login).getTime() : 0;
+            const bTime = b.last_login ? new Date(b.last_login).getTime() : 0;
+            // Nulls go to bottom regardless of direction
+            if (!a.last_login && b.last_login) return 1;
+            if (a.last_login && !b.last_login) return -1;
+            cmp = aTime - bTime;
+            break;
+          }
+          case "login_count":
+            cmp = (a.login_count || 0) - (b.login_count || 0);
+            break;
+          case "status": {
+            const aE = a.enabled !== false ? 0 : 1;
+            const bE = b.enabled !== false ? 0 : 1;
+            cmp = aE - bE;
+            break;
+          }
+        }
+        return cmp * dir;
+      });
+
+      return list;
+    }
+
+    function applyFiltersAndRender() {
+      const filtered = getFilteredSortedUsers();
+      renderUsersRows(filtered);
+      filterCountEl.textContent = filtered.length === currentUsers.length
+        ? `${currentUsers.length} users`
+        : `Showing ${filtered.length} of ${currentUsers.length}`;
+      updateSortHeaders();
+    }
+
+    function updateSortHeaders() {
+      document.querySelectorAll(".users-table th.sortable-th").forEach(th => {
+        const col = th.getAttribute("data-sort");
+        const arrow = th.querySelector(".sort-arrow");
+        if (col === sortColumn) {
+          th.classList.add("sort-active");
+          arrow.textContent = sortDirection === "asc" ? "▲" : "▼";
+        } else {
+          th.classList.remove("sort-active");
+          arrow.textContent = "▲";
+        }
+      });
+    }
+
+    function buildDataAccessFilterPanel() {
+      filterDataAccessPanel.innerHTML = "";
+      const groups = [
+        { label: "Instances", prefix: "inst", items: accessOptions.instances || [] },
+        { label: "Partners", prefix: "partner", items: accessOptions.partners || [] },
+        { label: "FIs", prefix: "fi", items: (accessOptions.fis || []).map(f => typeof f === "object" ? f.key : f) },
+      ];
+
+      groups.forEach(g => {
+        if (g.items.length === 0) return;
+        const groupLabel = document.createElement("div");
+        groupLabel.className = "da-group-label";
+        groupLabel.textContent = g.label;
+        filterDataAccessPanel.appendChild(groupLabel);
+
+        g.items.forEach(item => {
+          const key = g.prefix + ":" + item;
+          const lbl = document.createElement("label");
+          const cb = document.createElement("input");
+          cb.type = "checkbox";
+          cb.checked = filterDataAccess.has(key);
+          cb.addEventListener("change", () => {
+            if (cb.checked) filterDataAccess.add(key);
+            else filterDataAccess.delete(key);
+            updateDataAccessBtnText();
+            applyFiltersAndRender();
+          });
+          lbl.appendChild(cb);
+          lbl.appendChild(document.createTextNode(" " + item));
+          filterDataAccessPanel.appendChild(lbl);
+        });
+      });
+
+      // Clear button
+      const clearBtn = document.createElement("button");
+      clearBtn.type = "button";
+      clearBtn.className = "da-clear";
+      clearBtn.textContent = "Clear all";
+      clearBtn.addEventListener("click", () => {
+        filterDataAccess.clear();
+        updateDataAccessBtnText();
+        buildDataAccessFilterPanel(); // re-render checkboxes
+        applyFiltersAndRender();
+      });
+      filterDataAccessPanel.appendChild(clearBtn);
+    }
+
+    function updateDataAccessBtnText() {
+      const count = filterDataAccess.size;
+      if (count === 0) {
+        filterDataAccessBtn.textContent = "All";
+      } else {
+        filterDataAccessBtn.textContent = count + " selected";
+      }
+    }
 
     async function loadUsers() {
       tableBody.innerHTML = '<tr><td colspan="8">Loading...</td></tr>';
@@ -603,7 +995,7 @@
         }
         const data = await res.json();
         currentUsers = data.users || [];
-        renderUsers(currentUsers);
+        renderUsers();
       } catch (err) {
         tableBody.innerHTML = `<tr><td colspan="8" style="color: #991b1b;">Error: ${escapeHtml(err.message)}</td></tr>`;
       }
@@ -977,8 +1369,53 @@
       }
     });
 
+    // --- Filter event listeners ---
+    filterSearchEl.addEventListener("input", (e) => {
+      filterText = e.target.value;
+      applyFiltersAndRender();
+    });
+    filterLevelEl.addEventListener("change", (e) => {
+      filterLevel = e.target.value;
+      applyFiltersAndRender();
+    });
+    filterStatusEl.addEventListener("change", (e) => {
+      filterStatus = e.target.value;
+      applyFiltersAndRender();
+    });
+
+    // Data access filter toggle
+    filterDataAccessBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const isOpen = !filterDataAccessPanel.hasAttribute("hidden");
+      filterDataAccessPanel.toggleAttribute("hidden", isOpen);
+      if (!isOpen) buildDataAccessFilterPanel();
+    });
+
+    // Close data access filter when clicking outside
+    document.addEventListener("click", (e) => {
+      if (!document.getElementById("filterDataAccessWrap")?.contains(e.target)) {
+        filterDataAccessPanel.setAttribute("hidden", "");
+      }
+    });
+
+    // --- Sortable header click handlers ---
+    document.querySelectorAll(".users-table th.sortable-th").forEach(th => {
+      th.addEventListener("click", () => {
+        const col = th.getAttribute("data-sort");
+        if (sortColumn === col) {
+          sortDirection = sortDirection === "asc" ? "desc" : "asc";
+        } else {
+          sortColumn = col;
+          sortDirection = "asc";
+        }
+        applyFiltersAndRender();
+      });
+    });
+
     // Initial load
-    loadAccessOptions();
+    loadAccessOptions().then(() => {
+      buildDataAccessFilterPanel();
+    });
     loadUsers();
   })();
   </script>

@@ -74,9 +74,10 @@ return el;
 // Prefix for relative links - "../" if in subdirectory, "./" if at root
 var NAV_PREFIX = window.location.pathname.indexOf("/dashboards/") !== -1 ? "../" : "./";
 
+var HOME_LINK = { id:"overview", label:"Home", href:NAV_PREFIX+"index.html" };
+
 var GROUPS = [
 { label: "Conversions", items: [
-{ id:"overview", label:"Overview", href:NAV_PREFIX+"index.html" },
 { id:"funnel", label:"FI Funnel", href:NAV_PREFIX+"funnel.html" },
 { id:"customer-success", label:"Customer Success Dashboard", href:NAV_PREFIX+"dashboards/customer-success.html" },
 { id:"sources", label:"Sources", href:NAV_PREFIX+"sources.html" },
@@ -255,21 +256,43 @@ targetWrap.appendChild(wrap);
 }
 
 var navGroups = getGroupsForAccess();
+
+// Home link only for users who have nav groups (not limited)
+if (navGroups.length > 0) {
+var homeLink = h("a", {
+  href: HOME_LINK.href,
+  class: "sis-pill" + (HOME_LINK.id === currentId ? " sis-active" : ""),
+  style: "text-decoration:none;"
+}, [HOME_LINK.label]);
+rightGroup.appendChild(homeLink);
+}
+
 for (var g=0; g<navGroups.length; g++){
 var group = navGroups[g];
 addDropdown(group, rightGroup);
 }
 
-// Add user info and logout button
+// Add user info and logout button (appended to rightGroup, after nav pills)
 var user = getCurrentUser();
 if (user) {
+  // Vertical divider between nav pills and user section
+  var divider = h("span", { class: "sis-nav-divider" }, []);
+  divider.style.display = "inline-block";
+  divider.style.width = "1px";
+  divider.style.height = "20px";
+  divider.style.background = "#3b3f46";
+  divider.style.margin = "0 12px";
+  divider.style.verticalAlign = "middle";
+  divider.style.opacity = "0.5";
+  rightGroup.appendChild(divider);
+
   var userName = user.name || user.email || "";
   if (userName) {
     var userSpan = h("span", { class: "sis-user-name" }, [userName]);
     userSpan.style.fontSize = "13px";
     userSpan.style.color = "#8b949e";
     userSpan.style.marginRight = "8px";
-    leftGroup.appendChild(userSpan);
+    rightGroup.appendChild(userSpan);
   }
   var logoutBtn = h("button", { class: "sis-pill sis-pill-outline", type: "button" }, ["Sign Out"]);
   logoutBtn.style.fontSize = "12px";
@@ -281,7 +304,7 @@ if (user) {
       window.location.href = NAV_PREFIX + "login.html";
     }
   });
-  leftGroup.appendChild(logoutBtn);
+  rightGroup.appendChild(logoutBtn);
 }
 
 // Theme toggle removed from header - now in maintenance page body only
@@ -463,6 +486,17 @@ targetWrap.appendChild(wrap);
 }
 
 var navGroups = getGroupsForAccess();
+
+// Home link only for users who have nav groups (not limited)
+if (navGroups.length > 0) {
+var homeLink = h("a", {
+  href: HOME_LINK.href,
+  class: "sis-pill" + (HOME_LINK.id === currentId ? " sis-active" : ""),
+  style: "text-decoration:none;"
+}, [HOME_LINK.label]);
+rightGroup.appendChild(homeLink);
+}
+
 for (var g=0; g<navGroups.length; g++){
 var group = navGroups[g];
 addDropdown(group, rightGroup);

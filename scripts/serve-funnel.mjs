@@ -3146,8 +3146,8 @@ const server = http.createServer(async (req, res) => {
         return send(res, 400, { error: 'Missing required parameters: type, startDate, endDate' });
       }
 
-      if (!['success', 'system', 'ux', 'nojobs', 'sysrate'].includes(type)) {
-        return send(res, 400, { error: 'Invalid type. Must be success, system, ux, nojobs, or sysrate' });
+      if (!['success', 'system', 'ux', 'nojobs', 'sysrate', 'overall'].includes(type)) {
+        return send(res, 400, { error: 'Invalid type. Must be success, system, ux, nojobs, sysrate, or overall' });
       }
 
       // Load FI registry for integration type lookups
@@ -3442,10 +3442,12 @@ const server = http.createServer(async (req, res) => {
         const countA = type === 'success' ? merchantGroups[a].successCount :
                        type === 'ux' ? merchantGroups[a].uxCount :
                        type === 'sysrate' ? (merchantGroups[a].successCount + merchantGroups[a].systemCount) :
+                       type === 'overall' ? (merchantGroups[a].successCount + merchantGroups[a].systemCount + merchantGroups[a].uxCount) :
                        merchantGroups[a].systemCount;
         const countB = type === 'success' ? merchantGroups[b].successCount :
                        type === 'ux' ? merchantGroups[b].uxCount :
                        type === 'sysrate' ? (merchantGroups[b].successCount + merchantGroups[b].systemCount) :
+                       type === 'overall' ? (merchantGroups[b].successCount + merchantGroups[b].systemCount + merchantGroups[b].uxCount) :
                        merchantGroups[b].systemCount;
         return countB - countA;
       });
@@ -3460,7 +3462,10 @@ const server = http.createServer(async (req, res) => {
 
         // Filter placements to only show the requested type
         // sysrate includes both success and system placements
-        const typedPlacements = type === 'sysrate'
+        // overall includes all placement types (success + system + ux)
+        const typedPlacements = type === 'overall'
+          ? group.allPlacements
+          : type === 'sysrate'
           ? group.allPlacements.filter(p => p.placementType === 'success' || p.placementType === 'system')
           : group.allPlacements.filter(p => p.placementType === type);
         const typeCount = typedPlacements.length;
