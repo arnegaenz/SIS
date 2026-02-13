@@ -1199,7 +1199,7 @@
                   </label>
                   <label>
                     First SSO Seen
-                    <input type="text" id="editorTrafficFirstSeenSso" disabled />
+                    <input type="date" id="editorTrafficFirstSeenSso" />
                   </label>
                   <label>
                     Last Seen
@@ -2771,6 +2771,7 @@
           cardholder_total: inputs.cardholders.value.trim(),
           cardholder_source: inputs.source.value.trim(),
           cardholder_as_of: inputs.asOf.value || "",
+          traffic_first_seen_sso: inputs.trafficFirstSeenSso.value || "",
         };
         if (!updates.fi_name) throw new Error("FI Name is required");
         if (!updates.fi_lookup_key) throw new Error("FI Lookup Key is required");
@@ -2782,6 +2783,7 @@
         updates.cardholder_total = updates.cardholder_total === "" ? null : updates.cardholder_total;
         updates.cardholder_source = updates.cardholder_source === "" ? null : updates.cardholder_source;
         updates.cardholder_as_of = updates.cardholder_as_of === "" ? null : updates.cardholder_as_of;
+        updates.traffic_first_seen_sso = updates.traffic_first_seen_sso === "" ? null : updates.traffic_first_seen_sso;
         return updates;
       }
 

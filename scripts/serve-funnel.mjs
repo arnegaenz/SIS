@@ -3705,6 +3705,18 @@ const server = http.createServer(async (req, res) => {
       if ("credit_processor" in updates) {
         next.credit_processor = normalizeFreeText(updates.credit_processor);
       }
+      if ("traffic_first_seen_sso" in updates) {
+        const val = updates.traffic_first_seen_sso;
+        if (!val || val === "") {
+          next.traffic_first_seen_sso = null;
+        } else {
+          const str = val.toString().trim();
+          if (!/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+            throw Object.assign(new Error("traffic_first_seen_sso must be YYYY-MM-DD"), { status: 400 });
+          }
+          next.traffic_first_seen_sso = str;
+        }
+      }
 
       const targetLookup = canonicalLookupKey(next.fi_lookup_key || next.fi_name || key);
       const targetInstance = canonicalInstance(

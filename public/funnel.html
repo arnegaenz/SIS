@@ -605,6 +605,54 @@
         white-space: nowrap;
       }
 
+      /* SSO Pre/Post Breakdown */
+      .sso-breakdown-container {
+        margin-top: 16px;
+      }
+      .sso-breakdown-block {
+        margin-bottom: 12px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 12px;
+      }
+      .sso-breakdown-block.sso-pre {
+        border-left: 3px solid var(--muted);
+      }
+      .sso-breakdown-block.sso-post {
+        border-left: 3px solid #3b82f6;
+      }
+      .sso-breakdown-title {
+        font-weight: 600;
+        font-size: 0.9rem;
+        margin-bottom: 8px;
+        color: var(--fg);
+      }
+      .sso-breakdown-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+        gap: 8px;
+      }
+      .sso-breakdown-card {
+        padding: 8px;
+        border-radius: 6px;
+        text-align: center;
+        background: var(--bg);
+        border: 1px solid var(--border);
+      }
+      .sso-breakdown-card .sso-card-label {
+        font-size: 0.7rem;
+        color: var(--muted);
+        margin-bottom: 2px;
+      }
+      .sso-breakdown-card .sso-card-value {
+        font-size: 1.05rem;
+        font-weight: 600;
+      }
+      .sso-breakdown-card .sso-card-pct {
+        font-size: 0.7rem;
+        color: var(--muted);
+      }
+
       /* Placement Details Expandable Sections */
       .placement-details {
         margin-top: 10px;
@@ -1409,6 +1457,16 @@
               <button class="breakdown-details-close" id="breakdownDetailsClose" type="button">Close</button>
             </div>
             <div id="breakdownDetailsBody"></div>
+          </div>
+        </div>
+        <div id="ssoBreakdownContainer" class="sso-breakdown-container" style="display: none;">
+          <div class="sso-breakdown-block sso-pre">
+            <div class="sso-breakdown-title" id="ssoPreTitle">Pre-SSO</div>
+            <div class="sso-breakdown-grid" id="ssoPreGrid"></div>
+          </div>
+          <div class="sso-breakdown-block sso-post">
+            <div class="sso-breakdown-title" id="ssoPostTitle">Post-SSO</div>
+            <div class="sso-breakdown-grid" id="ssoPostGrid"></div>
           </div>
         </div>
       </div>
@@ -2242,6 +2300,7 @@ function applyColumnTitles(root = document) {
             cardholder_total: cardholderTotal,
             cardholder_as_of: metaLike.cardholder_as_of || null,
             cardholder_source: metaLike.cardholder_source || null,
+            traffic_first_seen_sso: metaLike.traffic_first_seen_sso || null,
           };
           mergeEntry(fiKey, {
             ...basePayload,
@@ -3246,6 +3305,12 @@ function applyColumnTitles(root = document) {
           if (!day.sources?.ga) missingSources.push(`${date}: GA`);
           if (!day.sources?.sis_sessions) missingSources.push(`${date}: Sess`);
           if (!day.sources?.sis_placements) missingSources.push(`${date}: CPR`);
+          // If the FI has a known SSO start date, show the correct integration per-row
+          let rowIntegration = meta.integration;
+          if (meta.ssoDate && meta.integration === "SSO" && date < meta.ssoDate) {
+            rowIntegration = "NON-SSO";
+          }
+
           rows.push({
             periodLabel: date,
             start: date,
@@ -3261,7 +3326,7 @@ function applyColumnTitles(root = document) {
             fi: meta.fi,
             instance: meta.instance,
             instances: meta.instances,
-            integration_type: meta.integration,
+            integration_type: rowIntegration,
             partner: meta.partner || "",
             cardholders: meta.cardholders,
             cardholder_source: meta.cardholder_source || null,
@@ -3275,6 +3340,18 @@ function applyColumnTitles(root = document) {
       function aggregateRowsForPeriod(rows, label, start, end, meta) {
         if (!rows.length) return null;
         const sourcesSet = new Set();
+
+        // Derive integration type from constituent daily rows
+        const integrationTypes = new Set(rows.map(r => r.integration_type || meta.integration));
+        let periodIntegration;
+        if (integrationTypes.size === 1) {
+          periodIntegration = integrationTypes.values().next().value;
+        } else if (integrationTypes.has("SSO") && integrationTypes.has("NON-SSO")) {
+          periodIntegration = "NON-SSO \u2192 SSO";
+        } else {
+          periodIntegration = meta.integration;
+        }
+
         const agg = {
           periodLabel: label,
           start,
@@ -3290,7 +3367,7 @@ function applyColumnTitles(root = document) {
           fi: meta.fi,
           instance: meta.instance,
           instances: meta.instances,
-          integration_type: meta.integration,
+          integration_type: periodIntegration,
           partner: meta.partner || "",
           cardholders: meta.cardholders,
           cardholder_source: meta.cardholder_source || null,
@@ -3439,6 +3516,12 @@ function applyColumnTitles(root = document) {
         if (start && date < start) return false;
         if (end && date > end) return false;
         return true;
+      }
+
+      function dayBefore(dateStr) {
+        const d = new Date(dateStr + "T00:00:00Z");
+        d.setUTCDate(d.getUTCDate() - 1);
+        return d.toISOString().slice(0, 10);
       }
 
       const INSTANCE_DISPLAY_OVERRIDES = new Map([
@@ -4014,7 +4097,88 @@ function applyColumnTitles(root = document) {
         return metrics;
       }
 
-      function renderConversionAnalysis(metrics) {
+      function buildSsoSplit(startDate, endDate, visibleRows) {
+        if (!isSingleFiSelected()) return null;
+        if (!visibleRows || !visibleRows.length) return null;
+        const row = visibleRows[0];
+        const fiName = row.fi || "";
+        const instanceVal = row.instance || row.instances?.[0] || "";
+        const regEntry = getRegistryEntry(fiName, instanceVal);
+        const ssoDate = regEntry?.traffic_first_seen_sso;
+        if (!ssoDate || startDate >= ssoDate || endDate < ssoDate) return null;
+        return {
+          preMetrics: computeSsoMetrics(startDate, dayBefore(ssoDate), visibleRows),
+          postMetrics: computeSsoMetrics(ssoDate, endDate, visibleRows),
+          ssoDate,
+          startDate,
+          endDate,
+        };
+      }
+
+      // Compute metrics entirely from dailyData (date-filtered), not from visibleRows summary
+      function computeSsoMetrics(rangeStart, rangeEnd, visibleRows) {
+        const m = {
+          totalGaSelect: 0, totalSessions: 0, sessionsWithJobs: 0,
+          sessionsWithSuccessfulJobs: 0, sessionsWithoutJobs: 0,
+          totalJobs: 0, successfulJobs: 0,
+          successful: 0, systemFailures: 0, uxFailures: 0,
+          uxByType: {}, systemByType: {}, totalPlacements: 0,
+        };
+        const dates = Object.keys(dailyData).sort();
+        for (const date of dates) {
+          if (!inRange(date, rangeStart, rangeEnd)) continue;
+          const day = dailyData[date];
+          if (!day?.fi_instances) continue;
+          for (const fiInstanceKey in day.fi_instances) {
+            const fid = day.fi_instances[fiInstanceKey];
+            const fiName = fid.fi_lookup_key || fid.fi_name || "";
+            const instanceName = fid.instance || "";
+            const isVisible = visibleRows.some(row => {
+              const rowFi = normalizeFiKey(row.fi || "");
+              const dayFi = normalizeFiKey(fiName);
+              if (rowFi !== dayFi) return false;
+              const rowInst = normalizeInstanceKey(row.instance);
+              const dayInst = normalizeInstanceKey(instanceName);
+              if (rowInst && rowInst !== "any" && dayInst !== rowInst) return false;
+              return true;
+            });
+            if (!isVisible) continue;
+            // Sessions & GA
+            const sess = fid.sessions || {};
+            const ga = fid.ga || {};
+            m.totalGaSelect += ga.select_merchants || 0;
+            m.totalSessions += sess.total || 0;
+            m.sessionsWithJobs += sess.with_jobs || 0;
+            m.sessionsWithSuccessfulJobs += sess.with_success || 0;
+            m.totalJobs += sess.total_jobs || 0;
+            m.successfulJobs += sess.successful_jobs || 0;
+            // Placements by termination
+            if (fid.placements?.by_termination) {
+              for (const termType in fid.placements.by_termination) {
+                const count = fid.placements.by_termination[termType];
+                const rule = TERMINATION_RULES[termType] || TERMINATION_RULES.UNKNOWN;
+                if (rule.severity === "success") {
+                  m.successful += count;
+                } else if (rule.includeInHealth) {
+                  m.systemFailures += count;
+                  m.systemByType[termType] = (m.systemByType[termType] || 0) + count;
+                } else if (rule.includeInUx) {
+                  m.uxFailures += count;
+                  m.uxByType[termType] = (m.uxByType[termType] || 0) + count;
+                } else {
+                  m.systemFailures += count;
+                  m.systemByType[termType] = (m.systemByType[termType] || 0) + count;
+                }
+                m.totalPlacements += count;
+              }
+            }
+          }
+        }
+        m.sessionsWithoutJobs = m.totalSessions - m.sessionsWithJobs;
+        return m;
+      }
+
+      function renderConversionAnalysis(metrics, ssoSplit) {
         const panel = document.getElementById("conversionAnalysis");
         if (!panel) return;
 
@@ -4139,6 +4303,53 @@ function applyColumnTitles(root = document) {
         } catch (e) {
           console.warn("[SIS] KPI status render failed.", e);
         }
+
+        // SSO Pre/Post breakdown
+        const ssoCont = document.getElementById("ssoBreakdownContainer");
+        if (ssoCont) {
+          if (ssoSplit && ssoSplit.preMetrics && ssoSplit.postMetrics) {
+            ssoCont.style.display = "";
+            document.getElementById("ssoPreTitle").textContent =
+              `Pre-SSO (${ssoSplit.startDate} \u2192 ${dayBefore(ssoSplit.ssoDate)})`;
+            document.getElementById("ssoPostTitle").textContent =
+              `Post-SSO (${ssoSplit.ssoDate} \u2192 ${ssoSplit.endDate})`;
+            renderSsoBreakdownGrid(document.getElementById("ssoPreGrid"), ssoSplit.preMetrics);
+            renderSsoBreakdownGrid(document.getElementById("ssoPostGrid"), ssoSplit.postMetrics);
+          } else {
+            ssoCont.style.display = "none";
+          }
+        }
+      }
+
+      function renderSsoBreakdownGrid(container, m) {
+        if (!container) return;
+        const gaSelect = m.totalGaSelect || 0;
+        const totalSessions = m.totalSessions || 0;
+        const sessWithSuccess = m.sessionsWithSuccessfulJobs || 0;
+        const successful = m.successful || 0;
+        const systemFail = m.systemFailures || 0;
+        const uxFail = m.uxFailures || 0;
+        const sysDenom = successful + systemFail;
+        const sysRate = sysDenom > 0 ? ((successful / sysDenom) * 100).toFixed(1) : "0.0";
+
+        const pct = (n, d) => d > 0 ? ((n / d) * 100).toFixed(1) + "%" : "0.0%";
+
+        const totalJobs = m.totalJobs || 0;
+
+        const cards = [
+          { label: "Unique CardUpdatr Views", value: gaSelect.toLocaleString(), pct: "", cls: "" },
+          { label: "Total Sessions", value: totalSessions.toLocaleString(), pct: gaSelect > 0 ? pct(totalSessions, gaSelect) : "", cls: "" },
+          { label: "Total Jobs", value: totalJobs.toLocaleString(), pct: "", cls: "" },
+          { label: "Sessions w/ Successful Jobs", value: sessWithSuccess.toLocaleString(), pct: totalSessions > 0 ? pct(sessWithSuccess, totalSessions) : "", cls: "breakdown-success" },
+          { label: "System Success Rate", value: sysRate + "%", pct: sysDenom > 0 ? `${successful.toLocaleString()} of ${sysDenom.toLocaleString()}` : "", cls: "breakdown-sysrate" },
+          { label: "UX Failures", value: uxFail.toLocaleString(), pct: "", cls: "breakdown-ux" },
+        ];
+
+        container.innerHTML = cards.map(c => `<div class="sso-breakdown-card ${c.cls}">
+          <div class="sso-card-label">${c.label}</div>
+          <div class="sso-card-value">${c.value}</div>
+          ${c.pct ? `<div class="sso-card-pct">${c.pct}</div>` : ""}
+        </div>`).join("");
       }
 
       let lastMedianJobsRequestKey = null;
@@ -5521,6 +5732,7 @@ function applyColumnTitles(root = document) {
           cardholders: perFiRow.cardholders,
           cardholder_source: perFiRow.cardholder_source || null,
           cardholder_as_of: perFiRow.cardholder_as_of || null,
+          ssoDate: registryInfo?.traffic_first_seen_sso || null,
         };
 
         const dailyRows = buildDailyRowsForFi(fiName, startDate, endDate, meta);
@@ -6005,7 +6217,8 @@ function applyColumnTitles(root = document) {
 
         // Calculate and render conversion metrics
 	        const conversionMetrics = calculateConversionMetrics(startDate, endDate, visibleRows);
-	        renderConversionAnalysis(conversionMetrics);
+	        const ssoSplit = buildSsoSplit(startDate, endDate, visibleRows);
+	        renderConversionAnalysis(conversionMetrics, ssoSplit);
 
         renderTables(visibleRows, startDate, endDate, daySpan);
         updateMedianJobsCard(startDate, endDate, latestVisibleRows);
@@ -6062,7 +6275,8 @@ function applyColumnTitles(root = document) {
 
         // Recalculate and render conversion metrics with new filters
 	        const conversionMetrics = calculateConversionMetrics(startDate, endDate, visibleRows);
-	        renderConversionAnalysis(conversionMetrics);
+	        const ssoSplit = buildSsoSplit(startDate, endDate, visibleRows);
+	        renderConversionAnalysis(conversionMetrics, ssoSplit);
 
 	        renderTables(visibleRows, startDate, endDate, daySpan);
         updateMedianJobsCard(startDate, endDate, latestVisibleRows);
