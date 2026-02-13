@@ -1274,6 +1274,7 @@
               <div class="form-actions">
                 <button id="applyBtn" class="form-button">Apply filters</button>
                 <button id="exportCsvBtn" class="form-button secondary">Export CSV</button>
+                <button id="shareLinkBtn" class="form-button secondary" type="button" title="Copy shareable link to clipboard" style="display:none;">Share</button>
                 <label class="form-checkbox" style="margin: 0">
                   <input type="checkbox" id="includeTestDataCheckbox" />
                   Include test data
@@ -2199,10 +2200,101 @@ function applyColumnTitles(root = document) {
 
       const DEFAULT_SORT = { column: "sessions", direction: "desc" };
       // Initialize date inputs with default window on load
-      if (startDateInput && !startDateInput.value) startDateInput.value = defaultStartDateStr;
-      if (endDateInput && !endDateInput.value) endDateInput.value = defaultEndDateStr;
       const presetEl = document.getElementById("datePreset");
-      if (presetEl) presetEl.value = "last7";
+      const __viewParams = new URLSearchParams(window.location.search);
+      const __isViewMode = __viewParams.get("view") === "1";
+
+      if (__isViewMode) {
+        // Track shared link view (fire-and-forget, no auth)
+        const __viewSid = __viewParams.get("sid");
+        if (__viewSid) {
+          try { fetch("/api/share-log/view?sid=" + encodeURIComponent(__viewSid)).catch(function() {}); } catch (e) {}
+        }
+        // View mode: use dates from URL params, lock controls
+        const vpFrom = __viewParams.get("from");
+        const vpTo = __viewParams.get("to");
+        if (startDateInput) startDateInput.value = vpFrom || defaultStartDateStr;
+        if (endDateInput) endDateInput.value = vpTo || defaultEndDateStr;
+        if (presetEl) { presetEl.value = ""; presetEl.disabled = true; }
+        if (startDateInput) startDateInput.disabled = true;
+        if (endDateInput) endDateInput.disabled = true;
+        // Hide Apply, Export, Test data controls
+        const applyBtn = document.getElementById("applyBtn");
+        const exportCsvBtn = document.getElementById("exportCsvBtn");
+        const testCheckbox = document.getElementById("includeTestDataCheckbox");
+        if (applyBtn) applyBtn.style.display = "none";
+        if (exportCsvBtn) exportCsvBtn.style.display = "none";
+        if (testCheckbox) testCheckbox.parentElement.style.display = "none";
+        // Hide Range preset entirely
+        if (presetEl) presetEl.parentElement.style.display = "none";
+      } else {
+        // Check for date params from redirect (e.g., after login from shared link)
+        const urlFrom = __viewParams.get("from");
+        const urlTo = __viewParams.get("to");
+        if (urlFrom && urlTo) {
+          if (startDateInput) startDateInput.value = urlFrom;
+          if (endDateInput) endDateInput.value = urlTo;
+          if (presetEl) presetEl.value = "";  // Custom
+        } else {
+          if (startDateInput && !startDateInput.value) startDateInput.value = defaultStartDateStr;
+          if (endDateInput && !endDateInput.value) endDateInput.value = defaultEndDateStr;
+          if (presetEl) presetEl.value = "last7";
+        }
+        // Show Share button for authenticated users
+        const shareLinkBtn = document.getElementById("shareLinkBtn");
+        if (shareLinkBtn) {
+          shareLinkBtn.style.display = "";
+          shareLinkBtn.addEventListener("click", function() {
+            const fs = window.__FILTER_STATE || {};
+            const params = new URLSearchParams();
+            params.set("view", "1");
+            // Generate unique share ID
+            const sidBytes = new Uint8Array(4);
+            crypto.getRandomValues(sidBytes);
+            const sid = Array.from(sidBytes).map(function(b) { return b.toString(16).padStart(2, "0"); }).join("");
+            params.set("sid", sid);
+            // Date range
+            if (startDateInput && startDateInput.value) params.set("from", startDateInput.value);
+            if (endDateInput && endDateInput.value) params.set("to", endDateInput.value);
+            // FI filter
+            if (fs.fis && fs.fis.size > 0) {
+              const fiArr = Array.from(fs.fis);
+              if (fiArr.length === 1) params.set("fi", fiArr[0]);
+            }
+            // Partner
+            if (fs.__partnerSetTouched && fs.partnerSet && fs.partnerSet.size > 0) {
+              const arr = Array.from(fs.partnerSet);
+              if (arr.length === 1) params.set("partner", arr[0]);
+            }
+            // Instance
+            if (fs.__instanceSetTouched && fs.instanceSet && fs.instanceSet.size > 0) {
+              const arr = Array.from(fs.instanceSet);
+              if (arr.length === 1) params.set("instance", arr[0]);
+            }
+            // Integration
+            if (fs.__integrationSetTouched && fs.integrationSet && fs.integrationSet.size > 0) {
+              const arr = Array.from(fs.integrationSet);
+              if (arr.length === 1) params.set("integration", arr[0]);
+            }
+            const shareUrl = window.location.origin + window.location.pathname + "?" + params.toString();
+            navigator.clipboard.writeText(shareUrl).then(function() {
+              shareLinkBtn.textContent = "Copied!";
+              setTimeout(function() { shareLinkBtn.textContent = "Share"; }, 2000);
+            }).catch(function() {
+              // Fallback
+              prompt("Copy this link:", shareUrl);
+            });
+            // Log share creation (fire-and-forget)
+            try {
+              fetch("/api/share-log", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ sid: sid, url: shareUrl })
+              }).catch(function() {});
+            } catch (e) {}
+          });
+        }
+      }
 
       async function fetchJson(url) {
         const res = await fetch(url);
@@ -6498,10 +6590,10 @@ function applyColumnTitles(root = document) {
           // Initialize placement details handlers
           initPlacementDetailsHandlers();
 
-          // Hide Overall Success Rate card for limited users
+          // Hide Overall Success Rate card for limited users and view mode
           try {
             const _u = window.sisAuth?.getUser?.();
-            if (_u && _u.access_level === "limited") {
+            if (window.__sisViewMode || (_u && _u.access_level === "limited")) {
               const overallCard = document.getElementById("convBreakdownOverallCard");
               if (overallCard) overallCard.style.display = "none";
             }

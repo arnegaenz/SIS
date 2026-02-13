@@ -1,0 +1,522 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Shared Links - SIS Metrics</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <link rel="stylesheet" href="./sis-shared.css?v=navfix" />
+  <link rel="stylesheet" href="./assets/css/sis.css">
+  <link rel="stylesheet" href="./assets/css/mobile.css">
+  <script src="./assets/js/passcode-gate.js"></script>
+  <script defer src="./assets/js/sis.js"></script>
+  <script src="./assets/js/config.js"></script>
+  <script defer src="./assets/js/nav.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function(){
+      if (window.renderHeaderNav && !window.__sisHeaderNav_shared) {
+        window.__sisHeaderNav_shared = true;
+        window.renderHeaderNav({
+          currentId: "shared-views",
+          title: "Shared Links",
+          subtitle: "Track shared link creation and views."
+        });
+      }
+    });
+  </script>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      background: var(--bg);
+      color: var(--panel-title);
+      font-family: "Inter", "Segoe UI", ui-sans-serif, system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    .activity-card {
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 18px;
+      padding: 26px;
+      margin-top: 24px;
+    }
+    .activity-card h2 {
+      margin: 0 0 8px 0;
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--ink);
+    }
+    .activity-card .description {
+      margin: 0 0 20px 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    .activity-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: flex-end;
+      margin-bottom: 16px;
+    }
+    .activity-controls label {
+      display: flex;
+      flex-direction: column;
+      font-size: 12px;
+      text-transform: uppercase;
+      color: var(--muted);
+      gap: 4px;
+      min-width: 150px;
+    }
+    .activity-controls input,
+    .activity-controls select {
+      border-radius: 8px;
+      border: 1px solid var(--panel-border);
+      background: var(--input-bg);
+      color: var(--panel-title);
+      padding: 8px 10px;
+      font-size: 14px;
+      height: 40px;
+    }
+    .btn {
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      text-decoration: none;
+      color: #f8fafc;
+      border-radius: 999px;
+      font-weight: 600;
+      letter-spacing: 0.2px;
+      border: none;
+      background: linear-gradient(120deg, var(--accent), var(--accent-2));
+      transition: transform 0.15s ease, filter 0.15s ease;
+      cursor: pointer;
+      height: 40px;
+      padding: 0 18px;
+      min-width: 120px;
+    }
+    .btn:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.05);
+    }
+    .status-line {
+      font-size: 13px;
+      min-height: 20px;
+      margin-bottom: 12px;
+      color: var(--muted);
+    }
+    .status-line.success { color: var(--success); }
+    .status-line.error { color: var(--danger); }
+    .sv-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .sv-table th,
+    .sv-table td {
+      text-align: left;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--panel-border);
+    }
+    .sv-table th {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      background: var(--panel-bg);
+      position: sticky;
+      top: 0;
+    }
+    .sv-table tbody tr.sv-row:hover {
+      background: rgba(148, 163, 184, 0.08);
+      cursor: pointer;
+    }
+    .table-wrap {
+      max-height: 700px;
+      overflow-y: auto;
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+    }
+    .sv-empty {
+      padding: 40px 20px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 14px;
+    }
+    .user-pill {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 12px;
+      background: rgba(59, 130, 246, 0.15);
+      color: #3b82f6;
+      font-size: 12px;
+    }
+    .sid-pill {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 12px;
+      background: rgba(148, 163, 184, 0.15);
+      color: var(--muted);
+      font-size: 11px;
+      font-family: monospace;
+    }
+    .views-badge {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .views-badge.has-views {
+      background: rgba(34, 197, 94, 0.15);
+      color: #22c55e;
+    }
+    .views-badge.no-views {
+      background: rgba(148, 163, 184, 0.1);
+      color: var(--muted);
+    }
+    .sv-filters-cell {
+      max-width: 300px;
+      font-size: 12px;
+      color: var(--muted);
+      word-break: break-all;
+    }
+    .sv-filter-tag {
+      display: inline-block;
+      padding: 1px 6px;
+      border-radius: 6px;
+      background: rgba(148, 163, 184, 0.12);
+      font-size: 11px;
+      margin: 1px;
+    }
+    /* Expandable detail rows */
+    .sv-detail-row td {
+      padding: 0 14px 12px 14px;
+      border-bottom: 1px solid var(--panel-border);
+    }
+    .sv-detail-row[hidden] { display: none; }
+    .sv-detail-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      margin-top: 4px;
+    }
+    .sv-detail-table th {
+      font-size: 10px;
+      text-transform: uppercase;
+      color: var(--muted);
+      padding: 6px 10px;
+      text-align: left;
+      border-bottom: 1px solid var(--panel-border);
+      background: transparent;
+      position: static;
+    }
+    .sv-detail-table td {
+      padding: 6px 10px;
+      border-bottom: 1px solid rgba(148,163,184,0.1);
+      color: var(--panel-title);
+    }
+    .sv-detail-table .ref-pill {
+      display: inline-block;
+      max-width: 300px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .sv-expand-icon {
+      display: inline-block;
+      width: 16px;
+      font-size: 10px;
+      color: var(--muted);
+      transition: transform 0.15s;
+    }
+    .sv-row.expanded .sv-expand-icon {
+      transform: rotate(90deg);
+    }
+  </style>
+</head>
+<body>
+  <div id="sis-header"></div>
+
+  <div class="sis-content">
+    <main class="sis-main">
+      <section class="sis-panel">
+        <div class="activity-card">
+          <h2>Shared Links</h2>
+          <p class="description">
+            Track who created shared funnel links and how many times they were viewed.
+          </p>
+
+          <div class="activity-controls">
+            <label>
+              Filter by Creator
+              <select id="creatorFilter">
+                <option value="">All Creators</option>
+              </select>
+            </label>
+            <label>
+              Search
+              <input type="text" id="searchFilter" placeholder="Email, filters, SID..." />
+            </label>
+            <button class="btn" id="refreshBtn">Refresh</button>
+          </div>
+
+          <div id="status" class="status-line">Loading...</div>
+
+          <div class="table-wrap">
+            <table class="sv-table">
+              <thead>
+                <tr>
+                  <th style="width:24px;"></th>
+                  <th>Created</th>
+                  <th>Created By</th>
+                  <th>Filters</th>
+                  <th>SID</th>
+                  <th>Views</th>
+                  <th>Last Viewed</th>
+                </tr>
+              </thead>
+              <tbody id="svBody">
+                <tr><td colspan="7" class="sv-empty">Loading...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="./theme-toggle.js"></script>
+  <script>
+    (function() {
+      var API_BASE = window.SIS_API_BASE || "";
+      var creatorFilter = document.getElementById("creatorFilter");
+      var searchFilter = document.getElementById("searchFilter");
+      var refreshBtn = document.getElementById("refreshBtn");
+      var statusEl = document.getElementById("status");
+      var svBody = document.getElementById("svBody");
+
+      var allLinks = []; // grouped data
+
+      function getToken() {
+        if (window.sisAuth && window.sisAuth.getToken) return window.sisAuth.getToken();
+        return localStorage.getItem("sis_session_token") || "";
+      }
+
+      function setStatus(msg, kind) {
+        statusEl.textContent = msg;
+        statusEl.className = "status-line " + (kind || "");
+      }
+
+      function escapeHtml(text) {
+        var div = document.createElement("div");
+        div.textContent = text || "";
+        return div.innerHTML;
+      }
+
+      function formatTimestamp(iso) {
+        if (!iso) return "-";
+        var d = new Date(iso);
+        return d.toLocaleString();
+      }
+
+      function timeAgo(iso) {
+        if (!iso) return "-";
+        var d = new Date(iso);
+        var now = new Date();
+        var diffMs = now - d;
+        var diffMin = Math.floor(diffMs / 60000);
+        if (diffMin < 1) return "just now";
+        if (diffMin < 60) return diffMin + "m ago";
+        var diffHrs = Math.floor(diffMin / 60);
+        if (diffHrs < 24) return diffHrs + "h ago";
+        var diffDays = Math.floor(diffHrs / 24);
+        if (diffDays < 30) return diffDays + "d ago";
+        return d.toLocaleDateString();
+      }
+
+      function parseFiltersFromUrl(url) {
+        try {
+          var qs = url.indexOf("?") !== -1 ? url.split("?")[1] : "";
+          var p = new URLSearchParams(qs);
+          var tags = [];
+          if (p.get("fi")) tags.push("FI: " + p.get("fi"));
+          if (p.get("partner")) tags.push("Partner: " + p.get("partner"));
+          if (p.get("instance")) tags.push("Instance: " + p.get("instance"));
+          if (p.get("integration")) tags.push("Integration: " + p.get("integration"));
+          if (p.get("from") || p.get("to")) {
+            tags.push((p.get("from") || "?") + " to " + (p.get("to") || "?"));
+          }
+          return tags;
+        } catch (e) { return []; }
+      }
+
+      function maskIp(ip) {
+        if (!ip) return "-";
+        // Show partial IP for privacy: 203.0.113.xxx
+        var parts = ip.split(".");
+        if (parts.length === 4) {
+          return parts[0] + "." + parts[1] + "." + parts[2] + ".***";
+        }
+        // IPv6 or other — truncate
+        if (ip.length > 16) return ip.slice(0, 16) + "...";
+        return ip;
+      }
+
+      function groupEntries(entries) {
+        var byId = {};
+        var order = [];
+
+        entries.forEach(function(e) {
+          if (e.type === "create") {
+            if (!byId[e.sid]) {
+              byId[e.sid] = { sid: e.sid, email: e.email, url: e.url, created: e.ts, views: [] };
+              order.push(e.sid);
+            } else {
+              // Fill in creation info if view came first
+              byId[e.sid].email = e.email;
+              byId[e.sid].url = e.url;
+              byId[e.sid].created = e.ts;
+            }
+          } else if (e.type === "view") {
+            if (!byId[e.sid]) {
+              byId[e.sid] = { sid: e.sid, email: "", url: "", created: "", views: [] };
+              order.push(e.sid);
+            }
+            byId[e.sid].views.push({ ts: e.ts, ip: e.ip, ua: e.ua, referrer: e.referrer });
+          }
+        });
+
+        // Sort newest-created first
+        return order.map(function(sid) { return byId[sid]; }).reverse();
+      }
+
+      function populateFilters() {
+        var creators = {};
+        allLinks.forEach(function(link) {
+          if (link.email) creators[link.email] = true;
+        });
+        creatorFilter.innerHTML = '<option value="">All Creators</option>';
+        Object.keys(creators).sort().forEach(function(email) {
+          var opt = document.createElement("option");
+          opt.value = email;
+          opt.textContent = email;
+          creatorFilter.appendChild(opt);
+        });
+      }
+
+      function render() {
+        var creatorVal = creatorFilter.value;
+        var searchVal = (searchFilter.value || "").toLowerCase();
+
+        var filtered = allLinks.filter(function(link) {
+          if (creatorVal && link.email !== creatorVal) return false;
+          if (searchVal) {
+            var combined = (link.email + " " + link.url + " " + link.sid).toLowerCase();
+            if (combined.indexOf(searchVal) === -1) return false;
+          }
+          return true;
+        });
+
+        if (filtered.length === 0) {
+          svBody.innerHTML = '<tr><td colspan="7" class="sv-empty">No shared links found.</td></tr>';
+          setStatus("0 shared links");
+          return;
+        }
+
+        var html = "";
+        filtered.forEach(function(link, i) {
+          var filterTags = parseFiltersFromUrl(link.url);
+          var filterHtml = filterTags.length > 0
+            ? filterTags.map(function(t) { return '<span class="sv-filter-tag">' + escapeHtml(t) + '</span>'; }).join(" ")
+            : '<span style="color:var(--muted);">No filters</span>';
+
+          var viewCount = link.views.length;
+          var lastView = viewCount > 0 ? link.views[link.views.length - 1].ts : "";
+          var viewsBadgeClass = viewCount > 0 ? "has-views" : "no-views";
+
+          html += '<tr class="sv-row" data-idx="' + i + '">' +
+            '<td><span class="sv-expand-icon">' + (viewCount > 0 ? "&#9654;" : "") + '</span></td>' +
+            '<td>' + escapeHtml(timeAgo(link.created)) + '<br><span style="font-size:10px;color:var(--muted);">' + escapeHtml(formatTimestamp(link.created)) + '</span></td>' +
+            '<td><span class="user-pill">' + escapeHtml(link.email || "unknown") + '</span></td>' +
+            '<td class="sv-filters-cell">' + filterHtml + '</td>' +
+            '<td><span class="sid-pill">' + escapeHtml(link.sid) + '</span></td>' +
+            '<td><span class="views-badge ' + viewsBadgeClass + '">' + viewCount + '</span></td>' +
+            '<td>' + (lastView ? escapeHtml(timeAgo(lastView)) + '<br><span style="font-size:10px;color:var(--muted);">' + escapeHtml(formatTimestamp(lastView)) + '</span>' : '-') + '</td>' +
+            '</tr>';
+
+          // Detail row (hidden by default)
+          if (viewCount > 0) {
+            html += '<tr class="sv-detail-row" hidden data-detail-idx="' + i + '">' +
+              '<td colspan="7">' +
+              '<table class="sv-detail-table">' +
+              '<thead><tr><th>Viewed At</th><th>IP</th><th>Referrer</th></tr></thead>' +
+              '<tbody>';
+            // Show newest views first
+            var sortedViews = link.views.slice().reverse();
+            sortedViews.forEach(function(v) {
+              html += '<tr>' +
+                '<td>' + escapeHtml(formatTimestamp(v.ts)) + '</td>' +
+                '<td>' + escapeHtml(maskIp(v.ip)) + '</td>' +
+                '<td><span class="ref-pill" title="' + escapeHtml(v.referrer || "") + '">' + escapeHtml(v.referrer || "direct") + '</span></td>' +
+                '</tr>';
+            });
+            html += '</tbody></table></td></tr>';
+          }
+        });
+
+        svBody.innerHTML = html;
+
+        // Click handlers to expand/collapse detail rows
+        svBody.querySelectorAll(".sv-row").forEach(function(row) {
+          row.addEventListener("click", function() {
+            var idx = row.getAttribute("data-idx");
+            var detail = svBody.querySelector('[data-detail-idx="' + idx + '"]');
+            if (!detail) return;
+            var isHidden = detail.hasAttribute("hidden");
+            if (isHidden) {
+              detail.removeAttribute("hidden");
+              row.classList.add("expanded");
+            } else {
+              detail.setAttribute("hidden", "");
+              row.classList.remove("expanded");
+            }
+          });
+        });
+
+        setStatus("Showing " + filtered.length + " of " + allLinks.length + " shared links", "success");
+      }
+
+      function loadData() {
+        setStatus("Loading...");
+        var token = getToken();
+        fetch(API_BASE + "/analytics/shared-views", {
+          headers: { "Authorization": "Bearer " + token }
+        })
+          .then(function(res) {
+            if (!res.ok) throw new Error("HTTP " + res.status);
+            return res.json();
+          })
+          .then(function(data) {
+            allLinks = groupEntries(data.entries || []);
+            populateFilters();
+            render();
+          })
+          .catch(function(err) {
+            console.error("Failed to load shared views", err);
+            setStatus("Failed to load shared links data", "error");
+            svBody.innerHTML = '<tr><td colspan="7" class="sv-empty">Failed to load data.</td></tr>';
+          });
+      }
+
+      creatorFilter.addEventListener("change", render);
+      searchFilter.addEventListener("input", render);
+      refreshBtn.addEventListener("click", loadData);
+
+      // Initial load
+      loadData();
+    })();
+  </script>
+</body>
+</html>

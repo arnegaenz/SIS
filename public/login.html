@@ -147,6 +147,12 @@
       var params = new URLSearchParams(window.location.search);
       var token = params.get("token");
 
+      // Save redirect param to sessionStorage so it survives the magic link flow
+      var redirectParam = params.get("redirect");
+      if (redirectParam) {
+        try { sessionStorage.setItem("sis_login_redirect", redirectParam); } catch (e) {}
+      }
+
       // Only check existing session if there's no magic link token
       // (If there's a token, the user clicked a magic link and wants to log in fresh)
       if (!token) {
@@ -193,6 +199,15 @@
       }
 
       function getRedirectForAccessLevel(level) {
+        // Check for saved redirect (from "Log in to explore" on shared view)
+        try {
+          var redir = sessionStorage.getItem("sis_login_redirect");
+          if (redir) {
+            sessionStorage.removeItem("sis_login_redirect");
+            // Only allow relative redirects (safety)
+            if (redir.startsWith("./") || redir.startsWith("/")) return redir;
+          }
+        } catch (e) {}
         if (level === "billing") return "./fi-api-billing.html";
         if (level === "limited") return "./funnel.html";
         return "./index.html";

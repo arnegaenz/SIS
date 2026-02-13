@@ -158,7 +158,8 @@
         window.SIS_API_BASE.trim()
           ? window.SIS_API_BASE.replace(/\/+$/, "")
           : "";
-      const url = apiBase ? `${apiBase}/api/filter-options` : "/api/filter-options";
+      const viewParam = window.__sisViewMode ? "?view=1" : "";
+      const url = apiBase ? `${apiBase}/api/filter-options${viewParam}` : `/api/filter-options${viewParam}`;
       const res = await fetch(url);
       if (!res.ok) {
         console.warn("[filters] user-scoped options not available (HTTP " + res.status + ")");
@@ -1227,11 +1228,47 @@
       __integrationSetTouched: false,
       __instanceSetTouched: false,
     };
-    // Always start fresh on load (same as pressing "Clear filters")
-    state.partner = ALL;
-    state.integration = ALL;
-    state.instance = ALL;
-    state.fis.clear();
+    // In view mode, pre-populate filters from URL params and lock them
+    const isViewMode = window.__sisViewMode === true;
+    if (isViewMode) {
+      const vp = new URLSearchParams(window.location.search);
+      const vpFi = vp.get("fi");
+      const vpPartner = vp.get("partner");
+      const vpInstance = vp.get("instance");
+      const vpIntegration = vp.get("integration");
+      if (vpFi) { state.fis.add(vpFi); state.__fiTouched = true; }
+      if (vpPartner) { state.partnerSet.add(vpPartner); state.__partnerSetTouched = true; }
+      if (vpInstance) { state.instanceSet.add(vpInstance); state.__instanceSetTouched = true; }
+      if (vpIntegration) { state.integrationSet.add(vpIntegration); state.__integrationSetTouched = true; }
+      state.partner = vpPartner || ALL;
+      state.integration = vpIntegration || ALL;
+      state.instance = vpInstance || ALL;
+      state.disableFi = true;
+      console.log("[filters] view mode — filters locked", { fi: vpFi, partner: vpPartner, instance: vpInstance, integration: vpIntegration });
+    } else {
+      // Check if URL has filter params to pre-populate (e.g., after login redirect from shared link)
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlFi = urlParams.get("fi");
+      const urlPartner = urlParams.get("partner");
+      const urlInstance = urlParams.get("instance");
+      const urlIntegration = urlParams.get("integration");
+      if (urlFi || urlPartner || urlInstance || urlIntegration) {
+        if (urlFi) { state.fis.add(urlFi); state.__fiTouched = true; }
+        if (urlPartner) { state.partnerSet.add(urlPartner); state.__partnerSetTouched = true; }
+        if (urlInstance) { state.instanceSet.add(urlInstance); state.__instanceSetTouched = true; }
+        if (urlIntegration) { state.integrationSet.add(urlIntegration); state.__integrationSetTouched = true; }
+        state.partner = urlPartner || ALL;
+        state.integration = urlIntegration || ALL;
+        state.instance = urlInstance || ALL;
+        console.log("[filters] pre-populated from URL params", { fi: urlFi, partner: urlPartner, instance: urlInstance, integration: urlIntegration });
+      } else {
+        // Always start fresh on load (same as pressing "Clear filters")
+        state.partner = ALL;
+        state.integration = ALL;
+        state.instance = ALL;
+        state.fis.clear();
+      }
+    }
     writeQuery(state);
     writeStorage(state);
 
@@ -1307,6 +1344,12 @@
     };
 
     renderFilterBar(container, state, options, apply);
+
+    // In view mode, hide the Clear filters button
+    if (isViewMode) {
+      const clearBtn = container.querySelector("#filter-clear");
+      if (clearBtn) clearBtn.parentElement.style.display = "none";
+    }
 
     // For limited users, show Partner + FI dropdowns; hide Instance, Integration, Clear
     if (scopedOptions && scopedOptions.access && !scopedOptions.access.is_admin) {

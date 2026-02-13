@@ -99,6 +99,7 @@ var GROUPS = [
 { id:"maintenance", label:"Data & Config", href:NAV_PREFIX+"maintenance.html" },
 { id:"users", label:"Users", href:NAV_PREFIX+"users.html" },
 { id:"activity-log", label:"User Activity", href:NAV_PREFIX+"activity-log.html" },
+{ id:"shared-views", label:"Shared Links", href:NAV_PREFIX+"shared-views.html" },
 { id:"logs", label:"Server Logs", href:NAV_PREFIX+"logs.html" }
 ]}
 ];
@@ -125,6 +126,9 @@ function getCurrentUser() {
 }
 
 function getGroupsForAccess() {
+  // View mode: no navigation
+  if (global.__sisViewMode === true) return [];
+
   var access = getAccessLevel();
   var isAdmin = access === "admin" || access === "full";
   var isInternal = access === "internal";
@@ -272,10 +276,39 @@ var group = navGroups[g];
 addDropdown(group, rightGroup);
 }
 
-// Add user info and logout button (appended to rightGroup, after nav pills)
+// Add user info / view mode login link
+var isViewMode = global.__sisViewMode === true;
 var user = getCurrentUser();
-if (user) {
-  // Vertical divider between nav pills and user section
+if (isViewMode) {
+  // View mode: show "Log in to explore" link instead of user info
+  var divider = h("span", { class: "sis-nav-divider" }, []);
+  divider.style.display = "inline-block";
+  divider.style.width = "1px";
+  divider.style.height = "20px";
+  divider.style.background = "#3b3f46";
+  divider.style.margin = "0 12px";
+  divider.style.verticalAlign = "middle";
+  divider.style.opacity = "0.5";
+  rightGroup.appendChild(divider);
+
+  var viewLabel = h("span", {}, ["Read-only view"]);
+  viewLabel.style.fontSize = "12px";
+  viewLabel.style.color = "#8b949e";
+  viewLabel.style.marginRight = "10px";
+  rightGroup.appendChild(viewLabel);
+
+  // Build redirect URL: same page + filters, but without view=1
+  var viewSearch = new URLSearchParams(window.location.search);
+  viewSearch.delete("view");
+  var redirectPath = window.location.pathname + (viewSearch.toString() ? "?" + viewSearch.toString() : "");
+  var loginLink = h("a", {
+    href: NAV_PREFIX + "login.html?redirect=" + encodeURIComponent(redirectPath),
+    class: "sis-pill sis-pill-outline",
+    style: "text-decoration:none;font-size:12px;padding:6px 12px;"
+  }, ["Log in to explore"]);
+  rightGroup.appendChild(loginLink);
+} else if (user) {
+  // Authenticated: show user info and logout button
   var divider = h("span", { class: "sis-nav-divider" }, []);
   divider.style.display = "inline-block";
   divider.style.width = "1px";

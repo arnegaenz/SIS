@@ -41,7 +41,7 @@
 
   // Page access restrictions
   var LIMITED_PAGES = ["funnel.html"];
-  var ADMIN_ONLY_PAGES = ["users.html", "synthetic-traffic.html", "maintenance.html", "activity-log.html", "logs.html"]; // Pages only admin can access (not internal)
+  var ADMIN_ONLY_PAGES = ["users.html", "synthetic-traffic.html", "maintenance.html", "activity-log.html", "shared-views.html", "logs.html"]; // Pages only admin can access (not internal)
 
   function getPageName() {
     try {
@@ -216,9 +216,25 @@
     } catch (e) {}
   }
 
+  // Check if page is in read-only view mode (shared link)
+  function isViewMode() {
+    try {
+      var params = new URLSearchParams(window.location.search || "");
+      return params.get("view") === "1";
+    } catch (e) {}
+    return false;
+  }
+
   function init() {
     // Don't run on login page
     if (isLoginPage()) return;
+
+    // Skip auth in view mode (shared read-only link)
+    if (isViewMode()) {
+      console.log("[auth] View mode detected - skipping auth");
+      global.__sisViewMode = true;
+      return;
+    }
 
     // Skip auth on localhost for development
     if (isLocalhost()) {

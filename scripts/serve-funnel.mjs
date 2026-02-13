@@ -2604,6 +2604,7 @@ const server = http.createServer(async (req, res) => {
 
   // ========== Activity Logging ==========
   const ACTIVITY_LOG_FILE = path.join(DATA_DIR, "activity.log");
+  const SHARED_VIEWS_LOG_FILE = path.join(DATA_DIR, "shared-views.log");
 
   if (pathname === "/analytics/log" && req.method === "POST") {
     try {
@@ -2650,6 +2651,87 @@ const server = http.createServer(async (req, res) => {
       return send(res, 500, { error: "Failed to read activity log" });
     }
   }
+
+  // ========== Shared Link Tracking ==========
+
+  // POST /api/share-log — authenticated user creates a shared link
+  if (pathname === "/api/share-log" && req.method === "POST") {
+    try {
+      const session = await validateSession(req, queryParams);
+      if (!session) return send(res, 401, { ok: false });
+
+      const body = await readRequestBody(req);
+      const payload = JSON.parse(body || "{}");
+      const sid = (payload.sid || "").slice(0, 16);
+      const url = (payload.url || "").slice(0, 2000);
+
+      if (!sid) return send(res, 400, { ok: false, error: "Missing sid" });
+
+      const logLine = JSON.stringify({
+        ts: new Date().toISOString(),
+        type: "create",
+        email: session.user.email,
+        sid,
+        url,
+      }) + "\n";
+
+      await fs.appendFile(SHARED_VIEWS_LOG_FILE, logLine);
+      return send(res, 200, { ok: true });
+    } catch (err) {
+      console.error("[share-log] create error:", err);
+      return send(res, 500, { ok: false });
+    }
+  }
+
+  // GET /api/share-log/view — unauthenticated view tracking (fire-and-forget from client)
+  if (pathname === "/api/share-log/view" && req.method === "GET") {
+    try {
+      const sid = (queryParams.get("sid") || "").slice(0, 16);
+      if (!sid) return send(res, 400, { ok: false });
+
+      const ip = (req.headers["x-forwarded-for"] || req.socket?.remoteAddress || "").split(",")[0].trim();
+      const ua = (req.headers["user-agent"] || "").slice(0, 300);
+      const referrer = (req.headers["referer"] || "").slice(0, 500);
+
+      const logLine = JSON.stringify({
+        ts: new Date().toISOString(),
+        type: "view",
+        sid,
+        ip,
+        ua,
+        referrer,
+      }) + "\n";
+
+      await fs.appendFile(SHARED_VIEWS_LOG_FILE, logLine);
+      return send(res, 200, { ok: true });
+    } catch (err) {
+      console.error("[share-log] view error:", err);
+      return send(res, 500, { ok: false });
+    }
+  }
+
+  // GET /analytics/shared-views — admin-only, read shared link log
+  if (pathname === "/analytics/shared-views" && req.method === "GET") {
+    const auth = await validateSession(req, queryParams);
+    if (!auth) return send(res, 401, { error: "Authentication required" });
+    if (auth.user.access_level !== "admin" && auth.user.access_level !== "full") {
+      return send(res, 403, { error: "Admin access required" });
+    }
+
+    try {
+      const content = await fs.readFile(SHARED_VIEWS_LOG_FILE, "utf8").catch(() => "");
+      const lines = content.trim().split("\n").filter(Boolean);
+      const entries = lines.map(line => {
+        try { return JSON.parse(line); } catch { return null; }
+      }).filter(Boolean);
+      return send(res, 200, { entries });
+    } catch (err) {
+      console.error("[share-log] read error:", err);
+      return send(res, 500, { error: "Failed to read shared views log" });
+    }
+  }
+
+  // ========== End Shared Link Tracking ==========
 
   // ========== End Activity Logging ==========
 
@@ -4326,14 +4408,15 @@ const server = http.createServer(async (req, res) => {
 
   // GET /api/filter-options - Returns user-scoped filter dropdown options
   if (pathname === "/api/filter-options" && req.method === "GET") {
-    const session = await validateSession(req, queryParams);
-    if (!session) {
+    const isViewMode = queryParams.get("view") === "1";
+    const session = isViewMode ? null : await validateSession(req, queryParams);
+    if (!session && !isViewMode) {
       return send(res, 401, { error: "Authentication required" });
     }
 
     try {
       const fiRegistry = await loadFiRegistrySafe();
-      const userContext = session.user;
+      const userContext = session ? session.user : { access_level: "internal", instance_keys: "*", partner_keys: "*", fi_keys: "*" };
       const accessFields = normalizeUserAccessFields(userContext);
 
       // Build instance/partner allow-sets for direct filtering
@@ -4347,7 +4430,7 @@ const server = http.createServer(async (req, res) => {
         ? new Set(accessFields.fi_keys.map((k) => normalizeFiKey(k)))
         : null;
 
-      const isUnrestricted =
+      const isUnrestricted = isViewMode ||
         accessFields.access_level === "admin" || accessFields.access_level === "internal" ||
         accessFields.instance_keys === "*" || accessFields.partner_keys === "*" || accessFields.fi_keys === "*";
 
@@ -4390,7 +4473,8 @@ const server = http.createServer(async (req, res) => {
         partners: Array.from(partners).filter((p) => p !== "Unknown").sort().concat(["Unknown"]),
         fis: fis.sort((a, b) => (a.label || "").localeCompare(b.label || "")),
         access: {
-          is_admin: userContext.access_level === "admin" || userContext.access_level === "full" || userContext.access_level === "internal",
+          is_admin: !isViewMode && (userContext.access_level === "admin" || userContext.access_level === "full" || userContext.access_level === "internal"),
+          is_view_mode: isViewMode,
           instance_keys: userContext.instance_keys,
           partner_keys: userContext.partner_keys,
           fi_keys: userContext.fi_keys,
