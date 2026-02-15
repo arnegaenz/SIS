@@ -31,16 +31,19 @@ export function buildCustomerReportHtml(data) {
 
   const metricCards = [
     {
+      cls: "ga",
       label: "CardUpdatr Launches",
       value: fmt(m.totalGaSelect),
       sub: "Google Analytics",
     },
     {
+      cls: "ga",
       label: "User Data Page Views",
       value: fmt(m.totalGaUser),
       sub: pct(m.totalGaUser, m.totalGaSelect) + " of launches",
     },
     {
+      cls: "ga",
       label: "Credential Entry Views",
       value: fmt(m.totalGaCred),
       sub: pct(m.totalGaCred, m.totalGaSelect) + " of launches",
@@ -311,6 +314,11 @@ export function buildCustomerReportHtml(data) {
     border: 1px solid #86efac;
   }
   .stat-card.success .stat-value { color: #16a34a; }
+  .stat-card.ga {
+    background: #f5f3ff;
+    border: 1px solid #c4b5fd;
+  }
+  .stat-card.ga .stat-value { color: #7c3aed; }
   .stat-card.session {
     background: #fffbeb;
     border: 1px solid #fcd34d;

@@ -168,6 +168,72 @@
       white-space: nowrap; font-variant-numeric: tabular-nums; font-weight: 600;
     }
 
+    /* Metrics color key */
+    .metrics-key {
+      display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+      padding: 8px 14px; margin-bottom: 12px;
+      background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;
+      font-size: 11px; color: #64748b;
+    }
+    .key-label { font-weight: 600; color: #334155; margin-right: 2px; }
+    .key-item { display: flex; align-items: center; gap: 5px; }
+    .key-swatch {
+      width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0;
+    }
+    .key-swatch.ga { background: #ede9fe; border: 1px solid #c4b5fd; }
+    .key-swatch.cs { background: #fef3c7; border: 1px solid #fcd34d; }
+    .key-swatch.stats { background: #e0f2f1; border: 1px solid rgba(74,158,186,0.45); }
+    .key-swatch.highlight { background: #dbeafe; border: 1px solid #93c5fd; }
+    .key-swatch.success { background: #dcfce7; border: 1px solid #86efac; }
+
+    /* GA toggle styling */
+    .key-toggle {
+      cursor: pointer;
+      background: #f5f3ff; border: 1px solid #c4b5fd; border-radius: 5px;
+      padding: 2px 8px 2px 4px; margin: -2px 0;
+      transition: opacity 0.15s;
+    }
+    .key-toggle:hover { border-color: #7c3aed; }
+    .key-toggle input[type="checkbox"] {
+      width: 13px; height: 13px; margin: 0; cursor: pointer;
+      accent-color: #7c3aed;
+    }
+    .hide-ga .key-toggle {
+      background: #f8fafc; border-color: #cbd5e1; opacity: 0.6;
+    }
+    .hide-ga .key-toggle:hover { opacity: 1; }
+
+    /* When GA is hidden — cards, table columns, row label */
+    .hide-ga .ga-card,
+    .hide-ga .ga-col,
+    .hide-ga .grid-row-label.ga-row-label { display: none !important; }
+    .hide-ga .key-swatch.ga { opacity: 0.3; }
+    .hide-ga .ga-toggle-hint { display: inline; }
+
+    /* Grid row labels (section dividers within the card grid) */
+    .grid-row-label {
+      grid-column: 1 / -1;
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.05em; color: #475569;
+      padding: 6px 0 2px; margin-top: 4px;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .grid-row-label .muted {
+      font-weight: 400; text-transform: none; letter-spacing: 0;
+      color: #94a3b8; font-size: 10px;
+    }
+
+    /* GA-sourced cards (purple accent) */
+    .perf-card.ga-card {
+      background: linear-gradient(135deg, rgba(124,58,237,0.10) 0%, rgba(124,58,237,0.03) 55%, transparent 100%), #fff;
+      border-color: rgba(124,58,237,0.40);
+    }
+    .perf-card.ga-card::before {
+      content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+      background: linear-gradient(180deg, rgba(124,58,237,0.85), rgba(124,58,237,0.15));
+    }
+    .perf-card.ga-card .card-label { color: #5b21b6; }
+
     /* Session clickstream cards (amber accent) */
     .perf-card.cs-card {
       background: linear-gradient(135deg, rgba(217,119,6,0.10) 0%, rgba(217,119,6,0.03) 55%, transparent 100%), #fff;
@@ -211,10 +277,12 @@
     .stats-chip b { opacity: 0.8; font-size: 0.85em; letter-spacing: 0.03em; }
     .stats-chip .chip-val { font-weight: 700; color: #0f172a; font-variant-numeric: tabular-nums; }
     /* Stats card bottom row (AVG chip + distribution toggle) */
-    .perf-card.stats-card { overflow: visible; }
+    .perf-card.stats-card { overflow: visible; position: relative; z-index: 1; }
+    .perf-card.stats-card:has(.stats-dist-panel.open) { z-index: 70; }
     .stats-bottom-row {
       display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
       width: 100%; margin-top: 8px; align-items: center;
+      position: relative;
     }
     .stats-bottom-row .stats-dist-toggle { grid-column: 2 / 4; }
     .stats-dist-toggle {
@@ -226,13 +294,23 @@
     }
     .stats-dist-toggle:hover { border-color: #4a9eba; }
     .stats-dist-toggle[aria-expanded="true"] { border-color: #4a9eba; }
-    /* Distribution popover */
+    /* Distribution popover — anchored to .stats-bottom-row */
     .stats-dist-panel {
-      display: none; position: absolute; right: 0; top: 100%; margin-top: 6px;
+      display: none; position: absolute; right: 0; top: 100%; margin-top: 10px;
       width: min(360px, calc(100vw - 40px)); z-index: 60;
       background: #fff; border: 1px solid #e2e8f0; border-radius: 12px;
       box-shadow: 0 16px 40px rgba(0,0,0,0.12);
-      max-height: 40vh; overflow: auto;
+      max-height: 40vh; overflow: visible;
+    }
+    .stats-dist-panel > table,
+    .stats-dist-panel > div {
+      max-height: calc(40vh - 20px); overflow: auto;
+    }
+    .stats-dist-panel::before {
+      content: ""; position: absolute; top: -7px; right: 28px;
+      width: 12px; height: 12px; background: #fff;
+      border-left: 1px solid #e2e8f0; border-top: 1px solid #e2e8f0;
+      transform: rotate(45deg); z-index: 1;
     }
     .stats-dist-panel.open { display: block; }
     .stats-dist-table { width: 100%; border-collapse: collapse; }
@@ -401,8 +479,22 @@
       <div id="perfOverview" style="display:none;">
         <div class="perf-section-title">Performance Overview <span class="muted date-window" id="dateWindowLabel"></span></div>
         <div id="totalsBar" class="totals-bar" style="display:none;"></div>
+        <!-- Color key -->
+        <div class="metrics-key">
+          <span class="key-label">Data source:</span>
+          <label class="key-item key-toggle" id="gaToggleLabel">
+            <input type="checkbox" id="gaToggle" checked>
+            <span class="key-swatch ga"></span> Google Analytics
+          </label>
+          <span class="key-item"><span class="key-swatch cs"></span> Session Clickstream</span>
+          <span class="key-item"><span class="key-swatch stats"></span> Session Stats</span>
+          <span class="key-item"><span class="key-swatch highlight"></span> Success Metrics</span>
+          <span class="key-item"><span class="key-swatch success"></span> Outcomes</span>
+        </div>
+
         <div class="perf-grid" id="metricsGrid">
-          <div class="perf-card" id="cardGaSelect">
+          <!-- Row 1: Headlines -->
+          <div class="perf-card ga-card" id="cardGaSelect">
             <div class="card-label">CardUpdatr Launches</div>
             <div class="card-value" id="valGaSelect">-</div>
             <div class="card-sub" id="subGaSelect"></div>
@@ -411,26 +503,6 @@
             <div class="card-label">Total Sessions</div>
             <div class="card-value" id="valSessions">-</div>
             <div class="card-sub" id="subSessions"></div>
-          </div>
-          <div class="perf-card" id="cardLaunchCredPct">
-            <div class="card-label">Launch → Credential %</div>
-            <div class="card-value" id="valLaunchCredPct">-</div>
-            <div class="card-sub" id="subLaunchCredPct"></div>
-          </div>
-          <div class="perf-card" id="cardGaUser">
-            <div class="card-label">User Data Page Views</div>
-            <div class="card-value" id="valGaUser">-</div>
-            <div class="card-sub" id="subGaUser"></div>
-          </div>
-          <div class="perf-card" id="cardGaCred">
-            <div class="card-label">Credential Entry Views</div>
-            <div class="card-value" id="valGaCred">-</div>
-            <div class="card-sub" id="subGaCred"></div>
-          </div>
-          <div class="perf-card highlight" id="cardSuccessSessions">
-            <div class="card-label">Sessions w/ Successful Placements</div>
-            <div class="card-value" id="valSuccessSessions">-</div>
-            <div class="card-sub" id="subSuccessSessions"></div>
           </div>
           <div class="perf-card highlight" id="cardSuccessRate">
             <div class="card-label">Success Rate</div>
@@ -443,11 +515,55 @@
             <div class="card-sub" id="subSuccessful"></div>
             <div class="card-merchant-detail" id="merchantDetail"></div>
           </div>
+
+          <!-- Row 2: Funnel stages — GA paired with Clickstream -->
+          <div class="grid-row-label">Funnel Stages <span class="muted">— GA traffic vs session clickstream at each step</span></div>
+          <div class="perf-card ga-card" id="cardGaUser">
+            <div class="card-label">User Data Page Views</div>
+            <div class="card-value" id="valGaUser">-</div>
+            <div class="card-sub" id="subGaUser"></div>
+          </div>
+          <div class="perf-card cs-card" id="cardCsSelect">
+            <div class="card-label">Select Merchants (Sessions)</div>
+            <div class="card-value" id="valCsSelect">-</div>
+            <div class="card-sub" id="subCsSelect"></div>
+          </div>
+          <div class="perf-card ga-card" id="cardGaCred">
+            <div class="card-label">Credential Entry Views</div>
+            <div class="card-value" id="valGaCred">-</div>
+            <div class="card-sub" id="subGaCred"></div>
+          </div>
+          <div class="perf-card cs-card" id="cardCsUser">
+            <div class="card-label">User Data (Sessions)</div>
+            <div class="card-value" id="valCsUser">-</div>
+            <div class="card-sub" id="subCsUser"></div>
+          </div>
+
+          <!-- Row 3: Conversion & Outcomes -->
+          <div class="grid-row-label">Conversion & Outcomes</div>
+          <div class="perf-card cs-card" id="cardCsCred">
+            <div class="card-label">Credential Entry (Sessions)</div>
+            <div class="card-value" id="valCsCred">-</div>
+            <div class="card-sub" id="subCsCred"></div>
+          </div>
+          <div class="perf-card" id="cardLaunchCredPct">
+            <div class="card-label">Sel → Credential %</div>
+            <div class="card-value" id="valLaunchCredPct">-</div>
+            <div class="card-sub" id="subLaunchCredPct"></div>
+          </div>
+          <div class="perf-card highlight" id="cardSuccessSessions">
+            <div class="card-label">Sessions w/ Successful Placements</div>
+            <div class="card-value" id="valSuccessSessions">-</div>
+            <div class="card-sub" id="subSuccessSessions"></div>
+          </div>
           <div class="perf-card" id="cardAvgSuccessPerSession">
             <div class="card-label">Avg Successful Cards Per Session</div>
             <div class="card-value" id="valAvgSuccessPerSession">-</div>
             <div class="card-sub" id="subAvgSuccessPerSession"></div>
           </div>
+
+          <!-- Row 4: Session Depth Analysis -->
+          <div class="grid-row-label">Session Depth Analysis</div>
           <div class="perf-card stats-card" id="cardMerchantsPerSession" title="How many merchants cardholders attempt per session (sessions with at least one attempt)">
             <div class="card-label">Merchants Per Session</div>
             <div class="stats-chips" id="merchantStatsChips">
@@ -458,32 +574,15 @@
             <div class="stats-bottom-row">
               <span class="stats-chip"><b>AVG</b> <span class="chip-val" id="chipAvg">—</span></span>
               <button class="stats-dist-toggle" id="toggleDistribution" type="button" aria-expanded="false">Show distribution &#9662;</button>
+              <div class="stats-dist-panel" id="distributionPanel">
+                <table class="stats-dist-table">
+                  <thead><tr><th>Merchants per session</th><th>Sessions</th></tr></thead>
+                  <tbody id="distributionBody"></tbody>
+                </table>
+                <div class="stats-dist-empty" id="distributionEmpty" hidden>No distribution data available.</div>
+              </div>
             </div>
             <div class="card-sub" id="subMerchantsPerSession"></div>
-            <div class="stats-dist-panel" id="distributionPanel">
-              <table class="stats-dist-table">
-                <thead><tr><th>Merchants per session</th><th>Sessions</th></tr></thead>
-                <tbody id="distributionBody"></tbody>
-              </table>
-              <div class="stats-dist-empty" id="distributionEmpty" hidden>No distribution data available.</div>
-            </div>
-          </div>
-
-          <!-- Session Clickstream Metrics -->
-          <div class="perf-card cs-card" id="cardCsSelect">
-            <div class="card-label">Select Merchants (Sessions)</div>
-            <div class="card-value" id="valCsSelect">-</div>
-            <div class="card-sub" id="subCsSelect"></div>
-          </div>
-          <div class="perf-card cs-card" id="cardCsUser">
-            <div class="card-label">User Data (Sessions)</div>
-            <div class="card-value" id="valCsUser">-</div>
-            <div class="card-sub" id="subCsUser"></div>
-          </div>
-          <div class="perf-card cs-card" id="cardCsCred">
-            <div class="card-label">Credential Entry (Sessions)</div>
-            <div class="card-value" id="valCsCred">-</div>
-            <div class="card-sub" id="subCsCred"></div>
           </div>
           <div class="perf-card cs-card stats-card" id="cardCsSelectDist" title="Select Merchant page views per session">
             <div class="card-label">Select Merchant Views / Session</div>
@@ -495,15 +594,15 @@
             <div class="stats-bottom-row">
               <span class="stats-chip"><b>AVG</b> <span class="chip-val" id="csSelectChipAvg">—</span></span>
               <button class="stats-dist-toggle" id="csSelectToggleDist" type="button" aria-expanded="false">Show distribution &#9662;</button>
+              <div class="stats-dist-panel" id="csSelectDistPanel">
+                <table class="stats-dist-table">
+                  <thead><tr><th>Views per session</th><th>Sessions</th></tr></thead>
+                  <tbody id="csSelectDistBody"></tbody>
+                </table>
+                <div class="stats-dist-empty" id="csSelectDistEmpty" hidden>No data available.</div>
+              </div>
             </div>
             <div class="card-sub" id="csSelectDistSub"></div>
-            <div class="stats-dist-panel" id="csSelectDistPanel">
-              <table class="stats-dist-table">
-                <thead><tr><th>Views per session</th><th>Sessions</th></tr></thead>
-                <tbody id="csSelectDistBody"></tbody>
-              </table>
-              <div class="stats-dist-empty" id="csSelectDistEmpty" hidden>No data available.</div>
-            </div>
           </div>
           <div class="perf-card cs-card stats-card" id="cardCsUserDist" title="User Data page views per session">
             <div class="card-label">User Data Views / Session</div>
@@ -515,15 +614,15 @@
             <div class="stats-bottom-row">
               <span class="stats-chip"><b>AVG</b> <span class="chip-val" id="csUserChipAvg">—</span></span>
               <button class="stats-dist-toggle" id="csUserToggleDist" type="button" aria-expanded="false">Show distribution &#9662;</button>
+              <div class="stats-dist-panel" id="csUserDistPanel">
+                <table class="stats-dist-table">
+                  <thead><tr><th>Views per session</th><th>Sessions</th></tr></thead>
+                  <tbody id="csUserDistBody"></tbody>
+                </table>
+                <div class="stats-dist-empty" id="csUserDistEmpty" hidden>No data available.</div>
+              </div>
             </div>
             <div class="card-sub" id="csUserDistSub"></div>
-            <div class="stats-dist-panel" id="csUserDistPanel">
-              <table class="stats-dist-table">
-                <thead><tr><th>Views per session</th><th>Sessions</th></tr></thead>
-                <tbody id="csUserDistBody"></tbody>
-              </table>
-              <div class="stats-dist-empty" id="csUserDistEmpty" hidden>No data available.</div>
-            </div>
           </div>
           <div class="perf-card cs-card stats-card" id="cardCsCredDist" title="Credential Entry page views per session">
             <div class="card-label">Credential Entry Views / Session</div>
@@ -535,15 +634,15 @@
             <div class="stats-bottom-row">
               <span class="stats-chip"><b>AVG</b> <span class="chip-val" id="csCredChipAvg">—</span></span>
               <button class="stats-dist-toggle" id="csCredToggleDist" type="button" aria-expanded="false">Show distribution &#9662;</button>
+              <div class="stats-dist-panel" id="csCredDistPanel">
+                <table class="stats-dist-table">
+                  <thead><tr><th>Views per session</th><th>Sessions</th></tr></thead>
+                  <tbody id="csCredDistBody"></tbody>
+                </table>
+                <div class="stats-dist-empty" id="csCredDistEmpty" hidden>No data available.</div>
+              </div>
             </div>
             <div class="card-sub" id="csCredDistSub"></div>
-            <div class="stats-dist-panel" id="csCredDistPanel">
-              <table class="stats-dist-table">
-                <thead><tr><th>Views per session</th><th>Sessions</th></tr></thead>
-                <tbody id="csCredDistBody"></tbody>
-              </table>
-              <div class="stats-dist-empty" id="csCredDistEmpty" hidden>No data available.</div>
-            </div>
           </div>
         </div>
       </div>
@@ -566,12 +665,12 @@
             <th data-sort="fi">Financial Institution</th>
             <th data-sort="instances">Instance</th>
             <th data-sort="integration">Integration</th>
-            <th data-sort="ga_select" class="num">Launches</th>
+            <th data-sort="ga_select" class="num ga-col">Launches</th>
             <th data-sort="cs_select" class="num">Sess @Select</th>
-            <th data-sort="ga_cred" class="num">Credential Views</th>
+            <th data-sort="ga_cred" class="num ga-col">Credential Views</th>
             <th data-sort="reach" class="num">Monthly Reach %</th>
-            <th data-sort="sel_cred_pct" class="num">Launch→Cred %</th>
-            <th data-sort="sel_success_pct" class="num">Launch→Success %</th>
+            <th data-sort="sel_cred_pct" class="num">Sel→Cred %</th>
+            <th data-sort="sel_success_pct" class="num">Sel→Succ %</th>
             <th data-sort="sessions" class="num">Sessions</th>
             <th data-sort="sess_with_success" class="num">Successful Sessions</th>
             <th data-sort="sess_success_pct" class="num">Session Success %</th>
@@ -590,14 +689,14 @@
             <th data-sort="fi">Financial Institution</th>
             <th data-sort="instances">Instance</th>
             <th data-sort="integration">Integration</th>
-            <th data-sort="ga_select" class="num">Launches</th>
+            <th data-sort="ga_select" class="num ga-col">Launches</th>
             <th data-sort="cs_select" class="num">Sess @Select</th>
-            <th data-sort="ga_user" class="num">User Data Views</th>
-            <th data-sort="ga_cred" class="num">Credential Views</th>
+            <th data-sort="ga_user" class="num ga-col">User Data Views</th>
+            <th data-sort="ga_cred" class="num ga-col">Credential Views</th>
             <th data-sort="reach" class="num">Monthly Reach %</th>
-            <th data-sort="sel_user_pct" class="num">Launch→User %</th>
-            <th data-sort="sel_cred_pct" class="num">Launch→Cred %</th>
-            <th data-sort="sel_success_pct" class="num">Launch→Success %</th>
+            <th data-sort="sel_user_pct" class="num">Sel→User %</th>
+            <th data-sort="sel_cred_pct" class="num">Sel→Cred %</th>
+            <th data-sort="sel_success_pct" class="num">Sel→Succ %</th>
             <th data-sort="sessions" class="num">Sessions</th>
             <th data-sort="sess_with_success" class="num">Successful Sessions</th>
             <th data-sort="sess_success_pct" class="num">Session Success %</th>
@@ -616,14 +715,14 @@
             <th data-sort="fi">Financial Institution</th>
             <th data-sort="instances">Instance</th>
             <th data-sort="integration">Integration</th>
-            <th data-sort="ga_select" class="num">Launches</th>
+            <th data-sort="ga_select" class="num ga-col">Launches</th>
             <th data-sort="cs_select" class="num">Sess @Select</th>
-            <th data-sort="ga_user" class="num">User Data Views</th>
-            <th data-sort="ga_cred" class="num">Credential Views</th>
+            <th data-sort="ga_user" class="num ga-col">User Data Views</th>
+            <th data-sort="ga_cred" class="num ga-col">Credential Views</th>
             <th data-sort="reach" class="num">Monthly Reach %</th>
-            <th data-sort="sel_user_pct" class="num">Launch→User %</th>
-            <th data-sort="sel_cred_pct" class="num">Launch→Cred %</th>
-            <th data-sort="sel_success_pct" class="num">Launch→Success %</th>
+            <th data-sort="sel_user_pct" class="num">Sel→User %</th>
+            <th data-sort="sel_cred_pct" class="num">Sel→Cred %</th>
+            <th data-sort="sel_success_pct" class="num">Sel→Succ %</th>
             <th data-sort="sessions" class="num">Sessions</th>
             <th data-sort="sess_with_success" class="num">Successful Sessions</th>
             <th data-sort="sess_success_pct" class="num">Session Success %</th>
@@ -642,14 +741,14 @@
             <th data-sort="fi">Financial Institution</th>
             <th data-sort="instances">Instance</th>
             <th data-sort="integration">Integration</th>
-            <th data-sort="ga_select" class="num">Launches</th>
+            <th data-sort="ga_select" class="num ga-col">Launches</th>
             <th data-sort="cs_select" class="num">Sess @Select</th>
-            <th data-sort="ga_user" class="num">User Data Views</th>
-            <th data-sort="ga_cred" class="num">Credential Views</th>
+            <th data-sort="ga_user" class="num ga-col">User Data Views</th>
+            <th data-sort="ga_cred" class="num ga-col">Credential Views</th>
             <th data-sort="reach" class="num">Monthly Reach %</th>
-            <th data-sort="sel_user_pct" class="num">Launch→User %</th>
-            <th data-sort="sel_cred_pct" class="num">Launch→Cred %</th>
-            <th data-sort="sel_success_pct" class="num">Launch→Success %</th>
+            <th data-sort="sel_user_pct" class="num">Sel→User %</th>
+            <th data-sort="sel_cred_pct" class="num">Sel→Cred %</th>
+            <th data-sort="sel_success_pct" class="num">Sel→Succ %</th>
             <th data-sort="sessions" class="num">Sessions</th>
             <th data-sort="sess_with_success" class="num">Successful Sessions</th>
             <th data-sort="sess_success_pct" class="num">Session Success %</th>
@@ -1286,7 +1385,8 @@
           if (!fiDaily[comboKey]) fiDaily[comboKey] = {};
           fiDaily[comboKey][date] = {
             select: ga.select_merchants || 0, user: ga.user_data_collection || 0,
-            cred: ga.credential_entry || 0, sessions: fiDay.sessions?.total || 0,
+            cred: ga.credential_entry || 0, cs_select: fiDay.sessions?.cs_select_sessions || 0,
+            sessions: fiDay.sessions?.total || 0,
             sess_with_jobs: fiDay.sessions?.with_jobs || 0, sess_with_success: fiDay.sessions?.with_success || 0,
             placements: getBillablePlacementCount(fiDay.placements),
           };
@@ -1321,18 +1421,19 @@
         for (const [comboKey, dailyMap] of Object.entries(fiDaily)) {
           if (restrict && !allowedSet.has(comboKey)) continue;
           for (let idx = 0; idx <= dates.length - len; idx += 1) {
-            let sel = 0, user = 0, cred = 0, sessions = 0, sessWithJobs = 0, sessWithSuccess = 0, placements = 0;
+            let sel = 0, user = 0, cred = 0, csSelect = 0, sessions = 0, sessWithJobs = 0, sessWithSuccess = 0, placements = 0;
             for (let offset = 0; offset < len; offset += 1) {
               const stats = dailyMap[dates[idx + offset]];
               if (stats) {
                 sel += stats.select || 0; user += stats.user || 0; cred += stats.cred || 0;
+                csSelect += stats.cs_select || 0;
                 sessions += stats.sessions || 0; sessWithJobs += stats.sess_with_jobs || 0;
                 sessWithSuccess += stats.sess_with_success || 0; placements += stats.placements || 0;
               }
             }
             if (sel < minSelects || sessions < minSessions) continue;
             const sessionSuccessRatio = sessions ? sessWithSuccess / sessions : 0;
-            const selSuccessRatio = sel ? sessWithSuccess / sel : 0;
+            const selSuccessRatio = csSelect ? sessWithSuccess / csSelect : 0;
             const candidate = {
               label, key: comboKey,
               fi: perFiByKey[comboKey]?.fi || comboKey,
@@ -1363,13 +1464,14 @@
       if (!rows || !rows.length || !partnerValue || partnerValue === PARTNER_ALL_VALUE) return null;
       const relevant = rows.filter((row) => (row.partner || "Unknown") === partnerValue);
       if (!relevant.length) return null;
-      const makeBucket = () => ({ fiCount: 0, ga_select: 0, sessions: 0, sess_with_success: 0, placements: 0, cardholders: 0 });
+      const makeBucket = () => ({ fiCount: 0, ga_select: 0, cs_select: 0, sessions: 0, sess_with_success: 0, placements: 0, cardholders: 0 });
       const buckets = { SSO: makeBucket(), "NON-SSO": makeBucket() };
       relevant.forEach((row) => {
         const key = row.integration_type === "SSO" ? "SSO" : row.integration_type === "NON-SSO" ? "NON-SSO" : null;
         if (!key) return;
         const bucket = buckets[key];
         bucket.ga_select += row.ga_select || 0;
+        bucket.cs_select += row.cs_select || 0;
         bucket.sessions += row.sessions || 0;
         bucket.sess_with_success += row.sess_with_success || 0;
         bucket.placements += row.placements || 0;
@@ -1379,9 +1481,9 @@
       const monthlyFactor = daySpan ? 30 / daySpan : 1;
       const totals = makeBucket();
       const bucketSummaries = Object.entries(buckets).map(([key, bucket]) => {
-        bucket.selSuccessPct = bucket.ga_select > 0 && bucket.sess_with_success > 0 ? (bucket.sess_with_success / bucket.ga_select) * 100 : null;
+        bucket.selSuccessPct = bucket.cs_select > 0 && bucket.sess_with_success > 0 ? (bucket.sess_with_success / bucket.cs_select) * 100 : null;
         bucket.sessionSuccessPct = bucket.sessions > 0 && bucket.sess_with_success > 0 ? (bucket.sess_with_success / bucket.sessions) * 100 : null;
-        totals.ga_select += bucket.ga_select; totals.sessions += bucket.sessions;
+        totals.ga_select += bucket.ga_select; totals.cs_select += bucket.cs_select; totals.sessions += bucket.sessions;
         totals.sess_with_success += bucket.sess_with_success; totals.placements += bucket.placements;
         totals.cardholders += bucket.cardholders; totals.fiCount += bucket.fiCount;
         return { key, bucket };
@@ -1391,7 +1493,7 @@
         selSuccessPct: bucket.selSuccessPct, sessions: bucket.sessions,
         sess_with_success: bucket.sess_with_success, sessionSuccessPct: bucket.sessionSuccessPct,
       }));
-      totals.selSuccessPct = totals.ga_select > 0 && totals.sess_with_success > 0 ? (totals.sess_with_success / totals.ga_select) * 100 : null;
+      totals.selSuccessPct = totals.cs_select > 0 && totals.sess_with_success > 0 ? (totals.sess_with_success / totals.cs_select) * 100 : null;
       totals.sessionSuccessPct = totals.sessions > 0 && totals.sess_with_success > 0 ? (totals.sess_with_success / totals.sessions) * 100 : null;
       return {
         partner: partnerValue, daySpan, rows: rowsOut,
@@ -1706,11 +1808,14 @@
       perfOverview.style.display = "";
       dateWindowLabel.textContent = `Date window: ${startDate} → ${endDate} (${fiCount} FIs)`;
 
-      // Hide User Data Page Views card when all visible FIs are SSO
+      // Detect all-SSO: auto-hide GA data when all visible FIs are SSO
       const allSso = visibleRows && visibleRows.length > 0 &&
         visibleRows.every(r => normalizeIntegrationLabel(r.integration_type || "") === "SSO");
-      const cardGaUser = document.getElementById("cardGaUser");
-      if (cardGaUser) cardGaUser.style.display = allSso ? "none" : "";
+      const gaToggle = document.getElementById("gaToggle");
+      if (gaToggle) {
+        gaToggle.checked = !allSso;
+        document.body.classList.toggle("hide-ga", allSso);
+      }
 
       document.getElementById("valGaSelect").textContent = fmt(metrics.totalGaSelect);
       document.getElementById("subGaSelect").textContent = "Google Analytics tracked";
@@ -1721,9 +1826,9 @@
       document.getElementById("valSessions").textContent = fmt(metrics.totalSessions);
       document.getElementById("subSessions").textContent = allSso ? "CardUpdatr loads via SSO" : pct(metrics.totalSessions, metrics.totalGaSelect) + " of launches";
 
-      const launchCredPct = metrics.totalGaSelect > 0 ? ((metrics.totalGaCred / metrics.totalGaSelect) * 100).toFixed(1) + "%" : "—";
+      const launchCredPct = metrics.totalCsSelect > 0 ? ((metrics.totalCsCred / metrics.totalCsSelect) * 100).toFixed(1) + "%" : "—";
       document.getElementById("valLaunchCredPct").textContent = launchCredPct;
-      document.getElementById("subLaunchCredPct").textContent = fmt(metrics.totalGaCred) + " of " + fmt(metrics.totalGaSelect) + " launches";
+      document.getElementById("subLaunchCredPct").textContent = fmt(metrics.totalCsCred) + " of " + fmt(metrics.totalCsSelect) + " sessions @select";
 
       document.getElementById("valSuccessSessions").textContent = fmt(metrics.sessionsWithSuccessfulJobs);
       document.getElementById("subSuccessSessions").textContent = pct(metrics.sessionsWithSuccessfulJobs, metrics.totalSessions) + " of sessions";
@@ -1763,9 +1868,11 @@
       document.getElementById("valCsCred").textContent = fmt(metrics.totalCsCred);
       document.getElementById("subCsCred").textContent = pct(metrics.totalCsCred, metrics.totalCsSelect) + " of sessions @select";
 
-      // Hide User Data (Sessions) card when all visible FIs are SSO
+      // Hide User Data cards when all-SSO (SSO skips user data collection step)
       const cardCsUser = document.getElementById("cardCsUser");
       if (cardCsUser) cardCsUser.style.display = allSso ? "none" : "";
+      const cardCsUserDist = document.getElementById("cardCsUserDist");
+      if (cardCsUserDist) cardCsUserDist.style.display = allSso ? "none" : "";
 
       // Clickstream page-view distributions (async)
       ["csSelect", "csUser", "csCred"].forEach(prefix => {
@@ -1831,7 +1938,7 @@
     }
 
     function formatSelSuccessPct(row) {
-      const sel = row.ga_select || row.sel || 0;
+      const sel = row.cs_select || 0;
       if (!sel || !row.sess_with_success) return "";
       return ((row.sess_with_success / sel) * 100).toFixed(1) + "%";
     }
@@ -1846,9 +1953,9 @@
         case "ga_user": return row.ga_user || 0;
         case "ga_cred": return row.ga_cred || 0;
         case "reach": return getMonthlyReachValue(row);
-        case "sel_user_pct": return row.ga_select ? row.ga_user / row.ga_select : 0;
-        case "sel_cred_pct": return row.ga_select ? row.ga_cred / row.ga_select : 0;
-        case "sel_success_pct": return row.ga_select && row.sess_with_success ? row.sess_with_success / row.ga_select : 0;
+        case "sel_user_pct": return row.cs_select ? (row.cs_user || 0) / row.cs_select : 0;
+        case "sel_cred_pct": return row.cs_select ? (row.cs_cred || 0) / row.cs_select : 0;
+        case "sel_success_pct": return row.cs_select && row.sess_with_success ? row.sess_with_success / row.cs_select : 0;
         case "sessions": return row.sessions || 0;
         case "sess_with_success": return row.sess_with_success || 0;
         case "sess_success_pct": return row.sessions ? (row.sess_with_success || 0) / row.sessions : 0;
@@ -1860,8 +1967,8 @@
     function renderFiRow(row, integration) {
       const isSso = integration === "SSO";
       const instancesText = row.instance || (Array.isArray(row.instances) ? row.instances.join(", ") : "");
-      const selUserPct = row.ga_select ? ((row.ga_user / row.ga_select) * 100).toFixed(1) + "%" : "";
-      const selCredPct = row.ga_select ? ((row.ga_cred / row.ga_select) * 100).toFixed(1) + "%" : "";
+      const selUserPct = row.cs_select ? ((row.cs_user / row.cs_select) * 100).toFixed(1) + "%" : "";
+      const selCredPct = row.cs_select ? ((row.cs_cred / row.cs_select) * 100).toFixed(1) + "%" : "";
       const selSuccPct = formatSelSuccessPct(row);
       const reachPct = formatMonthlyReachPct(row);
       const reachVal = getMonthlyReachValue(row);
@@ -1873,11 +1980,11 @@
         <td>${row.fi}</td>
         <td>${instancesText}</td>
         <td>${integration}</td>
-        <td class="num">${row.ga_select || 0}</td>
+        <td class="num ga-col">${row.ga_select || 0}</td>
         <td class="num">${row.cs_select || 0}</td>`;
-      if (!isSso) cells += `<td class="num">${row.ga_user || 0}</td>`;
+      if (!isSso) cells += `<td class="num ga-col">${row.ga_user || 0}</td>`;
       cells += `
-        <td class="num">${row.ga_cred || 0}</td>
+        <td class="num ga-col">${row.ga_cred || 0}</td>
         <td class="num${reachCls}">${reachPct}</td>`;
       if (!isSso) cells += `<td class="num">${selUserPct}</td>`;
       cells += `
@@ -1899,15 +2006,17 @@
         acc.cs_select += r.cs_select || 0;
         acc.ga_user += r.ga_user || 0;
         acc.ga_cred += r.ga_cred || 0;
+        acc.cs_user += r.cs_user || 0;
+        acc.cs_cred += r.cs_cred || 0;
         acc.sessions += r.sessions || 0;
         acc.sess_with_success += r.sess_with_success || 0;
         acc.placements += r.placements || 0;
         return acc;
-      }, { ga_select: 0, cs_select: 0, ga_user: 0, ga_cred: 0, sessions: 0, sess_with_success: 0, placements: 0 });
+      }, { ga_select: 0, cs_select: 0, ga_user: 0, ga_cred: 0, cs_user: 0, cs_cred: 0, sessions: 0, sess_with_success: 0, placements: 0 });
 
-      const selUserPct = t.ga_select ? ((t.ga_user / t.ga_select) * 100).toFixed(1) + "%" : "";
-      const selCredPct = t.ga_select ? ((t.ga_cred / t.ga_select) * 100).toFixed(1) + "%" : "";
-      const selSuccPct = t.ga_select && t.sess_with_success ? ((t.sess_with_success / t.ga_select) * 100).toFixed(1) + "%" : "";
+      const selUserPct = t.cs_select ? ((t.cs_user / t.cs_select) * 100).toFixed(1) + "%" : "";
+      const selCredPct = t.cs_select ? ((t.cs_cred / t.cs_select) * 100).toFixed(1) + "%" : "";
+      const selSuccPct = t.cs_select && t.sess_with_success ? ((t.sess_with_success / t.cs_select) * 100).toFixed(1) + "%" : "";
       const sessSuccPct = t.sessions ? ((t.sess_with_success / t.sessions) * 100).toFixed(1) + "%" : "";
 
       const tr = document.createElement("tr");
@@ -1916,11 +2025,11 @@
         <td>Total</td>
         <td>\u2014</td>
         <td>${integration}</td>
-        <td class="num">${t.ga_select}</td>
+        <td class="num ga-col">${t.ga_select}</td>
         <td class="num">${t.cs_select}</td>`;
-      if (!isSso) cells += `<td class="num">${t.ga_user}</td>`;
+      if (!isSso) cells += `<td class="num ga-col">${t.ga_user}</td>`;
       cells += `
-        <td class="num">${t.ga_cred}</td>
+        <td class="num ga-col">${t.ga_cred}</td>
         <td class="num"></td>`;
       if (!isSso) cells += `<td class="num">${selUserPct}</td>`;
       cells += `
@@ -2040,7 +2149,7 @@
         <thead><tr>
           <th>Highlight</th><th>FI</th><th>Integration</th><th>Window</th>
           <th class="num">Launches</th><th class="num">Sessions</th><th class="num">Successful Sessions</th>
-          <th class="num">Launch→Success %</th><th class="num">Session Success %</th><th class="num">Placements</th>
+          <th class="num">Sel→Succ %</th><th class="num">Session Success %</th><th class="num">Placements</th>
         </tr></thead>
         <tbody>${rows}</tbody>
       </table>`;
@@ -2072,6 +2181,7 @@
           periodLabel: date, start: date, end: date,
           ga_select: ga.select_merchants || 0, ga_user: ga.user_data_collection || 0,
           ga_cred: ga.credential_entry || 0, cs_select: sessions.cs_select_sessions || 0,
+          cs_user: sessions.cs_user_sessions || 0, cs_cred: sessions.cs_cred_sessions || 0,
           sessions: sessions.total || 0,
           sess_with_success: sessions.with_success || 0,
           placements: getBillablePlacementCount(placements),
@@ -2097,7 +2207,7 @@
       }
       const agg = {
         periodLabel: label, start, end,
-        ga_select: 0, ga_user: 0, ga_cred: 0, cs_select: 0, sessions: 0,
+        ga_select: 0, ga_user: 0, ga_cred: 0, cs_select: 0, cs_user: 0, cs_cred: 0, sessions: 0,
         sess_with_success: 0, placements: 0,
         fi: meta.fi, instance: meta.instance, instances: meta.instances,
         integration_type: periodIntegration, partner: meta.partner || "",
@@ -2110,6 +2220,8 @@
         agg.ga_user += row.ga_user || 0;
         agg.ga_cred += row.ga_cred || 0;
         agg.cs_select += row.cs_select || 0;
+        agg.cs_user += row.cs_user || 0;
+        agg.cs_cred += row.cs_cred || 0;
         agg.sessions += row.sessions || 0;
         agg.sess_with_success += row.sess_with_success || 0;
         agg.placements += row.placements || 0;
@@ -2288,10 +2400,10 @@
       headerHtml += `
           <th data-sort="ga_cred" class="num">Credential Views</th>
           <th data-sort="reach" class="num">Monthly Reach %</th>`;
-      if (!isSso) headerHtml += `<th data-sort="sel_user_pct" class="num">Launch\u2192User %</th>`;
+      if (!isSso) headerHtml += `<th data-sort="sel_user_pct" class="num">Sel\u2192User %</th>`;
       headerHtml += `
-          <th data-sort="sel_cred_pct" class="num">Launch\u2192Cred %</th>
-          <th data-sort="sel_success_pct" class="num">Launch\u2192Success %</th>
+          <th data-sort="sel_cred_pct" class="num">Sel\u2192Cred %</th>
+          <th data-sort="sel_success_pct" class="num">Sel\u2192Succ %</th>
           <th data-sort="sessions" class="num">Sessions</th>
           <th data-sort="sess_with_success" class="num">Successful Sessions</th>
           <th data-sort="sess_success_pct" class="num">Session Success %</th>
@@ -2364,9 +2476,9 @@
         case "ga_user": return row.ga_user || 0;
         case "ga_cred": return row.ga_cred || 0;
         case "reach": return getMonthlyReachValue(row);
-        case "sel_user_pct": return row.ga_select ? row.ga_user / row.ga_select : 0;
-        case "sel_cred_pct": return row.ga_select ? row.ga_cred / row.ga_select : 0;
-        case "sel_success_pct": return row.ga_select && row.sess_with_success ? row.sess_with_success / row.ga_select : 0;
+        case "sel_user_pct": return row.cs_select ? (row.cs_user || 0) / row.cs_select : 0;
+        case "sel_cred_pct": return row.cs_select ? (row.cs_cred || 0) / row.cs_select : 0;
+        case "sel_success_pct": return row.cs_select && row.sess_with_success ? row.sess_with_success / row.cs_select : 0;
         case "sessions": return row.sessions || 0;
         case "sess_with_success": return row.sess_with_success || 0;
         case "sess_success_pct": return row.sessions ? (row.sess_with_success || 0) / row.sessions : 0;
@@ -2378,8 +2490,8 @@
     function renderSingleFiRow(row, isSso) {
       const tr = document.createElement("tr");
       const instancesText = row.instance || (Array.isArray(row.instances) ? row.instances.join(", ") : "");
-      const selUserPct = row.ga_select ? ((row.ga_user / row.ga_select) * 100).toFixed(1) + "%" : "";
-      const selCredPct = row.ga_select ? ((row.ga_cred / row.ga_select) * 100).toFixed(1) + "%" : "";
+      const selUserPct = row.cs_select ? ((row.cs_user / row.cs_select) * 100).toFixed(1) + "%" : "";
+      const selCredPct = row.cs_select ? ((row.cs_cred / row.cs_select) * 100).toFixed(1) + "%" : "";
       const selSuccPct = formatSelSuccessPct(row);
       const reachPct = formatMonthlyReachPct(row);
       const reachVal = getMonthlyReachValue(row);
@@ -2413,21 +2525,21 @@
       if (!summaryData) { partnerSummaryBox.style.display = "none"; partnerSummaryBox.innerHTML = ""; return; }
       const pctStr = (v) => typeof v === "number" && Number.isFinite(v) ? v.toFixed(1) + "%" : "—";
       const rows = summaryData.rows.map(r => `<tr>
-        <td>${r.integration}</td><td class="num">${r.fiCount}</td><td class="num">${fmt(r.ga_select)}</td>
+        <td>${r.integration}</td><td class="num">${r.fiCount}</td><td class="num ga-col">${fmt(r.ga_select)}</td>
         <td class="num">${pctStr(r.selSuccessPct)}</td><td class="num">${fmt(r.sessions)}</td>
         <td class="num">${fmt(r.sess_with_success)}</td><td class="num">${pctStr(r.sessionSuccessPct)}</td>
       </tr>`).join("");
       const t = summaryData.totals || {};
       const totalRow = `<tr class="total-row">
         <td><strong>Total</strong></td><td class="num"><strong>${t.fiCount || ""}</strong></td>
-        <td class="num"><strong>${fmt(t.ga_select)}</strong></td><td class="num"><strong>${pctStr(t.selSuccessPct)}</strong></td>
+        <td class="num ga-col"><strong>${fmt(t.ga_select)}</strong></td><td class="num"><strong>${pctStr(t.selSuccessPct)}</strong></td>
         <td class="num"><strong>${fmt(t.sessions)}</strong></td><td class="num"><strong>${fmt(t.sess_with_success)}</strong></td>
         <td class="num"><strong>${pctStr(t.sessionSuccessPct)}</strong></td>
       </tr>`;
       partnerSummaryBox.innerHTML = `
         <div class="perf-section-title">${summaryData.partner || "Partner"} Integration Mix <span class="muted">${summaryData.rows.length} integration types</span></div>
         <table><thead><tr>
-          <th>Integration</th><th class="num">FIs</th><th class="num">GA Select</th>
+          <th>Integration</th><th class="num">FIs</th><th class="num ga-col">GA Select</th>
           <th class="num">Sel→Succ %</th><th class="num">Sessions</th>
           <th class="num">Sess w/ Success</th><th class="num">Sess→Succ %</th>
         </tr></thead><tbody>${rows}${totalRow}</tbody></table>`;
@@ -2467,9 +2579,9 @@
         lines.push(header.map(csvEscape).join(","));
         visibleRows.forEach(row => {
           const reachPct = formatMonthlyReachPct(row);
-          const selUserPct = row.ga_select ? (((row.ga_user || 0) / row.ga_select) * 100).toFixed(1) + "%" : "";
-          const selCredPct = row.ga_select ? (((row.ga_cred || 0) / row.ga_select) * 100).toFixed(1) + "%" : "";
-          const selSuccPct = row.ga_select && row.sess_with_success ? ((row.sess_with_success / row.ga_select) * 100).toFixed(1) + "%" : "";
+          const selUserPct = row.cs_select ? (((row.cs_user || 0) / row.cs_select) * 100).toFixed(1) + "%" : "";
+          const selCredPct = row.cs_select ? (((row.cs_cred || 0) / row.cs_select) * 100).toFixed(1) + "%" : "";
+          const selSuccPct = row.cs_select && row.sess_with_success ? ((row.sess_with_success / row.cs_select) * 100).toFixed(1) + "%" : "";
           const sessSuccPct = row.sessions && row.sess_with_success ? ((row.sess_with_success / row.sessions) * 100).toFixed(1) + "%" : "";
           lines.push([
             row.fi, row.partner, row.integration_type, row.instance,
@@ -2668,45 +2780,53 @@
       }
     });
 
-    // Toggle distribution panel on stats card
-    document.getElementById("toggleDistribution")?.addEventListener("click", (e) => {
-      e.stopPropagation();
-      const panel = document.getElementById("distributionPanel");
-      const btn = document.getElementById("toggleDistribution");
-      if (!panel) return;
-      const isOpen = panel.classList.toggle("open");
-      if (btn) btn.setAttribute("aria-expanded", String(isOpen));
-    });
-    // Close distribution panel when clicking outside
-    document.addEventListener("click", (e) => {
-      const panel = document.getElementById("distributionPanel");
-      const card = document.getElementById("cardMerchantsPerSession");
-      if (panel?.classList.contains("open") && card && !card.contains(e.target)) {
-        panel.classList.remove("open");
-        const btn = document.getElementById("toggleDistribution");
-        if (btn) btn.setAttribute("aria-expanded", "false");
-      }
-    });
+    // ── GA data toggle ──
+    const gaToggle = document.getElementById("gaToggle");
+    if (gaToggle) {
+      gaToggle.addEventListener("change", () => {
+        document.body.classList.toggle("hide-ga", !gaToggle.checked);
+      });
+    }
 
-    // Clickstream page-view distribution toggles
-    ["csSelect", "csUser", "csCred"].forEach(prefix => {
-      const toggleBtn = document.getElementById(`${prefix}ToggleDist`);
-      const panel = document.getElementById(`${prefix}DistPanel`);
-      const cardId = prefix === "csSelect" ? "cardCsSelectDist" : prefix === "csUser" ? "cardCsUserDist" : "cardCsCredDist";
-      if (toggleBtn && panel) {
-        toggleBtn.addEventListener("click", (e) => {
+    // ── Distribution panel toggles (close others when one opens) ──
+    const distPanels = [
+      { btnId: "toggleDistribution", panelId: "distributionPanel", cardId: "cardMerchantsPerSession" },
+      { btnId: "csSelectToggleDist", panelId: "csSelectDistPanel", cardId: "cardCsSelectDist" },
+      { btnId: "csUserToggleDist", panelId: "csUserDistPanel", cardId: "cardCsUserDist" },
+      { btnId: "csCredToggleDist", panelId: "csCredDistPanel", cardId: "cardCsCredDist" },
+    ];
+    function closeAllDistPanels(exceptPanelId) {
+      for (const d of distPanels) {
+        if (d.panelId === exceptPanelId) continue;
+        const p = document.getElementById(d.panelId);
+        const b = document.getElementById(d.btnId);
+        if (p) p.classList.remove("open");
+        if (b) b.setAttribute("aria-expanded", "false");
+      }
+    }
+    for (const d of distPanels) {
+      const btn = document.getElementById(d.btnId);
+      const panel = document.getElementById(d.panelId);
+      if (btn && panel) {
+        btn.addEventListener("click", (e) => {
           e.stopPropagation();
           const isOpen = panel.classList.toggle("open");
-          toggleBtn.setAttribute("aria-expanded", String(isOpen));
+          btn.setAttribute("aria-expanded", String(isOpen));
+          if (isOpen) closeAllDistPanels(d.panelId);
         });
       }
-      document.addEventListener("click", (e) => {
-        const card = document.getElementById(cardId);
+    }
+    // Close any open distribution panel when clicking outside
+    document.addEventListener("click", (e) => {
+      for (const d of distPanels) {
+        const panel = document.getElementById(d.panelId);
+        const card = document.getElementById(d.cardId);
         if (panel?.classList.contains("open") && card && !card.contains(e.target)) {
           panel.classList.remove("open");
-          if (toggleBtn) toggleBtn.setAttribute("aria-expanded", "false");
+          const btn = document.getElementById(d.btnId);
+          if (btn) btn.setAttribute("aria-expanded", "false");
         }
-      });
+      }
     });
 
     // ─── Event listeners ───

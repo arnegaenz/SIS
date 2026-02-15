@@ -25,15 +25,18 @@ export function buildReportHtml(data) {
   // ── Key Metrics cards ──
   const metricCards = [
     {
+      cls: "ga",
       label: "Unique CardUpdatr Views",
       value: fmt(m.totalGaSelect),
     },
     {
+      cls: "ga",
       label: "User Data Page Views",
       value: fmt(m.totalGaUser),
       sub: pct(m.totalGaUser, m.totalGaSelect) + " of views",
     },
     {
+      cls: "ga",
       label: "Credential Entry Views",
       value: fmt(m.totalGaCred),
       sub: pct(m.totalGaCred, m.totalGaSelect) + " of views",
@@ -366,6 +369,11 @@ export function buildReportHtml(data) {
     color: #64748b;
     margin-top: 1px;
   }
+  .stat-card.ga {
+    background: #f5f3ff;
+    border: 1px solid #c4b5fd;
+  }
+  .stat-card.ga .stat-value { color: #7c3aed; }
   .stat-card.session {
     background: #fffbeb;
     border: 1px solid #fcd34d;

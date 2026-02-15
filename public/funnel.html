@@ -475,6 +475,31 @@
         border-color: var(--accent);
         box-shadow: 0 18px 42px rgba(0, 0, 0, 0.16);
       }
+      .conversion-metric.ga-theme {
+        background:
+          linear-gradient(
+            135deg,
+            rgba(124, 58, 237, 0.14) 0%,
+            rgba(124, 58, 237, 0.04) 55%,
+            rgba(124, 58, 237, 0) 100%
+          ),
+          var(--panel);
+        border-color: rgba(124, 58, 237, 0.45);
+      }
+      .conversion-metric.ga-theme::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 4px;
+        background: linear-gradient(
+          180deg,
+          rgba(124, 58, 237, 0.9),
+          rgba(124, 58, 237, 0.15)
+        );
+      }
+      .conversion-metric.ga-theme .metric-value { color: #7c3aed; }
       .conversion-metric.with-jobs-theme {
         --with-jobs-accent: #4a9eba;
         background:
@@ -1295,7 +1320,7 @@
       <div id="conversionAnalysis" class="conversion-analysis-panel" style="display: none;">
         <div class="conversion-header">Session Conversion & Failure Analysis</div>
         <div class="conversion-grid">
-          <div class="conversion-metric" title="Number of unique CardUpdatr page loads from Google Analytics. This is the top of the funnel - users who landed on the card update experience.">
+          <div class="conversion-metric ga-theme" title="Number of unique CardUpdatr page loads from Google Analytics. This is the top of the funnel - users who landed on the card update experience.">
             <div class="metric-label">Unique CardUpdatr Views</div>
             <div class="metric-value" id="convMetricGaSelect">-</div>
           </div>
@@ -1980,9 +2005,9 @@ const COLUMN_TITLES = {
   ga_user: "GA user-data-collection page views.",
   ga_cred: "GA credential-entry page views.",
   reach: "Monthly reach estimate (select views normalized by cardholders).",
-  sel_user_pct: "Percent of select views that reached the user data collection step.",
-  sel_cred_pct: "Percent of select views that reached the credential entry step.",
-  sel_success_pct: "Percent of select views that produced a successful SIS session.",
+  sel_user_pct: "Percent of sessions @select that reached user data (clickstream-based).",
+  sel_cred_pct: "Percent of sessions @select that reached credential entry (clickstream-based).",
+  sel_success_pct: "Percent of sessions @select that produced a successful outcome (clickstream-based).",
   sessions: "Total SIS sessions fetched for this FI/instance.",
   sess_with_jobs: "Sessions that contained one or more placement jobs.",
   sess_jobs_pct: "Percent of sessions that contained placement jobs.",
@@ -2809,23 +2834,9 @@ function applyColumnTitles(root = document) {
 
       function getSelectToSuccessRatio(row) {
         if (!row) return 0;
-        const selectCount =
-          typeof row.ga_select === "number" && row.ga_select > 0
-            ? row.ga_select
-            : typeof row.sel === "number" && row.sel > 0
-            ? row.sel
-            : typeof row.select === "number" && row.select > 0
-            ? row.select
-            : 0;
+        const selectCount = row.cs_select || 0;
         if (!selectCount) return 0;
-        const successSessions =
-          typeof row.sess_with_success === "number"
-            ? row.sess_with_success
-            : typeof row.sessions_with_success === "number"
-            ? row.sessions_with_success
-            : typeof row.success_sessions === "number"
-            ? row.success_sessions
-            : 0;
+        const successSessions = row.sess_with_success || row.sessionsWithSuccessfulJobs || 0;
         if (!successSessions) return 0;
         return successSessions / selectCount;
       }
@@ -2900,9 +2911,9 @@ function applyColumnTitles(root = document) {
         ga_cred: (row) => Number(row.ga_cred) || 0,
         cs_cred: (row) => Number(row.cs_cred) || 0,
         reach: (row) => getMonthlyReachValue(row),
-        sel_user_pct: (row) => (row.ga_select ? (row.ga_user || 0) / row.ga_select : 0),
-        sel_cred_pct: (row) => (row.ga_select ? (row.ga_cred || 0) / row.ga_select : 0),
-        sel_success_pct: (row) => getSelectToSuccessRatio(row),
+        sel_user_pct: (row) => (row.cs_select ? (row.cs_user || 0) / row.cs_select : 0),
+        sel_cred_pct: (row) => (row.cs_select ? (row.cs_cred || 0) / row.cs_select : 0),
+        sel_success_pct: (row) => (row.cs_select ? (row.sess_with_success || 0) / row.cs_select : 0),
         sessions: (row) => Number(row.sessions) || 0,
         sess_with_jobs: (row) => Number(row.sess_with_jobs) || 0,
         sess_jobs_pct: (row) => getSessJobsRatio(row),
@@ -2946,12 +2957,12 @@ function applyColumnTitles(root = document) {
         {
           label: "Select→User %",
           getter: (row) =>
-            row.ga_select ? (((row.ga_user || 0) / row.ga_select) * 100).toFixed(1) + "%" : "",
+            row.cs_select ? (((row.cs_user || 0) / row.cs_select) * 100).toFixed(1) + "%" : "",
         },
         {
           label: "Select→Cred %",
           getter: (row) =>
-            row.ga_select ? (((row.ga_cred || 0) / row.ga_select) * 100).toFixed(1) + "%" : "",
+            row.cs_select ? (((row.cs_cred || 0) / row.cs_select) * 100).toFixed(1) + "%" : "",
         },
         {
           label: "Select→Session Success %",
@@ -3914,6 +3925,9 @@ function applyColumnTitles(root = document) {
               select: ga.select_merchants || 0,
               user: ga.user_data_collection || 0,
               cred: ga.credential_entry || 0,
+              cs_select: fiDay.sessions?.cs_select_sessions || 0,
+              cs_user: fiDay.sessions?.cs_user_sessions || 0,
+              cs_cred: fiDay.sessions?.cs_cred_sessions || 0,
               sessions: fiDay.sessions?.total || 0,
               sess_with_jobs: fiDay.sessions?.with_jobs || 0,
               sess_with_success: fiDay.sessions?.with_success || 0,
@@ -4016,6 +4030,9 @@ function applyColumnTitles(root = document) {
               let sel = 0;
               let user = 0;
               let cred = 0;
+              let csSelect = 0;
+              let csUser = 0;
+              let csCred = 0;
               let sessions = 0;
               let sessWithJobs = 0;
               let sessWithSuccess = 0;
@@ -4028,6 +4045,9 @@ function applyColumnTitles(root = document) {
                   sel += stats.select || 0;
                   user += stats.user || 0;
                   cred += stats.cred || 0;
+                  csSelect += stats.cs_select || 0;
+                  csUser += stats.cs_user || 0;
+                  csCred += stats.cs_cred || 0;
                   sessions += stats.sessions || 0;
                   sessWithJobs += stats.sess_with_jobs || 0;
                   sessWithSuccess += stats.sess_with_success || 0;
@@ -4041,7 +4061,7 @@ function applyColumnTitles(root = document) {
               if (sel < minSelects) continue;
               if (sessions < minSessions) continue;
               const sessionSuccessRatio = sessions ? sessWithSuccess / sessions : 0;
-              const selSuccessRatio = sel ? sessWithSuccess / sel : 0;
+              const selSuccessRatio = csSelect ? sessWithSuccess / csSelect : 0;
               const candidate = {
                 label,
                 key: comboKey,
@@ -4052,6 +4072,9 @@ function applyColumnTitles(root = document) {
                 sel,
                 user,
                 cred,
+                cs_select: csSelect,
+                cs_user: csUser,
+                cs_cred: csCred,
                 conv: sel ? cred / sel : 0,
                 successPct: sessionSuccessRatio,
                 sessionSuccessRatio,
@@ -4753,6 +4776,66 @@ function applyColumnTitles(root = document) {
 	          }
 	        }
 	      }
+
+      // ── Distribution panel toggle (Merchant Attempts card) ──
+      (function initDistributionToggle() {
+        const btn = document.getElementById("toggle-distribution");
+        const panel = document.getElementById("distribution-wrap");
+        if (!btn || !panel) return;
+        btn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const isOpen = panel.hidden;
+          panel.hidden = !isOpen;
+          btn.setAttribute("aria-expanded", String(isOpen));
+          btn.textContent = isOpen ? "Hide distribution \u25b4" : "Show distribution \u25be";
+        });
+        document.addEventListener("click", (e) => {
+          const card = btn.closest(".funnel-dist-card");
+          if (!panel.hidden && card && !card.contains(e.target)) {
+            panel.hidden = true;
+            btn.setAttribute("aria-expanded", "false");
+            btn.textContent = "Show distribution \u25be";
+          }
+        });
+      })();
+
+      // ── Update Merchant Attempts stats chips + distribution table ──
+      window.SIS_updateAttemptsStats = function () {
+        const jobCounts = (window.SIS?.funnel?.sessionJobCounts || []).filter(n => n > 0);
+        if (!jobCounts.length) return;
+        jobCounts.sort((a, b) => a - b);
+        const median = jobCounts[Math.floor(jobCounts.length / 2)];
+        const freqMap = {};
+        let maxFreq = 0, modeVal = jobCounts[0];
+        for (const v of jobCounts) {
+          freqMap[v] = (freqMap[v] || 0) + 1;
+          if (freqMap[v] > maxFreq) { maxFreq = freqMap[v]; modeVal = v; }
+        }
+        const p75 = jobCounts[Math.floor(jobCounts.length * 0.75)];
+        const avg = (jobCounts.reduce((s, v) => s + v, 0) / jobCounts.length).toFixed(2);
+        const setVal = (key, val) => {
+          const el = document.querySelector(`.funnel-dist-value[data-key="${key}"]`);
+          if (el) el.textContent = val;
+        };
+        setVal("median", median);
+        setVal("mode", modeVal);
+        setVal("p75", p75);
+        setVal("avg", avg);
+        // Build distribution table
+        const tbody = document.querySelector("#distribution-wrap tbody");
+        if (tbody) {
+          const sorted = Object.entries(freqMap).map(([k, v]) => [Number(k), v]).sort((a, b) => a[0] - b[0]);
+          tbody.innerHTML = sorted.map(([jobs, count]) =>
+            `<tr><td>${jobs} merchant${jobs !== 1 ? "s" : ""}</td><td>${count}</td></tr>`
+          ).join("");
+        }
+        const emptyEl = document.querySelector("#distribution-wrap .funnel-dist-empty");
+        if (emptyEl) emptyEl.hidden = true;
+        // Update sub text
+        const card = document.querySelector(".funnel-dist-card");
+        const subEl = card?.querySelector(".metric-pct");
+        if (subEl) subEl.textContent = `${jobCounts.length} sessions with jobs`;
+      };
 
       // Placement Details Cache and Functions
       const placementDetailsCache = new Map();
@@ -5726,13 +5809,13 @@ function applyColumnTitles(root = document) {
             `;
           } else {
             const convPct = entry.conv ? (entry.conv * 100).toFixed(1) + "%" : "0%";
-            const selUserPct = entry.sel
-              ? ((entry.user || 0) / entry.sel * 100).toFixed(1) + "%"
+            const selUserPct = entry.cs_select
+              ? ((entry.cs_user || 0) / entry.cs_select * 100).toFixed(1) + "%"
               : "";
             const selSuccessPct = typeof entry.selSuccessRatio === "number"
               ? (entry.selSuccessRatio * 100).toFixed(1) + "%"
               : formatSelectToSuccessPct({
-                  ga_select: entry.sel,
+                  cs_select: entry.cs_select || entry.sel,
                   sess_with_success: entry.sess_with_success,
                 });
             const sessJobsPct =
@@ -5785,6 +5868,7 @@ function applyColumnTitles(root = document) {
         const makeBucket = () => ({
           fiCount: 0,
           ga_select: 0,
+          cs_select: 0,
           sessions: 0,
           sess_with_success: 0,
           placements: 0,
@@ -5804,6 +5888,7 @@ function applyColumnTitles(root = document) {
           if (!key) return;
           const bucket = buckets[key];
           bucket.ga_select += row.ga_select || 0;
+          bucket.cs_select += row.cs_select || 0;
           bucket.sessions += row.sessions || 0;
           bucket.sess_with_success += row.sess_with_success || 0;
           bucket.placements += row.placements || 0;
@@ -5817,8 +5902,8 @@ function applyColumnTitles(root = document) {
         const bucketSummaries = Object.entries(buckets).map(([key, bucket]) => {
           bucket.monthlySelect = bucket.ga_select * monthlyFactor;
           bucket.selSuccessPct =
-            bucket.ga_select > 0 && bucket.sess_with_success > 0
-              ? (bucket.sess_with_success / bucket.ga_select) * 100
+            bucket.cs_select > 0 && bucket.sess_with_success > 0
+              ? (bucket.sess_with_success / bucket.cs_select) * 100
               : null;
           bucket.sessionSuccessPct =
             bucket.sessions > 0 && bucket.sess_with_success > 0
@@ -5829,6 +5914,7 @@ function applyColumnTitles(root = document) {
               ? (bucket.monthlySelect / bucket.cardholders) * 100
               : null;
           totals.ga_select += bucket.ga_select;
+          totals.cs_select += bucket.cs_select;
           totals.sessions += bucket.sessions;
           totals.sess_with_success += bucket.sess_with_success;
           totals.placements += bucket.placements;
@@ -5857,8 +5943,8 @@ function applyColumnTitles(root = document) {
         });
         totals.monthlySelect = totals.ga_select * monthlyFactor;
         totals.selSuccessPct =
-          totals.ga_select > 0 && totals.sess_with_success > 0
-            ? (totals.sess_with_success / totals.ga_select) * 100
+          totals.cs_select > 0 && totals.sess_with_success > 0
+            ? (totals.sess_with_success / totals.cs_select) * 100
             : null;
         totals.sessionSuccessPct =
           totals.sessions > 0 && totals.sess_with_success > 0
@@ -6164,11 +6250,11 @@ function applyColumnTitles(root = document) {
         tr.dataset.partner = row.partner || "Unknown";
         tr.dataset.integration = row.integration_type || "";
         tr.dataset.instance = row.instance || (Array.isArray(row.instances) ? row.instances[0] : "");
-        const selUserPct = row.ga_select
-          ? ((row.ga_user / row.ga_select) * 100).toFixed(1) + "%"
+        const selUserPct = row.cs_select
+          ? ((row.cs_user / row.cs_select) * 100).toFixed(1) + "%"
           : "";
-        const selCredPct = row.ga_select
-          ? ((row.ga_cred / row.ga_select) * 100).toFixed(1) + "%"
+        const selCredPct = row.cs_select
+          ? ((row.cs_cred / row.cs_select) * 100).toFixed(1) + "%"
           : "";
         const selSuccessPct = formatSelectToSuccessPct(row);
         const reachPct = formatMonthlyReachPct(row);
@@ -6307,14 +6393,14 @@ function applyColumnTitles(root = document) {
         const buildTotalsRow = (rows, integration) => {
           if (!rows.length) return null;
           const totals = sumMetrics(rows);
-          const selUserPct = totals.ga_select
-            ? ((totals.ga_user / totals.ga_select) * 100).toFixed(1) + "%"
+          const selUserPct = totals.cs_select
+            ? ((totals.cs_user / totals.cs_select) * 100).toFixed(1) + "%"
             : "";
-          const selCredPct = totals.ga_select
-            ? ((totals.ga_cred / totals.ga_select) * 100).toFixed(1) + "%"
+          const selCredPct = totals.cs_select
+            ? ((totals.cs_cred / totals.cs_select) * 100).toFixed(1) + "%"
             : "";
-          const selSuccessPct = totals.ga_select
-            ? ((totals.sess_with_success / totals.ga_select) * 100).toFixed(1) + "%"
+          const selSuccessPct = totals.cs_select
+            ? ((totals.sess_with_success / totals.cs_select) * 100).toFixed(1) + "%"
             : "";
           const sessJobsPct = totals.sessions
             ? ((totals.sess_with_jobs / totals.sessions) * 100).toFixed(1) + "%"
@@ -6356,11 +6442,11 @@ function applyColumnTitles(root = document) {
             : Array.isArray(row.instances) && row.instances.length
             ? row.instances.join(", ")
             : "";
-          const selUserPct = row.ga_select
-            ? ((row.ga_user / row.ga_select) * 100).toFixed(1) + "%"
+          const selUserPct = row.cs_select
+            ? ((row.cs_user / row.cs_select) * 100).toFixed(1) + "%"
             : "";
-          const selCredPct = row.ga_select
-            ? ((row.ga_cred / row.ga_select) * 100).toFixed(1) + "%"
+          const selCredPct = row.cs_select
+            ? ((row.cs_cred / row.cs_select) * 100).toFixed(1) + "%"
             : "";
           const selSuccessPct = formatSelectToSuccessPct(row);
           const reachPct = formatMonthlyReachPct(row);
@@ -6422,14 +6508,14 @@ function applyColumnTitles(root = document) {
 
         if (visibleCount > 1) {
           const totals = sumMetrics(visibleRows);
-          const selUserPct = totals.ga_select
-            ? ((totals.ga_user / totals.ga_select) * 100).toFixed(1) + "%"
+          const selUserPct = totals.cs_select
+            ? ((totals.cs_user / totals.cs_select) * 100).toFixed(1) + "%"
             : "";
-          const selCredPct = totals.ga_select
-            ? ((totals.ga_cred / totals.ga_select) * 100).toFixed(1) + "%"
+          const selCredPct = totals.cs_select
+            ? ((totals.cs_cred / totals.cs_select) * 100).toFixed(1) + "%"
             : "";
-          const selSuccessPct = totals.ga_select
-            ? ((totals.sess_with_success / totals.ga_select) * 100).toFixed(1) + "%"
+          const selSuccessPct = totals.cs_select
+            ? ((totals.sess_with_success / totals.cs_select) * 100).toFixed(1) + "%"
             : "";
           const sessJobsPct =
             totals.sessions && totals.sess_with_jobs
