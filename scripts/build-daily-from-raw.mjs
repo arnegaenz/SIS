@@ -311,6 +311,12 @@ function aggregateSessionsFromRaw(raw, registryIndex) {
         sessions_with_success: 0,
         total_jobs_sum: 0,
         successful_jobs_sum: 0,
+        cs_select_sessions: 0,
+        cs_user_sessions: 0,
+        cs_cred_sessions: 0,
+        cs_select_views: 0,
+        cs_user_views: 0,
+        cs_cred_views: 0,
       };
     }
     const bucket = byInstance[key];
@@ -322,6 +328,24 @@ function aggregateSessionsFromRaw(raw, registryIndex) {
     if (successfulJobs > 0) bucket.sessions_with_success += 1;
     bucket.total_jobs_sum += totalJobs;
     bucket.successful_jobs_sum += successfulJobs;
+
+    // Clickstream page view counting
+    const clickstream = Array.isArray(session.clickstream) ? session.clickstream : [];
+    if (clickstream.length > 0) {
+      let selViews = 0, userViews = 0, credViews = 0;
+      for (const step of clickstream) {
+        const url = (step?.url || "").toString().toLowerCase();
+        if (url.startsWith("/select-merchants") || url.includes("select-merchant")) selViews++;
+        else if (url.startsWith("/user-data-collection") || url.includes("user-data")) userViews++;
+        else if (url.startsWith("/credential-entry") || url.includes("credential-entry")) credViews++;
+      }
+      if (selViews > 0) bucket.cs_select_sessions++;
+      if (userViews > 0) bucket.cs_user_sessions++;
+      if (credViews > 0) bucket.cs_cred_sessions++;
+      bucket.cs_select_views += selViews;
+      bucket.cs_user_views += userViews;
+      bucket.cs_cred_views += credViews;
+    }
   }
 
   const byFi = {};
@@ -335,6 +359,12 @@ function aggregateSessionsFromRaw(raw, registryIndex) {
         sessions_with_success: 0,
         total_jobs_sum: 0,
         successful_jobs_sum: 0,
+        cs_select_sessions: 0,
+        cs_user_sessions: 0,
+        cs_cred_sessions: 0,
+        cs_select_views: 0,
+        cs_user_views: 0,
+        cs_cred_views: 0,
       };
     }
     const fiBucket = byFi[fiKey];
@@ -343,6 +373,12 @@ function aggregateSessionsFromRaw(raw, registryIndex) {
     fiBucket.sessions_with_success += entry.sessions_with_success;
     fiBucket.total_jobs_sum += entry.total_jobs_sum || 0;
     fiBucket.successful_jobs_sum += entry.successful_jobs_sum || 0;
+    fiBucket.cs_select_sessions += entry.cs_select_sessions || 0;
+    fiBucket.cs_user_sessions += entry.cs_user_sessions || 0;
+    fiBucket.cs_cred_sessions += entry.cs_cred_sessions || 0;
+    fiBucket.cs_select_views += entry.cs_select_views || 0;
+    fiBucket.cs_user_views += entry.cs_user_views || 0;
+    fiBucket.cs_cred_views += entry.cs_cred_views || 0;
   }
 
   return { byFi, byInstance };

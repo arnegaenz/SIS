@@ -2743,6 +2743,7 @@ const server = http.createServer(async (req, res) => {
         metrics: body.metrics,
         highlights: body.highlights || [],
         partnerSummary: body.partnerSummary || null,
+        shareUrl: body.shareUrl || null,
       });
 
       const browser = await getPdfBrowser();
@@ -5139,6 +5140,144 @@ const server = http.createServer(async (req, res) => {
       return send(res, status, { error: err?.message || "Unable to compute job stats" });
     }
   }
+
+  // ─── Clickstream page-view distribution stats ───
+  if (pathname === "/sessions/pageview-stats") {
+    let payload = null;
+    if (req.method === "POST") {
+      try {
+        const rawBody = await readRequestBody(req);
+        payload = rawBody ? JSON.parse(rawBody) : {};
+      } catch (err) {
+        return send(res, 400, { error: "Invalid JSON payload" });
+      }
+    }
+    const startParam =
+      (payload?.start || payload?.startDate || payload?.date) ||
+      queryParams.get("start") || queryParams.get("startDate") || queryParams.get("date");
+    const endParam =
+      (payload?.end || payload?.endDate) ||
+      queryParams.get("end") || queryParams.get("endDate") || startParam;
+    const isoRe = /^\d{4}-\d{2}-\d{2}$/;
+    if (!startParam || !isoRe.test(startParam)) {
+      return send(res, 400, { error: "start date query param must be YYYY-MM-DD" });
+    }
+    if (!endParam || !isoRe.test(endParam)) {
+      return send(res, 400, { error: "end date query param must be YYYY-MM-DD" });
+    }
+    if (new Date(`${startParam}T00:00:00Z`) > new Date(`${endParam}T00:00:00Z`)) {
+      return send(res, 400, { error: "start date must be on or before end date" });
+    }
+
+    const includeTests =
+      (payload?.includeTests === true) || (payload?.includeTests === "true") ||
+      queryParams.get("includeTests") === "true";
+    const partnerFilter = (payload?.partner || queryParams.get("partner") || "").toString();
+    const instanceFilter = (payload?.instance || queryParams.get("instance") || "").toString();
+    const integrationFilter = (payload?.integration || queryParams.get("integration") || "").toString();
+    const fiInstancesParam =
+      (Array.isArray(payload?.fiInstances) ? payload.fiInstances.join(",") : payload?.fiInstances) ||
+      queryParams.get("fiInstances") || queryParams.get("fi_instances") || "";
+    const fiInstanceSet = fiInstancesParam
+      ? new Set(fiInstancesParam.split(",").map((v) => normalizeFiInstanceKey(v)).filter(Boolean))
+      : null;
+    const fiParam = (payload?.fi || queryParams.get("fi") || "").toString();
+    const fiList = fiParam ? fiParam.split(",").map((v) => normalizeFiKey(v)).filter(Boolean) : [];
+    const fiSet = fiList.length ? new Set(fiList) : null;
+
+    try {
+      const [fiRegistry, instanceMeta] = await Promise.all([
+        loadFiRegistrySafe(),
+        loadInstanceMetaMap(),
+      ]);
+      const fiMeta = buildFiMetaMap(fiRegistry);
+      const days = daysBetween(startParam, endParam);
+      const freqSelect = new Map();
+      const freqUser = new Map();
+      const freqCred = new Map();
+      let sessionsScanned = 0;
+      let selectReaching = 0, userReaching = 0, credReaching = 0;
+      let selectTotalViews = 0, userTotalViews = 0, credTotalViews = 0;
+      const placementMap = new Map();
+
+      for (const day of days) {
+        const sessionsRaw = await readSessionDay(day);
+        if (!sessionsRaw || sessionsRaw.error) continue;
+        const sessions = Array.isArray(sessionsRaw.sessions) ? sessionsRaw.sessions : [];
+        for (const session of sessions) {
+          const entry = mapSessionToTroubleshootEntry(session, placementMap, fiMeta, instanceMeta);
+          sessionsScanned += 1;
+          if (!includeTests && entry.is_test) continue;
+          if (fiInstanceSet) {
+            const key = makeFiInstanceKey(entry.fi_key, entry.instance);
+            if (!fiInstanceSet.has(key)) continue;
+          }
+          if (fiSet && !fiSet.has(normalizeFiKey(entry.fi_key))) continue;
+          if (partnerFilter && partnerFilter !== "(all)" && entry.partner !== partnerFilter) continue;
+          if (integrationFilter && integrationFilter !== "(all)" && entry.integration !== normalizeIntegration(integrationFilter)) continue;
+          if (instanceFilter && instanceFilter !== "(all)" &&
+            canonicalInstance(entry.instance) !== canonicalInstance(instanceFilter)) continue;
+
+          const clickstream = Array.isArray(session.clickstream) ? session.clickstream : [];
+          if (clickstream.length === 0) continue;
+
+          let selViews = 0, usrViews = 0, crdViews = 0;
+          for (const step of clickstream) {
+            const url = (step?.url || "").toString().toLowerCase();
+            if (url.startsWith("/select-merchants") || url.includes("select-merchant")) selViews++;
+            else if (url.startsWith("/user-data-collection") || url.includes("user-data")) usrViews++;
+            else if (url.startsWith("/credential-entry") || url.includes("credential-entry")) crdViews++;
+          }
+
+          if (selViews > 0) {
+            selectReaching++;
+            selectTotalViews += selViews;
+            freqSelect.set(selViews, (freqSelect.get(selViews) || 0) + 1);
+          }
+          if (usrViews > 0) {
+            userReaching++;
+            userTotalViews += usrViews;
+            freqUser.set(usrViews, (freqUser.get(usrViews) || 0) + 1);
+          }
+          if (crdViews > 0) {
+            credReaching++;
+            credTotalViews += crdViews;
+            freqCred.set(crdViews, (freqCred.get(crdViews) || 0) + 1);
+          }
+        }
+      }
+
+      const buildDist = (freq, reaching, totalViews) => ({
+        sessionsReaching: reaching,
+        totalViews,
+        distribution: Array.from(freq.entries())
+          .sort((a, b) => a[0] - b[0])
+          .map(([viewsPerSession, sessions]) => ({ viewsPerSession, sessions })),
+        median: medianFromFrequencyMap(freq, reaching),
+      });
+
+      return send(res, 200, {
+        startDate: startParam,
+        endDate: endParam,
+        includeTests,
+        filters: {
+          fiInstances: fiInstanceSet ? Array.from(fiInstanceSet) : null,
+          fi: fiList,
+          partner: partnerFilter || null,
+          integration: integrationFilter || null,
+          instance: instanceFilter || null,
+        },
+        sessionsScanned,
+        selectMerchants: buildDist(freqSelect, selectReaching, selectTotalViews),
+        userData: buildDist(freqUser, userReaching, userTotalViews),
+        credentialEntry: buildDist(freqCred, credReaching, credTotalViews),
+      });
+    } catch (err) {
+      const status = err?.status || 500;
+      return send(res, status, { error: err?.message || "Unable to compute pageview stats" });
+    }
+  }
+
   if (pathname === "/instances/save" && req.method === "POST") {
     if (!(await requireFullAccess(req, res, queryParams))) return;
     try {

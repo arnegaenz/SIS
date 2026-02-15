@@ -92,32 +92,157 @@
 
     .perf-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-      gap: 10px; margin-bottom: 16px;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px; margin-bottom: 16px;
     }
+    @media (max-width: 1024px) { .perf-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 600px) { .perf-grid { grid-template-columns: 1fr; } }
     .perf-card {
-      background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;
-      padding: 14px 16px; text-align: center; transition: box-shadow 0.15s;
+      background: #fff; border: 1px solid #e2e8f0; border-radius: 12px;
+      padding: 14px 16px; text-align: left;
+      display: flex; flex-direction: column; align-items: flex-start;
+      position: relative; overflow: hidden;
+      box-shadow: 0 14px 34px rgba(0,0,0,0.08);
+      transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
     }
-    .perf-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+    .perf-card:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 18px 42px rgba(0,0,0,0.12);
+    }
     .perf-card .card-label {
-      font-size: 10px; font-weight: 700; text-transform: uppercase;
-      letter-spacing: 0.04em; color: #64748b; margin-bottom: 4px;
+      font-size: 0.75rem; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.05em; color: #64748b;
+      line-height: 1.2; margin-bottom: 8px;
+      max-width: 100%;
     }
     .perf-card .card-value {
-      font-size: 26px; font-weight: 800; color: #0f172a; line-height: 1.1;
+      font-size: 1.8rem; font-weight: 700; color: #0f172a; line-height: 1.1;
+      margin-bottom: 4px;
     }
     .perf-card .card-sub {
-      font-size: 11px; color: #94a3b8; margin-top: 3px;
+      font-size: 0.85rem; color: #94a3b8; font-weight: 600;
+      white-space: nowrap; text-overflow: ellipsis; max-width: 100%;
+      overflow: hidden;
     }
     .perf-card.highlight {
-      background: #eff6ff; border-color: #93c5fd;
+      background: linear-gradient(135deg, rgba(37,99,235,0.10) 0%, rgba(37,99,235,0.03) 55%, transparent 100%), #fff;
+      border-color: rgba(37,99,235,0.45);
+    }
+    .perf-card.highlight::before {
+      content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+      background: linear-gradient(180deg, rgba(37,99,235,0.9), rgba(37,99,235,0.15));
     }
     .perf-card.highlight .card-value { color: #2563eb; }
     .perf-card.success {
-      background: #f0fdf4; border-color: #86efac;
+      background: linear-gradient(135deg, rgba(22,163,74,0.10) 0%, rgba(22,163,74,0.03) 55%, transparent 100%), #fff;
+      border-color: rgba(22,163,74,0.45);
+    }
+    .perf-card.success::before {
+      content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+      background: linear-gradient(180deg, rgba(22,163,74,0.9), rgba(22,163,74,0.15));
     }
     .perf-card.success .card-value { color: #16a34a; }
+
+    /* Merchant detail popover (floats out of success card) */
+    .perf-card.success { overflow: visible; }
+    .card-merchant-detail {
+      display: none; position: absolute; left: 0; top: 100%; margin-top: 6px;
+      width: max(100%, 260px); z-index: 50;
+      background: #fff; border: 1px solid #e2e8f0; border-radius: 10px;
+      padding: 10px 12px; font-size: 0.8rem; color: #334155;
+      line-height: 1.6; box-shadow: 0 16px 40px rgba(0,0,0,0.12);
+    }
+    .card-merchant-detail.open { display: block; }
+    .card-merchant-detail .merchant-pop-title {
+      font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.05em; color: #64748b; margin-bottom: 6px;
+    }
+    .card-merchant-row {
+      display: flex; justify-content: space-between; gap: 8px;
+      padding: 3px 6px; border-radius: 4px;
+    }
+    .card-merchant-row:nth-child(even) {
+      background: rgba(0,0,0,0.03);
+    }
+    .card-merchant-count {
+      white-space: nowrap; font-variant-numeric: tabular-nums; font-weight: 600;
+    }
+
+    /* Session clickstream cards (amber accent) */
+    .perf-card.cs-card {
+      background: linear-gradient(135deg, rgba(217,119,6,0.10) 0%, rgba(217,119,6,0.03) 55%, transparent 100%), #fff;
+      border-color: rgba(217,119,6,0.40);
+    }
+    .perf-card.cs-card::before {
+      content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+      background: linear-gradient(180deg, rgba(217,119,6,0.85), rgba(217,119,6,0.15));
+    }
+    .perf-card.cs-card .card-label { color: #92400e; }
+    .perf-card.cs-card.stats-card {
+      background: linear-gradient(135deg, rgba(217,119,6,0.10) 0%, rgba(217,119,6,0.03) 55%, transparent 100%), #fff;
+      border-color: rgba(217,119,6,0.40);
+    }
+    .perf-card.cs-card.stats-card::before {
+      background: linear-gradient(180deg, rgba(217,119,6,0.85), rgba(217,119,6,0.15));
+    }
+    .perf-card.cs-card.stats-card .card-label { color: #92400e; }
+    .perf-card.cs-card.stats-card { overflow: visible; }
+
+    /* Stats chips card (Merchants Per Session) */
+    .perf-card.stats-card {
+      background: linear-gradient(135deg, rgba(74,158,186,0.12) 0%, rgba(74,158,186,0.04) 55%, transparent 100%), #fff;
+      border-color: rgba(74,158,186,0.45);
+    }
+    .perf-card.stats-card::before {
+      content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+      background: linear-gradient(180deg, rgba(74,158,186,0.9), rgba(74,158,186,0.15));
+    }
+    .perf-card.stats-card .card-label { color: #2a7f9a; }
+    .stats-chips {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 6px;
+      width: 100%;
+    }
+    .stats-chip {
+      display: inline-flex; align-items: center; justify-content: space-between;
+      gap: 8px;
+      background: #fff; border: 1px solid #e2e8f0; border-radius: 10px;
+      padding: 6px 10px; font-size: 0.85em; color: #64748b;
+    }
+    .stats-chip b { opacity: 0.8; font-size: 0.85em; letter-spacing: 0.03em; }
+    .stats-chip .chip-val { font-weight: 700; color: #0f172a; font-variant-numeric: tabular-nums; }
+    /* Stats card bottom row (AVG chip + distribution toggle) */
+    .perf-card.stats-card { overflow: visible; }
+    .stats-bottom-row {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+      width: 100%; margin-top: 8px; align-items: center;
+    }
+    .stats-bottom-row .stats-dist-toggle { grid-column: 2 / 4; }
+    .stats-dist-toggle {
+      font: inherit; padding: 5px 10px; border-radius: 10px;
+      border: 1px solid #e2e8f0; background: #fff; color: #0f172a;
+      font-weight: 600; font-size: 0.78rem; cursor: pointer;
+      display: inline-flex; align-items: center; gap: 4px;
+      transition: border-color 0.15s;
+    }
+    .stats-dist-toggle:hover { border-color: #4a9eba; }
+    .stats-dist-toggle[aria-expanded="true"] { border-color: #4a9eba; }
+    /* Distribution popover */
+    .stats-dist-panel {
+      display: none; position: absolute; right: 0; top: 100%; margin-top: 6px;
+      width: min(360px, calc(100vw - 40px)); z-index: 60;
+      background: #fff; border: 1px solid #e2e8f0; border-radius: 12px;
+      box-shadow: 0 16px 40px rgba(0,0,0,0.12);
+      max-height: 40vh; overflow: auto;
+    }
+    .stats-dist-panel.open { display: block; }
+    .stats-dist-table { width: 100%; border-collapse: collapse; }
+    .stats-dist-table th, .stats-dist-table td {
+      padding: 8px 12px; border-bottom: 1px solid #f1f5f9; text-align: left;
+      font-size: 0.82rem;
+    }
+    .stats-dist-table th { font-weight: 700; color: #64748b; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; }
+    .stats-dist-table td:last-child { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+    .stats-dist-empty { padding: 12px; font-size: 0.82rem; color: #94a3b8; }
 
     /* Highlights table */
     .highlights-table {
@@ -131,7 +256,7 @@
     .highlights-table td {
       padding: 6px 8px; border-bottom: 1px solid #e2e8f0;
     }
-    .highlights-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+    .highlights-table .num { text-align: center; font-variant-numeric: tabular-nums; }
     .highlights-table .hl-label { font-weight: 600; }
     .highlights-table .nowrap { white-space: nowrap; }
     .highlights-table tbody tr:nth-child(even) { background: #f8fafc; }
@@ -169,21 +294,45 @@
       white-space: nowrap;
     }
     .fi-table th {
-      text-align: left; padding: 5px 8px; font-size: 10px; font-weight: 700;
+      text-align: center; padding: 5px 8px; font-size: 10px; font-weight: 700;
       text-transform: uppercase; letter-spacing: 0.03em; color: #475569;
       background: #f1f5f9; border-bottom: 2px solid #e2e8f0;
       cursor: pointer; user-select: none;
     }
     .fi-table th:hover { color: #0f172a; }
-    .fi-table td { padding: 5px 8px; border-bottom: 1px solid #f1f5f9; }
+    .fi-table td { padding: 5px 8px; border-bottom: 1px solid #f1f5f9; text-align: center; }
     .fi-table tbody tr:hover { background: #f8fafc; }
-    .fi-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+    .fi-table .num { text-align: center; font-variant-numeric: tabular-nums; }
     .fi-table .totals-row td {
       border-top: 2px solid #cbd5e1; font-weight: 700; background: #f8fafc;
     }
     .fi-table .muted { color: #94a3b8; font-size: 10px; }
     .fi-table .reach-good { color: #16a34a; font-weight: 600; }
     .fi-table .reach-low { color: #d97706; }
+    .fi-table th:first-child, .fi-table td:first-child { text-align: left; }
+
+    /* Tab bar (single-FI time breakdowns) */
+    .tab-bar {
+      display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;
+    }
+    .tab-button {
+      background: transparent; border: 1px solid var(--border, #e2e8f0);
+      color: var(--muted, #64748b); border-radius: 999px;
+      padding: 6px 14px; font-size: 0.78rem; text-transform: uppercase;
+      letter-spacing: 0.08em; cursor: pointer;
+      transition: background 0.15s ease, color 0.15s ease;
+    }
+    .tab-button:hover { color: var(--text, #0f172a); }
+    .tab-button.active {
+      background: var(--panel, #f8fafc); color: var(--text, #0f172a);
+      border-color: var(--accent, #2563eb);
+    }
+    .tab-panel { display: none; margin-top: 8px; }
+    .tab-panel.active { display: block; }
+    .tab-panel h3 {
+      margin: 0 0 6px; font-size: 0.9rem; color: var(--muted, #64748b);
+      letter-spacing: 0.08em; text-transform: uppercase;
+    }
 
     /* Date window label */
     .date-window { font-weight: 400; color: #64748b; font-size: 12px; }
@@ -258,6 +407,16 @@
             <div class="card-value" id="valGaSelect">-</div>
             <div class="card-sub" id="subGaSelect"></div>
           </div>
+          <div class="perf-card" id="cardSessions">
+            <div class="card-label">Total Sessions</div>
+            <div class="card-value" id="valSessions">-</div>
+            <div class="card-sub" id="subSessions"></div>
+          </div>
+          <div class="perf-card" id="cardLaunchCredPct">
+            <div class="card-label">Launch → Credential %</div>
+            <div class="card-value" id="valLaunchCredPct">-</div>
+            <div class="card-sub" id="subLaunchCredPct"></div>
+          </div>
           <div class="perf-card" id="cardGaUser">
             <div class="card-label">User Data Page Views</div>
             <div class="card-value" id="valGaUser">-</div>
@@ -267,11 +426,6 @@
             <div class="card-label">Credential Entry Views</div>
             <div class="card-value" id="valGaCred">-</div>
             <div class="card-sub" id="subGaCred"></div>
-          </div>
-          <div class="perf-card" id="cardSessions">
-            <div class="card-label">Total Sessions</div>
-            <div class="card-value" id="valSessions">-</div>
-            <div class="card-sub" id="subSessions"></div>
           </div>
           <div class="perf-card highlight" id="cardSuccessSessions">
             <div class="card-label">Sessions w/ Successful Placements</div>
@@ -283,12 +437,121 @@
             <div class="card-value" id="valSuccessRate">-</div>
             <div class="card-sub" id="subSuccessRate">Sessions w/ success ÷ Total sessions</div>
           </div>
-          <div class="perf-card success" id="cardSuccessful">
+          <div class="perf-card success" id="cardSuccessful" style="cursor:pointer;" title="Click to see merchant breakdown">
             <div class="card-label">Successful Placements</div>
             <div class="card-value" id="valSuccessful">-</div>
             <div class="card-sub" id="subSuccessful"></div>
+            <div class="card-merchant-detail" id="merchantDetail"></div>
+          </div>
+          <div class="perf-card" id="cardAvgSuccessPerSession">
+            <div class="card-label">Avg Successful Cards Per Session</div>
+            <div class="card-value" id="valAvgSuccessPerSession">-</div>
+            <div class="card-sub" id="subAvgSuccessPerSession"></div>
+          </div>
+          <div class="perf-card stats-card" id="cardMerchantsPerSession" title="How many merchants cardholders attempt per session (sessions with at least one attempt)">
+            <div class="card-label">Merchants Per Session</div>
+            <div class="stats-chips" id="merchantStatsChips">
+              <span class="stats-chip"><b>MEDIAN</b> <span class="chip-val" id="chipMedian">—</span></span>
+              <span class="stats-chip"><b>MODE</b> <span class="chip-val" id="chipMode">—</span></span>
+              <span class="stats-chip"><b>P75</b> <span class="chip-val" id="chipP75">—</span></span>
+            </div>
+            <div class="stats-bottom-row">
+              <span class="stats-chip"><b>AVG</b> <span class="chip-val" id="chipAvg">—</span></span>
+              <button class="stats-dist-toggle" id="toggleDistribution" type="button" aria-expanded="false">Show distribution &#9662;</button>
+            </div>
+            <div class="card-sub" id="subMerchantsPerSession"></div>
+            <div class="stats-dist-panel" id="distributionPanel">
+              <table class="stats-dist-table">
+                <thead><tr><th>Merchants per session</th><th>Sessions</th></tr></thead>
+                <tbody id="distributionBody"></tbody>
+              </table>
+              <div class="stats-dist-empty" id="distributionEmpty" hidden>No distribution data available.</div>
+            </div>
+          </div>
+
+          <!-- Session Clickstream Metrics -->
+          <div class="perf-card cs-card" id="cardCsSelect">
+            <div class="card-label">Select Merchants (Sessions)</div>
+            <div class="card-value" id="valCsSelect">-</div>
+            <div class="card-sub" id="subCsSelect"></div>
+          </div>
+          <div class="perf-card cs-card" id="cardCsUser">
+            <div class="card-label">User Data (Sessions)</div>
+            <div class="card-value" id="valCsUser">-</div>
+            <div class="card-sub" id="subCsUser"></div>
+          </div>
+          <div class="perf-card cs-card" id="cardCsCred">
+            <div class="card-label">Credential Entry (Sessions)</div>
+            <div class="card-value" id="valCsCred">-</div>
+            <div class="card-sub" id="subCsCred"></div>
+          </div>
+          <div class="perf-card cs-card stats-card" id="cardCsSelectDist" title="Select Merchant page views per session">
+            <div class="card-label">Select Merchant Views / Session</div>
+            <div class="stats-chips" id="csSelectStatsChips">
+              <span class="stats-chip"><b>MEDIAN</b> <span class="chip-val" id="csSelectChipMedian">—</span></span>
+              <span class="stats-chip"><b>MODE</b> <span class="chip-val" id="csSelectChipMode">—</span></span>
+              <span class="stats-chip"><b>P75</b> <span class="chip-val" id="csSelectChipP75">—</span></span>
+            </div>
+            <div class="stats-bottom-row">
+              <span class="stats-chip"><b>AVG</b> <span class="chip-val" id="csSelectChipAvg">—</span></span>
+              <button class="stats-dist-toggle" id="csSelectToggleDist" type="button" aria-expanded="false">Show distribution &#9662;</button>
+            </div>
+            <div class="card-sub" id="csSelectDistSub"></div>
+            <div class="stats-dist-panel" id="csSelectDistPanel">
+              <table class="stats-dist-table">
+                <thead><tr><th>Views per session</th><th>Sessions</th></tr></thead>
+                <tbody id="csSelectDistBody"></tbody>
+              </table>
+              <div class="stats-dist-empty" id="csSelectDistEmpty" hidden>No data available.</div>
+            </div>
+          </div>
+          <div class="perf-card cs-card stats-card" id="cardCsUserDist" title="User Data page views per session">
+            <div class="card-label">User Data Views / Session</div>
+            <div class="stats-chips" id="csUserStatsChips">
+              <span class="stats-chip"><b>MEDIAN</b> <span class="chip-val" id="csUserChipMedian">—</span></span>
+              <span class="stats-chip"><b>MODE</b> <span class="chip-val" id="csUserChipMode">—</span></span>
+              <span class="stats-chip"><b>P75</b> <span class="chip-val" id="csUserChipP75">—</span></span>
+            </div>
+            <div class="stats-bottom-row">
+              <span class="stats-chip"><b>AVG</b> <span class="chip-val" id="csUserChipAvg">—</span></span>
+              <button class="stats-dist-toggle" id="csUserToggleDist" type="button" aria-expanded="false">Show distribution &#9662;</button>
+            </div>
+            <div class="card-sub" id="csUserDistSub"></div>
+            <div class="stats-dist-panel" id="csUserDistPanel">
+              <table class="stats-dist-table">
+                <thead><tr><th>Views per session</th><th>Sessions</th></tr></thead>
+                <tbody id="csUserDistBody"></tbody>
+              </table>
+              <div class="stats-dist-empty" id="csUserDistEmpty" hidden>No data available.</div>
+            </div>
+          </div>
+          <div class="perf-card cs-card stats-card" id="cardCsCredDist" title="Credential Entry page views per session">
+            <div class="card-label">Credential Entry Views / Session</div>
+            <div class="stats-chips" id="csCredStatsChips">
+              <span class="stats-chip"><b>MEDIAN</b> <span class="chip-val" id="csCredChipMedian">—</span></span>
+              <span class="stats-chip"><b>MODE</b> <span class="chip-val" id="csCredChipMode">—</span></span>
+              <span class="stats-chip"><b>P75</b> <span class="chip-val" id="csCredChipP75">—</span></span>
+            </div>
+            <div class="stats-bottom-row">
+              <span class="stats-chip"><b>AVG</b> <span class="chip-val" id="csCredChipAvg">—</span></span>
+              <button class="stats-dist-toggle" id="csCredToggleDist" type="button" aria-expanded="false">Show distribution &#9662;</button>
+            </div>
+            <div class="card-sub" id="csCredDistSub"></div>
+            <div class="stats-dist-panel" id="csCredDistPanel">
+              <table class="stats-dist-table">
+                <thead><tr><th>Views per session</th><th>Sessions</th></tr></thead>
+                <tbody id="csCredDistBody"></tbody>
+              </table>
+              <div class="stats-dist-empty" id="csCredDistEmpty" hidden>No data available.</div>
+            </div>
           </div>
         </div>
+      </div>
+
+      <!-- Highlights -->
+      <div id="highlightsSection" style="display:none;">
+        <div class="perf-section-title">Performance Highlights <span class="muted">(Best 7-Day Windows)</span></div>
+        <div id="bestWindows"></div>
       </div>
 
       <!-- Per-FI Conversion Tables -->
@@ -300,19 +563,18 @@
           <div class="table-scroll">
           <table class="fi-table" id="table-SSO">
           <thead><tr>
-            <th data-sort="fi">FI</th>
+            <th data-sort="fi">Financial Institution</th>
             <th data-sort="instances">Instance</th>
             <th data-sort="integration">Integration</th>
-            <th data-sort="ga_select" class="num">GA Select</th>
-            <th data-sort="ga_user" class="num">GA User</th>
-            <th data-sort="ga_cred" class="num">GA Cred</th>
+            <th data-sort="ga_select" class="num">Launches</th>
+            <th data-sort="cs_select" class="num">Sess @Select</th>
+            <th data-sort="ga_cred" class="num">Credential Views</th>
             <th data-sort="reach" class="num">Monthly Reach %</th>
-            <th data-sort="sel_user_pct" class="num">Sel→User %</th>
-            <th data-sort="sel_cred_pct" class="num">Sel→Cred %</th>
-            <th data-sort="sel_success_pct" class="num">Sel→Success %</th>
+            <th data-sort="sel_cred_pct" class="num">Launch→Cred %</th>
+            <th data-sort="sel_success_pct" class="num">Launch→Success %</th>
             <th data-sort="sessions" class="num">Sessions</th>
-            <th data-sort="sess_with_success" class="num">Sess w/ Success</th>
-            <th data-sort="sess_success_pct" class="num">Sess→Success %</th>
+            <th data-sort="sess_with_success" class="num">Successful Sessions</th>
+            <th data-sort="sess_success_pct" class="num">Session Success %</th>
             <th data-sort="placements" class="num">Placements</th>
           </tr></thead>
           <tbody></tbody>
@@ -325,19 +587,20 @@
           <div class="table-scroll">
           <table class="fi-table" id="table-NON-SSO">
           <thead><tr>
-            <th data-sort="fi">FI</th>
+            <th data-sort="fi">Financial Institution</th>
             <th data-sort="instances">Instance</th>
             <th data-sort="integration">Integration</th>
-            <th data-sort="ga_select" class="num">GA Select</th>
-            <th data-sort="ga_user" class="num">GA User</th>
-            <th data-sort="ga_cred" class="num">GA Cred</th>
+            <th data-sort="ga_select" class="num">Launches</th>
+            <th data-sort="cs_select" class="num">Sess @Select</th>
+            <th data-sort="ga_user" class="num">User Data Views</th>
+            <th data-sort="ga_cred" class="num">Credential Views</th>
             <th data-sort="reach" class="num">Monthly Reach %</th>
-            <th data-sort="sel_user_pct" class="num">Sel→User %</th>
-            <th data-sort="sel_cred_pct" class="num">Sel→Cred %</th>
-            <th data-sort="sel_success_pct" class="num">Sel→Success %</th>
+            <th data-sort="sel_user_pct" class="num">Launch→User %</th>
+            <th data-sort="sel_cred_pct" class="num">Launch→Cred %</th>
+            <th data-sort="sel_success_pct" class="num">Launch→Success %</th>
             <th data-sort="sessions" class="num">Sessions</th>
-            <th data-sort="sess_with_success" class="num">Sess w/ Success</th>
-            <th data-sort="sess_success_pct" class="num">Sess→Success %</th>
+            <th data-sort="sess_with_success" class="num">Successful Sessions</th>
+            <th data-sort="sess_success_pct" class="num">Session Success %</th>
             <th data-sort="placements" class="num">Placements</th>
           </tr></thead>
           <tbody></tbody>
@@ -350,19 +613,20 @@
           <div class="table-scroll">
           <table class="fi-table" id="table-CardSavr">
           <thead><tr>
-            <th data-sort="fi">FI</th>
+            <th data-sort="fi">Financial Institution</th>
             <th data-sort="instances">Instance</th>
             <th data-sort="integration">Integration</th>
-            <th data-sort="ga_select" class="num">GA Select</th>
-            <th data-sort="ga_user" class="num">GA User</th>
-            <th data-sort="ga_cred" class="num">GA Cred</th>
+            <th data-sort="ga_select" class="num">Launches</th>
+            <th data-sort="cs_select" class="num">Sess @Select</th>
+            <th data-sort="ga_user" class="num">User Data Views</th>
+            <th data-sort="ga_cred" class="num">Credential Views</th>
             <th data-sort="reach" class="num">Monthly Reach %</th>
-            <th data-sort="sel_user_pct" class="num">Sel→User %</th>
-            <th data-sort="sel_cred_pct" class="num">Sel→Cred %</th>
-            <th data-sort="sel_success_pct" class="num">Sel→Success %</th>
+            <th data-sort="sel_user_pct" class="num">Launch→User %</th>
+            <th data-sort="sel_cred_pct" class="num">Launch→Cred %</th>
+            <th data-sort="sel_success_pct" class="num">Launch→Success %</th>
             <th data-sort="sessions" class="num">Sessions</th>
-            <th data-sort="sess_with_success" class="num">Sess w/ Success</th>
-            <th data-sort="sess_success_pct" class="num">Sess→Success %</th>
+            <th data-sort="sess_with_success" class="num">Successful Sessions</th>
+            <th data-sort="sess_success_pct" class="num">Session Success %</th>
             <th data-sort="placements" class="num">Placements</th>
           </tr></thead>
           <tbody></tbody>
@@ -375,19 +639,20 @@
           <div class="table-scroll">
           <table class="fi-table" id="table-UNKNOWN">
           <thead><tr>
-            <th data-sort="fi">FI</th>
+            <th data-sort="fi">Financial Institution</th>
             <th data-sort="instances">Instance</th>
             <th data-sort="integration">Integration</th>
-            <th data-sort="ga_select" class="num">GA Select</th>
-            <th data-sort="ga_user" class="num">GA User</th>
-            <th data-sort="ga_cred" class="num">GA Cred</th>
+            <th data-sort="ga_select" class="num">Launches</th>
+            <th data-sort="cs_select" class="num">Sess @Select</th>
+            <th data-sort="ga_user" class="num">User Data Views</th>
+            <th data-sort="ga_cred" class="num">Credential Views</th>
             <th data-sort="reach" class="num">Monthly Reach %</th>
-            <th data-sort="sel_user_pct" class="num">Sel→User %</th>
-            <th data-sort="sel_cred_pct" class="num">Sel→Cred %</th>
-            <th data-sort="sel_success_pct" class="num">Sel→Success %</th>
+            <th data-sort="sel_user_pct" class="num">Launch→User %</th>
+            <th data-sort="sel_cred_pct" class="num">Launch→Cred %</th>
+            <th data-sort="sel_success_pct" class="num">Launch→Success %</th>
             <th data-sort="sessions" class="num">Sessions</th>
-            <th data-sort="sess_with_success" class="num">Sess w/ Success</th>
-            <th data-sort="sess_success_pct" class="num">Sess→Success %</th>
+            <th data-sort="sess_with_success" class="num">Successful Sessions</th>
+            <th data-sort="sess_success_pct" class="num">Session Success %</th>
             <th data-sort="placements" class="num">Placements</th>
           </tr></thead>
           <tbody></tbody>
@@ -396,11 +661,8 @@
         </div>
       </div>
 
-      <!-- Highlights -->
-      <div id="highlightsSection" style="display:none;">
-        <div class="perf-section-title">Performance Highlights <span class="muted">(Best 7-Day Windows)</span></div>
-        <div id="bestWindows"></div>
-      </div>
+      <!-- Single-FI Time Breakdowns -->
+      <div id="singleFiView" style="display:none;"></div>
 
       <!-- Partner Integration Mix -->
       <div id="partnerSummary" class="partner-summary" style="display:none;"></div>
@@ -439,6 +701,8 @@
     let lastRenderContext = null;
     let lastFilterSnapshot = null;
     let latestVisibleRows = [];
+    let latestSingleFiBreakdowns = null;
+    let lastActiveTab = null;
     let latestHighlights = [];
     let latestPartnerSummary = null;
     let latestDailyDate = null;
@@ -567,6 +831,11 @@
 
     function parseDateUtc(dateStr) { return new Date(`${dateStr}T00:00:00Z`); }
     function formatDateUtc(dateObj) { return dateObj.toISOString().slice(0, 10); }
+    function addDaysUtc(dateObj, days) {
+      const d = new Date(dateObj);
+      d.setUTCDate(d.getUTCDate() + days);
+      return d;
+    }
 
     function dayCountInclusive(start, end) {
       if (!start || !end) return null;
@@ -794,6 +1063,7 @@
           const agg = perFi[comboKey] || {
             key: comboKey, fi: fiName, instance: instanceName, integration_type: integration,
             partner: partnerLabel, ga_select: 0, ga_user: 0, ga_cred: 0,
+            cs_select: 0, cs_user: 0, cs_cred: 0,
             sessions: 0, sess_with_jobs: 0, sess_with_success: 0,
             total_jobs: 0, successful_jobs: 0, placements: 0,
             instances: [instanceName], is_test: rowIsTest,
@@ -820,6 +1090,9 @@
             agg.sess_with_success += row.sessions.with_success || 0;
             agg.total_jobs += row.sessions.total_jobs || 0;
             agg.successful_jobs += row.sessions.successful_jobs || 0;
+            agg.cs_select += row.sessions.cs_select_sessions || 0;
+            agg.cs_user += row.sessions.cs_user_sessions || 0;
+            agg.cs_cred += row.sessions.cs_cred_sessions || 0;
           }
           if (row.placements) agg.placements += getBillablePlacementCount(row.placements);
           if (rowIsTest) agg.is_test = true;
@@ -946,6 +1219,7 @@
     function calculateMetrics(startDate, endDate, visibleRows) {
       const metrics = {
         totalGaSelect: 0, totalGaUser: 0, totalGaCred: 0,
+        totalCsSelect: 0, totalCsUser: 0, totalCsCred: 0,
         totalSessions: 0, sessionsWithJobs: 0, sessionsWithSuccessfulJobs: 0,
         totalJobs: 0, successful: 0, totalPlacements: 0,
       };
@@ -953,6 +1227,9 @@
         metrics.totalGaSelect += row.ga_select || 0;
         metrics.totalGaUser += row.ga_user || 0;
         metrics.totalGaCred += row.ga_cred || 0;
+        metrics.totalCsSelect += row.cs_select || 0;
+        metrics.totalCsUser += row.cs_user || 0;
+        metrics.totalCsCred += row.cs_cred || 0;
         metrics.totalSessions += row.sessions || 0;
         metrics.sessionsWithJobs += row.sess_with_jobs || 0;
         metrics.sessionsWithSuccessfulJobs += row.sess_with_success || 0;
@@ -1148,17 +1425,306 @@
     const fmt = (n) => typeof n === "number" && Number.isFinite(n) ? n.toLocaleString("en-US") : "0";
     const pct = (num, den) => den > 0 ? ((num / den) * 100).toFixed(1) + "%" : "—";
 
-    function renderMetrics(metrics, startDate, endDate, daySpan, fiCount) {
+    function escapeHtml(text) {
+      if (!text) return '';
+      const div = document.createElement('div');
+      div.textContent = text.toString();
+      return div.innerHTML;
+    }
+
+    async function fetchPlacementDetails(type) {
+      const shared = window.__FILTER_STATE || {};
+      let fiParam = '__all__';
+      if (shared.fis && shared.fis.size > 0) {
+        fiParam = Array.from(shared.fis).join(',');
+      }
+      let partnerParam = '__all_partners__';
+      if (shared.__partnerSetTouched && shared.partnerSet && shared.partnerSet.size > 0) {
+        partnerParam = Array.from(shared.partnerSet).join(',');
+      }
+      let integrationParam = '(all)';
+      if (shared.integrationSet && shared.integrationSet.size > 0) {
+        const arr = Array.from(shared.integrationSet);
+        if (arr.length === 1) integrationParam = arr[0];
+      }
+      let instanceParam = 'All';
+      if (shared.instanceSet && shared.instanceSet.size > 0) {
+        const arr = Array.from(shared.instanceSet);
+        if (arr.length === 1) instanceParam = arr[0];
+      }
+      const params = new URLSearchParams({
+        type,
+        startDate: startDateInput?.value || defaultStartDateStr,
+        endDate: endDateInput?.value || defaultEndDateStr,
+        fi: fiParam,
+        partner: partnerParam,
+        integration: integrationParam,
+        instance: instanceParam,
+        includeTest: 'false',
+        limit: '1000',
+        showAll: 'true',
+      });
+      const token = window.sisAuth?.getToken?.() || localStorage.getItem("sis_session_token") || "";
+      const response = await fetch(`/api/placement-details?${params}`, {
+        headers: token ? { Authorization: "Bearer " + token } : {},
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      return response.json();
+    }
+
+    let merchantPopoverReady = false;
+
+    function renderMerchantBreakdown(successful) {
+      const detailEl = document.getElementById("merchantDetail");
+      if (!detailEl) return;
+      detailEl.classList.remove("open");
+      if (!successful || successful <= 0) { detailEl.innerHTML = ""; merchantPopoverReady = false; return; }
+      merchantPopoverReady = false;
+      fetchPlacementDetails("success").then(data => {
+        if (!data?.results?.length) { detailEl.innerHTML = ""; merchantPopoverReady = false; return; }
+        const topMerchants = data.results
+          .sort((a, b) => (b.successCount || b.count || 0) - (a.successCount || a.count || 0))
+          .slice(0, 10);
+        detailEl.innerHTML = '<div class="merchant-pop-title">Top Merchants</div>' +
+          topMerchants.map(m => {
+            const count = m.successCount || m.count || 0;
+            const mPct = successful > 0 ? ((count / successful) * 100).toFixed(1) : "0.0";
+            return `<div class="card-merchant-row"><span>${escapeHtml(m.merchant)}</span><span class="card-merchant-count">${count.toLocaleString()} (${mPct}%)</span></div>`;
+          }).join("");
+        merchantPopoverReady = true;
+      }).catch(() => { detailEl.innerHTML = ""; merchantPopoverReady = false; });
+    }
+
+    async function fetchJobsStats() {
+      const shared = window.__FILTER_STATE || {};
+      const token = window.sisAuth?.getToken?.() || localStorage.getItem("sis_session_token") || "";
+      const body = {
+        start: startDateInput?.value || defaultStartDateStr,
+        end: endDateInput?.value || defaultEndDateStr,
+        includeTests: false,
+      };
+      if (shared.fis && shared.fis.size > 0) body.fi = Array.from(shared.fis);
+      if (shared.__partnerSetTouched && shared.partnerSet && shared.partnerSet.size > 0) body.partner = Array.from(shared.partnerSet).join(',');
+      if (shared.integrationSet && shared.integrationSet.size > 0) {
+        const arr = Array.from(shared.integrationSet);
+        if (arr.length === 1) body.integration = arr[0];
+      }
+      if (shared.instanceSet && shared.instanceSet.size > 0) {
+        const arr = Array.from(shared.instanceSet);
+        if (arr.length === 1) body.instance = arr[0];
+      }
+      const resp = await fetch("/sessions/jobs-stats", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(token ? { Authorization: "Bearer " + token } : {}) },
+        body: JSON.stringify(body),
+      });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      return resp.json();
+    }
+
+    function renderJobsStatsCard(data) {
+      const chipMedian = document.getElementById("chipMedian");
+      const chipMode = document.getElementById("chipMode");
+      const chipP75 = document.getElementById("chipP75");
+      const chipAvg = document.getElementById("chipAvg");
+      const subEl = document.getElementById("subMerchantsPerSession");
+      const distBody = document.getElementById("distributionBody");
+      const distEmpty = document.getElementById("distributionEmpty");
+      const distPanel = document.getElementById("distributionPanel");
+      // Close panel on new data
+      if (distPanel) distPanel.classList.remove("open");
+      const toggleBtn = document.getElementById("toggleDistribution");
+      if (toggleBtn) toggleBtn.setAttribute("aria-expanded", "false");
+
+      if (!data || !data.distribution || !data.distribution.length) {
+        if (chipMedian) chipMedian.textContent = "—";
+        if (chipMode) chipMode.textContent = "—";
+        if (chipP75) chipP75.textContent = "—";
+        if (chipAvg) chipAvg.textContent = "—";
+        if (subEl) subEl.textContent = "";
+        if (distBody) distBody.innerHTML = "";
+        if (distEmpty) distEmpty.hidden = false;
+        return;
+      }
+      // Rebuild sorted array from distribution for quantile calculations
+      const sorted = [];
+      let totalJobs = 0;
+      for (const row of data.distribution) {
+        for (let i = 0; i < row.sessions; i++) sorted.push(row.jobsPerSession);
+        totalJobs += row.jobsPerSession * row.sessions;
+      }
+      const n = sorted.length;
+      if (n === 0) {
+        if (chipMedian) chipMedian.textContent = "—";
+        if (chipMode) chipMode.textContent = "—";
+        if (chipP75) chipP75.textContent = "—";
+        if (chipAvg) chipAvg.textContent = "—";
+        if (subEl) subEl.textContent = "";
+        if (distBody) distBody.innerHTML = "";
+        if (distEmpty) distEmpty.hidden = false;
+        return;
+      }
+      // Quantile helper
+      function q(p) {
+        const idx = (n - 1) * p;
+        const lo = Math.floor(idx), hi = Math.ceil(idx);
+        if (hi === lo) return sorted[lo];
+        return sorted[lo] + (sorted[hi] - sorted[lo]) * (idx - lo);
+      }
+      const median = q(0.5);
+      const p75 = q(0.75);
+      const avg = totalJobs / n;
+      // Mode = job count with most sessions
+      let mode = null, maxSess = 0;
+      for (const row of data.distribution) {
+        if (row.sessions > maxSess) { maxSess = row.sessions; mode = row.jobsPerSession; }
+      }
+      if (chipMedian) chipMedian.textContent = String(Math.round(median));
+      if (chipMode) chipMode.textContent = mode !== null ? String(mode) : "—";
+      if (chipP75) chipP75.textContent = p75 % 1 === 0 ? String(p75) : p75.toFixed(2);
+      if (chipAvg) chipAvg.textContent = avg % 1 === 0 ? String(avg) : avg.toFixed(2);
+      if (subEl) subEl.textContent = `${n.toLocaleString()} sessions with attempts`;
+
+      // Populate distribution table
+      if (distBody) {
+        distBody.innerHTML = data.distribution
+          .sort((a, b) => a.jobsPerSession - b.jobsPerSession)
+          .map(r => {
+            const jobs = r.jobsPerSession;
+            const label = jobs + " merchant" + (jobs === 1 ? "" : "s");
+            return `<tr><td>${label}</td><td>${r.sessions.toLocaleString()}</td></tr>`;
+          }).join("");
+      }
+      if (distEmpty) distEmpty.hidden = data.distribution.length > 0;
+    }
+
+    async function fetchPageviewStats() {
+      const shared = window.__FILTER_STATE || {};
+      const token = window.sisAuth?.getToken?.() || localStorage.getItem("sis_session_token") || "";
+      const body = {
+        start: startDateInput?.value || defaultStartDateStr,
+        end: endDateInput?.value || defaultEndDateStr,
+        includeTests: false,
+      };
+      if (shared.fis && shared.fis.size > 0) body.fi = Array.from(shared.fis);
+      if (shared.__partnerSetTouched && shared.partnerSet && shared.partnerSet.size > 0) body.partner = Array.from(shared.partnerSet).join(',');
+      if (shared.integrationSet && shared.integrationSet.size > 0) {
+        const arr = Array.from(shared.integrationSet);
+        if (arr.length === 1) body.integration = arr[0];
+      }
+      if (shared.instanceSet && shared.instanceSet.size > 0) {
+        const arr = Array.from(shared.instanceSet);
+        if (arr.length === 1) body.instance = arr[0];
+      }
+      const resp = await fetch("/sessions/pageview-stats", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(token ? { Authorization: "Bearer " + token } : {}) },
+        body: JSON.stringify(body),
+      });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      return resp.json();
+    }
+
+    function renderPageviewStatsCards(data) {
+      renderOnePageviewDist("csSelect", data?.selectMerchants, "view");
+      renderOnePageviewDist("csUser", data?.userData, "view");
+      renderOnePageviewDist("csCred", data?.credentialEntry, "view");
+    }
+
+    function renderOnePageviewDist(prefix, distData, unitLabel) {
+      const chipMedian = document.getElementById(`${prefix}ChipMedian`);
+      const chipMode = document.getElementById(`${prefix}ChipMode`);
+      const chipP75 = document.getElementById(`${prefix}ChipP75`);
+      const chipAvg = document.getElementById(`${prefix}ChipAvg`);
+      const subEl = document.getElementById(`${prefix}DistSub`);
+      const distBody = document.getElementById(`${prefix}DistBody`);
+      const distEmpty = document.getElementById(`${prefix}DistEmpty`);
+      const distPanel = document.getElementById(`${prefix}DistPanel`);
+      if (distPanel) distPanel.classList.remove("open");
+      const toggleBtn = document.getElementById(`${prefix}ToggleDist`);
+      if (toggleBtn) toggleBtn.setAttribute("aria-expanded", "false");
+
+      if (!distData || !distData.distribution || !distData.distribution.length) {
+        if (chipMedian) chipMedian.textContent = "—";
+        if (chipMode) chipMode.textContent = "—";
+        if (chipP75) chipP75.textContent = "—";
+        if (chipAvg) chipAvg.textContent = "—";
+        if (subEl) subEl.textContent = "";
+        if (distBody) distBody.innerHTML = "";
+        if (distEmpty) distEmpty.hidden = false;
+        return;
+      }
+      const sorted = [];
+      let totalViews = 0;
+      for (const row of distData.distribution) {
+        for (let i = 0; i < row.sessions; i++) sorted.push(row.viewsPerSession);
+        totalViews += row.viewsPerSession * row.sessions;
+      }
+      const n = sorted.length;
+      if (n === 0) {
+        if (chipMedian) chipMedian.textContent = "—";
+        if (chipMode) chipMode.textContent = "—";
+        if (chipP75) chipP75.textContent = "—";
+        if (chipAvg) chipAvg.textContent = "—";
+        if (subEl) subEl.textContent = "";
+        if (distBody) distBody.innerHTML = "";
+        if (distEmpty) distEmpty.hidden = false;
+        return;
+      }
+      function q(p) {
+        const idx = (n - 1) * p;
+        const lo = Math.floor(idx), hi = Math.ceil(idx);
+        if (hi === lo) return sorted[lo];
+        return sorted[lo] + (sorted[hi] - sorted[lo]) * (idx - lo);
+      }
+      const median = q(0.5);
+      const p75 = q(0.75);
+      const avg = totalViews / n;
+      let mode = null, maxSess = 0;
+      for (const row of distData.distribution) {
+        if (row.sessions > maxSess) { maxSess = row.sessions; mode = row.viewsPerSession; }
+      }
+      if (chipMedian) chipMedian.textContent = String(Math.round(median));
+      if (chipMode) chipMode.textContent = mode !== null ? String(mode) : "—";
+      if (chipP75) chipP75.textContent = p75 % 1 === 0 ? String(p75) : p75.toFixed(2);
+      if (chipAvg) chipAvg.textContent = avg % 1 === 0 ? String(avg) : avg.toFixed(2);
+      if (subEl) subEl.textContent = `${n.toLocaleString()} sessions`;
+
+      if (distBody) {
+        distBody.innerHTML = distData.distribution
+          .sort((a, b) => a.viewsPerSession - b.viewsPerSession)
+          .map(r => {
+            const v = r.viewsPerSession;
+            const label = v + " " + unitLabel + (v === 1 ? "" : "s");
+            return `<tr><td>${label}</td><td>${r.sessions.toLocaleString()}</td></tr>`;
+          }).join("");
+      }
+      if (distEmpty) distEmpty.hidden = distData.distribution.length > 0;
+    }
+
+    function renderMetrics(metrics, startDate, endDate, daySpan, fiCount, visibleRows) {
       perfOverview.style.display = "";
       dateWindowLabel.textContent = `Date window: ${startDate} → ${endDate} (${fiCount} FIs)`;
 
+      // Hide User Data Page Views card when all visible FIs are SSO
+      const allSso = visibleRows && visibleRows.length > 0 &&
+        visibleRows.every(r => normalizeIntegrationLabel(r.integration_type || "") === "SSO");
+      const cardGaUser = document.getElementById("cardGaUser");
+      if (cardGaUser) cardGaUser.style.display = allSso ? "none" : "";
+
       document.getElementById("valGaSelect").textContent = fmt(metrics.totalGaSelect);
+      document.getElementById("subGaSelect").textContent = "Google Analytics tracked";
       document.getElementById("valGaUser").textContent = fmt(metrics.totalGaUser);
       document.getElementById("subGaUser").textContent = pct(metrics.totalGaUser, metrics.totalGaSelect) + " of launches";
       document.getElementById("valGaCred").textContent = fmt(metrics.totalGaCred);
       document.getElementById("subGaCred").textContent = pct(metrics.totalGaCred, metrics.totalGaSelect) + " of launches";
       document.getElementById("valSessions").textContent = fmt(metrics.totalSessions);
-      document.getElementById("subSessions").textContent = pct(metrics.totalSessions, metrics.totalGaSelect) + " of launches";
+      document.getElementById("subSessions").textContent = allSso ? "CardUpdatr loads via SSO" : pct(metrics.totalSessions, metrics.totalGaSelect) + " of launches";
+
+      const launchCredPct = metrics.totalGaSelect > 0 ? ((metrics.totalGaCred / metrics.totalGaSelect) * 100).toFixed(1) + "%" : "—";
+      document.getElementById("valLaunchCredPct").textContent = launchCredPct;
+      document.getElementById("subLaunchCredPct").textContent = fmt(metrics.totalGaCred) + " of " + fmt(metrics.totalGaSelect) + " launches";
+
       document.getElementById("valSuccessSessions").textContent = fmt(metrics.sessionsWithSuccessfulJobs);
       document.getElementById("subSuccessSessions").textContent = pct(metrics.sessionsWithSuccessfulJobs, metrics.totalSessions) + " of sessions";
 
@@ -1167,6 +1733,54 @@
 
       document.getElementById("valSuccessful").textContent = fmt(metrics.successful);
       document.getElementById("subSuccessful").textContent = "Cards updated at merchants";
+
+      // Merchant breakdown on Successful Placements card
+      renderMerchantBreakdown(metrics.successful);
+
+      // Avg Successful Cards Per Session
+      const avgSucc = metrics.sessionsWithSuccessfulJobs > 0
+        ? (metrics.successful / metrics.sessionsWithSuccessfulJobs).toFixed(2)
+        : "—";
+      document.getElementById("valAvgSuccessPerSession").textContent = avgSucc;
+      document.getElementById("subAvgSuccessPerSession").textContent =
+        metrics.sessionsWithSuccessfulJobs > 0
+          ? fmt(metrics.successful) + " across " + fmt(metrics.sessionsWithSuccessfulJobs) + " sessions"
+          : "";
+
+      // Merchants Per Session (async — calls /sessions/jobs-stats)
+      document.getElementById("chipMedian").textContent = "…";
+      document.getElementById("chipMode").textContent = "…";
+      document.getElementById("chipP75").textContent = "…";
+      document.getElementById("chipAvg").textContent = "…";
+      document.getElementById("subMerchantsPerSession").textContent = "Loading…";
+      fetchJobsStats().then(renderJobsStatsCard).catch(() => renderJobsStatsCard(null));
+
+      // Session clickstream metrics
+      document.getElementById("valCsSelect").textContent = fmt(metrics.totalCsSelect);
+      document.getElementById("subCsSelect").textContent = fmt(metrics.totalCsSelect) + " of " + fmt(metrics.totalSessions) + " sessions";
+      document.getElementById("valCsUser").textContent = fmt(metrics.totalCsUser);
+      document.getElementById("subCsUser").textContent = pct(metrics.totalCsUser, metrics.totalCsSelect) + " of sessions @select";
+      document.getElementById("valCsCred").textContent = fmt(metrics.totalCsCred);
+      document.getElementById("subCsCred").textContent = pct(metrics.totalCsCred, metrics.totalCsSelect) + " of sessions @select";
+
+      // Hide User Data (Sessions) card when all visible FIs are SSO
+      const cardCsUser = document.getElementById("cardCsUser");
+      if (cardCsUser) cardCsUser.style.display = allSso ? "none" : "";
+
+      // Clickstream page-view distributions (async)
+      ["csSelect", "csUser", "csCred"].forEach(prefix => {
+        const el = document.getElementById(`${prefix}ChipMedian`);
+        if (el) el.textContent = "…";
+        const el2 = document.getElementById(`${prefix}ChipMode`);
+        if (el2) el2.textContent = "…";
+        const el3 = document.getElementById(`${prefix}ChipP75`);
+        if (el3) el3.textContent = "…";
+        const el4 = document.getElementById(`${prefix}ChipAvg`);
+        if (el4) el4.textContent = "…";
+        const sub = document.getElementById(`${prefix}DistSub`);
+        if (sub) sub.textContent = "Loading…";
+      });
+      fetchPageviewStats().then(renderPageviewStatsCards).catch(() => renderPageviewStatsCards(null));
 
       // Totals bar
       const parts = [];
@@ -1181,6 +1795,7 @@
 
     // ─── Per-FI table rendering ───
     const fiTablesSection = document.getElementById("fiTablesSection");
+    const singleFiView = document.getElementById("singleFiView");
     const fiTableBodies = {};
     const fiGroupBlocks = {};
     const fiGroupHeaders = {};
@@ -1227,6 +1842,7 @@
         case "instances": return (row.instance || "").toLowerCase();
         case "integration": return (row.integration_type || "").toLowerCase();
         case "ga_select": return row.ga_select || 0;
+        case "cs_select": return row.cs_select || 0;
         case "ga_user": return row.ga_user || 0;
         case "ga_cred": return row.ga_cred || 0;
         case "reach": return getMonthlyReachValue(row);
@@ -1242,6 +1858,7 @@
     }
 
     function renderFiRow(row, integration) {
+      const isSso = integration === "SSO";
       const instancesText = row.instance || (Array.isArray(row.instances) ? row.instances.join(", ") : "");
       const selUserPct = row.ga_select ? ((row.ga_user / row.ga_select) * 100).toFixed(1) + "%" : "";
       const selCredPct = row.ga_select ? ((row.ga_cred / row.ga_select) * 100).toFixed(1) + "%" : "";
@@ -1252,36 +1869,41 @@
       const sessSuccPct = formatSessSuccessPct(row);
 
       const tr = document.createElement("tr");
-      tr.innerHTML = `
+      let cells = `
         <td>${row.fi}</td>
         <td>${instancesText}</td>
         <td>${integration}</td>
         <td class="num">${row.ga_select || 0}</td>
-        <td class="num">${row.ga_user || 0}</td>
+        <td class="num">${row.cs_select || 0}</td>`;
+      if (!isSso) cells += `<td class="num">${row.ga_user || 0}</td>`;
+      cells += `
         <td class="num">${row.ga_cred || 0}</td>
-        <td class="num${reachCls}">${reachPct}</td>
-        <td class="num">${selUserPct}</td>
+        <td class="num${reachCls}">${reachPct}</td>`;
+      if (!isSso) cells += `<td class="num">${selUserPct}</td>`;
+      cells += `
         <td class="num">${selCredPct}</td>
         <td class="num">${selSuccPct}</td>
         <td class="num">${row.sessions || 0}</td>
         <td class="num">${row.sess_with_success || 0}</td>
         <td class="num">${sessSuccPct}</td>
-        <td class="num">${row.placements || 0}</td>
-      `;
+        <td class="num">${row.placements || 0}</td>`;
+      tr.innerHTML = cells;
       return tr;
     }
 
     function buildFiTotalsRow(rows, integration) {
       if (!rows.length) return null;
+      const isSso = integration === "SSO";
       const t = rows.reduce((acc, r) => {
         acc.ga_select += r.ga_select || 0;
+        acc.cs_select += r.cs_select || 0;
         acc.ga_user += r.ga_user || 0;
         acc.ga_cred += r.ga_cred || 0;
         acc.sessions += r.sessions || 0;
         acc.sess_with_success += r.sess_with_success || 0;
         acc.placements += r.placements || 0;
         return acc;
-      }, { ga_select: 0, ga_user: 0, ga_cred: 0, sessions: 0, sess_with_success: 0, placements: 0 });
+      }, { ga_select: 0, cs_select: 0, ga_user: 0, ga_cred: 0, sessions: 0, sess_with_success: 0, placements: 0 });
 
       const selUserPct = t.ga_select ? ((t.ga_user / t.ga_select) * 100).toFixed(1) + "%" : "";
       const selCredPct = t.ga_select ? ((t.ga_cred / t.ga_select) * 100).toFixed(1) + "%" : "";
@@ -1290,27 +1912,43 @@
 
       const tr = document.createElement("tr");
       tr.className = "totals-row";
-      tr.innerHTML = `
+      let cells = `
         <td>Total</td>
-        <td>—</td>
+        <td>\u2014</td>
         <td>${integration}</td>
         <td class="num">${t.ga_select}</td>
-        <td class="num">${t.ga_user}</td>
+        <td class="num">${t.cs_select}</td>`;
+      if (!isSso) cells += `<td class="num">${t.ga_user}</td>`;
+      cells += `
         <td class="num">${t.ga_cred}</td>
-        <td class="num"></td>
-        <td class="num">${selUserPct}</td>
+        <td class="num"></td>`;
+      if (!isSso) cells += `<td class="num">${selUserPct}</td>`;
+      cells += `
         <td class="num">${selCredPct}</td>
         <td class="num">${selSuccPct}</td>
         <td class="num">${t.sessions}</td>
         <td class="num">${t.sess_with_success}</td>
         <td class="num">${sessSuccPct}</td>
-        <td class="num">${t.placements}</td>
-      `;
+        <td class="num">${t.placements}</td>`;
+      tr.innerHTML = cells;
       return tr;
     }
 
-    function renderTables(visibleRows) {
+    function renderTables(visibleRows, startDate, endDate, daySpan) {
       if (!fiTablesSection) return;
+
+      // Single-FI mode: show time breakdowns instead of integration-bucketed tables
+      if (isSingleFiSelected()) {
+        fiTablesSection.style.display = "none";
+        if (singleFiView) {
+          singleFiView.style.display = "";
+          renderSingleFiSections(visibleRows, startDate, endDate, daySpan);
+        }
+        return;
+      }
+
+      // Multi-FI mode: hide single-FI view, show integration-bucketed tables
+      if (singleFiView) singleFiView.style.display = "none";
       if (!visibleRows.length) { fiTablesSection.style.display = "none"; return; }
       fiTablesSection.style.display = "";
 
@@ -1370,7 +2008,9 @@
           } else {
             tableSortState[group] = { key, dir: key === "fi" || key === "instances" ? "asc" : "desc" };
           }
-          if (latestVisibleRows) renderTables(latestVisibleRows);
+          if (latestVisibleRows && lastRenderContext) {
+            renderTables(latestVisibleRows, lastRenderContext.startDate, lastRenderContext.endDate, lastRenderContext.daySpan);
+          }
         });
       });
     }
@@ -1399,11 +2039,373 @@
       bestWindowsDiv.innerHTML = `<table class="highlights-table">
         <thead><tr>
           <th>Highlight</th><th>FI</th><th>Integration</th><th>Window</th>
-          <th class="num">GA Select</th><th class="num">Sessions</th><th class="num">Sess w/ Success</th>
-          <th class="num">Sel→Succ %</th><th class="num">Sess→Succ %</th><th class="num">Placements</th>
+          <th class="num">Launches</th><th class="num">Sessions</th><th class="num">Successful Sessions</th>
+          <th class="num">Launch→Success %</th><th class="num">Session Success %</th><th class="num">Placements</th>
         </tr></thead>
         <tbody>${rows}</tbody>
       </table>`;
+    }
+
+    // ─── Single-FI Time Breakdown Functions ───
+
+    function buildDailyRowsForFi(fiName, startDate, endDate, meta) {
+      const norm = normalizeFiKey(fiName);
+      const rows = [];
+      const dates = Object.keys(dailyData).sort();
+      for (const date of dates) {
+        if (!inRange(date, startDate, endDate)) continue;
+        const day = dailyData[date];
+        if (!day?.fi) continue;
+        let fiEntry = null;
+        for (const [name, data] of Object.entries(day.fi)) {
+          if (normalizeFiKey(name) === norm) { fiEntry = data; break; }
+        }
+        if (!fiEntry) continue;
+        const ga = fiEntry.ga || {};
+        const sessions = fiEntry.sessions || {};
+        const placements = fiEntry.placements || {};
+        let rowIntegration = meta.integration;
+        if (meta.ssoDate && meta.integration === "SSO" && date < meta.ssoDate) {
+          rowIntegration = "NON-SSO";
+        }
+        rows.push({
+          periodLabel: date, start: date, end: date,
+          ga_select: ga.select_merchants || 0, ga_user: ga.user_data_collection || 0,
+          ga_cred: ga.credential_entry || 0, cs_select: sessions.cs_select_sessions || 0,
+          sessions: sessions.total || 0,
+          sess_with_success: sessions.with_success || 0,
+          placements: getBillablePlacementCount(placements),
+          fi: meta.fi, instance: meta.instance, instances: meta.instances,
+          integration_type: rowIntegration, partner: meta.partner || "",
+          cardholders: meta.cardholders, cardholder_source: meta.cardholder_source || null,
+          cardholder_as_of: meta.cardholder_as_of || null, dayCount: 1,
+        });
+      }
+      return rows;
+    }
+
+    function aggregateRowsForPeriod(rows, label, start, end, meta) {
+      if (!rows.length) return null;
+      const integrationTypes = new Set(rows.map(r => r.integration_type || meta.integration));
+      let periodIntegration;
+      if (integrationTypes.size === 1) {
+        periodIntegration = integrationTypes.values().next().value;
+      } else if (integrationTypes.has("SSO") && integrationTypes.has("NON-SSO")) {
+        periodIntegration = "NON-SSO \u2192 SSO";
+      } else {
+        periodIntegration = meta.integration;
+      }
+      const agg = {
+        periodLabel: label, start, end,
+        ga_select: 0, ga_user: 0, ga_cred: 0, cs_select: 0, sessions: 0,
+        sess_with_success: 0, placements: 0,
+        fi: meta.fi, instance: meta.instance, instances: meta.instances,
+        integration_type: periodIntegration, partner: meta.partner || "",
+        cardholders: meta.cardholders, cardholder_source: meta.cardholder_source || null,
+        cardholder_as_of: meta.cardholder_as_of || null,
+        dayCount: dayCountInclusive(start, end) || rows.length || 1,
+      };
+      for (const row of rows) {
+        agg.ga_select += row.ga_select || 0;
+        agg.ga_user += row.ga_user || 0;
+        agg.ga_cred += row.ga_cred || 0;
+        agg.cs_select += row.cs_select || 0;
+        agg.sessions += row.sessions || 0;
+        agg.sess_with_success += row.sess_with_success || 0;
+        agg.placements += row.placements || 0;
+      }
+      return agg;
+    }
+
+    function buildWeeklyRowsForFi(dailyRows, startDate, endDate, meta) {
+      const buckets = new Map();
+      for (const row of dailyRows) {
+        const date = parseDateUtc(row.start);
+        const weekStartDate = addDaysUtc(date, -date.getUTCDay());
+        const weekEndDate = addDaysUtc(weekStartDate, 6);
+        const weekStart = formatDateUtc(weekStartDate);
+        const weekEnd = formatDateUtc(weekEndDate);
+        if (weekStart < startDate || weekEnd > endDate) continue;
+        const key = weekStart;
+        if (!buckets.has(key)) buckets.set(key, { start: weekStart, end: weekEnd, rows: [] });
+        buckets.get(key).rows.push(row);
+      }
+      return Array.from(buckets.values())
+        .sort((a, b) => a.start.localeCompare(b.start))
+        .map(b => aggregateRowsForPeriod(b.rows, `${b.start} \u2192 ${b.end}`, b.start, b.end, meta))
+        .filter(Boolean);
+    }
+
+    function buildMonthlyRowsForFi(dailyRows, startDate, endDate, meta) {
+      const buckets = new Map();
+      for (const row of dailyRows) {
+        const monthKey = row.start.slice(0, 7);
+        const [yearStr, monthStr] = monthKey.split("-");
+        const year = Number(yearStr);
+        const monthIndex = Number(monthStr) - 1;
+        const monthStart = formatDateUtc(new Date(Date.UTC(year, monthIndex, 1)));
+        const monthEnd = formatDateUtc(new Date(Date.UTC(year, monthIndex + 1, 0)));
+        if (monthStart < startDate || monthEnd > endDate) continue;
+        if (!buckets.has(monthKey)) buckets.set(monthKey, { start: monthStart, end: monthEnd, rows: [] });
+        buckets.get(monthKey).rows.push(row);
+      }
+      return Array.from(buckets.values())
+        .sort((a, b) => a.start.localeCompare(b.start))
+        .map(b => aggregateRowsForPeriod(b.rows, `${b.start} \u2192 ${b.end}`, b.start, b.end, meta))
+        .filter(Boolean);
+    }
+
+    function buildQuarterlyRowsForFi(dailyRows, startDate, endDate, meta) {
+      const buckets = new Map();
+      for (const row of dailyRows) {
+        const date = parseDateUtc(row.start);
+        const q = Math.floor(date.getUTCMonth() / 3) + 1;
+        const year = date.getUTCFullYear();
+        const key = `${year}-Q${q}`;
+        const quarterStart = formatDateUtc(new Date(Date.UTC(year, (q - 1) * 3, 1)));
+        const quarterEnd = formatDateUtc(new Date(Date.UTC(year, q * 3, 0)));
+        if (quarterStart < startDate || quarterEnd > endDate) continue;
+        if (!buckets.has(key)) buckets.set(key, { start: quarterStart, end: quarterEnd, label: `Q${q} ${year}`, rows: [] });
+        buckets.get(key).rows.push(row);
+      }
+      return Array.from(buckets.values())
+        .sort((a, b) => a.start.localeCompare(b.start))
+        .map(b => aggregateRowsForPeriod(b.rows, b.label, b.start, b.end, meta))
+        .filter(Boolean);
+    }
+
+    // ─── Single-FI Rendering ───
+
+    function renderSingleFiSections(visibleRows, startDate, endDate, daySpan) {
+      singleFiView.innerHTML = "";
+      if (!visibleRows || !visibleRows.length) {
+        const div = document.createElement("div");
+        div.className = "muted";
+        div.textContent = "No data available for this FI.";
+        singleFiView.appendChild(div);
+        latestSingleFiBreakdowns = null;
+        return;
+      }
+
+      const shared = window.__FILTER_STATE;
+      const sharedFi = shared && shared.page === "funnel-customer" && shared.fis && shared.fis.size === 1
+        ? Array.from(shared.fis)[0] : null;
+      const fiName = sharedFi || (visibleRows[0]?.fi || "Unknown FI");
+      const perFiRow = visibleRows[0] || {};
+      const instanceDisplay = perFiRow.instance || (perFiRow.instances?.[0]) || "unknown";
+      const registryInfo = getRegistryEntry(fiName, instanceDisplay);
+      const meta = {
+        fi: fiName, instance: instanceDisplay, instances: [instanceDisplay],
+        integration: normalizeIntegrationLabel(
+          perFiRow.integration_type || registryInfo?.integration || registryInfo?.integration_type || "UNKNOWN"
+        ),
+        partner: perFiRow.partner || registryInfo?.partner || "Unknown",
+        cardholders: perFiRow.cardholders,
+        cardholder_source: perFiRow.cardholder_source || null,
+        cardholder_as_of: perFiRow.cardholder_as_of || null,
+        ssoDate: registryInfo?.traffic_first_seen_sso || null,
+      };
+
+      const dailyRows = buildDailyRowsForFi(fiName, startDate, endDate, meta);
+      const weeklyRows = buildWeeklyRowsForFi(dailyRows, startDate, endDate, meta);
+      const monthlyRows = buildMonthlyRowsForFi(dailyRows, startDate, endDate, meta);
+      const quarterlyRows = buildQuarterlyRowsForFi(dailyRows, startDate, endDate, meta);
+      latestSingleFiBreakdowns = { summary: visibleRows, daily: dailyRows, weekly: weeklyRows, monthly: monthlyRows, quarterly: quarterlyRows };
+
+      const sections = [];
+      sections.push({ key: "summary", title: `Summary (${startDate} \u2192 ${endDate})`, rows: visibleRows });
+      if (quarterlyRows.length) sections.push({ key: "quarterly", title: "Quarterly", rows: quarterlyRows });
+      if (monthlyRows.length) sections.push({ key: "monthly", title: "Monthly (Full Calendar Months)", rows: monthlyRows });
+      if (weeklyRows.length) sections.push({ key: "weekly", title: "Weekly (Sunday \u2192 Saturday)", rows: weeklyRows });
+      if (dailyRows.length) sections.push({ key: "daily", title: "Daily", rows: dailyRows });
+
+      const availableSections = sections.filter(s => s.rows && s.rows.length);
+      if (!availableSections.length) {
+        const div = document.createElement("div");
+        div.className = "muted";
+        div.textContent = "No full periods available for this FI within the selected dates.";
+        singleFiView.appendChild(div);
+        return;
+      }
+
+      const tabBar = document.createElement("div");
+      tabBar.className = "tab-bar";
+      const panelsWrap = document.createElement("div");
+
+      availableSections.forEach((section, idx) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = `tab-button ${idx === 0 ? "active" : ""}`;
+        btn.dataset.tab = section.key;
+        btn.textContent = section.title;
+        tabBar.appendChild(btn);
+
+        const panel = document.createElement("div");
+        panel.className = `tab-panel ${idx === 0 ? "active" : ""}`;
+        panel.dataset.tab = section.key;
+        const heading = document.createElement("h3");
+        heading.textContent = section.title;
+        panel.appendChild(heading);
+        panel.appendChild(createSingleFiTable(section.rows, section.key, meta.integration === "SSO"));
+        panelsWrap.appendChild(panel);
+      });
+
+      const activateTab = (key) => {
+        lastActiveTab = key;
+        tabBar.querySelectorAll(".tab-button").forEach(btn => {
+          btn.classList.toggle("active", btn.dataset.tab === key);
+        });
+        panelsWrap.querySelectorAll(".tab-panel").forEach(panel => {
+          panel.classList.toggle("active", panel.dataset.tab === key);
+        });
+      };
+
+      tabBar.addEventListener("click", (ev) => {
+        const btn = ev.target.closest(".tab-button");
+        if (!btn) return;
+        activateTab(btn.dataset.tab);
+      });
+
+      singleFiView.appendChild(tabBar);
+      singleFiView.appendChild(panelsWrap);
+
+      const tabToActivate = (lastActiveTab && availableSections.some(s => s.key === lastActiveTab))
+        ? lastActiveTab : availableSections[0].key;
+      activateTab(tabToActivate);
+    }
+
+    function createSingleFiTable(rows, key, isSso) {
+      const table = document.createElement("table");
+      table.className = "fi-table";
+      let headerHtml = `<thead><tr>
+          <th data-sort="period">Period</th>
+          <th data-sort="fi">Financial Institution</th>
+          <th data-sort="instances">Instance</th>
+          <th data-sort="integration">Integration</th>
+          <th data-sort="ga_select" class="num">Launches</th>
+          <th data-sort="cs_select" class="num">Sess @Select</th>`;
+      if (!isSso) headerHtml += `<th data-sort="ga_user" class="num">User Data Views</th>`;
+      headerHtml += `
+          <th data-sort="ga_cred" class="num">Credential Views</th>
+          <th data-sort="reach" class="num">Monthly Reach %</th>`;
+      if (!isSso) headerHtml += `<th data-sort="sel_user_pct" class="num">Launch\u2192User %</th>`;
+      headerHtml += `
+          <th data-sort="sel_cred_pct" class="num">Launch\u2192Cred %</th>
+          <th data-sort="sel_success_pct" class="num">Launch\u2192Success %</th>
+          <th data-sort="sessions" class="num">Sessions</th>
+          <th data-sort="sess_with_success" class="num">Successful Sessions</th>
+          <th data-sort="sess_success_pct" class="num">Session Success %</th>
+          <th data-sort="placements" class="num">Placements</th>
+        </tr></thead>`;
+      table.innerHTML = headerHtml;
+
+      const tbody = document.createElement("tbody");
+      const tableId = `single-${key.replace(/[^a-zA-Z0-9]/g, "_")}`;
+
+      // Sort
+      const state = tableSortState[tableId];
+      let sorted = [...rows];
+      if (state && state.key) {
+        const dir = state.dir === "desc" ? -1 : 1;
+        sorted.sort((a, b) => {
+          const va = getSingleSortValue(a, state.key);
+          const vb = getSingleSortValue(b, state.key);
+          if (typeof va === "string") return dir * va.localeCompare(vb);
+          return dir * (va - vb);
+        });
+      }
+
+      sorted.forEach(row => tbody.appendChild(renderSingleFiRow(row, isSso)));
+      table.appendChild(tbody);
+      table.id = tableId;
+
+      // Attach sort handlers
+      table.querySelectorAll("th[data-sort]").forEach(th => {
+        th.style.cursor = "pointer";
+        th.addEventListener("click", () => {
+          const sortKey = th.getAttribute("data-sort");
+          const prev = tableSortState[tableId];
+          if (prev && prev.key === sortKey) {
+            tableSortState[tableId] = { key: sortKey, dir: prev.dir === "asc" ? "desc" : "asc" };
+          } else {
+            tableSortState[tableId] = { key: sortKey, dir: sortKey === "fi" || sortKey === "instances" || sortKey === "period" ? "asc" : "desc" };
+          }
+          // Re-render this table in place
+          const newTbody = document.createElement("tbody");
+          const reSorted = [...rows];
+          const st = tableSortState[tableId];
+          const d = st.dir === "desc" ? -1 : 1;
+          reSorted.sort((a, b) => {
+            const va = getSingleSortValue(a, st.key);
+            const vb = getSingleSortValue(b, st.key);
+            if (typeof va === "string") return d * va.localeCompare(vb);
+            return d * (va - vb);
+          });
+          reSorted.forEach(r => newTbody.appendChild(renderSingleFiRow(r, isSso)));
+          const oldTbody = table.querySelector("tbody");
+          if (oldTbody) table.replaceChild(newTbody, oldTbody);
+        });
+      });
+
+      const wrapper = document.createElement("div");
+      wrapper.className = "table-scroll";
+      wrapper.appendChild(table);
+      return wrapper;
+    }
+
+    function getSingleSortValue(row, key) {
+      switch (key) {
+        case "period": return row.periodLabel || row.start || "";
+        case "fi": return (row.fi || "").toLowerCase();
+        case "instances": return (row.instance || "").toLowerCase();
+        case "integration": return (row.integration_type || "").toLowerCase();
+        case "ga_select": return row.ga_select || 0;
+        case "cs_select": return row.cs_select || 0;
+        case "ga_user": return row.ga_user || 0;
+        case "ga_cred": return row.ga_cred || 0;
+        case "reach": return getMonthlyReachValue(row);
+        case "sel_user_pct": return row.ga_select ? row.ga_user / row.ga_select : 0;
+        case "sel_cred_pct": return row.ga_select ? row.ga_cred / row.ga_select : 0;
+        case "sel_success_pct": return row.ga_select && row.sess_with_success ? row.sess_with_success / row.ga_select : 0;
+        case "sessions": return row.sessions || 0;
+        case "sess_with_success": return row.sess_with_success || 0;
+        case "sess_success_pct": return row.sessions ? (row.sess_with_success || 0) / row.sessions : 0;
+        case "placements": return row.placements || 0;
+        default: return 0;
+      }
+    }
+
+    function renderSingleFiRow(row, isSso) {
+      const tr = document.createElement("tr");
+      const instancesText = row.instance || (Array.isArray(row.instances) ? row.instances.join(", ") : "");
+      const selUserPct = row.ga_select ? ((row.ga_user / row.ga_select) * 100).toFixed(1) + "%" : "";
+      const selCredPct = row.ga_select ? ((row.ga_cred / row.ga_select) * 100).toFixed(1) + "%" : "";
+      const selSuccPct = formatSelSuccessPct(row);
+      const reachPct = formatMonthlyReachPct(row);
+      const reachVal = getMonthlyReachValue(row);
+      const reachCls = reachVal >= 0.025 ? " reach-good" : reachVal > 0 ? " reach-low" : "";
+      const sessSuccPct = formatSessSuccessPct(row);
+      let cells = `
+        <td>${row.periodLabel || ""}</td>
+        <td>${row.fi || ""}</td>
+        <td>${instancesText}</td>
+        <td>${row.integration_type || ""}</td>
+        <td class="num">${row.ga_select || 0}</td>
+        <td class="num">${row.cs_select || 0}</td>`;
+      if (!isSso) cells += `<td class="num">${row.ga_user || 0}</td>`;
+      cells += `
+        <td class="num">${row.ga_cred || 0}</td>
+        <td class="num${reachCls}">${reachPct}</td>`;
+      if (!isSso) cells += `<td class="num">${selUserPct}</td>`;
+      cells += `
+        <td class="num">${selCredPct}</td>
+        <td class="num">${selSuccPct}</td>
+        <td class="num">${row.sessions || 0}</td>
+        <td class="num">${row.sess_with_success || 0}</td>
+        <td class="num">${sessSuccPct}</td>
+        <td class="num">${row.placements || 0}</td>`;
+      tr.innerHTML = cells;
+      return tr;
     }
 
     function renderPartnerSummary(summaryData) {
@@ -1460,7 +2462,7 @@
 
       // Summary by FI
       if (visibleRows.length) {
-        const header = ["FI","Partner","Integration","Instance","GA Select","GA User","GA Cred","Monthly Reach %","Select→User %","Select→Cred %","Select→Succ %","Sessions","Sessions w/ Success","Session Success %","Placements"];
+        const header = ["FI","Partner","Integration","Instance","GA Select","Sess @Select","GA User","GA Cred","Monthly Reach %","Select→User %","Select→Cred %","Select→Succ %","Sessions","Sessions w/ Success","Session Success %","Placements"];
         lines.push("Summary by FI");
         lines.push(header.map(csvEscape).join(","));
         visibleRows.forEach(row => {
@@ -1471,7 +2473,7 @@
           const sessSuccPct = row.sessions && row.sess_with_success ? ((row.sess_with_success / row.sessions) * 100).toFixed(1) + "%" : "";
           lines.push([
             row.fi, row.partner, row.integration_type, row.instance,
-            row.ga_select || 0, row.ga_user || 0, row.ga_cred || 0,
+            row.ga_select || 0, row.cs_select || 0, row.ga_user || 0, row.ga_cred || 0,
             reachPct, selUserPct, selCredPct, selSuccPct,
             row.sessions || 0, row.sess_with_success || 0, sessSuccPct,
             row.placements || 0,
@@ -1523,10 +2525,17 @@
 
       // Metrics
       const metrics = calculateMetrics(startDate, endDate, visibleRows);
-      renderMetrics(metrics, startDate, endDate, daySpan, visibleRows.length);
+      renderMetrics(metrics, startDate, endDate, daySpan, visibleRows.length, visibleRows);
+
+      // Stamp rows with date context for Monthly Reach % calculation
+      visibleRows.forEach(row => {
+        row.periodStart = startDate;
+        row.periodEnd = endDate;
+        row.dayCount = row.dayCount || daySpan;
+      });
 
       // Per-FI tables
-      renderTables(visibleRows);
+      renderTables(visibleRows, startDate, endDate, daySpan);
 
       // Highlights
       renderHighlights(best);
@@ -1577,6 +2586,7 @@
     const __isViewMode = __viewParams.get("view") === "1";
 
     if (__isViewMode) {
+      window.__sisViewMode = true;
       const __viewSid = __viewParams.get("sid");
       if (__viewSid) {
         try { fetch("/api/share-log/view?sid=" + encodeURIComponent(__viewSid)).catch(function() {}); } catch (e) {}
@@ -1642,6 +2652,63 @@
       }
     }
 
+    // Toggle merchant detail on card click
+    document.getElementById("cardSuccessful")?.addEventListener("click", (e) => {
+      const detailEl = document.getElementById("merchantDetail");
+      if (!detailEl || !merchantPopoverReady) return;
+      e.stopPropagation();
+      detailEl.classList.toggle("open");
+    });
+    // Close merchant popover when clicking outside
+    document.addEventListener("click", (e) => {
+      const detailEl = document.getElementById("merchantDetail");
+      const card = document.getElementById("cardSuccessful");
+      if (detailEl?.classList.contains("open") && card && !card.contains(e.target) && !detailEl.contains(e.target)) {
+        detailEl.classList.remove("open");
+      }
+    });
+
+    // Toggle distribution panel on stats card
+    document.getElementById("toggleDistribution")?.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const panel = document.getElementById("distributionPanel");
+      const btn = document.getElementById("toggleDistribution");
+      if (!panel) return;
+      const isOpen = panel.classList.toggle("open");
+      if (btn) btn.setAttribute("aria-expanded", String(isOpen));
+    });
+    // Close distribution panel when clicking outside
+    document.addEventListener("click", (e) => {
+      const panel = document.getElementById("distributionPanel");
+      const card = document.getElementById("cardMerchantsPerSession");
+      if (panel?.classList.contains("open") && card && !card.contains(e.target)) {
+        panel.classList.remove("open");
+        const btn = document.getElementById("toggleDistribution");
+        if (btn) btn.setAttribute("aria-expanded", "false");
+      }
+    });
+
+    // Clickstream page-view distribution toggles
+    ["csSelect", "csUser", "csCred"].forEach(prefix => {
+      const toggleBtn = document.getElementById(`${prefix}ToggleDist`);
+      const panel = document.getElementById(`${prefix}DistPanel`);
+      const cardId = prefix === "csSelect" ? "cardCsSelectDist" : prefix === "csUser" ? "cardCsUserDist" : "cardCsCredDist";
+      if (toggleBtn && panel) {
+        toggleBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const isOpen = panel.classList.toggle("open");
+          toggleBtn.setAttribute("aria-expanded", String(isOpen));
+        });
+      }
+      document.addEventListener("click", (e) => {
+        const card = document.getElementById(cardId);
+        if (panel?.classList.contains("open") && card && !card.contains(e.target)) {
+          panel.classList.remove("open");
+          if (toggleBtn) toggleBtn.setAttribute("aria-expanded", "false");
+        }
+      });
+    });
+
     // ─── Event listeners ───
     applyBtn.addEventListener("click", () => {
       lastRenderContext = null;
@@ -1687,10 +2754,35 @@
         if (fs.__fiTouched && fs.fis && fs.fis.size > 0 && fs.fis.size <= 3) parts.push("FI: " + Array.from(fs.fis).join(", "));
         const filterContext = parts.length ? parts.join(" | ") : `All data (${visibleRows.length} FIs)`;
 
+        // Generate share URL for the PDF link — include all active filters
+        const shareParams = new URLSearchParams();
+        shareParams.set("view", "1");
+        const sidBytes = new Uint8Array(4);
+        crypto.getRandomValues(sidBytes);
+        const pdfSid = Array.from(sidBytes).map(b => b.toString(16).padStart(2, "0")).join("");
+        shareParams.set("sid", pdfSid);
+        if (startDate) shareParams.set("from", startDate);
+        if (endDate) shareParams.set("to", endDate);
+        if (fs.fis && fs.fis.size > 0) {
+          shareParams.set("fi", Array.from(fs.fis).join(","));
+        }
+        if (fs.partnerSet && fs.partnerSet.size > 0) {
+          shareParams.set("partner", Array.from(fs.partnerSet).join(","));
+        }
+        if (fs.instanceSet && fs.instanceSet.size > 0) {
+          shareParams.set("instance", Array.from(fs.instanceSet).join(","));
+        }
+        if (fs.integrationSet && fs.integrationSet.size > 0) {
+          shareParams.set("integration", Array.from(fs.integrationSet).join(","));
+        }
+        const shareUrl = window.location.origin + window.location.pathname + "?" + shareParams.toString();
+        try { fetch("/api/share-log", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sid: pdfSid, url: shareUrl }) }).catch(() => {}); } catch (e) {}
+
         const payload = {
-          startDate, endDate, filterContext,
+          startDate, endDate, filterContext, shareUrl,
           metrics: {
             totalGaSelect: metrics.totalGaSelect, totalGaUser: metrics.totalGaUser, totalGaCred: metrics.totalGaCred,
+            totalCsSelect: metrics.totalCsSelect, totalCsUser: metrics.totalCsUser, totalCsCred: metrics.totalCsCred,
             totalSessions: metrics.totalSessions, sessionsWithSuccessfulJobs: metrics.sessionsWithSuccessfulJobs,
             successful: metrics.successful,
           },

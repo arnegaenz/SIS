@@ -19,6 +19,7 @@ export function buildCustomerReportHtml(data) {
     metrics,
     highlights,
     partnerSummary,
+    shareUrl,
   } = data;
 
   const m = metrics || {};
@@ -32,6 +33,7 @@ export function buildCustomerReportHtml(data) {
     {
       label: "CardUpdatr Launches",
       value: fmt(m.totalGaSelect),
+      sub: "Google Analytics",
     },
     {
       label: "User Data Page Views",
@@ -47,6 +49,24 @@ export function buildCustomerReportHtml(data) {
       label: "Total Sessions",
       value: fmt(m.totalSessions),
       sub: pct(m.totalSessions, m.totalGaSelect) + " of launches",
+    },
+    {
+      cls: "session",
+      label: "Select Merchants (Sessions)",
+      value: fmt(m.totalCsSelect),
+      sub: fmt(m.totalCsSelect) + " of " + fmt(m.totalSessions) + " sessions",
+    },
+    {
+      cls: "session",
+      label: "User Data (Sessions)",
+      value: fmt(m.totalCsUser),
+      sub: pct(m.totalCsUser, m.totalCsSelect) + " of sessions @select",
+    },
+    {
+      cls: "session",
+      label: "Credential Entry (Sessions)",
+      value: fmt(m.totalCsCred),
+      sub: pct(m.totalCsCred, m.totalCsSelect) + " of sessions @select",
     },
     {
       cls: "highlight",
@@ -122,11 +142,11 @@ export function buildCustomerReportHtml(data) {
           <th>FI</th>
           <th>Integration</th>
           <th>Window</th>
-          <th class="num">GA Select</th>
+          <th class="num">Launches</th>
           <th class="num">Sessions</th>
-          <th class="num">Sess w/ Success</th>
-          <th class="num">Sel&rarr;Succ %</th>
-          <th class="num">Sess&rarr;Succ %</th>
+          <th class="num">Successful Sessions</th>
+          <th class="num">Launch&rarr;Success %</th>
+          <th class="num">Session Success %</th>
           <th class="num">Placements</th>
         </tr>
       </thead>
@@ -173,11 +193,11 @@ export function buildCustomerReportHtml(data) {
         <tr>
           <th>Integration</th>
           <th class="num">FIs</th>
-          <th class="num">GA Select</th>
-          <th class="num">Sel&rarr;Succ %</th>
+          <th class="num">Launches</th>
+          <th class="num">Launch&rarr;Success %</th>
           <th class="num">Sessions</th>
-          <th class="num">Sess w/ Success</th>
-          <th class="num">Sess&rarr;Succ %</th>
+          <th class="num">Successful Sessions</th>
+          <th class="num">Session Success %</th>
         </tr>
       </thead>
       <tbody>${pRows}${totalRow}</tbody>
@@ -291,6 +311,11 @@ export function buildCustomerReportHtml(data) {
     border: 1px solid #86efac;
   }
   .stat-card.success .stat-value { color: #16a34a; }
+  .stat-card.session {
+    background: #fffbeb;
+    border: 1px solid #fcd34d;
+  }
+  .stat-card.session .stat-value { color: #92400e; }
   .stat-label {
     font-size: 9px;
     font-weight: 600;
@@ -340,6 +365,23 @@ export function buildCustomerReportHtml(data) {
   .nowrap { white-space: nowrap; }
   .muted { color: #94a3b8; font-size: 9px; }
 
+  /* ── Dashboard link ── */
+  .dashboard-link {
+    display: inline-block;
+    margin-top: 10px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #0ea5e9;
+    text-decoration: none;
+    border: 1px solid rgba(14, 165, 233, 0.3);
+    border-radius: 16px;
+    padding: 4px 14px;
+    transition: background 0.15s;
+  }
+  .dashboard-link:hover {
+    background: rgba(14, 165, 233, 0.08);
+  }
+
   /* ── Footer ── */
   .report-footer {
     margin: 18px 44px 0;
@@ -360,6 +402,7 @@ export function buildCustomerReportHtml(data) {
     <div class="subtitle">Card-on-File Program Performance</div>
     <div class="date-range">${startDate} &rarr; ${endDate}</div>
     ${filterContext ? `<div class="filter-ctx">${filterContext}</div>` : ""}
+    ${shareUrl ? `<a class="dashboard-link" href="${shareUrl}">View Live Dashboard &rarr;</a>` : ""}
   </div>
 
   <div class="report-body">

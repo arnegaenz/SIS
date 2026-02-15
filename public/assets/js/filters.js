@@ -601,7 +601,7 @@
             : checkedInstances instanceof Set
             ? checkedInstances.has(instKey)
             : true
-          : false;
+          : state.fis instanceof Set && state.fis.has(val);
         entry = { checked: defaultChecked, fiKey: val };
         fiInstanceSelection.set(entryKey, entry);
       }
@@ -1236,13 +1236,13 @@
       const vpPartner = vp.get("partner");
       const vpInstance = vp.get("instance");
       const vpIntegration = vp.get("integration");
-      if (vpFi) { state.fis.add(vpFi); state.__fiTouched = true; }
-      if (vpPartner) { state.partnerSet.add(vpPartner); state.__partnerSetTouched = true; }
-      if (vpInstance) { state.instanceSet.add(vpInstance); state.__instanceSetTouched = true; }
-      if (vpIntegration) { state.integrationSet.add(vpIntegration); state.__integrationSetTouched = true; }
-      state.partner = vpPartner || ALL;
-      state.integration = vpIntegration || ALL;
-      state.instance = vpInstance || ALL;
+      if (vpFi) { vpFi.split(",").forEach(f => state.fis.add(f.trim())); state.__fiTouched = true; }
+      if (vpPartner) { vpPartner.split(",").forEach(p => state.partnerSet.add(p.trim())); state.__partnerSetTouched = true; }
+      if (vpInstance) { vpInstance.split(",").forEach(i => state.instanceSet.add(i.trim())); state.__instanceSetTouched = true; }
+      if (vpIntegration) { vpIntegration.split(",").forEach(i => state.integrationSet.add(i.trim())); state.__integrationSetTouched = true; }
+      state.partner = vpPartner ? vpPartner.split(",")[0].trim() : ALL;
+      state.integration = vpIntegration ? vpIntegration.split(",")[0].trim() : ALL;
+      state.instance = vpInstance ? vpInstance.split(",")[0].trim() : ALL;
       state.disableFi = true;
       console.log("[filters] view mode — filters locked", { fi: vpFi, partner: vpPartner, instance: vpInstance, integration: vpIntegration });
     } else {
@@ -1253,13 +1253,13 @@
       const urlInstance = urlParams.get("instance");
       const urlIntegration = urlParams.get("integration");
       if (urlFi || urlPartner || urlInstance || urlIntegration) {
-        if (urlFi) { state.fis.add(urlFi); state.__fiTouched = true; }
-        if (urlPartner) { state.partnerSet.add(urlPartner); state.__partnerSetTouched = true; }
-        if (urlInstance) { state.instanceSet.add(urlInstance); state.__instanceSetTouched = true; }
-        if (urlIntegration) { state.integrationSet.add(urlIntegration); state.__integrationSetTouched = true; }
-        state.partner = urlPartner || ALL;
-        state.integration = urlIntegration || ALL;
-        state.instance = urlInstance || ALL;
+        if (urlFi) { urlFi.split(",").forEach(f => state.fis.add(f.trim())); state.__fiTouched = true; }
+        if (urlPartner) { urlPartner.split(",").forEach(p => state.partnerSet.add(p.trim())); state.__partnerSetTouched = true; }
+        if (urlInstance) { urlInstance.split(",").forEach(i => state.instanceSet.add(i.trim())); state.__instanceSetTouched = true; }
+        if (urlIntegration) { urlIntegration.split(",").forEach(i => state.integrationSet.add(i.trim())); state.__integrationSetTouched = true; }
+        state.partner = urlPartner ? urlPartner.split(",")[0].trim() : ALL;
+        state.integration = urlIntegration ? urlIntegration.split(",")[0].trim() : ALL;
+        state.instance = urlInstance ? urlInstance.split(",")[0].trim() : ALL;
         console.log("[filters] pre-populated from URL params", { fi: urlFi, partner: urlPartner, instance: urlInstance, integration: urlIntegration });
       } else {
         // Always start fresh on load (same as pressing "Clear filters")

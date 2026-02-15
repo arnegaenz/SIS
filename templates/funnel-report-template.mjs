@@ -62,12 +62,30 @@ export function buildReportHtml(data) {
       value: fmt(m.successful),
       sub: pct(m.successful, m.totalPlacements) + " of placements",
     },
+    {
+      cls: "session",
+      label: "Select Merchants (Sessions)",
+      value: fmt(m.totalCsSelect),
+      sub: fmt(m.totalCsSelect) + " of " + fmt(m.totalSessions) + " sessions",
+    },
+    {
+      cls: "session",
+      label: "User Data (Sessions)",
+      value: fmt(m.totalCsUser),
+      sub: pct(m.totalCsUser, m.totalCsSelect) + " of sessions @select",
+    },
+    {
+      cls: "session",
+      label: "Credential Entry (Sessions)",
+      value: fmt(m.totalCsCred),
+      sub: pct(m.totalCsCred, m.totalCsSelect) + " of sessions @select",
+    },
   ];
 
   const metricsHtml = metricCards
     .map(
       (c) => `
-    <div class="stat-card">
+    <div class="stat-card${c.cls ? " " + c.cls : ""}">
       <div class="stat-label">${c.label}</div>
       <div class="stat-value">${c.value}</div>
       ${c.sub ? `<div class="stat-sub">${c.sub}</div>` : ""}
@@ -348,6 +366,11 @@ export function buildReportHtml(data) {
     color: #64748b;
     margin-top: 1px;
   }
+  .stat-card.session {
+    background: #fffbeb;
+    border: 1px solid #fcd34d;
+  }
+  .stat-card.session .stat-value { color: #92400e; }
 
   /* ── Job Outcome cards ── */
   .outcome-grid {

@@ -1493,8 +1493,11 @@
             <th data-sort-key="instances" data-col="instances">instances</th>
             <th data-sort-key="integration" data-col="integration">integration</th>
             <th data-sort-key="ga_select" data-col="ga_select">GA select</th>
+            <th data-sort-key="cs_select" data-col="cs_select">CS select</th>
             <th data-sort-key="ga_user" data-col="ga_user">GA user</th>
+            <th data-sort-key="cs_user" data-col="cs_user">CS user</th>
             <th data-sort-key="ga_cred" data-col="ga_cred">GA cred</th>
+            <th data-sort-key="cs_cred" data-col="cs_cred">CS cred</th>
             <th data-sort-key="reach" data-col="reach">monthly reach %</th>
             <th data-sort-key="sel_user_pct" data-col="sel_user_pct">sel→user %</th>
             <th data-sort-key="sel_cred_pct" data-col="sel_cred_pct">sel→cred %</th>
@@ -1523,8 +1526,11 @@
             <th data-sort-key="instances" data-col="instances">instances</th>
             <th data-sort-key="integration" data-col="integration">integration</th>
             <th data-sort-key="ga_select" data-col="ga_select">GA select</th>
+            <th data-sort-key="cs_select" data-col="cs_select">CS select</th>
             <th data-sort-key="ga_user" data-col="ga_user">GA user</th>
+            <th data-sort-key="cs_user" data-col="cs_user">CS user</th>
             <th data-sort-key="ga_cred" data-col="ga_cred">GA cred</th>
+            <th data-sort-key="cs_cred" data-col="cs_cred">CS cred</th>
             <th data-sort-key="reach" data-col="reach">monthly reach %</th>
             <th data-sort-key="sel_user_pct" data-col="sel_user_pct">sel→user %</th>
             <th data-sort-key="sel_cred_pct" data-col="sel_cred_pct">sel→cred %</th>
@@ -1553,8 +1559,11 @@
             <th data-col="instances">instances</th>
             <th data-col="integration">integration</th>
             <th data-col="ga_select">GA select</th>
+            <th data-col="cs_select">CS select</th>
             <th data-col="ga_user">GA user</th>
+            <th data-col="cs_user">CS user</th>
             <th data-col="ga_cred">GA cred</th>
+            <th data-col="cs_cred">CS cred</th>
             <th data-col="reach">monthly reach %</th>
             <th data-col="sel_user_pct">sel→user %</th>
             <th data-col="sel_cred_pct">sel→cred %</th>
@@ -1583,8 +1592,11 @@
             <th data-col="instances">instances</th>
             <th data-col="integration">integration</th>
             <th data-col="ga_select">GA select</th>
+            <th data-col="cs_select">CS select</th>
             <th data-col="ga_user">GA user</th>
+            <th data-col="cs_user">CS user</th>
             <th data-col="ga_cred">GA cred</th>
+            <th data-col="cs_cred">CS cred</th>
             <th data-col="reach">monthly reach %</th>
             <th data-col="sel_user_pct">sel→user %</th>
             <th data-col="sel_cred_pct">sel→cred %</th>
@@ -1613,8 +1625,11 @@
             <th data-col="instances">instances</th>
             <th data-col="integration">integration</th>
             <th data-col="ga_select">GA select</th>
+            <th data-col="cs_select">CS select</th>
             <th data-col="ga_user">GA user</th>
+            <th data-col="cs_user">CS user</th>
             <th data-col="ga_cred">GA cred</th>
+            <th data-col="cs_cred">CS cred</th>
             <th data-col="reach">monthly reach %</th>
             <th data-col="sel_user_pct">sel→user %</th>
             <th data-col="sel_cred_pct">sel→cred %</th>
@@ -2070,6 +2085,9 @@ function applyColumnTitles(root = document) {
           ga_select: 0,
           ga_user: 0,
           ga_cred: 0,
+          cs_select: 0,
+          cs_user: 0,
+          cs_cred: 0,
           sessions: 0,
           sess_with_jobs: 0,
           sess_with_success: 0,
@@ -2082,6 +2100,9 @@ function applyColumnTitles(root = document) {
           totals.ga_select += Number(row.ga_select || 0);
           totals.ga_user += Number(row.ga_user || 0);
           totals.ga_cred += Number(row.ga_cred || 0);
+          totals.cs_select += Number(row.cs_select || 0);
+          totals.cs_user += Number(row.cs_user || 0);
+          totals.cs_cred += Number(row.cs_cred || 0);
           totals.sessions += Number(row.sessions || 0);
           totals.sess_with_jobs += Number(row.sess_with_jobs || 0);
           totals.sess_with_success += Number(row.sess_with_success || 0);
@@ -2112,6 +2133,9 @@ function applyColumnTitles(root = document) {
             ga_select: 0,
             ga_user: 0,
             ga_cred: 0,
+            cs_select: 0,
+            cs_user: 0,
+            cs_cred: 0,
             sessions: 0,
             sess_with_jobs: 0,
             sess_with_success: 0,
@@ -2142,8 +2166,11 @@ function applyColumnTitles(root = document) {
                 <td>${row.label}</td>
                 <td>${rangeLabel}</td>
                 <td>${t.ga_select}</td>
+                <td>${t.cs_select || 0}</td>
                 <td>${t.ga_user}</td>
+                <td>${t.cs_user || 0}</td>
                 <td>${t.ga_cred}</td>
+                <td>${t.cs_cred || 0}</td>
                 <td>${t.sessions}</td>
                 <td>${t.sess_with_success}</td>
                 <td>${sessSuccessPct}</td>
@@ -2164,8 +2191,11 @@ function applyColumnTitles(root = document) {
                   <th>Quarter</th>
                   <th>Dates</th>
                   <th>GA select</th>
+                  <th>CS select</th>
                   <th>GA user</th>
+                  <th>CS user</th>
                   <th>GA cred</th>
+                  <th>CS cred</th>
                   <th>Sessions</th>
                   <th>Sessions w/success</th>
                   <th>sess→success %</th>
@@ -2179,8 +2209,11 @@ function applyColumnTitles(root = document) {
                   <th>Total</th>
                   <td>4Q aggregate</td>
                   <td>${total.ga_select || 0}</td>
+                  <td>${total.cs_select || 0}</td>
                   <td>${total.ga_user || 0}</td>
+                  <td>${total.cs_user || 0}</td>
                   <td>${total.ga_cred || 0}</td>
+                  <td>${total.cs_cred || 0}</td>
                   <td>${total.sessions || 0}</td>
                   <td>${total.sess_with_success || 0}</td>
                   <td>${totalPct}</td>
@@ -2861,8 +2894,11 @@ function applyColumnTitles(root = document) {
         instances: (row) => (row.instance || (row.instances || []).join(",")).toLowerCase(),
         integration: (row) => (row.integration_type || "").toLowerCase(),
         ga_select: (row) => Number(row.ga_select) || 0,
+        cs_select: (row) => Number(row.cs_select) || 0,
         ga_user: (row) => Number(row.ga_user) || 0,
+        cs_user: (row) => Number(row.cs_user) || 0,
         ga_cred: (row) => Number(row.ga_cred) || 0,
+        cs_cred: (row) => Number(row.cs_cred) || 0,
         reach: (row) => getMonthlyReachValue(row),
         sel_user_pct: (row) => (row.ga_select ? (row.ga_user || 0) / row.ga_select : 0),
         sel_cred_pct: (row) => (row.ga_select ? (row.ga_cred || 0) / row.ga_select : 0),
@@ -2898,8 +2934,11 @@ function applyColumnTitles(root = document) {
         { label: "Period Start", getter: (row) => row.periodStart || row.start || "" },
         { label: "Period End", getter: (row) => row.periodEnd || row.end || "" },
         { label: "GA Select", getter: (row) => row.ga_select || 0 },
+        { label: "CS Select", getter: (row) => row.cs_select || 0 },
         { label: "GA User", getter: (row) => row.ga_user || 0 },
+        { label: "CS User", getter: (row) => row.cs_user || 0 },
         { label: "GA Cred", getter: (row) => row.ga_cred || 0 },
+        { label: "CS Cred", getter: (row) => row.cs_cred || 0 },
         {
           label: "Monthly Reach %",
           getter: (row) => formatMonthlyReachPct(row) || "",
@@ -2962,6 +3001,9 @@ function applyColumnTitles(root = document) {
           ga_select: entry.sel || 0,
           ga_user: entry.user || 0,
           ga_cred: entry.cred || 0,
+          cs_select: entry.cs_select || 0,
+          cs_user: entry.cs_user || 0,
+          cs_cred: entry.cs_cred || 0,
           sessions: entry.sessions || 0,
           sess_with_jobs: entry.sess_with_jobs || 0,
           sess_with_success: entry.sess_with_success || 0,
@@ -2976,6 +3018,9 @@ function applyColumnTitles(root = document) {
             acc.ga_select += row.ga_select || 0;
             acc.ga_user += row.ga_user || 0;
             acc.ga_cred += row.ga_cred || 0;
+            acc.cs_select += row.cs_select || 0;
+            acc.cs_user += row.cs_user || 0;
+            acc.cs_cred += row.cs_cred || 0;
             acc.sessions += row.sessions || 0;
             acc.sess_with_jobs += row.sess_with_jobs || 0;
             acc.sess_with_success += row.sess_with_success || 0;
@@ -2987,6 +3032,9 @@ function applyColumnTitles(root = document) {
             ga_select: 0,
             ga_user: 0,
             ga_cred: 0,
+            cs_select: 0,
+            cs_user: 0,
+            cs_cred: 0,
             sessions: 0,
             sess_with_jobs: 0,
             sess_with_success: 0,
@@ -3004,6 +3052,9 @@ function applyColumnTitles(root = document) {
           ga_select: totals.ga_select,
           ga_user: totals.ga_user,
           ga_cred: totals.ga_cred,
+          cs_select: totals.cs_select,
+          cs_user: totals.cs_user,
+          cs_cred: totals.cs_cred,
           sessions: totals.sessions,
           sess_with_jobs: totals.sess_with_jobs,
           sess_with_success: totals.sess_with_success,
@@ -3119,8 +3170,11 @@ function applyColumnTitles(root = document) {
               "Quarter",
               "Dates",
               "GA select",
+              "CS select",
               "GA user",
+              "CS user",
               "GA cred",
+              "CS cred",
               "Sessions",
               "Sessions w/success",
               "sess→success %",
@@ -3138,8 +3192,11 @@ function applyColumnTitles(root = document) {
                 row.label,
                 rangeLabel,
                 t.ga_select || 0,
+                t.cs_select || 0,
                 t.ga_user || 0,
+                t.cs_user || 0,
                 t.ga_cred || 0,
+                t.cs_cred || 0,
                 t.sessions || 0,
                 t.sess_with_success || 0,
                 pct(t.sess_with_success, t.sessions),
@@ -3156,8 +3213,11 @@ function applyColumnTitles(root = document) {
               "4Q total",
               "aggregate",
               tot.ga_select || 0,
+              tot.cs_select || 0,
               tot.ga_user || 0,
+              tot.cs_user || 0,
               tot.ga_cred || 0,
+              tot.cs_cred || 0,
               tot.sessions || 0,
               tot.sess_with_success || 0,
               ((tot.sess_with_success && tot.sessions)
@@ -3422,6 +3482,9 @@ function applyColumnTitles(root = document) {
             ga_select: ga.select_merchants || 0,
             ga_user: ga.user_data_collection || 0,
             ga_cred: ga.credential_entry || 0,
+            cs_select: sessions.cs_select_sessions || 0,
+            cs_user: sessions.cs_user_sessions || 0,
+            cs_cred: sessions.cs_cred_sessions || 0,
             sessions: sessions.total || 0,
             sess_with_jobs: sessions.with_jobs || 0,
             sess_with_success: sessions.with_success || 0,
@@ -3463,6 +3526,9 @@ function applyColumnTitles(root = document) {
           ga_select: 0,
           ga_user: 0,
           ga_cred: 0,
+          cs_select: 0,
+          cs_user: 0,
+          cs_cred: 0,
           sessions: 0,
           sess_with_jobs: 0,
           sess_with_success: 0,
@@ -3483,6 +3549,9 @@ function applyColumnTitles(root = document) {
           agg.ga_select += row.ga_select || 0;
           agg.ga_user += row.ga_user || 0;
           agg.ga_cred += row.ga_cred || 0;
+          agg.cs_select += row.cs_select || 0;
+          agg.cs_user += row.cs_user || 0;
+          agg.cs_cred += row.cs_cred || 0;
           agg.sessions += row.sessions || 0;
           agg.sess_with_jobs += row.sess_with_jobs || 0;
           agg.sess_with_success += row.sess_with_success || 0;
@@ -3707,6 +3776,9 @@ function applyColumnTitles(root = document) {
                 ga_select: 0,
                 ga_user: 0,
                 ga_cred: 0,
+                cs_select: 0,
+                cs_user: 0,
+                cs_cred: 0,
                 sessions: 0,
                 sess_with_jobs: 0,
                 sess_with_success: 0,
@@ -3751,6 +3823,9 @@ function applyColumnTitles(root = document) {
               agg.sess_with_success += row.sessions.with_success || 0;
               agg.total_jobs += row.sessions.total_jobs || 0;
               agg.successful_jobs += row.sessions.successful_jobs || 0;
+              agg.cs_select += row.sessions.cs_select_sessions || 0;
+              agg.cs_user += row.sessions.cs_user_sessions || 0;
+              agg.cs_cred += row.sessions.cs_cred_sessions || 0;
             }
             if (row.placements) {
               agg.placements += getBillablePlacementCount(row.placements);
@@ -6049,8 +6124,11 @@ function applyColumnTitles(root = document) {
               <th data-sort-key="instances"${columnAttr("instances")}>instances</th>
               <th data-sort-key="integration"${columnAttr("integration")}>integration</th>
               <th data-sort-key="ga_select"${columnAttr("ga_select")}>GA select</th>
+              <th data-sort-key="cs_select"${columnAttr("cs_select")}>CS select</th>
               <th data-sort-key="ga_user"${columnAttr("ga_user")}>GA user</th>
+              <th data-sort-key="cs_user"${columnAttr("cs_user")}>CS user</th>
               <th data-sort-key="ga_cred"${columnAttr("ga_cred")}>GA cred</th>
+              <th data-sort-key="cs_cred"${columnAttr("cs_cred")}>CS cred</th>
               <th data-sort-key="reach"${columnAttr("reach")}>monthly reach %</th>
               <th data-sort-key="sel_user_pct"${columnAttr("sel_user_pct")}>sel→user %</th>
               <th data-sort-key="sel_cred_pct"${columnAttr("sel_cred_pct")}>sel→cred %</th>
@@ -6108,8 +6186,11 @@ function applyColumnTitles(root = document) {
           <td${columnAttr("instances")}>${instancesText}</td>
           <td${columnAttr("integration")}>${row.integration_type || ""}</td>
           <td${columnAttr("ga_select")}>${row.ga_select}</td>
+          <td${columnAttr("cs_select")}>${row.cs_select || 0}</td>
           <td${columnAttr("ga_user")}>${row.ga_user}</td>
+          <td${columnAttr("cs_user")}>${row.cs_user || 0}</td>
           <td${columnAttr("ga_cred")}>${row.ga_cred}</td>
+          <td${columnAttr("cs_cred")}>${row.cs_cred || 0}</td>
           <td${columnAttr("reach")}>${reachPct}</td>
           <td${columnAttr("sel_user_pct")}>${selUserPct}</td>
           <td${columnAttr("sel_cred_pct")}>${selCredPct}</td>
@@ -6200,6 +6281,9 @@ function applyColumnTitles(root = document) {
               acc.ga_select += row.ga_select || 0;
               acc.ga_user += row.ga_user || 0;
               acc.ga_cred += row.ga_cred || 0;
+              acc.cs_select += row.cs_select || 0;
+              acc.cs_user += row.cs_user || 0;
+              acc.cs_cred += row.cs_cred || 0;
               acc.sessions += row.sessions || 0;
               acc.sess_with_jobs += row.sess_with_jobs || 0;
               acc.sess_with_success += row.sess_with_success || 0;
@@ -6210,6 +6294,9 @@ function applyColumnTitles(root = document) {
               ga_select: 0,
               ga_user: 0,
               ga_cred: 0,
+              cs_select: 0,
+              cs_user: 0,
+              cs_cred: 0,
               sessions: 0,
               sess_with_jobs: 0,
               sess_with_success: 0,
@@ -6243,8 +6330,11 @@ function applyColumnTitles(root = document) {
             <td${columnAttr("instances")}>—</td>
             <td${columnAttr("integration")}>${integration}</td>
             <td${columnAttr("ga_select")}>${totals.ga_select}</td>
+            <td${columnAttr("cs_select")}>${totals.cs_select}</td>
             <td${columnAttr("ga_user")}>${totals.ga_user}</td>
+            <td${columnAttr("cs_user")}>${totals.cs_user}</td>
             <td${columnAttr("ga_cred")}>${totals.ga_cred}</td>
+            <td${columnAttr("cs_cred")}>${totals.cs_cred}</td>
             <td${columnAttr("reach")}>${reachPct}</td>
             <td${columnAttr("sel_user_pct")}>${selUserPct}</td>
             <td${columnAttr("sel_cred_pct")}>${selCredPct}</td>
@@ -6285,8 +6375,11 @@ function applyColumnTitles(root = document) {
             <td${columnAttr("instances")}>${instancesText}</td>
             <td${columnAttr("integration")}>${integration}</td>
             <td${columnAttr("ga_select")}>${row.ga_select}</td>
+            <td${columnAttr("cs_select")}>${row.cs_select || 0}</td>
             <td${columnAttr("ga_user")}>${row.ga_user}</td>
+            <td${columnAttr("cs_user")}>${row.cs_user || 0}</td>
             <td${columnAttr("ga_cred")}>${row.ga_cred}</td>
+            <td${columnAttr("cs_cred")}>${row.cs_cred || 0}</td>
             <td${columnAttr("reach")}>${reachPct}</td>
             <td${columnAttr("sel_user_pct")}>${selUserPct}</td>
             <td${columnAttr("sel_cred_pct")}>${selCredPct}</td>
@@ -6343,8 +6436,8 @@ function applyColumnTitles(root = document) {
               ? ((totals.sess_with_jobs / totals.sessions) * 100).toFixed(1) + "%"
               : "";
           totalsBar.textContent =
-            `Totals (${visibleCount} FIs): sel ${totals.ga_select} | user ${totals.ga_user}` +
-            ` | cred ${totals.ga_cred} | sel→user ${selUserPct || "—"} | sel→cred ${selCredPct || "—"}` +
+            `Totals (${visibleCount} FIs): GA sel ${totals.ga_select} | CS sel ${totals.cs_select} | GA user ${totals.ga_user} | CS user ${totals.cs_user}` +
+            ` | GA cred ${totals.ga_cred} | CS cred ${totals.cs_cred} | sel→user ${selUserPct || "—"} | sel→cred ${selCredPct || "—"}` +
             ` | sel→success ${selSuccessPct || "—"}` +
             ` | sessions ${totals.sessions} (jobs ${totals.sess_with_jobs}, success ${totals.sess_with_success})` +
             ` | sess→jobs ${sessJobsPct || "—"} | placements ${totals.placements}`;
@@ -6688,11 +6781,15 @@ function applyColumnTitles(root = document) {
           const visibleRows = latestVisibleRows || (lastRenderContext?.perFi ? Object.values(lastRenderContext.perFi) : []);
           const convMetrics = calculateConversionMetrics(startDate, endDate, visibleRows);
 
-          // Sum GA user/cred from visible rows (not in conversionMetrics)
+          // Sum GA user/cred and CS metrics from visible rows (not in conversionMetrics)
           let totalGaUser = 0, totalGaCred = 0;
+          let totalCsSelect = 0, totalCsUser = 0, totalCsCred = 0;
           for (const row of visibleRows) {
             totalGaUser += Number(row.ga_user || 0);
             totalGaCred += Number(row.ga_cred || 0);
+            totalCsSelect += Number(row.cs_select || 0);
+            totalCsUser += Number(row.cs_user || 0);
+            totalCsCred += Number(row.cs_cred || 0);
           }
 
           // Build filter context string
@@ -6724,6 +6821,9 @@ function applyColumnTitles(root = document) {
               successful: convMetrics.successful,
               systemFailures: convMetrics.systemFailures,
               uxFailures: convMetrics.uxFailures,
+              totalCsSelect,
+              totalCsUser,
+              totalCsCred,
             },
             highlights: (latestHighlights || []).map((h) => ({
               label: h.label,
