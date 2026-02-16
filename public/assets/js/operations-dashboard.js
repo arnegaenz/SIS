@@ -416,25 +416,102 @@ const kioskEls = {
   eventList: document.getElementById("kioskEventList"),
 };
 
+let priorOverall = null;
+let merchantTrends = new Map(); // merchant_name → { priorFailRate, trend }
+
+async function fetchOpsTrends() {
+  // Compare this week (last 7d) vs prior week (8-14d ago)
+  const now = new Date();
+  const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  const priorEnd = new Date(end);
+  priorEnd.setUTCDate(end.getUTCDate() - 7);
+  const priorStart = new Date(priorEnd);
+  priorStart.setUTCDate(priorEnd.getUTCDate() - 6);
+
+  try {
+    const res = await fetch("/api/metrics/ops", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        date_from: priorStart.toISOString().slice(0, 10),
+        date_to: priorEnd.toISOString().slice(0, 10),
+      }),
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+    priorOverall = data.overall || {};
+
+    // Build per-merchant prior failure rates
+    merchantTrends.clear();
+    const priorMerchants = data.by_merchant || [];
+    priorMerchants.forEach((m) => {
+      const name = m.merchant_name || "";
+      if (!name) return;
+      const total = m.Jobs_Total || 0;
+      const failed = m.Jobs_Failed || 0;
+      merchantTrends.set(name, {
+        priorFailRate: total > 0 ? failed / total : 0,
+        priorTotal: total,
+      });
+    });
+  } catch (err) {
+    console.warn("[ops-kiosk] trend fetch failed", err);
+  }
+}
+
+function opsTrendArrow(currentRate, priorRate, invertColor) {
+  // invertColor: for failure rate, "up" is bad (red), "down" is good (green)
+  const delta = currentRate - priorRate;
+  if (Math.abs(delta) < 0.02) return `<span style="color:#64748b;font-size:0.7rem;" title="Flat (${formatPercent(delta, 1)})">&#9644;</span>`;
+  if (delta > 0) {
+    const color = invertColor ? "#ef4444" : "#22c55e";
+    return `<span style="color:${color};font-size:0.85rem;" title="${invertColor ? "Worse" : "Better"} (${formatPercent(delta, 1)})">&#9650;</span>`;
+  }
+  const color = invertColor ? "#22c55e" : "#ef4444";
+  return `<span style="color:${color};font-size:0.85rem;" title="${invertColor ? "Better" : "Worse"} (${formatPercent(delta, 1)})">&#9660;</span>`;
+}
+
+function kpiDelta(current, prior, label) {
+  if (!Number.isFinite(prior) || prior === 0) return "";
+  const delta = current - prior;
+  const pctChange = prior > 0 ? delta / prior : 0;
+  const sign = delta >= 0 ? "+" : "";
+  return `<div class="kpi-delta" style="color:#a8b3cf;font-size:0.75rem;margin-top:4px;">${sign}${formatPercent(pctChange, 1)} vs prior wk</div>`;
+}
+
 function renderKioskKpis(overall, byMerchant) {
   if (!kioskEls.kpiRow) return;
   const total = overall.Jobs_Total || 0;
   const success = overall.Jobs_Success || 0;
   const failed = overall.Jobs_Failed || 0;
   const activeMerchants = byMerchant.filter((m) => (m.Jobs_Total || 0) > 0).length;
+  const successRate = total > 0 ? success / total : 0;
+  const failRate = total > 0 ? failed / total : 0;
+
+  const pTotal = priorOverall?.Jobs_Total || 0;
+  const pSuccess = priorOverall?.Jobs_Success || 0;
+  const pFailed = priorOverall?.Jobs_Failed || 0;
+  const pSuccessRate = pTotal > 0 ? pSuccess / pTotal : 0;
+  const pFailRate = pTotal > 0 ? pFailed / pTotal : 0;
+
+  const successTrend = pTotal > 0 ? opsTrendArrow(successRate, pSuccessRate, false) : "";
+  const failTrend = pTotal > 0 ? opsTrendArrow(failRate, pFailRate, true) : "";
 
   kioskEls.kpiRow.innerHTML = `
     <div class="card">
-      <h3>Total Jobs</h3>
+      <h3>Total Jobs (7d)</h3>
       <div class="kpi-value">${formatNumber(total)}</div>
+      ${kpiDelta(total, pTotal, "jobs")}
     </div>
     <div class="card">
-      <h3>Success Rate</h3>
-      <div class="kpi-value" style="color:${total > 0 && success / total >= 0.85 ? "#22c55e" : total > 0 && success / total >= 0.70 ? "#f59e0b" : "#ef4444"}">${formatRate(success, total)}</div>
+      <h3>Success Rate ${successTrend}</h3>
+      <div class="kpi-value" style="color:${successRate >= 0.85 ? "#22c55e" : successRate >= 0.70 ? "#f59e0b" : "#ef4444"}">${formatRate(success, total)}</div>
+      ${pTotal > 0 ? `<div class="kpi-delta" style="color:#a8b3cf;font-size:0.75rem;margin-top:4px;">Prior wk: ${formatRate(pSuccess, pTotal)}</div>` : ""}
     </div>
     <div class="card">
-      <h3>Failure Rate</h3>
+      <h3>Failure Rate ${failTrend}</h3>
       <div class="kpi-value">${formatRate(failed, total)}</div>
+      ${pTotal > 0 ? `<div class="kpi-delta" style="color:#a8b3cf;font-size:0.75rem;margin-top:4px;">Prior wk: ${formatRate(pFailed, pTotal)}</div>` : ""}
     </div>
     <div class="card">
       <h3>Active Merchants</h3>
@@ -453,16 +530,22 @@ function renderMerchantHealthGrid(rows) {
     .slice(0, 30)
     .map((row) => {
       const successRate = row.Jobs_Total > 0 ? (row.Jobs_Success || 0) / row.Jobs_Total : 1;
+      const failRate = row.failure_rate || 0;
       const color = opsHealthColor(successRate);
+      const name = row.merchant_name || "Unknown";
+      const prior = merchantTrends.get(name);
+      // For merchants, trending arrow on failure rate — up is bad
+      const trend = prior ? opsTrendArrow(failRate, prior.priorFailRate, true) : "";
+
       return `
         <div class="merchant-tile">
           <div class="merchant-tile__header">
-            <span class="merchant-tile__name">${row.merchant_name || "Unknown"}</span>
-            <span class="health-dot ${color}"></span>
+            <span class="merchant-tile__name">${name}</span>
+            <span style="display:flex;align-items:center;gap:4px;">${trend} <span class="health-dot ${color}"></span></span>
           </div>
           <div class="merchant-tile__stats">
             <span><span class="merchant-tile__stat-value">${formatNumber(row.Jobs_Total || 0)}</span> jobs</span>
-            <span><span class="merchant-tile__stat-value">${formatPercent(row.failure_rate || 0)}</span> fail</span>
+            <span><span class="merchant-tile__stat-value">${formatPercent(failRate)}</span> fail</span>
           </div>
         </div>
       `;
@@ -579,6 +662,7 @@ function renderKioskView() {
 }
 
 async function kioskRefresh() {
+  await fetchOpsTrends();
   await fetchMetrics();
   await fetchEventFeed();
 }
