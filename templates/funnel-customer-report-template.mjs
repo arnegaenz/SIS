@@ -238,7 +238,7 @@ export function buildCustomerReportHtml(data) {
 
     const libMeta = ins.libraryMeta || {};
     const versionNote = libMeta.version
-      ? ` (Playbook v${libMeta.version} \u2014 Updated ${libMeta.lastUpdated || ''})`
+      ? ` (Playbook v${libMeta.version})`
       : '';
 
     actionsHtml = `

@@ -39,11 +39,10 @@ const PLAYBOOK_SECTIONS = {
 
 const ACTION_LIBRARY = {
   _meta: {
-    version: '1.1.0',
-    lastUpdated: '2026-02-16',
+    version: '3.0.02.16.26',
     changelog: [
-      { version: '1.1.0', date: '2026-02-16', summary: 'Added playbook section descriptions — context for each channel category' },
-      { version: '1.0.0', date: '2026-02-16', summary: 'Initial release — activation, campaign, visibility, optimization, and scaling examples' }
+      { version: '3.0.02.16.26', summary: 'Added playbook section descriptions — context for each channel category' },
+      { version: '3.0.02.16.26', summary: 'Initial release — activation, campaign, visibility, optimization, and scaling examples' }
     ]
   },
 
