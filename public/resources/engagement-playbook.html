@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Engagement Playbook | Strivve CardUpdatr</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', -apple-system, 'Segoe UI', Roboto, sans-serif;
+    background: #f8fafc;
+    color: #0f172a;
+    line-height: 1.6;
+  }
+
+  /* ── Header ── */
+  .playbook-header {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    color: #fff;
+    padding: 40px 48px 32px;
+  }
+  .playbook-header .brand {
+    display: flex; align-items: center; gap: 12px; margin-bottom: 16px;
+  }
+  .playbook-header .brand img {
+    height: 32px;
+  }
+  .playbook-header h1 {
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin-bottom: 4px;
+  }
+  .playbook-header .subtitle {
+    color: #94a3b8;
+    font-size: 15px;
+    font-weight: 400;
+    margin-bottom: 16px;
+  }
+  .playbook-header .header-meta {
+    display: flex; gap: 16px; align-items: center; flex-wrap: wrap;
+  }
+  .playbook-header .version-badge {
+    display: inline-block;
+    background: rgba(14, 165, 233, 0.12);
+    border: 1px solid rgba(14, 165, 233, 0.3);
+    border-radius: 20px;
+    padding: 5px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #38bdf8;
+  }
+  .playbook-header .export-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 20px;
+    padding: 5px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #e2e8f0;
+    cursor: pointer;
+    transition: background 0.15s;
+    text-decoration: none;
+  }
+  .playbook-header .export-btn:hover { background: rgba(255,255,255,0.18); }
+  .playbook-header .back-link {
+    font-size: 13px; color: #64748b; text-decoration: none;
+  }
+  .playbook-header .back-link:hover { color: #94a3b8; }
+
+  /* ── Nav ── */
+  .playbook-nav {
+    background: #fff;
+    border-bottom: 1px solid #e2e8f0;
+    padding: 12px 48px;
+    position: sticky; top: 0; z-index: 100;
+    display: flex; gap: 8px; flex-wrap: wrap;
+  }
+  .playbook-nav a {
+    display: inline-block;
+    padding: 6px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #475569;
+    text-decoration: none;
+    border-radius: 20px;
+    border: 1px solid #e2e8f0;
+    transition: all 0.15s;
+  }
+  .playbook-nav a:hover { background: #f1f5f9; color: #0f172a; }
+  .playbook-nav a.active { background: #2563eb; color: #fff; border-color: #2563eb; }
+
+  /* ── Main ── */
+  .playbook-body {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 32px 24px 64px;
+  }
+
+  /* ── Section ── */
+  .playbook-section {
+    margin-bottom: 48px;
+    scroll-margin-top: 80px;
+  }
+  .section-header {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #0ea5e9;
+  }
+  .section-header h2 {
+    font-size: 18px;
+    font-weight: 700;
+    color: #0f172a;
+  }
+  .section-header .section-count {
+    font-size: 12px;
+    font-weight: 600;
+    color: #64748b;
+    background: #f1f5f9;
+    padding: 2px 10px;
+    border-radius: 10px;
+  }
+
+  /* ── Section Description ── */
+  .section-description {
+    font-size: 14px;
+    line-height: 1.7;
+    color: #475569;
+    margin-bottom: 20px;
+    padding: 14px 18px;
+    background: #f0f9ff;
+    border: 1px solid #bae6fd;
+    border-radius: 8px;
+  }
+
+  /* ── Channel ── */
+  .channel-card {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    margin-bottom: 16px;
+    overflow: hidden;
+  }
+  .channel-header {
+    display: flex; align-items: center; gap: 10px;
+    padding: 14px 18px;
+    background: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+    font-size: 14px;
+    font-weight: 700;
+    color: #0f172a;
+  }
+  .channel-icon { font-size: 18px; }
+  .channel-example-count {
+    margin-left: auto;
+    font-size: 11px;
+    font-weight: 600;
+    color: #94a3b8;
+  }
+
+  /* ── Example ── */
+  .example-item {
+    padding: 14px 18px;
+    border-bottom: 1px solid #f1f5f9;
+    position: relative;
+  }
+  .example-item:last-child { border-bottom: none; }
+  .example-headline {
+    font-size: 13px;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 4px;
+  }
+  .example-body {
+    font-size: 13px;
+    color: #475569;
+    line-height: 1.6;
+  }
+  .example-tags {
+    display: flex; gap: 4px; flex-wrap: wrap; margin-top: 8px;
+  }
+  .example-tag {
+    font-size: 10px;
+    font-weight: 600;
+    color: #64748b;
+    background: #f1f5f9;
+    padding: 2px 8px;
+    border-radius: 8px;
+  }
+  .example-actions {
+    display: flex; gap: 6px; margin-top: 8px;
+  }
+  .copy-btn {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #3b82f6;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 6px;
+    padding: 4px 10px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .copy-btn:hover { background: #dbeafe; }
+  .copy-btn.copied { color: #16a34a; background: #dcfce7; border-color: #86efac; }
+
+  /* ── Toast ── */
+  .toast {
+    position: fixed; bottom: 24px; right: 24px;
+    background: #0f172a; color: #fff;
+    padding: 10px 20px; border-radius: 8px;
+    font-size: 13px; font-weight: 600;
+    opacity: 0; transition: opacity 0.3s;
+    pointer-events: none; z-index: 1000;
+  }
+  .toast.show { opacity: 1; }
+
+  /* ── Footer ── */
+  .playbook-footer {
+    text-align: center;
+    padding: 24px;
+    font-size: 12px;
+    color: #94a3b8;
+    border-top: 1px solid #e2e8f0;
+    margin-top: 48px;
+  }
+
+  /* ── Print ── */
+  @media print {
+    .playbook-nav, .export-btn, .copy-btn, .example-actions, .back-link { display: none !important; }
+    .playbook-header { padding: 24px 32px 18px; }
+    .playbook-body { padding: 16px 0; max-width: none; }
+    .channel-card { break-inside: avoid; }
+    .playbook-section { break-before: auto; }
+    body { background: #fff; }
+  }
+
+  /* ── Loading ── */
+  .playbook-loading {
+    text-align: center; padding: 80px 24px;
+    font-size: 15px; color: #64748b;
+  }
+</style>
+</head>
+<body>
+
+<div class="playbook-header">
+  <div class="brand">
+    <img src="data:image/png;base64,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" alt="Strivve">
+  </div>
+  <h1>Cardholder Engagement Playbook</h1>
+  <div class="subtitle">Ready-to-use messaging templates and implementation strategies for CardUpdatr</div>
+  <div class="header-meta">
+    <span class="version-badge" id="versionBadge"></span>
+    <button class="export-btn" id="exportPdfBtn">Export PDF</button>
+    <a class="back-link" href="/funnel-customer">&larr; Back to Dashboard</a>
+  </div>
+</div>
+
+<nav class="playbook-nav" id="sectionNav"></nav>
+
+<div class="playbook-body" id="playbookBody">
+  <div class="playbook-loading">Loading playbook...</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="../assets/js/passcode-gate.js?v=playbook"></script>
+<script src="../assets/js/action-library.js?v=2"></script>
+<script>
+'use strict';
+
+const SECTION_META = {
+  'activation':      { title: 'Card Activation & Reissuance', icon: '\u{1F4E7}', order: 1 },
+  'campaigns':       { title: 'Campaigns & Behavioral Triggers', icon: '\u{1F381}', order: 2 },
+  'visibility':      { title: 'Digital Banking Visibility', icon: '\u{1F5A5}\u{FE0F}', order: 3 },
+  'optimization':    { title: 'Optimization & Value Proposition', icon: '\u{270D}\u{FE0F}', order: 4 },
+  'scaling':         { title: 'Scaling & Channel Expansion', icon: '\u{1F4C8}', order: 5 },
+  'member-services': { title: 'Member Services & Call Center', icon: '\u{1F3A7}', order: 6 },
+};
+
+function init() {
+  const AL = window.ActionLibrary;
+  if (!AL || !AL.ACTION_LIBRARY) {
+    document.getElementById('playbookBody').innerHTML = '<div class="playbook-loading">Error: Action Library not loaded.</div>';
+    return;
+  }
+
+  const lib = AL.ACTION_LIBRARY;
+  const meta = lib._meta || {};
+
+  // Version badge
+  document.getElementById('versionBadge').textContent = meta.version ? `Playbook v${meta.version}` : 'Playbook';
+
+  // Group entries by playbookSection
+  const sections = {};
+  for (const [key, entry] of Object.entries(lib)) {
+    if (key === '_meta') continue;
+    let section = entry.playbookSection;
+    if (!section) continue;
+
+    // Resolve sharedWith
+    let resolved = entry;
+    if (entry.sharedWith && lib[entry.sharedWith]) {
+      resolved = lib[entry.sharedWith];
+    }
+    if (!resolved.channels || !resolved.channels.length) continue;
+
+    if (!sections[section]) sections[section] = [];
+    // Avoid duplicate channels from shared entries
+    const existingChannelNames = new Set(sections[section].map(c => c.channel));
+    for (const ch of resolved.channels) {
+      if (!existingChannelNames.has(ch.channel)) {
+        sections[section].push(ch);
+        existingChannelNames.add(ch.channel);
+      }
+    }
+  }
+
+  // Sort sections by order
+  const orderedSections = Object.entries(sections)
+    .filter(([key]) => SECTION_META[key])
+    .sort((a, b) => (SECTION_META[a[0]]?.order || 99) - (SECTION_META[b[0]]?.order || 99));
+
+  // Build nav
+  const nav = document.getElementById('sectionNav');
+  nav.innerHTML = orderedSections.map(([key]) => {
+    const sm = SECTION_META[key];
+    return `<a href="#${key}" data-section="${key}">${sm.icon} ${sm.title}</a>`;
+  }).join('');
+
+  // Build body
+  const body = document.getElementById('playbookBody');
+  let html = '';
+
+  for (const [sectionKey, channels] of orderedSections) {
+    const sm = SECTION_META[sectionKey];
+    const totalExamples = channels.reduce((sum, ch) => sum + ch.examples.length, 0);
+
+    html += `<div class="playbook-section" id="${sectionKey}">`;
+    html += `<div class="section-header">
+      <h2>${sm.icon} ${sm.title}</h2>
+      <span class="section-count">${channels.length} channels &middot; ${totalExamples} examples</span>
+    </div>`;
+
+    // Section description from PLAYBOOK_SECTIONS
+    const sectionInfo = AL.getPlaybookSection ? AL.getPlaybookSection(sectionKey) : null;
+    if (sectionInfo && sectionInfo.description) {
+      html += `<div class="section-description">${sectionInfo.description}</div>`;
+    }
+
+    for (const ch of channels) {
+      html += `<div class="channel-card">`;
+      html += `<div class="channel-header">
+        <span class="channel-icon">${ch.icon}</span>
+        ${ch.channel}
+        <span class="channel-example-count">${ch.examples.length} example${ch.examples.length !== 1 ? 's' : ''}</span>
+      </div>`;
+
+      for (const ex of ch.examples) {
+        const isEmail = ch.channel.toLowerCase().includes('email');
+        const isSms = ch.channel.toLowerCase().includes('sms');
+
+        let copyText;
+        if (isEmail && ex.headline) {
+          copyText = `Subject: ${ex.headline}\n\n${ex.body}`;
+        } else {
+          copyText = ex.body;
+        }
+
+        html += `<div class="example-item">`;
+        if (ex.headline) {
+          html += `<div class="example-headline">${ex.headline}</div>`;
+        }
+        html += `<div class="example-body">${ex.body}</div>`;
+
+        if (ex.tags && ex.tags.length) {
+          html += `<div class="example-tags">`;
+          for (const tag of ex.tags) {
+            html += `<span class="example-tag">${tag}</span>`;
+          }
+          html += `</div>`;
+        }
+
+        html += `<div class="example-actions">
+          <button class="copy-btn" data-copy="${copyText.replace(/"/g, '&quot;').replace(/\n/g, '&#10;')}" onclick="copyExample(this)">Copy</button>
+        </div>`;
+        html += `</div>`;
+      }
+
+      html += `</div>`;
+    }
+
+    html += `</div>`;
+  }
+
+  html += `<div class="playbook-footer">Strivve CardUpdatr\u2122 Platform${meta.version ? ' \u2014 Playbook v' + meta.version : ''}</div>`;
+
+  body.innerHTML = html;
+
+  // Intersection observer for nav highlighting
+  const observer = new IntersectionObserver((entries) => {
+    for (const entry of entries) {
+      if (entry.isIntersecting) {
+        nav.querySelectorAll('a').forEach(a => a.classList.remove('active'));
+        const link = nav.querySelector(`a[data-section="${entry.target.id}"]`);
+        if (link) link.classList.add('active');
+      }
+    }
+  }, { rootMargin: '-80px 0px -60% 0px', threshold: 0 });
+
+  document.querySelectorAll('.playbook-section').forEach(el => observer.observe(el));
+
+  // Smooth scroll for nav links
+  nav.addEventListener('click', (e) => {
+    const a = e.target.closest('a');
+    if (!a) return;
+    e.preventDefault();
+    const target = document.getElementById(a.dataset.section);
+    if (target) target.scrollIntoView({ behavior: 'smooth' });
+  });
+
+  // Export PDF
+  document.getElementById('exportPdfBtn').addEventListener('click', exportPdf);
+}
+
+function copyExample(btn) {
+  const text = btn.dataset.copy;
+  navigator.clipboard.writeText(text).then(() => {
+    btn.classList.add('copied');
+    btn.textContent = 'Copied!';
+    showToast('Copied to clipboard');
+    setTimeout(() => {
+      btn.classList.remove('copied');
+      btn.textContent = 'Copy';
+    }, 2000);
+  }).catch(() => {
+    showToast('Copy failed');
+  });
+}
+
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2000);
+}
+
+async function exportPdf() {
+  const btn = document.getElementById('exportPdfBtn');
+  const orig = btn.textContent;
+  btn.textContent = 'Generating...';
+  btn.disabled = true;
+
+  try {
+    const token = window.sisAuth?.getToken?.() || localStorage.getItem('sis_session_token') || '';
+    const resp = await fetch('/api/export-pdf-playbook', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: 'Bearer ' + token } : {}),
+      },
+      body: JSON.stringify({}),
+    });
+
+    if (!resp.ok) throw new Error('PDF generation failed');
+
+    const blob = await resp.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'Engagement-Playbook.pdf';
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('PDF downloaded');
+  } catch (err) {
+    console.error('[playbook] PDF export failed:', err);
+    showToast('PDF export failed');
+  } finally {
+    btn.textContent = orig;
+    btn.disabled = false;
+  }
+}
+
+// Init on DOM ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
+</script>
+</body>
+</html>

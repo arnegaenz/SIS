@@ -5937,6 +5937,11 @@ const server = http.createServer(async (req, res) => {
     if (await fileExists(fp)) return serveFile(res, fp);
   }
 
+  if (pathname === "/resources/engagement-playbook" || pathname === "/resources/engagement-playbook.html") {
+    const fp = path.join(PUBLIC_DIR, "resources", "engagement-playbook.html");
+    if (await fileExists(fp)) return serveFile(res, fp);
+  }
+
   // Serve static assets from public (CSS/JS/data/etc)
   const relPath = pathname.replace(/^\/+/, "");
   const staticCandidates = [path.join(PUBLIC_DIR, relPath)];
