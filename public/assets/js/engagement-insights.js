@@ -1249,6 +1249,8 @@ window.EngagementInsights = {
   ACTION_LIBRARY_MAP: AL.ACTION_LIBRARY_MAP || {},
   getLibraryEntry: AL.getLibraryEntry || (() => null),
   getLibraryStats: AL.getLibraryStats || (() => null),
+  getPlaybookSection: AL.getPlaybookSection || (() => null),
+  PLAYBOOK_SECTIONS: AL.PLAYBOOK_SECTIONS || {},
 
   // Engine
   buildMetricsContext,

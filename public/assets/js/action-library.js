@@ -10,11 +10,39 @@
 (function() {
 'use strict';
 
+const PLAYBOOK_SECTIONS = {
+  activation: {
+    title: 'Issuance & Activation Flows',
+    description: 'Embedding CardUpdatr into your card activation process is the single most important step to maximizing card usage. When a cardholder receives a new card — whether from a new account, expiration replacement, or lost/stolen reissuance — they are at peak motivation to take action. This is the moment they are most excited about their new card and most willing to take an extra step. Institutions that connect CardUpdatr to this moment consistently see the highest conversion rates across all channels.',
+  },
+  campaigns: {
+    title: 'Targeted Campaigns & Promotions',
+    description: 'Campaigns create engagement by reaching cardholders with timely, relevant prompts that give them a reason to act. Seasonal events, behavioral triggers like dormant card reactivation, and incentive programs all manufacture a moment of motivation. While conversion rates are naturally lower than activation flows, campaigns reach a broader audience and can be scaled, repeated, and tested to build a steady pipeline of card-on-file updates throughout the year.',
+  },
+  visibility: {
+    title: 'Digital Banking Visibility',
+    description: 'Making CardUpdatr discoverable within everyday digital banking experiences ensures cardholders encounter the service naturally. Strategic placement in navigation menus, card management screens, and contextual moments like card lock/unlock or travel notices creates ongoing awareness without requiring outbound outreach. The more places a cardholder can find CardUpdatr within their normal banking routine, the more likely they are to use it when the need arises.',
+  },
+  optimization: {
+    title: 'Experience Optimization',
+    description: 'Once cardholders are arriving at CardUpdatr, the focus shifts to converting that traffic into successful card updates. Clear value messaging that communicates what the service does and why it matters, familiar merchant logos that create immediate recognition, and a streamlined flow that minimizes friction all contribute to higher completion rates. Small improvements at the point of encounter — a better headline, a more relevant merchant list — can meaningfully move conversion.',
+  },
+  scaling: {
+    title: 'Scaling What Works',
+    description: 'When a channel is performing well, the opportunity is to expand and build on that foundation. Extending CardUpdatr to additional card products, increasing campaign frequency, and layering complementary channels like SMS follow-ups to email campaigns compounds results from a proven starting point. Scaling is about doing more of what is already working rather than starting from scratch.',
+  },
+  'member-services': {
+    title: 'Member Services & Call Center',
+    description: 'Every cardholder interaction with your team is a potential CardUpdatr touchpoint. Equipping frontline staff with natural, conversational talk tracks turns routine calls — card reissuances, fraud reports, general account inquiries — into effortless referrals. Representatives do not need to sell the service; they simply mention it as a helpful next step at the right moment in the conversation. This channel requires no technology integration, just awareness and a link to share.',
+  },
+};
+
 const ACTION_LIBRARY = {
   _meta: {
-    version: '1.0.0',
+    version: '1.1.0',
     lastUpdated: '2026-02-16',
     changelog: [
+      { version: '1.1.0', date: '2026-02-16', summary: 'Added playbook section descriptions — context for each channel category' },
       { version: '1.0.0', date: '2026-02-16', summary: 'Initial release — activation, campaign, visibility, optimization, and scaling examples' }
     ]
   },
@@ -235,11 +263,22 @@ function getLibraryStats(entry) {
   return { totalChannels, totalExamples };
 }
 
+/**
+ * Get the playbook section metadata for a given section key.
+ * @returns {Object|null} { title, description } or null
+ */
+function getPlaybookSection(sectionKey) {
+  if (!sectionKey || !PLAYBOOK_SECTIONS[sectionKey]) return null;
+  return PLAYBOOK_SECTIONS[sectionKey];
+}
+
 window.ActionLibrary = {
   ACTION_LIBRARY,
   ACTION_LIBRARY_MAP,
+  PLAYBOOK_SECTIONS,
   getLibraryEntry,
   getLibraryStats,
+  getPlaybookSection,
 };
 
 })();
