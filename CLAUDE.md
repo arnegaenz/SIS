@@ -115,8 +115,10 @@ All partner-facing content follows engagement-positive tone:
 
 ### Command Center Dashboards (Kiosk Mode)
 - **Approach**: Added `?kiosk=1` query parameter to existing dashboards — no code duplication
-- **CS Portfolio** (`/dashboards/customer-success.html?kiosk=1`): Partner grid with health indicators, detail panel on click, alert section for low-performing FIs, 5-min auto-refresh
-- **Ops Command Center** (`/dashboards/operations.html?kiosk=1`): KPI row, merchant health grid, placement volume sparkline, live event feed, 30-sec auto-refresh
+- **CS Portfolio** (`/dashboards/customer-success.html?kiosk=1`): Partner grid with health indicators, detail panel on click, alert section for low-performing FIs, 5-min auto-refresh, header shows "Last 30 Days"
+  - **Weekly trends**: Fetches 4 weekly buckets per FI, compares success rate week-over-week. Each partner card shows trend arrow (green up / red down / gray flat, 2pp threshold) and 4-week session volume sparkline
+- **Ops Command Center** (`/dashboards/operations.html?kiosk=1`): KPI row, merchant health grid (sorted by most jobs), placement volume sparkline, live event feed, 30-sec auto-refresh
+  - **Week-over-week trends**: Fetches prior week for comparison. KPI cards show delta % and prior week values. Success/failure rate KPIs have trend arrows. Each merchant tile shows failure rate trend arrow vs prior week (green = improving, red = worsening, 2pp threshold)
 - **New endpoint**: `GET /api/metrics/ops-feed` — returns last 50 placement events from today (timestamp, merchant, fi_name, status, termination_type)
 - **Shared kiosk infra**: `dashboard-utils.js` — `isKioskMode()`, `initKioskMode()`, `startAutoRefresh()`, `formatRelativeTime()`, `healthColor()`, `opsHealthColor()`
 - **CSS**: `.kiosk-mode` body class, `.kiosk-header`, `.partner-grid`, `.partner-card`, `.partner-detail-panel`, `.merchant-health-grid`, `.merchant-tile`, `.event-feed`, `.health-dot`, `.kiosk-alert`
