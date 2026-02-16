@@ -642,7 +642,7 @@ function init() {
   const kiosk = isKioskMode();
 
   if (kiosk) {
-    initKioskMode("CS Portfolio Dashboard", 300);
+    initKioskMode("CS Portfolio Dashboard — Last 30 Days", 300);
     initKioskLayout();
     state.windowDays = 30;
     loadFiRegistry();
