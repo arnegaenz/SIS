@@ -627,13 +627,16 @@ function evaluateActions(metricsCtx) {
     .sort((a, b) => a.priority - b.priority);
 
   for (const rule of matchingRules) {
-    for (const action of rule.actions) {
+    for (let ai = 0; ai < rule.actions.length; ai++) {
+      const action = rule.actions[ai];
       if (!seen.has(action.headline)) {
         seen.add(action.headline);
         allActions.push({
           headline: action.headline,
           detail: typeof action.detail === 'function' ? action.detail(diagnosis) : action.detail,
           impact: action.impact,
+          ruleId: rule.id,
+          actionIndex: ai,
         });
       }
     }
@@ -1228,6 +1231,9 @@ function buildMonthlyNarrative(quarterLabel, bestMonth) {
 
 // ─── Exports (attach to window for use by funnel-customer.html) ─────────────
 
+// Pull in ACTION_LIBRARY from action-library.js (loaded before this file)
+const AL = window.ActionLibrary || {};
+
 window.EngagementInsights = {
   TIER_BOUNDARIES,
   BENCHMARKS,
@@ -1237,6 +1243,12 @@ window.EngagementInsights = {
   ADMIN_OBJECTIONS,
   ADMIN_BENCHMARK_REFS,
   QBR_NARRATIVE_RULES,
+
+  // Action Library (from action-library.js)
+  ACTION_LIBRARY: AL.ACTION_LIBRARY || {},
+  ACTION_LIBRARY_MAP: AL.ACTION_LIBRARY_MAP || {},
+  getLibraryEntry: AL.getLibraryEntry || (() => null),
+  getLibraryStats: AL.getLibraryStats || (() => null),
 
   // Engine
   buildMetricsContext,

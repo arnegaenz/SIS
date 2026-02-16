@@ -236,10 +236,16 @@ export function buildCustomerReportHtml(data) {
       </div>`;
     }).join("");
 
+    const libMeta = ins.libraryMeta || {};
+    const versionNote = libMeta.version
+      ? ` (Playbook v${libMeta.version} \u2014 Updated ${libMeta.lastUpdated || ''})`
+      : '';
+
     actionsHtml = `
     <div class="page-section">
     <div class="section-title">Recommended Actions</div>
     ${items}
+    <div style="font-size:9px;color:#94a3b8;margin-top:8px;font-style:italic;">Implementation resources with ready-to-use messaging templates are available in the interactive dashboard.${versionNote}</div>
     </div>`;
   }
 

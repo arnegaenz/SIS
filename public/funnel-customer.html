@@ -15,7 +15,8 @@
   <script defer src="./assets/js/nav.js"></script>
   <script type="module" defer src="./assets/js/data-cache.js?v=3"></script>
   <script defer src="./assets/js/filters.js?v=shared"></script>
-  <script src="./assets/js/engagement-insights.js?v=1"></script>
+  <script src="./assets/js/action-library.js?v=1"></script>
+  <script src="./assets/js/engagement-insights.js?v=2"></script>
   <script>
     document.addEventListener("DOMContentLoaded", function(){
       if (window.renderHeaderNav && !window.__sisHeaderNav_funnel_customer) {
@@ -701,6 +702,75 @@
     }
     .action-detail {
       font-size: 0.82rem; color: #64748b; line-height: 1.5;
+    }
+
+    /* ── Action Library Drawer ── */
+    .library-toggle {
+      display: inline-flex; align-items: center; gap: 6px;
+      margin-top: 10px; padding: 6px 12px;
+      background: none; border: 1px solid #cbd5e1; border-radius: 6px;
+      font-size: 13px; color: #3b82f6; cursor: pointer; transition: all 0.2s;
+    }
+    .library-toggle:hover { background: #f1f5f9; border-color: #3b82f6; }
+    .library-toggle .toggle-arrow { transition: transform 0.2s; display: inline-block; }
+    .library-toggle.open .toggle-arrow { transform: rotate(180deg); }
+
+    .action-library-drawer {
+      overflow: hidden; max-height: 0; opacity: 0;
+      transition: max-height 0.35s ease, opacity 0.25s ease, margin 0.25s ease, padding 0.25s ease;
+      margin-top: 0; padding: 0 20px;
+      background: #f8fafc; border-left: 3px solid #3b82f6; border-radius: 0 8px 8px 0;
+    }
+    .action-library-drawer.open {
+      max-height: 800px; opacity: 1;
+      margin-top: 12px; padding: 16px 20px;
+    }
+
+    .library-channel-header {
+      font-size: 13px; font-weight: 600; color: #475569;
+      margin: 12px 0 8px 0; display: flex; align-items: center; gap: 6px;
+    }
+    .library-channel-header:first-child { margin-top: 0; }
+
+    .library-example {
+      padding: 10px 14px 10px 14px; margin: 6px 0;
+      background: white; border: 1px solid #e2e8f0; border-radius: 6px;
+      position: relative; padding-right: 70px;
+    }
+    .library-example-headline {
+      font-weight: 600; font-size: 14px; margin-bottom: 4px; color: #0f172a;
+    }
+    .library-example-body {
+      font-size: 14px; color: #334155; line-height: 1.5;
+    }
+
+    .library-copy-btn {
+      position: absolute; top: 8px; right: 8px;
+      background: none; border: 1px solid #cbd5e1; border-radius: 4px;
+      padding: 4px 8px; font-size: 12px; cursor: pointer;
+      color: #64748b; transition: all 0.2s; white-space: nowrap;
+    }
+    .library-copy-btn:hover { background: #f1f5f9; border-color: #94a3b8; }
+    .library-copy-btn.copy-success { background: #dcfce7; border-color: #86efac; color: #16a34a; }
+
+    .library-shared-note {
+      font-size: 12px; color: #94a3b8; font-style: italic; margin-bottom: 8px;
+    }
+
+    .library-footer {
+      margin-top: 12px; padding-top: 12px; border-top: 1px solid #e2e8f0;
+    }
+    .library-playbook-link {
+      display: block; font-size: 13px; color: #3b82f6; text-decoration: none;
+    }
+    .library-playbook-link:hover { text-decoration: underline; }
+    .library-version {
+      display: block; margin-top: 4px; font-size: 11px; color: #94a3b8;
+    }
+
+    .admin-library-status {
+      font-size: 11px; color: #94a3b8; margin-top: 4px;
+      padding: 3px 8px; background: #fef3c7; border-radius: 4px; display: inline-block;
     }
 
     /* ── Value Projection ── */
@@ -3010,6 +3080,97 @@
 
     // ── Prescriptive Actions ────────────────────────────────────────────────
 
+    function copyLibraryExample(btn) {
+      const text = btn.getAttribute('data-copy');
+      if (!text) return;
+      navigator.clipboard.writeText(text).then(() => {
+        const orig = btn.innerHTML;
+        btn.innerHTML = '\u{2713} Copied!';
+        btn.classList.add('copy-success');
+        setTimeout(() => { btn.innerHTML = orig; btn.classList.remove('copy-success'); }, 1500);
+      }).catch(() => {});
+    }
+
+    function toggleLibraryDrawer(actionIdx) {
+      const allDrawers = document.querySelectorAll('.action-library-drawer');
+      const allToggles = document.querySelectorAll('.library-toggle');
+      const drawer = document.getElementById('library-drawer-' + actionIdx);
+      const toggle = document.getElementById('library-toggle-' + actionIdx);
+      if (!drawer) return;
+
+      const isOpen = drawer.classList.contains('open');
+
+      // Close all (accordion)
+      allDrawers.forEach(d => d.classList.remove('open'));
+      allToggles.forEach(t => t.classList.remove('open'));
+
+      // Open this one if it was closed
+      if (!isOpen) {
+        drawer.classList.add('open');
+        if (toggle) toggle.classList.add('open');
+      }
+    }
+
+    function buildLibraryDrawerHtml(entry, actionIdx, allActions) {
+      if (!entry || !entry.channels || !entry.channels.length) return '';
+
+      const meta = EI.ACTION_LIBRARY._meta || {};
+      const stats = EI.getLibraryStats(entry);
+      const previewChannels = entry.channels.slice(0, 2);
+
+      let drawerContent = '';
+
+      // Shared-with note
+      if (entry._sharedFrom) {
+        // Find the action headline that this shares with
+        const sharedAction = allActions.find(a => {
+          const lib = EI.getLibraryEntry(a.ruleId, a.actionIndex);
+          return lib && !lib._sharedFrom && lib === EI.ACTION_LIBRARY[entry._sharedFrom];
+        });
+        if (sharedAction) {
+          drawerContent += `<div class="library-shared-note">Same resources as "${sharedAction.headline}"</div>`;
+        }
+      }
+
+      for (const ch of previewChannels) {
+        const previewExamples = ch.examples.slice(0, 2);
+        drawerContent += `<div class="library-channel-header"><span>${ch.icon}</span> ${escapeHtml(ch.channel)}</div>`;
+        for (const ex of previewExamples) {
+          // Build copy text: email gets "Subject: headline\n\nbody", SMS gets body only
+          const isEmail = ch.channel.toLowerCase().includes('email');
+          const isSMS = ch.channel.toLowerCase().includes('sms');
+          let copyText = '';
+          if (isEmail && ex.headline) {
+            copyText = 'Subject: ' + ex.headline + '\n\n' + ex.body;
+          } else if (isSMS || !ex.headline) {
+            copyText = ex.body;
+          } else {
+            copyText = (ex.headline ? ex.headline + '\n\n' : '') + ex.body;
+          }
+
+          drawerContent += `<div class="library-example">`;
+          if (ex.headline) drawerContent += `<div class="library-example-headline">${escapeHtml(ex.headline)}</div>`;
+          drawerContent += `<div class="library-example-body">${escapeHtml(ex.body)}</div>`;
+          const safeAttr = escapeHtml(copyText).replace(/\n/g, '&#10;');
+          drawerContent += `<button class="library-copy-btn" data-copy="${safeAttr}" onclick="copyLibraryExample(this)">\u{1F4CB} Copy</button>`;
+          drawerContent += `</div>`;
+        }
+      }
+
+      // Footer with playbook link and version
+      drawerContent += `<div class="library-footer">`;
+      if (stats) {
+        const section = entry.playbookSection || '';
+        drawerContent += `<a class="library-playbook-link" href="/resources/engagement-playbook${section ? '#' + section : ''}" target="_blank">See all ${stats.totalChannels} channels and ${stats.totalExamples} examples in the full playbook \u2192</a>`;
+      }
+      if (meta.version) {
+        drawerContent += `<span class="library-version">Playbook v${meta.version} \u2014 Updated ${meta.lastUpdated || ''}</span>`;
+      }
+      drawerContent += `</div>`;
+
+      return drawerContent;
+    }
+
     function renderActions(ctx) {
       const list = document.getElementById('actionsList');
       const section = document.getElementById('actionsSection');
@@ -3018,15 +3179,40 @@
       const { actions } = EI.evaluateActions(ctx);
       if (!actions.length) { section.style.display = 'none'; return; }
 
+      const isAdmin = isAdminUser();
+
       let html = '';
       actions.forEach((action, i) => {
-        html += `<li class="action-item">
+        const entry = EI.getLibraryEntry(action.ruleId, action.actionIndex);
+        const hasLibrary = entry && entry.channels && entry.channels.length > 0;
+        const stats = hasLibrary ? EI.getLibraryStats(entry) : null;
+
+        html += `<li class="action-item" style="flex-wrap:wrap;">
           <div class="action-priority ${action.impact}">${i + 1}</div>
           <div class="action-body">
             <div class="action-headline">${action.headline}</div>
-            <div class="action-detail">${action.detail}</div>
-          </div>
-        </li>`;
+            <div class="action-detail">${action.detail}</div>`;
+
+        // Admin library status annotation
+        if (isAdmin && stats) {
+          html += `<div class="admin-overlay"><span class="admin-library-status">Library: ${stats.totalChannels} channels, ${stats.totalExamples} examples | Playbook section: ${entry.playbookSection || 'none'}</span></div>`;
+        }
+
+        // Library toggle button (only if entry has content)
+        if (hasLibrary) {
+          html += `<button class="library-toggle" id="library-toggle-${i}" onclick="toggleLibraryDrawer(${i})">How to implement <span class="toggle-arrow">\u25BE</span></button>`;
+        }
+
+        html += `</div>`; // close action-body
+
+        // Library drawer (hidden by default)
+        if (hasLibrary) {
+          html += `<div class="action-library-drawer" id="library-drawer-${i}" style="flex-basis:100%;">`;
+          html += buildLibraryDrawerHtml(entry, i, actions);
+          html += `</div>`;
+        }
+
+        html += `</li>`;
       });
 
       list.innerHTML = html;
@@ -4522,6 +4708,7 @@
                 diagnosisHtml: spectrumDiag.html,
               },
               actions: actions,
+              libraryMeta: (EI.ACTION_LIBRARY && EI.ACTION_LIBRARY._meta) || {},
               projection: projections,
             };
             // Add QBR data if in QBR mode
