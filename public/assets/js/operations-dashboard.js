@@ -447,7 +447,7 @@ function renderMerchantHealthGrid(rows) {
   if (!kioskEls.merchantGrid) return;
   const sorted = [...rows]
     .filter((r) => (r.Jobs_Total || 0) > 0)
-    .sort((a, b) => (a.failure_rate || 0) > (b.failure_rate || 0) ? -1 : 1);
+    .sort((a, b) => (b.Jobs_Total || 0) - (a.Jobs_Total || 0));
 
   kioskEls.merchantGrid.innerHTML = sorted
     .slice(0, 30)
