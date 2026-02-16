@@ -451,6 +451,104 @@ const kioskEls = {
 };
 
 let selectedFi = null;
+let weeklyTrends = new Map(); // fi_lookup_key → { weeks: [{sm, success, rate}], trend: "up"|"down"|"flat" }
+
+async function fetchWeeklyTrends() {
+  // Fetch 4 weekly buckets for per-FI trend data
+  const now = new Date();
+  const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  const weeks = [];
+  for (let w = 0; w < 4; w++) {
+    const wEnd = new Date(end);
+    wEnd.setUTCDate(end.getUTCDate() - w * 7);
+    const wStart = new Date(wEnd);
+    wStart.setUTCDate(wEnd.getUTCDate() - 6);
+    weeks.push({
+      date_from: wStart.toISOString().slice(0, 10),
+      date_to: wEnd.toISOString().slice(0, 10),
+    });
+  }
+
+  try {
+    const results = await Promise.all(
+      weeks.map((w) =>
+        fetch("/api/metrics/funnel", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ date_from: w.date_from, date_to: w.date_to }),
+        }).then((r) => (r.ok ? r.json() : { by_fi: [] }))
+      )
+    );
+
+    // Build per-FI weekly data (index 0 = most recent week)
+    const fiWeeks = new Map();
+    results.forEach((result, weekIdx) => {
+      const byFi = result.by_fi || [];
+      byFi.forEach((row) => {
+        const key = row.fi_lookup_key || row.fi_name || "";
+        if (!key) return;
+        if (!fiWeeks.has(key)) fiWeeks.set(key, { weeks: new Array(4).fill(null) });
+        const sm = row.SM_Sessions || 0;
+        const success = row.Success_Sessions || 0;
+        fiWeeks.get(key).weeks[weekIdx] = {
+          sm,
+          success,
+          rate: sm > 0 ? success / sm : 0,
+        };
+      });
+    });
+
+    // Determine trend for each FI
+    fiWeeks.forEach((data, key) => {
+      const filled = data.weeks.map((w) => w || { sm: 0, success: 0, rate: 0 });
+      // Compare most recent week (0) vs prior week (1)
+      const recent = filled[0];
+      const prior = filled[1];
+      const recentSm = recent.sm;
+      const priorSm = prior.sm;
+
+      let trend = "flat";
+      if (recentSm > 0 && priorSm > 0) {
+        const delta = recent.rate - prior.rate;
+        if (delta > 0.02) trend = "up";
+        else if (delta < -0.02) trend = "down";
+      } else if (recentSm > 0 && priorSm === 0) {
+        trend = "up";
+      } else if (recentSm === 0 && priorSm > 0) {
+        trend = "down";
+      }
+
+      data.trend = trend;
+      weeklyTrends.set(key, data);
+    });
+  } catch (err) {
+    console.warn("[cs-kiosk] trend fetch failed", err);
+  }
+}
+
+function buildSparklineSvg(weeks) {
+  // weeks[0] = most recent, weeks[3] = oldest — reverse for left-to-right chronological
+  const points = [...weeks].reverse().map((w) => (w ? w.sm : 0));
+  const max = Math.max(...points, 1);
+  const w = 48;
+  const h = 20;
+  const pad = 2;
+  const stepX = points.length > 1 ? (w - pad * 2) / (points.length - 1) : 0;
+  const coords = points.map((val, i) => {
+    const x = pad + i * stepX;
+    const y = h - pad - (val / max) * (h - pad * 2);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  });
+  const path = coords.map((c, i) => `${i === 0 ? "M" : "L"}${c}`).join(" ");
+  const color = points[points.length - 1] >= points[points.length - 2] ? "#22c55e" : "#ef4444";
+  return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="vertical-align:middle;"><path d="${path}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linecap="round"/></svg>`;
+}
+
+function trendArrow(trend) {
+  if (trend === "up") return `<span style="color:#22c55e;font-size:0.85rem;" title="Trending up">&#9650;</span>`;
+  if (trend === "down") return `<span style="color:#ef4444;font-size:0.85rem;" title="Trending down">&#9660;</span>`;
+  return `<span style="color:#64748b;font-size:0.7rem;" title="Flat">&#9644;</span>`;
+}
 
 function renderPartnerGrid(rows) {
   if (!kioskEls.partnerGrid) return;
@@ -462,13 +560,17 @@ function renderPartnerGrid(rows) {
     const success = row.Success_Sessions || 0;
     const rate = sm > 0 ? success / sm : 0;
     const color = healthColor(rate);
+    const key = row.fi_lookup_key || row.fi_name || "";
+    const trendData = weeklyTrends.get(key);
+    const trend = trendData ? trendData.trend : "flat";
+    const sparkline = trendData ? buildSparklineSvg(trendData.weeks) : "";
 
     const card = document.createElement("div");
     card.className = `partner-card${selectedFi === row.fi_lookup_key ? " selected" : ""}`;
     card.innerHTML = `
       <div class="partner-card__header">
         <span class="partner-card__name">${row.fi_name || row.fi_lookup_key || "Unknown"}</span>
-        <span class="health-dot ${color}"></span>
+        <span style="display:flex;align-items:center;gap:6px;">${trendArrow(trend)} <span class="health-dot ${color}"></span></span>
       </div>
       <div class="partner-card__metrics">
         <div class="partner-card__metric">
@@ -483,11 +585,15 @@ function renderPartnerGrid(rows) {
           <span class="partner-card__metric-value">${formatNumber(success)}</span>
           <span class="partner-card__metric-label">Successes</span>
         </div>
+        <div class="partner-card__metric" style="margin-left:auto;">
+          ${sparkline}
+          <span class="partner-card__metric-label">4-wk vol</span>
+        </div>
       </div>
     `;
     card.addEventListener("click", () => {
       selectedFi = row.fi_lookup_key;
-      renderPartnerGrid(rows); // re-render to update selected state
+      renderPartnerGrid(rows);
       renderDetailPanel(row);
     });
     kioskEls.partnerGrid.appendChild(card);
@@ -646,7 +752,10 @@ function init() {
     initKioskLayout();
     state.windowDays = 30;
     loadFiRegistry();
-    startAutoRefresh(fetchMetrics, 300000); // 5 minutes
+    startAutoRefresh(async () => {
+      await fetchWeeklyTrends();
+      await fetchMetrics();
+    }, 300000); // 5 minutes
   } else {
     initTimeWindows();
     bindSortHandlers();
