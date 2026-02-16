@@ -114,8 +114,8 @@ All partner-facing content follows engagement-positive tone:
 ## Feb 16, 2026
 
 ### Engagement Playbook — Full Page + PDF Export
-- **New page**: `public/resources/engagement-playbook.html` — auto-generated from ACTION_LIBRARY
-- **Route**: `/resources/engagement-playbook` (serves static HTML, client-side rendering from action-library.js)
+- **New page**: `public/resources/engagement-playbook.html` — auto-generated from ACTION_LIBRARY (now tracked in git)
+- **Route**: `/resources/engagement-playbook` — explicit route added in serve-funnel.mjs (was missing, fell through to SPA fallback)
 - **PDF export**: `POST /api/export-pdf-playbook` — Puppeteer-rendered, reads action-library.js server-side
 - Strivve branded header with embedded base64 logo from `assets/images/StrivveLogo.png`
 - 6 sections: Activation, Campaigns, Visibility, Optimization, Scaling, Member Services
@@ -123,6 +123,14 @@ All partner-facing content follows engagement-positive tone:
 - Sticky nav with IntersectionObserver scroll highlighting
 - Copy-to-clipboard per example, tags display, print-friendly CSS
 - Dashboard drawer "See all N channels..." links now point to playbook with `#section` anchors
+
+### Playbook Section Descriptions
+- **New data**: `PLAYBOOK_SECTIONS` in `action-library.js` — title + description paragraph for each of the 6 sections
+- **Helper**: `getPlaybookSection(sectionKey)` exposed via `window.ActionLibrary` and `window.EngagementInsights`
+- Descriptions render on full playbook page (blue info box above each section's channels)
+- Descriptions render in dashboard "How to implement" drawers (`.library-section-intro`)
+- Content drawn from Strivve TopWallet Playbook reference docs (`assets/reference/`)
+- Reference PDFs checked into repo: `assets/reference/TopWallet Playbook.pdf`, `assets/reference/TopWalletTools.pdf`
 
 ### Monthly Reach % Precision + Editable Member Count
 - `fmtPct()` helper in engagement-insights.js: 2 decimal places when <1%, 1 decimal otherwise
@@ -136,7 +144,7 @@ All partner-facing content follows engagement-positive tone:
 
 ### Action Library — Expandable Implementation Resources
 - **New file**: `public/assets/js/action-library.js` — single source of truth for all copy/messaging templates
-- **Version format**: `3.0.MM.DD.YY` (e.g., `3.0.02.16.26`) — no date display, version only
+- **Version format**: `3.0.YY.MM.DD` (e.g., `3.0.26.02.16`) — manual bump on content change, no date display
 - Expandable "How to implement" drawer on each Recommended Action card (accordion, one open at a time)
 - Copy buttons with channel-aware formatting (email → "Subject: headline\n\nbody", SMS → body only)
 - Admin overlay shows library stats per action (channel count, example count, playbook section)
@@ -249,6 +257,13 @@ An old Mac Pro tower (connected to two 27" Thunderbolt displays) will serve as:
 
 **Setup**: Tailscale + Homebrew + Node.js + Claude Code, prevent sleep, auto-login on restart, kiosk-mode browsers
 **iPad access**: Tailscale + Termius → SSH → `cd ~/project && claude`
+
+**Current status (Feb 16, 2026)**:
+- GitHub SSH key configured (`~/.ssh/id_ed25519`, titled "TrashCanMachine")
+- Lightsail SSH key configured (`~/.ssh/LightsailDefaultKey-us-west-2.pem`)
+- Git remote switched to SSH (`git@github.com:arnegaenz/sis.git`)
+- Claude Code can push/pull GitHub and deploy to Lightsail independently
+- macOS 12 — Homebrew Tier 3, some packages fail to compile (poppler blocked by outdated Xcode CLT)
 
 ---
 
