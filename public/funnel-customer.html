@@ -15,6 +15,7 @@
   <script defer src="./assets/js/nav.js"></script>
   <script type="module" defer src="./assets/js/data-cache.js?v=3"></script>
   <script defer src="./assets/js/filters.js?v=shared"></script>
+  <script src="./assets/js/engagement-insights.js?v=1"></script>
   <script>
     document.addEventListener("DOMContentLoaded", function(){
       if (window.renderHeaderNav && !window.__sisHeaderNav_funnel_customer) {
@@ -428,6 +429,386 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
     .loading-text { font-size: 13px; color: #64748b; }
+
+    /* ═══════════════════════════════════════════════════════════════════════
+       ENGAGEMENT INSIGHTS — Narrative, Spectrum, Actions, Projections, Admin
+       ═══════════════════════════════════════════════════════════════════════ */
+
+    /* Section shared styles */
+    .insights-section {
+      margin: 20px 0 16px;
+      padding: 0;
+    }
+    .insights-section-title {
+      font-size: 13px; font-weight: 700; color: #0f172a;
+      margin: 0 0 12px; padding-bottom: 4px;
+      border-bottom: 2px solid #e2e8f0;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .insights-section-title .section-icon {
+      font-size: 15px; line-height: 1;
+    }
+    .insights-section-title .section-badge {
+      font-size: 9px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.06em; padding: 2px 7px; border-radius: 4px;
+      background: #dbeafe; color: #1e40af;
+    }
+
+    /* ── Narrative insight blocks ── */
+    .insight-block {
+      background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px;
+      padding: 14px 18px; margin-bottom: 10px;
+      font-size: 0.88rem; line-height: 1.65; color: #334155;
+    }
+    .insight-block strong { color: #0f172a; }
+    .insight-block em { font-style: italic; color: #475569; }
+    .insight-block .insight-label {
+      font-size: 10px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.06em; color: #94a3b8; margin-bottom: 4px;
+    }
+    .insight-block .benchmark-ref {
+      margin-top: 8px; padding-top: 8px; border-top: 1px solid #e2e8f0;
+      font-size: 0.82rem; color: #64748b;
+    }
+    .insight-block .benchmark-ref strong { color: #475569; }
+    .insight-block .filter-hint {
+      margin-top: 8px; padding: 6px 10px;
+      background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px;
+      font-size: 0.8rem; color: #1e40af; cursor: pointer;
+      display: inline-flex; align-items: center; gap: 6px;
+      transition: background 0.15s;
+    }
+    .insight-block .filter-hint:hover { background: #dbeafe; }
+    .insight-block .filter-hint::before { content: "💡"; font-size: 12px; }
+    .insight-block .filter-hint-secondary {
+      display: inline-flex; align-items: center; gap: 4px;
+      margin-top: 4px; margin-left: 28px;
+      font-size: 0.72rem; color: #64748b;
+    }
+    .insight-block .filter-hint-secondary a {
+      color: #64748b; text-decoration: none;
+      transition: color 0.15s;
+    }
+    .insight-block .filter-hint-secondary a:hover { color: #1e40af; text-decoration: underline; }
+
+    /* ── Funnel Visualization ── */
+    .funnel-viz {
+      display: flex; align-items: stretch; gap: 0; margin-bottom: 16px;
+      min-height: 120px;
+    }
+    .funnel-stage {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 12px 8px; text-align: center;
+      position: relative; min-width: 0;
+    }
+    .funnel-stage .stage-bar {
+      width: 100%; border-radius: 8px;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 14px 8px; position: relative;
+      transition: transform 0.15s;
+    }
+    .funnel-stage .stage-bar:hover { transform: translateY(-2px); }
+    .funnel-stage .stage-label {
+      font-size: 10px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.04em; color: #64748b; margin-bottom: 4px;
+    }
+    .funnel-stage .stage-value {
+      font-size: 1.3rem; font-weight: 700; color: #0f172a; line-height: 1.2;
+    }
+    .funnel-stage .stage-pct {
+      font-size: 0.75rem; font-weight: 600; margin-top: 2px;
+    }
+    .funnel-arrow {
+      display: flex; align-items: center; justify-content: center;
+      width: 60px; flex-shrink: 0; color: #cbd5e1; font-size: 18px;
+    }
+    .funnel-dropoff, .funnel-expansion, .funnel-neutral {
+      font-size: 12px; font-weight: 600; text-align: center;
+      margin-top: 4px; padding: 3px 8px; border-radius: 5px;
+      line-height: 1.3;
+    }
+    .dropoff-green { color: #16a34a; background: #dcfce7; }
+    .dropoff-yellow { color: #d97706; background: #fef3c7; }
+    .dropoff-red { color: #dc2626; background: #fee2e2; }
+    .funnel-expansion { color: #2563eb; background: #eff6ff; }
+    .funnel-neutral { color: #64748b; background: #f1f5f9; font-weight: 500; }
+    .funnel-insight-link {
+      display: block; font-size: 11px; font-weight: 500;
+      color: #3b82f6; margin-top: 4px; cursor: pointer;
+      text-decoration: none; white-space: nowrap;
+      transition: color 0.15s;
+    }
+    .funnel-insight-link:hover { color: #1d4ed8; text-decoration: underline; }
+    @keyframes insight-highlight {
+      0%, 100% { box-shadow: 0 0 0 3px #f59e0b, 0 0 16px rgba(245,158,11,0.25); }
+      50% { box-shadow: 0 0 0 3px #f59e0b, 0 0 28px rgba(245,158,11,0.45); }
+    }
+    .insight-block.highlight, .scroll-highlight {
+      animation: insight-highlight 1s ease-in-out 3;
+      background-color: rgba(245,158,11,0.08);
+      border-radius: 8px;
+    }
+    .insight-block.highlight-fade, .scroll-highlight-fade {
+      transition: background-color 0.6s ease, box-shadow 0.6s ease;
+      background-color: transparent;
+      box-shadow: none;
+    }
+    @media (max-width: 768px) {
+      .funnel-viz { flex-direction: column; gap: 8px; }
+      .funnel-arrow { width: auto; height: 28px; transform: rotate(90deg); }
+    }
+
+    /* ── QBR Mode ── */
+    .qbr-section { display: none !important; }
+    body.qbr-mode .qbr-section { display: block !important; }
+    .qbr-badge {
+      display: inline-block; background: #fef3c7; color: #92400e;
+      font-size: 10px; font-weight: 700; letter-spacing: 0.05em;
+      padding: 2px 8px; border-radius: 999px; margin-left: 8px;
+      text-transform: uppercase; vertical-align: middle;
+    }
+    .qbr-trend-table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 12px 0; }
+    .qbr-trend-table th, .qbr-trend-table td {
+      padding: 8px 10px; text-align: right; border-bottom: 1px solid #e2e8f0;
+    }
+    .qbr-trend-table th { font-weight: 700; color: #0f172a; text-transform: uppercase; font-size: 11px; letter-spacing: 0.04em; }
+    .qbr-trend-table th:first-child, .qbr-trend-table td:first-child { text-align: left; font-weight: 600; }
+    .qbr-trend-table .trend-up { color: #16a34a; }
+    .qbr-trend-table .trend-down { color: #dc2626; }
+    .qbr-trend-table .trend-flat { color: #94a3b8; }
+    .qbr-sparkline-row { display: flex; flex-wrap: wrap; gap: 20px; margin: 12px 0 16px; }
+    .qbr-sparkline-item { display: flex; flex-direction: column; align-items: center; }
+    .qbr-sparkline-label { font-size: 11px; font-weight: 600; color: #64748b; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.04em; }
+    .qbr-summary-block p { margin: 0 0 10px; line-height: 1.6; }
+    .qbr-summary-block strong { color: #0f172a; }
+    .qbr-yoy-callout {
+      background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px;
+      padding: 14px 16px; margin: 12px 0;
+    }
+    .qbr-yoy-callout .yoy-title { font-weight: 700; font-size: 12px; color: #0369a1; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px; }
+    .qbr-yoy-callout .yoy-row { font-size: 13px; color: #0f172a; margin: 3px 0; }
+    .qbr-monthly-table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 12px 0; }
+    .qbr-monthly-table th, .qbr-monthly-table td { padding: 8px 10px; text-align: right; border-bottom: 1px solid #e2e8f0; }
+    .qbr-monthly-table th { font-weight: 700; color: #0f172a; text-transform: uppercase; font-size: 11px; }
+    .qbr-monthly-table th:first-child, .qbr-monthly-table td:first-child { text-align: left; }
+    .qbr-monthly-table tr.totals-row { font-weight: 700; border-top: 2px solid #cbd5e1; }
+    .qbr-intra-narrative { font-size: 13px; color: #475569; margin-top: 8px; line-height: 1.5; }
+
+    /* ── Share Presentation Mode ── */
+    body.share-presentation-mode #sis-header { display: none !important; }
+    body.share-presentation-mode .sis-nav { display: none !important; }
+    body.share-presentation-mode .admin-overlay { display: none !important; }
+    body.share-presentation-mode .admin-toggle-bar { display: none !important; }
+    body.share-presentation-mode #adminToggleBar { display: none !important; }
+
+    .presentation-header {
+      background: linear-gradient(135deg, #0f172a, #1e293b);
+      color: #fff; padding: 28px 32px 20px;
+      border-radius: 0 0 12px 12px; margin-bottom: 16px;
+    }
+    .pres-brand { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+    .pres-brand-text {
+      font-size: 11px; font-weight: 600; letter-spacing: 0.12em;
+      text-transform: uppercase; color: #0ea5e9;
+    }
+    .pres-title { font-size: 22px; font-weight: 800; margin-bottom: 4px; }
+    .pres-fi { font-size: 16px; font-weight: 600; color: #94a3b8; }
+    .pres-partner { font-size: 13px; color: #64748b; }
+    .pres-dates {
+      margin-top: 8px; font-size: 13px; font-weight: 600; color: #38bdf8;
+      display: inline-block; background: rgba(14,165,233,0.12);
+      border: 1px solid rgba(14,165,233,0.3);
+      border-radius: 20px; padding: 4px 14px;
+    }
+    .pres-prepared { margin-top: 6px; font-size: 11px; color: #64748b; }
+
+    .presentation-footer {
+      text-align: center; padding: 16px; margin-top: 24px;
+      border-top: 1px solid #e2e8f0; font-size: 11px; color: #94a3b8;
+    }
+    .presentation-footer a { color: #0ea5e9; text-decoration: none; }
+
+    @media print {
+      body.share-presentation-mode #sis-header,
+      body.share-presentation-mode .sis-nav,
+      body.share-presentation-mode .admin-overlay,
+      body.share-presentation-mode .admin-toggle-bar { display: none !important; }
+      .presentation-header { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+
+    /* ── Motivation Spectrum Gauge ── */
+    .spectrum-container { margin-bottom: 16px; }
+    .spectrum-gauge {
+      position: relative; height: 48px; border-radius: 8px;
+      overflow: visible; margin-bottom: 8px;
+      display: flex;
+    }
+    .spectrum-zone {
+      height: 100%; display: flex; align-items: center; justify-content: center;
+      font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.95);
+      text-transform: uppercase; letter-spacing: 0.04em;
+      position: relative; overflow: hidden;
+    }
+    .spectrum-zone:first-child { border-radius: 8px 0 0 8px; }
+    .spectrum-zone:last-child { border-radius: 0 8px 8px 0; }
+    .spectrum-marker {
+      position: absolute; top: -6px; width: 3px; height: 60px;
+      background: #0f172a; border-radius: 2px; z-index: 10;
+      transition: left 0.4s ease;
+    }
+    .spectrum-marker::after {
+      content: attr(data-label);
+      position: absolute; bottom: -18px; left: 50%;
+      transform: translateX(-50%); white-space: nowrap;
+      font-size: 10px; font-weight: 700; color: #0f172a;
+      background: #fff; padding: 1px 6px; border-radius: 4px;
+      border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .spectrum-marker.best-marker { background: #2563eb; }
+    .spectrum-marker.best-marker::after { color: #2563eb; border-color: #93c5fd; }
+    .spectrum-labels {
+      display: flex; justify-content: space-between;
+      font-size: 10px; color: #94a3b8; margin-top: 20px;
+    }
+    .spectrum-diagnosis {
+      margin-top: 10px; font-size: 0.88rem; line-height: 1.65; color: #334155;
+    }
+
+    /* ── Prescriptive Actions ── */
+    .actions-list { list-style: none; padding: 0; margin: 0; }
+    .action-item {
+      display: flex; gap: 12px; padding: 12px 16px;
+      background: #fff; border: 1px solid #e2e8f0; border-radius: 10px;
+      margin-bottom: 8px;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .action-item:hover {
+      border-color: #93c5fd; box-shadow: 0 2px 8px rgba(37,99,235,0.08);
+    }
+    .action-priority {
+      flex-shrink: 0; width: 28px; height: 28px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 700; color: #fff;
+    }
+    .action-priority.high { background: #2563eb; }
+    .action-priority.medium { background: #f59e0b; }
+    .action-body { flex: 1; min-width: 0; }
+    .action-headline {
+      font-size: 0.9rem; font-weight: 700; color: #0f172a;
+      margin-bottom: 3px;
+    }
+    .action-detail {
+      font-size: 0.82rem; color: #64748b; line-height: 1.5;
+    }
+
+    /* ── Value Projection ── */
+    .projection-table {
+      width: 100%; border-collapse: collapse; font-size: 13px;
+      margin-bottom: 8px;
+    }
+    .projection-table th {
+      text-align: left; padding: 8px 12px; font-size: 10px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.03em; color: #475569;
+      background: #f1f5f9; border-bottom: 2px solid #e2e8f0;
+    }
+    .projection-table td {
+      padding: 8px 12px; border-bottom: 1px solid #e2e8f0;
+    }
+    .projection-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+    .projection-table .current-row td {
+      font-weight: 600; background: #f8fafc;
+    }
+    .projection-table .scenario-row td {
+      color: #1e40af;
+    }
+    .projection-table .multiplier {
+      font-weight: 700; color: #16a34a; font-size: 0.85em;
+    }
+    .projection-note {
+      font-size: 11px; color: #94a3b8; font-style: italic; margin-top: 4px;
+    }
+
+    /* ── Admin Overlay ── */
+    .admin-overlay { display: none; }
+    body.show-admin-overlay .admin-overlay { display: block; }
+
+    .admin-toggle-bar {
+      display: none; /* hidden by default, shown for admin users */
+      position: fixed; bottom: 16px; right: 16px; z-index: 100;
+      background: #1e293b; color: #f8fafc; border-radius: 10px;
+      padding: 8px 16px; font-size: 12px; font-weight: 600;
+      cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      display: none; align-items: center; gap: 8px;
+      transition: background 0.15s;
+    }
+    .admin-toggle-bar:hover { background: #334155; }
+    .admin-toggle-bar .toggle-indicator {
+      width: 10px; height: 10px; border-radius: 50%;
+      background: #94a3b8; transition: background 0.15s;
+    }
+    body.show-admin-overlay .admin-toggle-bar .toggle-indicator { background: #22c55e; }
+
+    .admin-panel {
+      background: #f0f4ff; border: 1px solid #bfdbfe; border-radius: 10px;
+      padding: 14px 18px; margin-bottom: 10px;
+    }
+    .admin-panel-header {
+      display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+      cursor: pointer;
+    }
+    .admin-panel-header .admin-badge {
+      font-size: 9px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.06em; padding: 2px 7px; border-radius: 4px;
+      background: #1e293b; color: #f8fafc;
+    }
+    .admin-panel-header .admin-panel-title {
+      font-size: 12px; font-weight: 700; color: #1e40af;
+    }
+    .admin-panel-header .expand-icon {
+      margin-left: auto; font-size: 14px; color: #64748b;
+      transition: transform 0.2s;
+    }
+    .admin-panel.collapsed .admin-panel-body { display: none; }
+    .admin-panel.collapsed .expand-icon { transform: rotate(-90deg); }
+    .admin-panel-body {
+      font-size: 0.82rem; line-height: 1.6; color: #334155;
+    }
+    .admin-panel-body .talking-point {
+      padding: 6px 0; border-bottom: 1px solid #dbeafe;
+    }
+    .admin-panel-body .talking-point:last-child { border-bottom: none; }
+    .admin-panel-body .tp-category {
+      font-size: 9px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.05em; color: #6366f1; margin-right: 6px;
+    }
+    .admin-panel-body .copy-btn {
+      background: none; border: 1px solid #cbd5e1; border-radius: 4px;
+      padding: 2px 6px; font-size: 10px; color: #64748b; cursor: pointer;
+      margin-left: 6px;
+    }
+    .admin-panel-body .copy-btn:hover { border-color: #2563eb; color: #2563eb; }
+
+    .objection-card {
+      background: #fff; border: 1px solid #e2e8f0; border-radius: 8px;
+      padding: 10px 14px; margin-bottom: 6px;
+    }
+    .objection-card .objection-q {
+      font-size: 0.82rem; font-weight: 700; color: #dc2626; margin-bottom: 4px;
+    }
+    .objection-card .objection-a {
+      font-size: 0.82rem; color: #334155; line-height: 1.5;
+    }
+
+    .admin-benchmark-refs {
+      background: #fff; border: 1px solid #e2e8f0; border-radius: 8px;
+      padding: 10px 14px; font-size: 11px; color: #475569; line-height: 1.7;
+    }
+    .admin-benchmark-refs .ref-title {
+      font-size: 9px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.05em; color: #dc2626; margin-bottom: 4px;
+    }
   </style>
 </head>
 <body>
@@ -451,6 +832,7 @@
               <option value="last60">Last 60 days</option>
               <option value="last90">Last 90 days</option>
               <option value="ytd">Year to date</option>
+              <option value="qbr">QBR (Quarterly Review)</option>
               <option value="">Custom</option>
             </select>
           </div>
@@ -468,6 +850,7 @@
               <button id="applyBtn" class="form-button">Apply filters</button>
               <button id="exportCsvBtn" class="form-button secondary">Export CSV</button>
               <button id="exportPdfBtn" class="form-button secondary">Export PDF</button>
+              <button id="exportPdfAdminBtn" class="form-button secondary" style="display:none;" title="Export PDF with internal talking points and admin notes">Export with Internal Notes</button>
               <button id="shareLinkBtn" class="form-button secondary" type="button" title="Copy shareable link to clipboard" style="display:none;">Share</button>
             </div>
           </div>
@@ -486,8 +869,8 @@
             <input type="checkbox" id="gaToggle" checked>
             <span class="key-swatch ga"></span> Google Analytics
           </label>
-          <span class="key-item"><span class="key-swatch cs"></span> Session Clickstream</span>
-          <span class="key-item"><span class="key-swatch stats"></span> Session Stats</span>
+          <span class="key-item"><span class="key-swatch cs"></span> Visit Clickstream</span>
+          <span class="key-item"><span class="key-swatch stats"></span> Visit Stats</span>
           <span class="key-item"><span class="key-swatch highlight"></span> Success Metrics</span>
           <span class="key-item"><span class="key-swatch success"></span> Outcomes</span>
         </div>
@@ -500,14 +883,14 @@
             <div class="card-sub" id="subGaSelect"></div>
           </div>
           <div class="perf-card" id="cardSessions">
-            <div class="card-label">Total Sessions</div>
+            <div class="card-label">CardUpdatr Visits</div>
             <div class="card-value" id="valSessions">-</div>
             <div class="card-sub" id="subSessions"></div>
           </div>
           <div class="perf-card highlight" id="cardSuccessRate">
             <div class="card-label">Success Rate</div>
             <div class="card-value" id="valSuccessRate">-</div>
-            <div class="card-sub" id="subSuccessRate">Sessions w/ success ÷ Total sessions</div>
+            <div class="card-sub" id="subSuccessRate">Successful cardholders ÷ Total visits</div>
           </div>
           <div class="perf-card success" id="cardSuccessful" style="cursor:pointer;" title="Click to see merchant breakdown">
             <div class="card-label">Successful Placements</div>
@@ -517,14 +900,14 @@
           </div>
 
           <!-- Row 2: Funnel stages — GA paired with Clickstream -->
-          <div class="grid-row-label">Funnel Stages <span class="muted">— GA traffic vs session clickstream at each step</span></div>
+          <div class="grid-row-label">Funnel Stages <span class="muted">— GA traffic vs visit clickstream at each step</span></div>
           <div class="perf-card ga-card" id="cardGaUser">
             <div class="card-label">User Data Page Views</div>
             <div class="card-value" id="valGaUser">-</div>
             <div class="card-sub" id="subGaUser"></div>
           </div>
           <div class="perf-card cs-card" id="cardCsSelect">
-            <div class="card-label">Select Merchants (Sessions)</div>
+            <div class="card-label">Merchant Browsing (Visits)</div>
             <div class="card-value" id="valCsSelect">-</div>
             <div class="card-sub" id="subCsSelect"></div>
           </div>
@@ -534,7 +917,7 @@
             <div class="card-sub" id="subGaCred"></div>
           </div>
           <div class="perf-card cs-card" id="cardCsUser">
-            <div class="card-label">User Data (Sessions)</div>
+            <div class="card-label">User Data (Visits)</div>
             <div class="card-value" id="valCsUser">-</div>
             <div class="card-sub" id="subCsUser"></div>
           </div>
@@ -542,7 +925,7 @@
           <!-- Row 3: Conversion & Outcomes -->
           <div class="grid-row-label">Conversion & Outcomes</div>
           <div class="perf-card cs-card" id="cardCsCred">
-            <div class="card-label">Credential Entry (Sessions)</div>
+            <div class="card-label">Credential Entry (Visits)</div>
             <div class="card-value" id="valCsCred">-</div>
             <div class="card-sub" id="subCsCred"></div>
           </div>
@@ -552,20 +935,20 @@
             <div class="card-sub" id="subLaunchCredPct"></div>
           </div>
           <div class="perf-card highlight" id="cardSuccessSessions">
-            <div class="card-label">Sessions w/ Successful Placements</div>
+            <div class="card-label">Successful Cardholders</div>
             <div class="card-value" id="valSuccessSessions">-</div>
             <div class="card-sub" id="subSuccessSessions"></div>
           </div>
           <div class="perf-card" id="cardAvgSuccessPerSession">
-            <div class="card-label">Avg Successful Cards Per Session</div>
+            <div class="card-label">Avg Cards Per Cardholder</div>
             <div class="card-value" id="valAvgSuccessPerSession">-</div>
             <div class="card-sub" id="subAvgSuccessPerSession"></div>
           </div>
 
-          <!-- Row 4: Session Depth Analysis -->
-          <div class="grid-row-label">Session Depth Analysis</div>
-          <div class="perf-card stats-card" id="cardMerchantsPerSession" title="How many merchants cardholders attempt per session (sessions with at least one attempt)">
-            <div class="card-label">Merchants Per Session</div>
+          <!-- Row 4: Cardholder Engagement Depth -->
+          <div class="grid-row-label">Cardholder Engagement Depth</div>
+          <div class="perf-card stats-card" id="cardMerchantsPerSession" title="How many merchants cardholders attempt per visit (visits with at least one attempt)">
+            <div class="card-label">Merchants Per Visit</div>
             <div class="stats-chips" id="merchantStatsChips">
               <span class="stats-chip"><b>MEDIAN</b> <span class="chip-val" id="chipMedian">—</span></span>
               <span class="stats-chip"><b>MODE</b> <span class="chip-val" id="chipMode">—</span></span>
@@ -576,7 +959,7 @@
               <button class="stats-dist-toggle" id="toggleDistribution" type="button" aria-expanded="false">Show distribution &#9662;</button>
               <div class="stats-dist-panel" id="distributionPanel">
                 <table class="stats-dist-table">
-                  <thead><tr><th>Merchants per session</th><th>Sessions</th></tr></thead>
+                  <thead><tr><th>Merchants per visit</th><th>Visits</th></tr></thead>
                   <tbody id="distributionBody"></tbody>
                 </table>
                 <div class="stats-dist-empty" id="distributionEmpty" hidden>No distribution data available.</div>
@@ -584,8 +967,8 @@
             </div>
             <div class="card-sub" id="subMerchantsPerSession"></div>
           </div>
-          <div class="perf-card cs-card stats-card" id="cardCsSelectDist" title="Select Merchant page views per session">
-            <div class="card-label">Select Merchant Views / Session</div>
+          <div class="perf-card cs-card stats-card" id="cardCsSelectDist" title="Select Merchant page views per visit">
+            <div class="card-label">Merchant Views Per Visit</div>
             <div class="stats-chips" id="csSelectStatsChips">
               <span class="stats-chip"><b>MEDIAN</b> <span class="chip-val" id="csSelectChipMedian">—</span></span>
               <span class="stats-chip"><b>MODE</b> <span class="chip-val" id="csSelectChipMode">—</span></span>
@@ -596,7 +979,7 @@
               <button class="stats-dist-toggle" id="csSelectToggleDist" type="button" aria-expanded="false">Show distribution &#9662;</button>
               <div class="stats-dist-panel" id="csSelectDistPanel">
                 <table class="stats-dist-table">
-                  <thead><tr><th>Views per session</th><th>Sessions</th></tr></thead>
+                  <thead><tr><th>Views per visit</th><th>Visits</th></tr></thead>
                   <tbody id="csSelectDistBody"></tbody>
                 </table>
                 <div class="stats-dist-empty" id="csSelectDistEmpty" hidden>No data available.</div>
@@ -604,8 +987,8 @@
             </div>
             <div class="card-sub" id="csSelectDistSub"></div>
           </div>
-          <div class="perf-card cs-card stats-card" id="cardCsUserDist" title="User Data page views per session">
-            <div class="card-label">User Data Views / Session</div>
+          <div class="perf-card cs-card stats-card" id="cardCsUserDist" title="User Data page views per visit">
+            <div class="card-label">User Data Views Per Visit</div>
             <div class="stats-chips" id="csUserStatsChips">
               <span class="stats-chip"><b>MEDIAN</b> <span class="chip-val" id="csUserChipMedian">—</span></span>
               <span class="stats-chip"><b>MODE</b> <span class="chip-val" id="csUserChipMode">—</span></span>
@@ -616,7 +999,7 @@
               <button class="stats-dist-toggle" id="csUserToggleDist" type="button" aria-expanded="false">Show distribution &#9662;</button>
               <div class="stats-dist-panel" id="csUserDistPanel">
                 <table class="stats-dist-table">
-                  <thead><tr><th>Views per session</th><th>Sessions</th></tr></thead>
+                  <thead><tr><th>Views per visit</th><th>Visits</th></tr></thead>
                   <tbody id="csUserDistBody"></tbody>
                 </table>
                 <div class="stats-dist-empty" id="csUserDistEmpty" hidden>No data available.</div>
@@ -624,8 +1007,8 @@
             </div>
             <div class="card-sub" id="csUserDistSub"></div>
           </div>
-          <div class="perf-card cs-card stats-card" id="cardCsCredDist" title="Credential Entry page views per session">
-            <div class="card-label">Credential Entry Views / Session</div>
+          <div class="perf-card cs-card stats-card" id="cardCsCredDist" title="Credential Entry page views per visit">
+            <div class="card-label">Credential Attempts Per Visit</div>
             <div class="stats-chips" id="csCredStatsChips">
               <span class="stats-chip"><b>MEDIAN</b> <span class="chip-val" id="csCredChipMedian">—</span></span>
               <span class="stats-chip"><b>MODE</b> <span class="chip-val" id="csCredChipMode">—</span></span>
@@ -636,7 +1019,7 @@
               <button class="stats-dist-toggle" id="csCredToggleDist" type="button" aria-expanded="false">Show distribution &#9662;</button>
               <div class="stats-dist-panel" id="csCredDistPanel">
                 <table class="stats-dist-table">
-                  <thead><tr><th>Views per session</th><th>Sessions</th></tr></thead>
+                  <thead><tr><th>Views per visit</th><th>Visits</th></tr></thead>
                   <tbody id="csCredDistBody"></tbody>
                 </table>
                 <div class="stats-dist-empty" id="csCredDistEmpty" hidden>No data available.</div>
@@ -644,6 +1027,143 @@
             </div>
             <div class="card-sub" id="csCredDistSub"></div>
           </div>
+        </div>
+      </div>
+
+      <!-- ═══ Engagement Insights Sections ═══ -->
+
+      <!-- Funnel Visualization -->
+      <div id="funnelVizSection" class="insights-section" style="display:none;">
+        <div class="insights-section-title">
+          Cardholder Journey Funnel
+          <span class="section-badge">Funnel</span>
+        </div>
+        <div class="funnel-viz" id="funnelViz"></div>
+        <div class="admin-overlay">
+          <div class="admin-panel collapsed" id="adminFunnelPanel">
+            <div class="admin-panel-header" onclick="this.parentElement.classList.toggle('collapsed')">
+              <span class="admin-badge">INTERNAL</span>
+              <span class="admin-panel-title">Funnel Talking Points</span>
+              <span class="expand-icon">▼</span>
+            </div>
+            <div class="admin-panel-body" id="adminFunnelBody"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Funnel Narrative Insights -->
+      <div id="narrativeSection" class="insights-section" style="display:none;">
+        <div class="insights-section-title">
+          Performance Insights
+          <span class="section-badge">Analysis</span>
+        </div>
+        <div id="narrativeBlocks"></div>
+      </div>
+
+      <!-- Motivation Spectrum -->
+      <div id="spectrumSection" class="insights-section" style="display:none;">
+        <div class="insights-section-title">
+          Cardholder Motivation Spectrum
+          <span class="section-badge">Diagnosis</span>
+        </div>
+        <div class="spectrum-container">
+          <div class="spectrum-gauge" id="spectrumGauge"></div>
+          <div class="spectrum-labels">
+            <span>0%</span>
+            <span>Incidental Discovery</span>
+            <span>Campaigns</span>
+            <span>Activation Flow</span>
+            <span>27%+</span>
+          </div>
+          <div class="spectrum-diagnosis" id="spectrumDiagnosis"></div>
+        </div>
+        <div class="admin-overlay">
+          <div class="admin-panel collapsed" id="adminSpectrumPanel">
+            <div class="admin-panel-header" onclick="this.parentElement.classList.toggle('collapsed')">
+              <span class="admin-badge">INTERNAL</span>
+              <span class="admin-panel-title">Motivation Spectrum Talking Points</span>
+              <span class="expand-icon">▼</span>
+            </div>
+            <div class="admin-panel-body" id="adminSpectrumBody"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Prescriptive Actions -->
+      <div id="actionsSection" class="insights-section" style="display:none;">
+        <div class="insights-section-title">
+          Recommended Actions
+          <span class="section-badge">Next Steps</span>
+        </div>
+        <ul class="actions-list" id="actionsList"></ul>
+      </div>
+
+      <!-- Value Projection -->
+      <div id="projectionSection" class="insights-section" style="display:none;">
+        <div class="insights-section-title">
+          Growth Opportunity
+          <span class="section-badge">Projection</span>
+        </div>
+        <div id="projectionContent"></div>
+      </div>
+
+      <!-- ═══ QBR Sections (visible only in QBR mode) ═══ -->
+      <div id="qbrTrendSection" class="insights-section qbr-section page-section" style="display:none;">
+        <div class="insights-section-title">
+          Quarterly Performance Trend
+          <span class="qbr-badge">QBR</span>
+        </div>
+        <div id="qbrTrendTable"></div>
+        <div id="qbrSparklines"></div>
+      </div>
+
+      <div id="qbrNarrativeSection" class="insights-section qbr-section page-section" style="display:none;">
+        <div class="insights-section-title">
+          Quarterly Trend Analysis
+          <span class="qbr-badge">QBR</span>
+        </div>
+        <div id="qbrNarrativeBlocks"></div>
+      </div>
+
+      <div id="qbrYoySection" class="insights-section qbr-section page-section" style="display:none;">
+        <div class="insights-section-title">
+          Year-over-Year Comparison
+          <span class="qbr-badge">QBR</span>
+        </div>
+        <div id="qbrYoyContent"></div>
+      </div>
+
+      <div id="qbrMonthlySection" class="insights-section qbr-section page-section" style="display:none;">
+        <div class="insights-section-title">
+          Monthly Detail — Current Quarter
+          <span class="qbr-badge">QBR</span>
+        </div>
+        <div id="qbrMonthlyContent"></div>
+      </div>
+
+      <div id="qbrSummarySection" class="insights-section qbr-section page-section" style="display:none;">
+        <div class="insights-section-title">
+          Executive Summary &amp; Outlook
+          <span class="qbr-badge">QBR</span>
+        </div>
+        <div id="qbrSummaryContent"></div>
+      </div>
+
+      <!-- Admin Overlay: Objections & Benchmark Refs (floating at bottom of insights) -->
+      <div class="admin-overlay">
+        <div id="adminObjectionsSection" class="insights-section" style="display:none;">
+          <div class="insights-section-title">
+            Objection Responses
+            <span class="section-badge" style="background:#fee2e2;color:#dc2626;">INTERNAL</span>
+          </div>
+          <div id="adminObjectionsBody"></div>
+        </div>
+        <div id="adminBenchmarkRefsSection" class="insights-section" style="display:none;">
+          <div class="insights-section-title">
+            Named Benchmark References
+            <span class="section-badge" style="background:#fee2e2;color:#dc2626;">INTERNAL — DO NOT SHARE</span>
+          </div>
+          <div class="admin-benchmark-refs" id="adminBenchmarkRefsBody"></div>
         </div>
       </div>
 
@@ -670,10 +1190,10 @@
             <th data-sort="ga_cred" class="num ga-col">Credential Views</th>
             <th data-sort="reach" class="num">Monthly Reach %</th>
             <th data-sort="sel_cred_pct" class="num">Sel→Cred %</th>
-            <th data-sort="sel_success_pct" class="num">Sel→Succ %</th>
-            <th data-sort="sessions" class="num">Sessions</th>
-            <th data-sort="sess_with_success" class="num">Successful Sessions</th>
-            <th data-sort="sess_success_pct" class="num">Session Success %</th>
+            <th data-sort="sel_success_pct" class="num">Success Rate</th>
+            <th data-sort="sessions" class="num">Visits</th>
+            <th data-sort="sess_with_success" class="num">Successful Cardholders</th>
+            <th data-sort="sess_success_pct" class="num">Success Rate</th>
             <th data-sort="placements" class="num">Placements</th>
           </tr></thead>
           <tbody></tbody>
@@ -696,10 +1216,10 @@
             <th data-sort="reach" class="num">Monthly Reach %</th>
             <th data-sort="sel_user_pct" class="num">Sel→User %</th>
             <th data-sort="sel_cred_pct" class="num">Sel→Cred %</th>
-            <th data-sort="sel_success_pct" class="num">Sel→Succ %</th>
-            <th data-sort="sessions" class="num">Sessions</th>
-            <th data-sort="sess_with_success" class="num">Successful Sessions</th>
-            <th data-sort="sess_success_pct" class="num">Session Success %</th>
+            <th data-sort="sel_success_pct" class="num">Success Rate</th>
+            <th data-sort="sessions" class="num">Visits</th>
+            <th data-sort="sess_with_success" class="num">Successful Cardholders</th>
+            <th data-sort="sess_success_pct" class="num">Success Rate</th>
             <th data-sort="placements" class="num">Placements</th>
           </tr></thead>
           <tbody></tbody>
@@ -722,10 +1242,10 @@
             <th data-sort="reach" class="num">Monthly Reach %</th>
             <th data-sort="sel_user_pct" class="num">Sel→User %</th>
             <th data-sort="sel_cred_pct" class="num">Sel→Cred %</th>
-            <th data-sort="sel_success_pct" class="num">Sel→Succ %</th>
-            <th data-sort="sessions" class="num">Sessions</th>
-            <th data-sort="sess_with_success" class="num">Successful Sessions</th>
-            <th data-sort="sess_success_pct" class="num">Session Success %</th>
+            <th data-sort="sel_success_pct" class="num">Success Rate</th>
+            <th data-sort="sessions" class="num">Visits</th>
+            <th data-sort="sess_with_success" class="num">Successful Cardholders</th>
+            <th data-sort="sess_success_pct" class="num">Success Rate</th>
             <th data-sort="placements" class="num">Placements</th>
           </tr></thead>
           <tbody></tbody>
@@ -748,10 +1268,10 @@
             <th data-sort="reach" class="num">Monthly Reach %</th>
             <th data-sort="sel_user_pct" class="num">Sel→User %</th>
             <th data-sort="sel_cred_pct" class="num">Sel→Cred %</th>
-            <th data-sort="sel_success_pct" class="num">Sel→Succ %</th>
-            <th data-sort="sessions" class="num">Sessions</th>
-            <th data-sort="sess_with_success" class="num">Successful Sessions</th>
-            <th data-sort="sess_success_pct" class="num">Session Success %</th>
+            <th data-sort="sel_success_pct" class="num">Success Rate</th>
+            <th data-sort="sessions" class="num">Visits</th>
+            <th data-sort="sess_with_success" class="num">Successful Cardholders</th>
+            <th data-sort="sess_success_pct" class="num">Success Rate</th>
             <th data-sort="placements" class="num">Placements</th>
           </tr></thead>
           <tbody></tbody>
@@ -767,6 +1287,12 @@
       <div id="partnerSummary" class="partner-summary" style="display:none;"></div>
 
     </section>
+
+    <!-- Admin overlay toggle (fixed position) -->
+    <div class="admin-toggle-bar" id="adminToggleBar" title="Toggle internal talking points">
+      <span class="toggle-indicator"></span>
+      <span>Internal View</span>
+    </div>
   </main>
   </div>
 
@@ -871,6 +1397,23 @@
         case "last60": start = daysAgo(59); break;
         case "last90": start = daysAgo(89); break;
         case "ytd": start = startOfYear; break;
+        case "qbr": {
+          // Most recent completed quarter + 3 prior quarters (trailing year)
+          const refMonth = ref.getUTCMonth(); // 0-11
+          const refYear = ref.getUTCFullYear();
+          const currentQ = Math.floor(refMonth / 3) + 1;
+          let completedQ, completedYear;
+          if (currentQ === 1) { completedQ = 4; completedYear = refYear - 1; }
+          else { completedQ = currentQ - 1; completedYear = refYear; }
+          // QBR end = last day of completed quarter
+          end = iso(new Date(Date.UTC(completedYear, completedQ * 3, 0)));
+          // Start = first day of quarter 3 before completed (4 quarters total)
+          let startQ = completedQ - 3;
+          let startYear = completedYear;
+          if (startQ <= 0) { startQ += 4; startYear -= 1; }
+          start = `${startYear}-${String((startQ - 1) * 3 + 1).padStart(2, "0")}-01`;
+          break;
+        }
         default: start = daysAgo(6);
       }
       startDateInput.value = start;
@@ -1400,50 +1943,66 @@
           if (!perFiByKey[combo]) perFiByKey[combo] = data;
         }
       });
+      // Collect all 7-day window candidates across all FI/instance combos
+      const len = 7;
+      if (dates.length < len) return [];
+      const allCandidates = [];
+      for (const [comboKey, dailyMap] of Object.entries(fiDaily)) {
+        if (restrict && !allowedSet.has(comboKey)) continue;
+        for (let idx = 0; idx <= dates.length - len; idx += 1) {
+          let sel = 0, user = 0, cred = 0, csSelect = 0, sessions = 0, sessWithJobs = 0, sessWithSuccess = 0, placements = 0;
+          for (let offset = 0; offset < len; offset += 1) {
+            const stats = dailyMap[dates[idx + offset]];
+            if (stats) {
+              sel += stats.select || 0; user += stats.user || 0; cred += stats.cred || 0;
+              csSelect += stats.cs_select || 0;
+              sessions += stats.sessions || 0; sessWithJobs += stats.sess_with_jobs || 0;
+              sessWithSuccess += stats.sess_with_success || 0; placements += stats.placements || 0;
+            }
+          }
+          const sessionSuccessRatio = sessions ? sessWithSuccess / sessions : 0;
+          const selSuccessRatio = csSelect ? sessWithSuccess / csSelect : 0;
+          const credEntryRatio = sel > 0 ? cred / sel : 0;
+          allCandidates.push({
+            key: comboKey,
+            fi: perFiByKey[comboKey]?.fi || comboKey,
+            instance: perFiByKey[comboKey]?.instance || parseFiInstanceKey(comboKey).instance,
+            start: dates[idx], end: dates[idx + len - 1],
+            sel, user, cred, sessionSuccessRatio, selSuccessRatio, credEntryRatio,
+            sessions, sess_with_jobs: sessWithJobs, sess_with_success: sessWithSuccess, placements,
+          });
+        }
+      }
+      if (!allCandidates.length) return [];
+
+      const minVisits = allowLowVolume ? 1 : 10;
+
+      // Compute median weekly visit volume for "at scale" highlight
+      const weeklyVolumes = allCandidates.map(c => c.sessions).sort((a, b) => a - b);
+      const medianVolume = weeklyVolumes[Math.floor(weeklyVolumes.length / 2)] || 0;
+
       const windows = [
-        { label: "Most CardUpdatr Launches", len: 7, minSelects: MIN_SELECTS, minSessions: 0,
-          compare: (c, b) => { if (c.sel !== b.sel) return c.sel - b.sel; if (c.sessionSuccessRatio !== b.sessionSuccessRatio) return c.sessionSuccessRatio - b.sessionSuccessRatio; return c.sessions - b.sessions; } },
-        { label: "Most CardUpdatr Launches with Successful Placements", len: 7, minSelects: 25, minSessions: 14,
-          compare: (c, b) => { if (c.selSuccessRatio !== b.selSuccessRatio) return c.selSuccessRatio - b.selSuccessRatio; if (c.sel !== b.sel) return c.sel - b.sel; return c.sessions - b.sessions; } },
-        { label: "Most Cardholders Starting Merchant Placements", len: 7, minSelects: MIN_SELECTS, minSessions: MIN_SELECTS,
-          compare: (c, b) => { if (c.sessions !== b.sessions) return c.sessions - b.sessions; if (c.sessionSuccessRatio !== b.sessionSuccessRatio) return c.sessionSuccessRatio - b.sessionSuccessRatio; return c.sel - b.sel; } },
-        { label: "Most Cardholders Successfully Placing a Card", len: 7, minSelects: MIN_SELECTS, minSessions: MIN_SELECTS,
-          compare: (c, b) => { if (c.sess_with_success !== b.sess_with_success) return c.sess_with_success - b.sess_with_success; if (c.sessions !== b.sessions) return c.sessions - b.sessions; return c.sel - b.sel; } },
+        { label: "Highest Cardholder Success Rate",
+          filter: (c) => c.sessions >= minVisits,
+          compare: (c, b) => { if (c.sessionSuccessRatio !== b.sessionSuccessRatio) return c.sessionSuccessRatio - b.sessionSuccessRatio; return c.sessions - b.sessions; } },
+        { label: "Most Successful Placements",
+          filter: () => true,
+          compare: (c, b) => { if (c.placements !== b.placements) return c.placements - b.placements; return c.sessionSuccessRatio - b.sessionSuccessRatio; } },
+        { label: "Highest Credential Entry Rate",
+          filter: (c) => c.sessions >= minVisits && c.sel >= minVisits,
+          compare: (c, b) => { if (c.credEntryRatio !== b.credEntryRatio) return c.credEntryRatio - b.credEntryRatio; return c.sel - b.sel; } },
+        { label: "Best Success Rate at Scale",
+          filter: (c) => c.sessions > medianVolume && c.sessions >= minVisits,
+          compare: (c, b) => { if (c.sessionSuccessRatio !== b.sessionSuccessRatio) return c.sessionSuccessRatio - b.sessionSuccessRatio; return c.sessions - b.sessions; } },
       ];
+
       const results = [];
       for (const config of windows) {
-        const { label, len } = config;
-        if (dates.length < len) { results.push({ label, empty: true }); continue; }
-        const compareFn = config.compare;
-        const minSelects = allowLowVolume ? 1 : config.minSelects || MIN_SELECTS;
-        const minSessions = allowLowVolume ? 1 : config.minSessions || 0;
         let best = null;
-        for (const [comboKey, dailyMap] of Object.entries(fiDaily)) {
-          if (restrict && !allowedSet.has(comboKey)) continue;
-          for (let idx = 0; idx <= dates.length - len; idx += 1) {
-            let sel = 0, user = 0, cred = 0, csSelect = 0, sessions = 0, sessWithJobs = 0, sessWithSuccess = 0, placements = 0;
-            for (let offset = 0; offset < len; offset += 1) {
-              const stats = dailyMap[dates[idx + offset]];
-              if (stats) {
-                sel += stats.select || 0; user += stats.user || 0; cred += stats.cred || 0;
-                csSelect += stats.cs_select || 0;
-                sessions += stats.sessions || 0; sessWithJobs += stats.sess_with_jobs || 0;
-                sessWithSuccess += stats.sess_with_success || 0; placements += stats.placements || 0;
-              }
-            }
-            if (sel < minSelects || sessions < minSessions) continue;
-            const sessionSuccessRatio = sessions ? sessWithSuccess / sessions : 0;
-            const selSuccessRatio = csSelect ? sessWithSuccess / csSelect : 0;
-            const candidate = {
-              label, key: comboKey,
-              fi: perFiByKey[comboKey]?.fi || comboKey,
-              instance: perFiByKey[comboKey]?.instance || parseFiInstanceKey(comboKey).instance,
-              start: dates[idx], end: dates[idx + len - 1],
-              sel, user, cred, sessionSuccessRatio, selSuccessRatio,
-              sessions, sess_with_jobs: sessWithJobs, sess_with_success: sessWithSuccess, placements,
-            };
-            if (!best || compareFn(candidate, best) > 0) best = candidate;
-          }
+        for (const candidate of allCandidates) {
+          if (!config.filter(candidate)) continue;
+          const labeled = { ...candidate, label: config.label };
+          if (!best || config.compare(labeled, best) > 0) best = labeled;
         }
         if (best) {
           const aggRow = perFiByKey[best.key] || {};
@@ -1452,9 +2011,8 @@
           best.integration = normalizeIntegrationLabel(aggRow.integration_type || registryInfo?.integration || "UNKNOWN");
           best.partner = aggRow.partner || registryInfo?.partner || "";
           results.push(best);
-        } else {
-          results.push({ label, empty: true });
         }
+        // Skip empty highlights rather than forcing placeholders
       }
       return results;
     }
@@ -1685,7 +2243,7 @@
       if (chipMode) chipMode.textContent = mode !== null ? String(mode) : "—";
       if (chipP75) chipP75.textContent = p75 % 1 === 0 ? String(p75) : p75.toFixed(2);
       if (chipAvg) chipAvg.textContent = avg % 1 === 0 ? String(avg) : avg.toFixed(2);
-      if (subEl) subEl.textContent = `${n.toLocaleString()} sessions with attempts`;
+      if (subEl) subEl.textContent = `${n.toLocaleString()} visits with attempts`;
 
       // Populate distribution table
       if (distBody) {
@@ -1790,7 +2348,7 @@
       if (chipMode) chipMode.textContent = mode !== null ? String(mode) : "—";
       if (chipP75) chipP75.textContent = p75 % 1 === 0 ? String(p75) : p75.toFixed(2);
       if (chipAvg) chipAvg.textContent = avg % 1 === 0 ? String(avg) : avg.toFixed(2);
-      if (subEl) subEl.textContent = `${n.toLocaleString()} sessions`;
+      if (subEl) subEl.textContent = `${n.toLocaleString()} visits`;
 
       if (distBody) {
         distBody.innerHTML = distData.distribution
@@ -1828,10 +2386,10 @@
 
       const launchCredPct = metrics.totalCsSelect > 0 ? ((metrics.totalCsCred / metrics.totalCsSelect) * 100).toFixed(1) + "%" : "—";
       document.getElementById("valLaunchCredPct").textContent = launchCredPct;
-      document.getElementById("subLaunchCredPct").textContent = fmt(metrics.totalCsCred) + " of " + fmt(metrics.totalCsSelect) + " sessions @select";
+      document.getElementById("subLaunchCredPct").textContent = fmt(metrics.totalCsCred) + " of " + fmt(metrics.totalCsSelect) + " visits @select";
 
       document.getElementById("valSuccessSessions").textContent = fmt(metrics.sessionsWithSuccessfulJobs);
-      document.getElementById("subSuccessSessions").textContent = pct(metrics.sessionsWithSuccessfulJobs, metrics.totalSessions) + " of sessions";
+      document.getElementById("subSuccessSessions").textContent = pct(metrics.sessionsWithSuccessfulJobs, metrics.totalSessions) + " of visits";
 
       const successRate = metrics.totalSessions > 0 ? ((metrics.sessionsWithSuccessfulJobs / metrics.totalSessions) * 100).toFixed(1) + "%" : "—";
       document.getElementById("valSuccessRate").textContent = successRate;
@@ -1862,11 +2420,11 @@
 
       // Session clickstream metrics
       document.getElementById("valCsSelect").textContent = fmt(metrics.totalCsSelect);
-      document.getElementById("subCsSelect").textContent = fmt(metrics.totalCsSelect) + " of " + fmt(metrics.totalSessions) + " sessions";
+      document.getElementById("subCsSelect").textContent = fmt(metrics.totalCsSelect) + " of " + fmt(metrics.totalSessions) + " visits";
       document.getElementById("valCsUser").textContent = fmt(metrics.totalCsUser);
-      document.getElementById("subCsUser").textContent = pct(metrics.totalCsUser, metrics.totalCsSelect) + " of sessions @select";
+      document.getElementById("subCsUser").textContent = pct(metrics.totalCsUser, metrics.totalCsSelect) + " of visits @select";
       document.getElementById("valCsCred").textContent = fmt(metrics.totalCsCred);
-      document.getElementById("subCsCred").textContent = pct(metrics.totalCsCred, metrics.totalCsSelect) + " of sessions @select";
+      document.getElementById("subCsCred").textContent = pct(metrics.totalCsCred, metrics.totalCsSelect) + " of visits @select";
 
       // Hide User Data cards when all-SSO (SSO skips user data collection step)
       const cardCsUser = document.getElementById("cardCsUser");
@@ -1894,8 +2452,8 @@
       parts.push(`sel ${fmt(metrics.totalGaSelect)}`);
       parts.push(`user ${fmt(metrics.totalGaUser)}`);
       parts.push(`cred ${fmt(metrics.totalGaCred)}`);
-      parts.push(`sessions ${fmt(metrics.totalSessions)}`);
-      parts.push(`sess w/ success ${fmt(metrics.sessionsWithSuccessfulJobs)}`);
+      parts.push(`visits ${fmt(metrics.totalSessions)}`);
+      parts.push(`successful cardholders ${fmt(metrics.sessionsWithSuccessfulJobs)}`);
       totalsBar.innerHTML = `Totals (${fiCount} FIs): ${parts.join(" | ")}`;
       totalsBar.style.display = "";
     }
@@ -2124,6 +2682,966 @@
       });
     }
 
+    // ═══════════════════════════════════════════════════════════════════════════
+    // ENGAGEMENT INSIGHTS — Rendering Functions
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    const EI = window.EngagementInsights;
+    let insightsCtx = null; // current metrics context for insights engine
+    const isAdminUser = () => {
+      const level = window.sisAuth?.getAccessLevel?.() || '';
+      return level === 'admin' || level === 'full' || level === 'internal';
+    };
+
+    /**
+     * Master function: evaluate and render all insight sections.
+     * Called from applyFilters() after renderMetrics.
+     */
+    function renderInsights(metrics, startDate, endDate, daySpan, visibleRows, best) {
+      if (!EI) { console.warn('[insights] engagement-insights.js not loaded'); return; }
+
+      // Build metrics context
+      insightsCtx = EI.buildMetricsContext(
+        { metrics, best, startDate, endDate, daySpan },
+        { registryMap, visibleRows, filterState: window.__FILTER_STATE }
+      );
+
+      // Need minimum data to show insights
+      const hasData = insightsCtx.totalSessions > 0 || insightsCtx.gaSelect > 0;
+      if (!hasData) {
+        hideInsightsSections();
+        return;
+      }
+
+      renderFunnelViz(insightsCtx);
+      renderNarratives(insightsCtx);
+      renderSpectrum(insightsCtx);
+      renderActions(insightsCtx);
+      renderProjections(insightsCtx);
+
+      // QBR sections (only render when QBR mode is active)
+      renderQBRSections(startDate, endDate);
+
+      // Admin overlay
+      if (isAdminUser()) {
+        renderAdminOverlay(insightsCtx);
+        const toggleBar = document.getElementById('adminToggleBar');
+        if (toggleBar) toggleBar.style.display = 'flex';
+      }
+    }
+
+    function hideInsightsSections() {
+      ['funnelVizSection', 'narrativeSection', 'spectrumSection', 'actionsSection', 'projectionSection', 'qbrTrendSection', 'qbrNarrativeSection', 'qbrYoySection', 'qbrMonthlySection', 'qbrSummarySection', 'adminObjectionsSection', 'adminBenchmarkRefsSection'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+      });
+    }
+
+    // ── Funnel Visualization ────────────────────────────────────────────────
+
+    function renderFunnelViz(ctx) {
+      const container = document.getElementById('funnelViz');
+      const section = document.getElementById('funnelVizSection');
+      if (!container || !section) return;
+
+      // When GA is hidden (SSO mode), use session starts as launches
+      const gaHidden = document.body.classList.contains('hide-ga');
+      const launchLabel = gaHidden ? 'Session Starts' : 'Launches';
+      const launchValue = gaHidden ? ctx.totalSessions : ctx.gaSelect;
+
+      const stages = gaHidden ? [
+        // SSO mode: skip Launches (= visit starts), start from Visits pipeline
+        { label: 'Visits', value: ctx.totalSessions, color: '#fff7ed', borderColor: '#fdba74', textColor: '#9a3412' },
+        { label: 'Credential Entry', value: ctx.credSessions || ctx.gaCred, color: '#fef3c7', borderColor: '#fcd34d', textColor: '#92400e' },
+        { label: 'Successful Cardholders', value: ctx.sessionsWithSuccess, color: '#dbeafe', borderColor: '#93c5fd', textColor: '#1e40af' },
+        { label: 'Placements', value: ctx.successfulPlacements, color: '#dcfce7', borderColor: '#86efac', textColor: '#166534' },
+      ] : [
+        { label: 'Launches', value: ctx.gaSelect, color: '#ede9fe', borderColor: '#c4b5fd', textColor: '#5b21b6' },
+        { label: 'Visits', value: ctx.totalSessions, color: '#fff7ed', borderColor: '#fdba74', textColor: '#9a3412' },
+        { label: 'Credential Entry', value: ctx.credSessions || ctx.gaCred, color: '#fef3c7', borderColor: '#fcd34d', textColor: '#92400e' },
+        { label: 'Successful Cardholders', value: ctx.sessionsWithSuccess, color: '#dbeafe', borderColor: '#93c5fd', textColor: '#1e40af' },
+        { label: 'Placements', value: ctx.successfulPlacements, color: '#dcfce7', borderColor: '#86efac', textColor: '#166534' },
+      ];
+
+      // Calculate relative heights (min 30%, max 100%)
+      const maxVal = Math.max(...stages.map(s => s.value || 0), 1);
+      let html = '';
+
+      // Map stage transitions to narrative scroll targets
+      // Key = "FromLabel→ToLabel", value = data-insight-id prefix to scroll to
+      const transitionTargets = {
+        'Visits→Credential Entry': 'selCred',
+        'Credential Entry→Successful Cardholders': 'credCompletion',
+        'Successful Cardholders→Placements': 'avgCards',
+      };
+
+      stages.forEach((stage, i) => {
+        const heightPct = Math.max(30, Math.round((stage.value / maxVal) * 100));
+
+        if (i > 0 && stages[i - 1].value > 0) {
+          const ratio = stage.value / stages[i - 1].value;
+          const transKey = `${stages[i - 1].label}→${stage.label}`;
+          const scrollTarget = transitionTargets[transKey] || null;
+          let badge = '';
+          if (ratio > 1.05) {
+            const multiplier = ratio.toFixed(1);
+            badge = `<div class="funnel-expansion">${multiplier}× cards per visit</div>`;
+          } else if (ratio >= 0.95) {
+            badge = `<div class="funnel-neutral">Strong follow-through</div>`;
+          } else {
+            const dropPct = (1 - ratio) * 100;
+            let dropClass = 'dropoff-green';
+            if (dropPct > 80) dropClass = 'dropoff-red';
+            else if (dropPct > 50) dropClass = 'dropoff-yellow';
+            // Contextual label based on transition
+            let dropLabel;
+            if (stage.label === 'Credential Entry') {
+              dropLabel = `${dropPct.toFixed(0)}% browse but don't start`;
+            } else if (stage.label === 'Successful Cardholders') {
+              dropLabel = `${dropPct.toFixed(0)}% start but don't finish`;
+            } else {
+              dropLabel = `${dropPct.toFixed(0)}% conversion opportunity`;
+            }
+            badge = `<div class="funnel-dropoff ${dropClass}">${dropLabel}</div>`;
+          }
+          const insightLink = scrollTarget
+            ? `<a class="funnel-insight-link" onclick="scrollToInsight('${scrollTarget}')">See insights →</a>`
+            : '';
+          html += `<div class="funnel-arrow">
+            <div style="text-align:center;">
+              <div style="color:#94a3b8;">→</div>
+              ${badge}
+              ${insightLink}
+            </div>
+          </div>`;
+        } else if (i > 0) {
+          html += `<div class="funnel-arrow"><div style="text-align:center;"><div style="color:#94a3b8;">→</div></div></div>`;
+        }
+
+        html += `<div class="funnel-stage">
+          <div class="stage-bar" style="background:${stage.color};border:1px solid ${stage.borderColor};height:${heightPct}%;min-height:60px;">
+            <div class="stage-label" style="color:${stage.textColor};">${stage.label}</div>
+            <div class="stage-value" style="color:${stage.textColor};">${EI.fmtN(stage.value)}</div>
+          </div>
+        </div>`;
+      });
+
+      container.innerHTML = html;
+      section.style.display = '';
+    }
+
+    // ── Narrative Blocks ────────────────────────────────────────────────────
+
+    function renderNarratives(ctx) {
+      const container = document.getElementById('narrativeBlocks');
+      const section = document.getElementById('narrativeSection');
+      if (!container || !section) return;
+
+      const narratives = EI.evaluateNarratives(ctx);
+      if (!narratives.length) { section.style.display = 'none'; return; }
+
+      let html = '';
+      for (const n of narratives) {
+        html += `<div class="insight-block" data-insight-id="${n.id}">`;
+        html += `<div class="insight-label">${getSectionLabel(n.section)}</div>`;
+        html += `<div>${n.html}</div>`;
+
+        // Benchmark references
+        if (n.benchmarkKeys.length > 0) {
+          const benchmarks = EI.getBenchmarkDisplay(n.benchmarkKeys);
+          if (benchmarks.length > 0) {
+            html += `<div class="benchmark-ref">`;
+            for (const b of benchmarks) {
+              html += `<strong>${b.value}</strong> — ${b.description}`;
+              if (b.proof) html += ` <span style="color:#94a3b8;">(${b.proof})</span>`;
+              html += `<br>`;
+            }
+            html += `</div>`;
+          }
+        }
+
+        // Filter hint
+        if (n.filterHint) {
+          const hintData = escapeHtml(JSON.stringify(JSON.stringify(n.filterHint)));
+          html += `<div class="filter-hint" onclick="applyInsightFilter(${hintData})">${n.filterHint.text}</div>`;
+          if (n.filterHint.secondaryLink) {
+            html += `<div class="filter-hint-secondary"><a href="${escapeHtml(n.filterHint.secondaryLink.url)}" target="_blank" rel="noopener">↗ ${escapeHtml(n.filterHint.secondaryLink.text)}</a></div>`;
+          }
+        }
+
+        html += `</div>`;
+      }
+
+      container.innerHTML = html;
+      section.style.display = '';
+    }
+
+    function getSectionLabel(section) {
+      const labels = {
+        headline: 'Cardholder Performance',
+        conversion: 'Conversion Funnel',
+        outcomes: 'Placement Depth',
+        reach: 'Member Reach',
+        completion: 'Credential Completion',
+        potential: 'Performance Ceiling',
+      };
+      return labels[section] || section;
+    }
+
+    /** Apply action from insight hint — filter, scroll, or navigate */
+    function applyInsightFilter(hintJson) {
+      try {
+        const hint = JSON.parse(hintJson);
+        const action = hint.action || 'filter';
+
+        if (action === 'scroll') {
+          // Scroll to a target section and highlight it
+          const target = document.getElementById(hint.scrollTarget);
+          if (!target) return;
+          const y = target.getBoundingClientRect().top + window.scrollY - 80;
+          window.scrollTo({ top: y, behavior: 'smooth' });
+          // Apply highlight effect after scroll settles
+          setTimeout(() => {
+            target.classList.add('scroll-highlight');
+            target.addEventListener('animationend', () => {
+              target.classList.remove('scroll-highlight');
+              target.classList.add('scroll-highlight-fade');
+              setTimeout(() => target.classList.remove('scroll-highlight-fade'), 700);
+            }, { once: true });
+          }, 400);
+          return;
+        }
+
+        // action === 'filter'
+        const filters = hint.filters || {};
+
+        // Date range filter
+        if (filters.dateFrom && filters.dateTo) {
+          startDateInput.value = filters.dateFrom;
+          endDateInput.value = filters.dateTo;
+          const preset = document.getElementById('datePreset');
+          if (preset) preset.value = '';
+          safeApplyFilters();
+          return;
+        }
+
+        // Integration (or other) filter — update dropdown state then recalculate
+        if (filters.integration && typeof window.__FILTER_SET === 'function') {
+          window.__FILTER_SET({ integration: filters.integration });
+          // __FILTER_SET updates dropdown UI + filter state; now do a full recalculation
+          startLoading('Filtering…');
+          safeApplyFilters().finally(() => stopLoading());
+          return;
+        }
+
+        // Fallback
+        safeApplyFilters();
+      } catch (e) { console.warn('[insights] filter hint error:', e); }
+    }
+
+    /** Scroll to the first matching insight block and highlight it prominently */
+    function scrollToInsight(idPrefix) {
+      // Clear any previous highlight
+      const prev = document.querySelector('.insight-block.highlight, .insight-block.highlight-fade');
+      if (prev) { prev.classList.remove('highlight', 'highlight-fade'); }
+
+      const block = document.querySelector(`.insight-block[data-insight-id^="${idPrefix}"]`);
+      if (!block) return;
+
+      // Scroll with offset so card isn't jammed at viewport top
+      const y = block.getBoundingClientRect().top + window.scrollY - 80;
+      window.scrollTo({ top: y, behavior: 'smooth' });
+
+      // Apply highlight after a short delay to let scroll settle
+      setTimeout(() => {
+        block.classList.add('highlight');
+        block.addEventListener('animationend', () => {
+          block.classList.remove('highlight');
+          block.classList.add('highlight-fade');
+          setTimeout(() => block.classList.remove('highlight-fade'), 700);
+        }, { once: true });
+      }, 100);
+    }
+
+    // ── Motivation Spectrum ─────────────────────────────────────────────────
+
+    function renderSpectrum(ctx) {
+      const gauge = document.getElementById('spectrumGauge');
+      const diagEl = document.getElementById('spectrumDiagnosis');
+      const section = document.getElementById('spectrumSection');
+      if (!gauge || !section) return;
+
+      if (ctx.sessionSuccessPct === null) { section.style.display = 'none'; return; }
+
+      // Build gauge zones (proportional widths on a 0–30% scale)
+      const maxScale = 30;
+      const zones = [
+        { label: 'Tier 3: Incidental', min: 0, max: 3, color: '#ef4444' },
+        { label: '⟶', min: 3, max: 8, color: '#f97316' },
+        { label: 'Tier 2: Campaigns', min: 8, max: 12, color: '#eab308' },
+        { label: '⟶', min: 12, max: 21, color: '#84cc16' },
+        { label: 'Tier 1: Activation', min: 21, max: 30, color: '#22c55e' },
+      ];
+
+      let gaugeHtml = '';
+      for (const z of zones) {
+        const widthPct = ((z.max - z.min) / maxScale) * 100;
+        gaugeHtml += `<div class="spectrum-zone" style="width:${widthPct}%;background:${z.color};">${z.label}</div>`;
+      }
+
+      // Current rate marker
+      const currentPos = Math.min(ctx.sessionSuccessPct / maxScale, 1) * 100;
+      gaugeHtml += `<div class="spectrum-marker" style="left:${currentPos}%;" data-label="Current: ${EI.fmt(ctx.sessionSuccessPct)}%"></div>`;
+
+      // Best week marker
+      if (ctx.bestWeekRate && ctx.bestWeekRate > ctx.sessionSuccessPct * 1.1) {
+        const bestPos = Math.min(ctx.bestWeekRate / maxScale, 1) * 100;
+        gaugeHtml += `<div class="spectrum-marker best-marker" style="left:${bestPos}%;" data-label="Best: ${EI.fmt(ctx.bestWeekRate)}%"></div>`;
+      }
+
+      gauge.innerHTML = gaugeHtml;
+
+      // Diagnosis paragraph
+      const diag = EI.buildSpectrumDiagnosis(ctx);
+      if (diagEl) diagEl.innerHTML = diag.html;
+
+      section.style.display = '';
+    }
+
+    // ── Prescriptive Actions ────────────────────────────────────────────────
+
+    function renderActions(ctx) {
+      const list = document.getElementById('actionsList');
+      const section = document.getElementById('actionsSection');
+      if (!list || !section) return;
+
+      const { actions } = EI.evaluateActions(ctx);
+      if (!actions.length) { section.style.display = 'none'; return; }
+
+      let html = '';
+      actions.forEach((action, i) => {
+        html += `<li class="action-item">
+          <div class="action-priority ${action.impact}">${i + 1}</div>
+          <div class="action-body">
+            <div class="action-headline">${action.headline}</div>
+            <div class="action-detail">${action.detail}</div>
+          </div>
+        </li>`;
+      });
+
+      list.innerHTML = html;
+      section.style.display = '';
+    }
+
+    // ── Value Projection ────────────────────────────────────────────────────
+
+    function renderProjections(ctx) {
+      const container = document.getElementById('projectionContent');
+      const section = document.getElementById('projectionSection');
+      if (!container || !section) return;
+
+      const { current, scenarios } = EI.computeProjections(ctx);
+      if (!scenarios.length || current.sessions < 10) { section.style.display = 'none'; return; }
+
+      let html = `<table class="projection-table">
+        <thead><tr>
+          <th>Scenario</th>
+          <th class="num">Success Rate</th>
+          <th class="num">Projected Placements</th>
+          <th class="num">vs Current</th>
+        </tr></thead>
+        <tbody>
+        <tr class="current-row">
+          <td>Current performance</td>
+          <td class="num">${current.successRate !== null ? EI.fmt(current.successRate) + '%' : '—'}</td>
+          <td class="num">${EI.fmtN(current.placements)}</td>
+          <td class="num">—</td>
+        </tr>`;
+
+      for (const s of scenarios) {
+        const multiplierStr = s.multiplier && s.multiplier > 1
+          ? `<span class="multiplier">${EI.fmt(s.multiplier)}×</span>`
+          : '—';
+        html += `<tr class="scenario-row">
+          <td>${s.label}</td>
+          <td class="num">${EI.fmt(s.rate)}%</td>
+          <td class="num">~${EI.fmtN(s.projectedPlacements)}</td>
+          <td class="num">${multiplierStr}</td>
+        </tr>`;
+      }
+
+      html += `</tbody></table>`;
+      html += `<div class="projection-note">Projections based on current volume of ${EI.fmtN(current.sessions)} CardUpdatr visits over ${current.days} days. Actual results depend on traffic quality and cardholder motivation.</div>`;
+
+      container.innerHTML = html;
+      section.style.display = '';
+    }
+
+    // ── QBR Rendering ─────────────────────────────────────────────────────
+
+    /**
+     * Build SVG sparkline from data points.
+     */
+    function buildSparklineSVG(values, opts = {}) {
+      const { width = 140, height = 36, color = '#2563eb' } = opts;
+      const valid = (values || []).filter(v => v !== null && v !== undefined && !isNaN(v));
+      if (valid.length < 2) return '';
+      const min = Math.min(...valid);
+      const max = Math.max(...valid);
+      const range = max - min || 1;
+      const pad = 4;
+      const points = valid.map((v, i) => {
+        const x = pad + (i / (valid.length - 1)) * (width - 2 * pad);
+        const y = height - pad - ((v - min) / range) * (height - 2 * pad);
+        return `${x.toFixed(1)},${y.toFixed(1)}`;
+      });
+      const last = points[points.length - 1].split(',');
+      return `<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
+        <polyline points="${points.join(' ')}" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="${last[0]}" cy="${last[1]}" r="3" fill="${color}"/>
+      </svg>`;
+    }
+
+    /**
+     * Build quarterly data for QBR mode.
+     * Aggregates data per-quarter across visible FIs.
+     */
+    function buildQBRQuarterlyData(startDate, endDate) {
+      const quarters = [];
+      const startDt = parseDateUtc(startDate);
+      const endDt = parseDateUtc(endDate);
+      let cursor = new Date(Date.UTC(startDt.getUTCFullYear(), Math.floor(startDt.getUTCMonth() / 3) * 3, 1));
+
+      while (cursor <= endDt) {
+        const qStart = formatDateUtc(cursor);
+        const qNum = Math.floor(cursor.getUTCMonth() / 3) + 1;
+        const qYear = cursor.getUTCFullYear();
+        const qEnd = formatDateUtc(new Date(Date.UTC(qYear, qNum * 3, 0)));
+
+        if (qEnd >= startDate && qStart <= endDate) {
+          const cardholderMap = getCardholderMap();
+          const perFi = aggregateData(qStart, qEnd, cardholderMap);
+          const qVisibleRows = getVisibleRows(perFi);
+          const qDaySpan = dayCountInclusive(qStart, qEnd);
+          const qMetrics = calculateMetrics(qStart, qEnd, qVisibleRows);
+
+          // Stamp rows for reach calc
+          qVisibleRows.forEach(row => { row.periodStart = qStart; row.periodEnd = qEnd; row.dayCount = qDaySpan; });
+
+          const qCtx = EI.buildMetricsContext(
+            { metrics: qMetrics, startDate: qStart, endDate: qEnd, daySpan: qDaySpan },
+            { registryMap, visibleRows: qVisibleRows, filterState: window.__FILTER_STATE }
+          );
+          const qTierInfo = EI.classifyTier(qCtx.sessionSuccessPct);
+
+          quarters.push({
+            quarter: `Q${qNum} ${qYear}`,
+            startDate: qStart,
+            endDate: qEnd,
+            metrics: qCtx,
+            rawMetrics: qMetrics,
+            visibleRows: qVisibleRows,
+            daySpan: qDaySpan,
+            tierInfo: qTierInfo,
+          });
+        }
+        cursor = new Date(Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth() + 3, 1));
+      }
+      return quarters;
+    }
+
+    /**
+     * Render the four-quarter trend table.
+     */
+    function renderQBRTrendTable(quartersData) {
+      const container = document.getElementById('qbrTrendTable');
+      const section = document.getElementById('qbrTrendSection');
+      if (!container || !section || !quartersData.length) { if (section) section.style.display = 'none'; return; }
+
+      const metricRows = [
+        { label: 'Total Visits', key: 'totalSessions', format: 'n', pctChange: true },
+        { label: 'Credential Entry Rate', key: 'selCredPct', format: '%' },
+        { label: 'Cardholder Success Rate', key: 'sessionSuccessPct', format: '%' },
+        { label: 'Successful Placements', key: 'successfulPlacements', format: 'n', pctChange: true },
+        { label: 'Avg Cards Per Cardholder', key: 'avgCardsPerSession', format: 'd' },
+        { label: 'Monthly Reach', key: 'monthlyReachPct', format: '%' },
+        { label: 'Motivation Tier', key: '__tier', format: 'tier' },
+      ];
+
+      let html = `<table class="qbr-trend-table"><thead><tr><th>Metric</th>`;
+      for (const q of quartersData) html += `<th>${q.quarter}</th>`;
+      if (quartersData.length >= 2) html += `<th>QoQ Change</th>`;
+      html += `<th>Trend</th></tr></thead><tbody>`;
+
+      for (const mr of metricRows) {
+        html += `<tr><td>${mr.label}</td>`;
+        const values = [];
+        for (const q of quartersData) {
+          const m = q.metrics;
+          let val, display;
+          if (mr.key === '__tier') {
+            val = m.sessionSuccessPct;
+            display = q.tierInfo ? q.tierInfo.label : '—';
+          } else {
+            val = m[mr.key];
+            if (mr.format === '%') display = val !== null && val !== undefined ? EI.fmt(val) + '%' : '—';
+            else if (mr.format === 'n') display = val !== null && val !== undefined ? EI.fmtN(val) : '—';
+            else if (mr.format === 'd') display = val !== null && val !== undefined ? EI.fmt(val) : '—';
+            else display = val !== null && val !== undefined ? String(val) : '—';
+          }
+          values.push(mr.key === '__tier' ? val : val);
+          html += `<td>${display}</td>`;
+        }
+
+        // QoQ change (last two quarters)
+        if (quartersData.length >= 2) {
+          const prev = values[values.length - 2];
+          const curr = values[values.length - 1];
+          if (mr.key === '__tier') {
+            html += `<td>—</td>`;
+          } else if (mr.format === '%') {
+            const pp = EI.computeQoQChangePP(curr, prev);
+            if (pp !== null) {
+              const cls = pp > 0.5 ? 'trend-up' : pp < -0.5 ? 'trend-down' : 'trend-flat';
+              html += `<td class="${cls}">${pp > 0 ? '+' : ''}${EI.fmt(pp)}pp</td>`;
+            } else { html += `<td>—</td>`; }
+          } else if (mr.pctChange) {
+            const pct = EI.computeQoQChange(curr, prev);
+            if (pct !== null) {
+              const cls = pct > 5 ? 'trend-up' : pct < -5 ? 'trend-down' : 'trend-flat';
+              html += `<td class="${cls}">${pct > 0 ? '+' : ''}${EI.fmt(pct)}%</td>`;
+            } else { html += `<td>—</td>`; }
+          } else {
+            html += `<td>—</td>`;
+          }
+        }
+
+        // Trend indicator
+        if (mr.key === '__tier') {
+          const tiers = quartersData.map(q => EI.classifyTier(q.metrics.sessionSuccessPct).tier);
+          const improving = tiers.length >= 2 && tiers[tiers.length - 1] < tiers[0];
+          const stuck = tiers.every(t => t === tiers[0]);
+          if (improving) html += `<td class="trend-up">\u25B2 improving</td>`;
+          else if (stuck) html += `<td class="trend-flat">\u2014 ${tiers[0] === 3 ? 'stuck' : 'stable'}</td>`;
+          else html += `<td class="trend-flat">\u2194 mixed</td>`;
+        } else {
+          const numVals = values.filter(v => v !== null && v !== undefined);
+          const trend = EI.classifyTrend(numVals);
+          if (trend === 'improving') html += `<td class="trend-up">\u25B2 improving</td>`;
+          else if (trend === 'declining') html += `<td class="trend-down">\u25BC declining</td>`;
+          else if (trend === 'stable') html += `<td class="trend-flat">\u2014 stable</td>`;
+          else html += `<td class="trend-flat">\u2194 mixed</td>`;
+        }
+        html += `</tr>`;
+      }
+
+      html += `</tbody></table>`;
+      container.innerHTML = html;
+      section.style.display = '';
+    }
+
+    /**
+     * Render sparklines for key metrics.
+     */
+    function renderQBRSparklines(quartersData) {
+      const container = document.getElementById('qbrSparklines');
+      if (!container || quartersData.length < 2) return;
+
+      const sparklines = [
+        { label: 'Cardholder Success %', values: quartersData.map(q => q.metrics.sessionSuccessPct), color: '#2563eb' },
+        { label: 'Visits', values: quartersData.map(q => q.metrics.totalSessions), color: '#f59e0b' },
+        { label: 'Placements', values: quartersData.map(q => q.metrics.successfulPlacements), color: '#16a34a' },
+        { label: 'Monthly Reach %', values: quartersData.map(q => q.metrics.monthlyReachPct), color: '#8b5cf6' },
+      ];
+
+      let html = '<div class="qbr-sparkline-row">';
+      for (const s of sparklines) {
+        const svg = buildSparklineSVG(s.values, { color: s.color });
+        if (svg) {
+          const vals = s.values.filter(v => v !== null);
+          const latest = vals.length > 0 ? vals[vals.length - 1] : null;
+          html += `<div class="qbr-sparkline-item">
+            <div class="qbr-sparkline-label">${s.label}</div>
+            ${svg}
+            <div style="font-size:11px;color:${s.color};font-weight:700;margin-top:2px;">${latest !== null ? (s.label.includes('%') ? EI.fmt(latest) + '%' : EI.fmtN(latest)) : '—'}</div>
+          </div>`;
+        }
+      }
+      html += '</div>';
+      container.innerHTML = html;
+    }
+
+    /**
+     * Render QBR narrative blocks.
+     */
+    function renderQBRNarratives(qbrNarratives) {
+      const container = document.getElementById('qbrNarrativeBlocks');
+      const section = document.getElementById('qbrNarrativeSection');
+      if (!container || !section) return;
+      if (!qbrNarratives || !qbrNarratives.length) { section.style.display = 'none'; return; }
+
+      const sectionLabels = {
+        trend: 'Trailing Year Trend',
+        highlight: 'Quarter Highlight',
+        divergence: 'Volume vs Conversion',
+        tier: 'Motivation Tier Movement',
+        outcome: 'Placement Outcomes',
+      };
+
+      let html = '';
+      for (const n of qbrNarratives) {
+        html += `<div class="insight-block" data-insight-id="${n.id}">`;
+        html += `<div class="insight-label">${sectionLabels[n.section] || n.section}</div>`;
+        html += `<div>${n.html}</div>`;
+        html += `</div>`;
+      }
+      container.innerHTML = html;
+      section.style.display = '';
+    }
+
+    /**
+     * Render YoY comparison if data available.
+     * This requires checking if we have the same quarter from the prior year.
+     */
+    function renderQBRYoY(quartersData) {
+      const section = document.getElementById('qbrYoySection');
+      const container = document.getElementById('qbrYoyContent');
+      if (!section || !container) return;
+
+      // Look for YoY: the latest quarter vs same quarter last year
+      if (quartersData.length < 4) { section.style.display = 'none'; return; }
+      const latest = quartersData[quartersData.length - 1];
+      const latestQ = latest.quarter; // e.g. "Q4 2025"
+      const match = latestQ.match(/Q(\d) (\d{4})/);
+      if (!match) { section.style.display = 'none'; return; }
+      const qNum = parseInt(match[1]);
+      const qYear = parseInt(match[2]);
+      const priorYearLabel = `Q${qNum} ${qYear - 1}`;
+
+      // Check if we can aggregate the prior year quarter from dailyData
+      const priorStart = `${qYear - 1}-${String((qNum - 1) * 3 + 1).padStart(2, '0')}-01`;
+      const priorEnd = formatDateUtc(new Date(Date.UTC(qYear - 1, qNum * 3, 0)));
+
+      // Check if we have any daily data for the prior year quarter
+      const priorDays = Object.keys(dailyData).filter(d => d >= priorStart && d <= priorEnd);
+      if (priorDays.length === 0) { section.style.display = 'none'; return; }
+
+      // Aggregate prior year quarter data
+      const cardholderMap = getCardholderMap();
+      const priorPerFi = aggregateData(priorStart, priorEnd, cardholderMap);
+      const priorVisibleRows = getVisibleRows(priorPerFi);
+      const priorDaySpan = dayCountInclusive(priorStart, priorEnd);
+      const priorMetrics = calculateMetrics(priorStart, priorEnd, priorVisibleRows);
+      priorVisibleRows.forEach(row => { row.periodStart = priorStart; row.periodEnd = priorEnd; row.dayCount = priorDaySpan; });
+      const priorCtx = EI.buildMetricsContext(
+        { metrics: priorMetrics, startDate: priorStart, endDate: priorEnd, daySpan: priorDaySpan },
+        { registryMap, visibleRows: priorVisibleRows, filterState: window.__FILTER_STATE }
+      );
+
+      const m = latest.metrics;
+      const p = priorCtx;
+
+      const rows = [
+        { label: 'Cardholder Success', curr: m.sessionSuccessPct, prev: p.sessionSuccessPct, format: '%', pp: true },
+        { label: 'Placements', curr: m.successfulPlacements, prev: p.successfulPlacements, format: 'n' },
+        { label: 'Visits', curr: m.totalSessions, prev: p.totalSessions, format: 'n' },
+        { label: 'Credential Entry Rate', curr: m.selCredPct, prev: p.selCredPct, format: '%', pp: true },
+      ];
+
+      let html = `<div class="qbr-yoy-callout">`;
+      html += `<div class="yoy-title">Year-over-Year: ${priorYearLabel} \u2192 ${latestQ}</div>`;
+      for (const r of rows) {
+        const arrow = (r.curr || 0) > (r.prev || 0) ? '\u25B2' : (r.curr || 0) < (r.prev || 0) ? '\u25BC' : '\u2014';
+        const cls = (r.curr || 0) > (r.prev || 0) ? 'trend-up' : (r.curr || 0) < (r.prev || 0) ? 'trend-down' : 'trend-flat';
+        let change = '';
+        if (r.pp) {
+          const pp = EI.computeQoQChangePP(r.curr, r.prev);
+          change = pp !== null ? `(${pp > 0 ? '+' : ''}${EI.fmt(pp)}pp)` : '';
+        } else {
+          const pct = EI.computeQoQChange(r.curr, r.prev);
+          change = pct !== null ? `(${pct > 0 ? '+' : ''}${EI.fmt(pct)}%)` : '';
+        }
+        const fmtVal = r.format === '%'
+          ? (v) => v !== null && v !== undefined ? EI.fmt(v) + '%' : '—'
+          : (v) => v !== null && v !== undefined ? EI.fmtN(v) : '—';
+        html += `<div class="yoy-row">${r.label}: ${fmtVal(r.prev)} \u2192 ${fmtVal(r.curr)} <span class="${cls}">${arrow} ${change}</span></div>`;
+      }
+
+      // YoY narrative
+      const yoyNarrative = EI.buildYoYNarrative(latestQ, m.sessionSuccessPct, p.sessionSuccessPct);
+      if (yoyNarrative) {
+        html += `<div style="margin-top:8px;font-size:13px;color:#0369a1;">${yoyNarrative}</div>`;
+      }
+
+      html += `</div>`;
+      container.innerHTML = html;
+      section.style.display = '';
+    }
+
+    /**
+     * Render monthly breakdown within the most recent QBR quarter.
+     */
+    function renderQBRMonthlyDetail(quartersData) {
+      const section = document.getElementById('qbrMonthlySection');
+      const container = document.getElementById('qbrMonthlyContent');
+      if (!section || !container || !quartersData.length) { if (section) section.style.display = 'none'; return; }
+
+      const latest = quartersData[quartersData.length - 1];
+      const qStart = parseDateUtc(latest.startDate);
+      const months = [];
+
+      for (let mo = 0; mo < 3; mo++) {
+        const mStart = formatDateUtc(new Date(Date.UTC(qStart.getUTCFullYear(), qStart.getUTCMonth() + mo, 1)));
+        const mEnd = formatDateUtc(new Date(Date.UTC(qStart.getUTCFullYear(), qStart.getUTCMonth() + mo + 1, 0)));
+        if (mEnd < latest.startDate || mStart > latest.endDate) continue;
+
+        const cardholderMap = getCardholderMap();
+        const mPerFi = aggregateData(mStart, mEnd, cardholderMap);
+        const mVisible = getVisibleRows(mPerFi);
+        const mDaySpan = dayCountInclusive(mStart, mEnd);
+        const mMetrics = calculateMetrics(mStart, mEnd, mVisible);
+        mVisible.forEach(row => { row.periodStart = mStart; row.periodEnd = mEnd; row.dayCount = mDaySpan; });
+        const mCtx = EI.buildMetricsContext(
+          { metrics: mMetrics, startDate: mStart, endDate: mEnd, daySpan: mDaySpan },
+          { registryMap, visibleRows: mVisible, filterState: window.__FILTER_STATE }
+        );
+
+        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+          'July', 'August', 'September', 'October', 'November', 'December'];
+        const mDate = parseDateUtc(mStart);
+        months.push({
+          label: monthNames[mDate.getUTCMonth()],
+          metrics: mCtx,
+        });
+      }
+
+      if (!months.length) { section.style.display = 'none'; return; }
+
+      let html = `<table class="qbr-monthly-table"><thead><tr>
+        <th>Month</th><th>Visits</th><th>Cred Entry %</th><th>Success Rate</th><th>Placements</th>
+      </tr></thead><tbody>`;
+
+      let totalSessions = 0, totalPlacements = 0;
+      for (const mo of months) {
+        const m = mo.metrics;
+        totalSessions += m.totalSessions;
+        totalPlacements += m.successfulPlacements;
+        html += `<tr>
+          <td>${mo.label}</td>
+          <td>${EI.fmtN(m.totalSessions)}</td>
+          <td>${m.selCredPct !== null ? EI.fmt(m.selCredPct) + '%' : '—'}</td>
+          <td>${m.sessionSuccessPct !== null ? EI.fmt(m.sessionSuccessPct) + '%' : '—'}</td>
+          <td>${EI.fmtN(m.successfulPlacements)}</td>
+        </tr>`;
+      }
+
+      // Totals row
+      const totalRate = totalSessions > 0 ? (totalPlacements / totalSessions * 100) : null;
+      html += `<tr class="totals-row">
+        <td>${latest.quarter} Total</td>
+        <td>${EI.fmtN(totalSessions)}</td>
+        <td>—</td>
+        <td>${totalRate !== null ? EI.fmt(latest.metrics.sessionSuccessPct) + '%' : '—'}</td>
+        <td>${EI.fmtN(totalPlacements)}</td>
+      </tr></tbody></table>`;
+
+      // Intra-quarter narrative
+      if (months.length >= 2) {
+        const rates = months.map(m => m.metrics.sessionSuccessPct).filter(r => r !== null);
+        if (rates.length >= 2) {
+          const bestIdx = rates.indexOf(Math.max(...rates));
+          const bestMonth = months[bestIdx];
+          const monthlyNarrative = EI.buildMonthlyNarrative(latest.quarter, {
+            label: bestMonth.label,
+            sessionSuccessPct: bestMonth.metrics.sessionSuccessPct,
+          });
+          if (monthlyNarrative) {
+            html += `<div class="qbr-intra-narrative">${monthlyNarrative}</div>`;
+          }
+        }
+      }
+
+      container.innerHTML = html;
+      section.style.display = '';
+    }
+
+    /**
+     * Render QBR executive summary.
+     */
+    function renderQBRExecutiveSummary(quartersData, qbrNarratives) {
+      const section = document.getElementById('qbrSummarySection');
+      const container = document.getElementById('qbrSummaryContent');
+      if (!section || !container || !quartersData.length) { if (section) section.style.display = 'none'; return; }
+
+      const latest = quartersData[quartersData.length - 1];
+      // Find best quarter rate for QBR-mode projections
+      let bestQRate = null;
+      for (const q of quartersData) {
+        const r = q.metrics.sessionSuccessPct;
+        if (r !== null && (bestQRate === null || r > bestQRate)) bestQRate = r;
+      }
+      const projections = EI.computeProjections(latest.metrics, { qbrBestQuarterRate: bestQRate });
+      const summaryHtml = EI.buildQBRSummary(quartersData, qbrNarratives, projections);
+
+      if (!summaryHtml) { section.style.display = 'none'; return; }
+      container.innerHTML = summaryHtml;
+      section.style.display = '';
+    }
+
+    /**
+     * Master QBR render function. Called from renderInsights when QBR mode is active.
+     */
+    function renderQBRSections(startDate, endDate) {
+      const isQBR = document.body.classList.contains('qbr-mode');
+      const qbrSections = document.querySelectorAll('.qbr-section');
+
+      if (!isQBR) {
+        qbrSections.forEach(el => el.style.display = 'none');
+        window.__qbrQuartersData = null;
+        window.__qbrNarratives = null;
+        return;
+      }
+
+      const quartersData = buildQBRQuarterlyData(startDate, endDate);
+      if (!quartersData.length) {
+        qbrSections.forEach(el => el.style.display = 'none');
+        return;
+      }
+
+      // Store for PDF payload and event logging
+      window.__qbrQuartersData = quartersData;
+
+      // Render sections
+      renderQBRTrendTable(quartersData);
+      renderQBRSparklines(quartersData);
+
+      const qbrNarratives = EI.evaluateQBRNarratives(quartersData);
+      window.__qbrNarratives = qbrNarratives;
+      renderQBRNarratives(qbrNarratives);
+
+      renderQBRYoY(quartersData);
+      renderQBRMonthlyDetail(quartersData);
+      renderQBRExecutiveSummary(quartersData, qbrNarratives);
+
+      // Log QBR view event (fire-and-forget)
+      logQBREvent('qbr_view', 'web');
+    }
+
+    /**
+     * Log a QBR event to the server.
+     */
+    function logQBREvent(eventType, format) {
+      const fs = window.__FILTER_STATE || {};
+      const token = window.sisAuth?.getToken?.() || localStorage.getItem("sis_session_token") || "";
+      const fiId = fs.fis && fs.fis.size === 1 ? Array.from(fs.fis)[0] : '';
+      const fiName = fiId;
+      const partner = fs.__partnerSetTouched && fs.partnerSet && fs.partnerSet.size === 1 ? Array.from(fs.partnerSet)[0] : '';
+      const qd = window.__qbrQuartersData;
+      const latest = qd && qd.length > 0 ? qd[qd.length - 1] : null;
+      const earliest = qd && qd.length > 0 ? qd[0] : null;
+
+      fetch("/api/qbr-log", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: "Bearer " + token } : {}),
+        },
+        body: JSON.stringify({
+          event_type: eventType,
+          fi_id: fiId,
+          fi_name: fiName,
+          partner: partner,
+          quarter: latest ? latest.quarter : '',
+          trend_period: earliest && latest ? `${earliest.quarter} through ${latest.quarter}` : '',
+          date_range_start: earliest ? earliest.startDate : '',
+          date_range_end: latest ? latest.endDate : '',
+          format: format,
+          metrics_snapshot: qd ? {
+            current_quarter: latest ? {
+              quarter: latest.quarter,
+              total_sessions: latest.metrics.totalSessions,
+              session_success_rate: latest.metrics.sessionSuccessPct,
+              placements: latest.metrics.successfulPlacements,
+              monthly_reach: latest.metrics.monthlyReachPct,
+              motivation_tier: latest.tierInfo ? latest.tierInfo.label : null,
+            } : null,
+            trailing_quarters: (qd.slice(0, -1) || []).map(q => ({
+              quarter: q.quarter,
+              session_success_rate: q.metrics.sessionSuccessPct,
+              placements: q.metrics.successfulPlacements,
+              total_sessions: q.metrics.totalSessions,
+            })),
+            trend_direction: EI.classifyTrend(qd.map(q => q.metrics.sessionSuccessPct)),
+          } : null,
+        }),
+      }).catch(() => {});
+    }
+
+    // ── Admin Overlay ───────────────────────────────────────────────────────
+
+    function renderAdminOverlay(ctx) {
+      const admin = EI.getAdminInsights(ctx);
+
+      // Talking points — distributed into relevant section panels
+      const funnelBody = document.getElementById('adminFunnelBody');
+      const spectrumBody = document.getElementById('adminSpectrumBody');
+      if (funnelBody) {
+        const diagPoints = admin.talkingPoints.filter(p => p.category === 'diagnosis' || p.category === 'strategy');
+        funnelBody.innerHTML = diagPoints.map(p =>
+          `<div class="talking-point"><span class="tp-category">${p.category}</span>${p.html}<button class="copy-btn" onclick="copyText(this)" data-text="${escapeHtml(p.html.replace(/<[^>]+>/g, ''))}">Copy</button></div>`
+        ).join('');
+      }
+      if (spectrumBody) {
+        const actionPoints = admin.talkingPoints.filter(p => p.category === 'action');
+        spectrumBody.innerHTML = actionPoints.map(p =>
+          `<div class="talking-point"><span class="tp-category">${p.category}</span>${p.html}<button class="copy-btn" onclick="copyText(this)" data-text="${escapeHtml(p.html.replace(/<[^>]+>/g, ''))}">Copy</button></div>`
+        ).join('');
+      }
+
+      // Objections
+      const objectionsBody = document.getElementById('adminObjectionsBody');
+      const objectionsSection = document.getElementById('adminObjectionsSection');
+      if (objectionsBody && objectionsSection) {
+        objectionsBody.innerHTML = admin.objections.map(o =>
+          `<div class="objection-card">
+            <div class="objection-q">${o.objection}</div>
+            <div class="objection-a">${o.response}<button class="copy-btn" onclick="copyText(this)" data-text="${escapeHtml(o.response)}" style="margin-left:8px;">Copy</button></div>
+          </div>`
+        ).join('');
+        objectionsSection.style.display = '';
+      }
+
+      // Benchmark references
+      const refsBody = document.getElementById('adminBenchmarkRefsBody');
+      const refsSection = document.getElementById('adminBenchmarkRefsSection');
+      if (refsBody && refsSection) {
+        refsBody.innerHTML = `<div class="ref-title">Named references (do not share with partner)</div>` +
+          admin.benchmarkRefs.map(r => `<div>• ${r}</div>`).join('');
+        refsSection.style.display = '';
+      }
+    }
+
+    /** Copy text from admin talking points */
+    function copyText(btn) {
+      const text = btn.getAttribute('data-text') || btn.previousSibling?.textContent || '';
+      navigator.clipboard.writeText(text).then(() => {
+        const orig = btn.textContent;
+        btn.textContent = 'Copied!';
+        setTimeout(() => { btn.textContent = orig; }, 1500);
+      }).catch(() => {});
+    }
+
+    // ─── Admin toggle setup ─────────────────────────────────────────────────
+    (function setupAdminToggle() {
+      const bar = document.getElementById('adminToggleBar');
+      if (!bar) return;
+      bar.addEventListener('click', () => {
+        document.body.classList.toggle('show-admin-overlay');
+      });
+    })();
+
+    // ═══════════════════════════════════════════════════════════════════════════
+
     function renderHighlights(highlights) {
       const valid = (highlights || []).filter(h => h && !h.empty);
       if (!valid.length) { highlightsSection.style.display = "none"; return; }
@@ -2148,8 +3666,8 @@
       bestWindowsDiv.innerHTML = `<table class="highlights-table">
         <thead><tr>
           <th>Highlight</th><th>FI</th><th>Integration</th><th>Window</th>
-          <th class="num">Launches</th><th class="num">Sessions</th><th class="num">Successful Sessions</th>
-          <th class="num">Sel→Succ %</th><th class="num">Session Success %</th><th class="num">Placements</th>
+          <th class="num">Launches</th><th class="num">Visits</th><th class="num">Successful Cardholders</th>
+          <th class="num">Success Rate</th><th class="num">Cardholder Success %</th><th class="num">Placements</th>
         </tr></thead>
         <tbody>${rows}</tbody>
       </table>`;
@@ -2395,7 +3913,7 @@
           <th data-sort="instances">Instance</th>
           <th data-sort="integration">Integration</th>
           <th data-sort="ga_select" class="num">Launches</th>
-          <th data-sort="cs_select" class="num">Sess @Select</th>`;
+          <th data-sort="cs_select" class="num">Visits @Select</th>`;
       if (!isSso) headerHtml += `<th data-sort="ga_user" class="num">User Data Views</th>`;
       headerHtml += `
           <th data-sort="ga_cred" class="num">Credential Views</th>
@@ -2403,10 +3921,10 @@
       if (!isSso) headerHtml += `<th data-sort="sel_user_pct" class="num">Sel\u2192User %</th>`;
       headerHtml += `
           <th data-sort="sel_cred_pct" class="num">Sel\u2192Cred %</th>
-          <th data-sort="sel_success_pct" class="num">Sel\u2192Succ %</th>
-          <th data-sort="sessions" class="num">Sessions</th>
-          <th data-sort="sess_with_success" class="num">Successful Sessions</th>
-          <th data-sort="sess_success_pct" class="num">Session Success %</th>
+          <th data-sort="sel_success_pct" class="num">Success Rate</th>
+          <th data-sort="sessions" class="num">Visits</th>
+          <th data-sort="sess_with_success" class="num">Successful Cardholders</th>
+          <th data-sort="sess_success_pct" class="num">Cardholder Success %</th>
           <th data-sort="placements" class="num">Placements</th>
         </tr></thead>`;
       table.innerHTML = headerHtml;
@@ -2540,8 +4058,8 @@
         <div class="perf-section-title">${summaryData.partner || "Partner"} Integration Mix <span class="muted">${summaryData.rows.length} integration types</span></div>
         <table><thead><tr>
           <th>Integration</th><th class="num">FIs</th><th class="num ga-col">GA Select</th>
-          <th class="num">Sel→Succ %</th><th class="num">Sessions</th>
-          <th class="num">Sess w/ Success</th><th class="num">Sess→Succ %</th>
+          <th class="num">Success Rate</th><th class="num">Visits</th>
+          <th class="num">Successful Cardholders</th><th class="num">Cardholder Success %</th>
         </tr></thead><tbody>${rows}${totalRow}</tbody></table>`;
       partnerSummaryBox.style.display = "";
     }
@@ -2563,7 +4081,7 @@
       const validH = (highlights || []).filter(h => h && !h.empty);
       if (validH.length) {
         lines.push("Performance Highlights");
-        lines.push(["Highlight","FI","Integration","Window Start","Window End","GA Select","Sessions","Sess w/ Success","Sel→Succ %","Sess→Succ %","Placements"].map(csvEscape).join(","));
+        lines.push(["Highlight","FI","Integration","Window Start","Window End","GA Select","Visits","Successful Cardholders","Success Rate","Cardholder Success %","Placements"].map(csvEscape).join(","));
         validH.forEach(h => {
           const selSuccPct = typeof h.selSuccessRatio === "number" ? (h.selSuccessRatio * 100).toFixed(1) + "%" : "";
           const sessSuccPct = typeof h.sessionSuccessRatio === "number" ? (h.sessionSuccessRatio * 100).toFixed(1) + "%" : "";
@@ -2574,7 +4092,7 @@
 
       // Summary by FI
       if (visibleRows.length) {
-        const header = ["FI","Partner","Integration","Instance","GA Select","Sess @Select","GA User","GA Cred","Monthly Reach %","Select→User %","Select→Cred %","Select→Succ %","Sessions","Sessions w/ Success","Session Success %","Placements"];
+        const header = ["FI","Partner","Integration","Instance","GA Select","Visits @Select","GA User","GA Cred","Monthly Reach %","Select→User %","Select→Cred %","Success Rate","Visits","Successful Cardholders","Cardholder Success %","Placements"];
         lines.push("Summary by FI");
         lines.push(header.map(csvEscape).join(","));
         visibleRows.forEach(row => {
@@ -2598,7 +4116,7 @@
       if (partnerSummary && partnerSummary.rows && partnerSummary.rows.length) {
         const pctStr = (v) => typeof v === "number" && Number.isFinite(v) ? v.toFixed(1) + "%" : "";
         lines.push(`${partnerSummary.partner} Integration Mix`);
-        lines.push(["Integration","FIs","GA Select","Sel→Succ %","Sessions","Sessions w/ Success","Sess→Succ %"].map(csvEscape).join(","));
+        lines.push(["Integration","FIs","GA Select","Success Rate","Visits","Successful Cardholders","Cardholder Success %"].map(csvEscape).join(","));
         partnerSummary.rows.forEach(r => {
           lines.push([r.integration, r.fiCount, r.ga_select, pctStr(r.selSuccessPct), r.sessions, r.sess_with_success, pctStr(r.sessionSuccessPct)].map(csvEscape).join(","));
         });
@@ -2663,6 +4181,12 @@
       renderPartnerSummary(partnerSummary);
 
       lastRenderContext = { perFi, startDate, endDate, daySpan, best, metrics };
+
+      // Engagement Insights — render narrative, spectrum, actions, projections
+      try {
+        renderInsights(metrics, startDate, endDate, daySpan, visibleRows, best);
+      } catch (err) { console.error('[insights] render error:', err); }
+
       const snapshot = shared && shared.page === "funnel-customer";
       lastFilterSnapshot = {
         fis: snapshot && shared.fis ? Array.from(shared.fis).sort().join(',') : '',
@@ -2699,24 +4223,82 @@
 
     if (__isViewMode) {
       window.__sisViewMode = true;
+      document.body.classList.add('share-presentation-mode');
+
+      // Track view
       const __viewSid = __viewParams.get("sid");
       if (__viewSid) {
         try { fetch("/api/share-log/view?sid=" + encodeURIComponent(__viewSid)).catch(function() {}); } catch (e) {}
       }
+
+      // Activate QBR mode if share link was generated in QBR mode
+      if (__viewParams.get("mode") === "qbr") {
+        document.body.classList.add('qbr-mode');
+      }
+
+      // Set dates from URL params
       const vpFrom = __viewParams.get("from");
       const vpTo = __viewParams.get("to");
       if (startDateInput) startDateInput.value = vpFrom || defaultStartDateStr;
       if (endDateInput) endDateInput.value = vpTo || defaultEndDateStr;
-      const presetEl = document.getElementById("datePreset");
-      if (presetEl) { presetEl.value = ""; presetEl.disabled = true; }
-      if (startDateInput) startDateInput.disabled = true;
-      if (endDateInput) endDateInput.disabled = true;
+
+      // Hide all filter controls
+      const filterBarEl = document.getElementById("filter-bar");
+      if (filterBarEl) filterBarEl.style.display = "none";
+      const funelHeader = document.querySelector(".funnel-header");
+      if (funelHeader) funelHeader.style.display = "none";
+
+      // Hide action buttons except Export PDF
       if (applyBtn) applyBtn.style.display = "none";
       if (exportCsvBtn) exportCsvBtn.style.display = "none";
+      const shareLinkBtn2 = document.getElementById("shareLinkBtn");
+      if (shareLinkBtn2) shareLinkBtn2.style.display = "none";
+      const adminPdfBtnView = document.getElementById("exportPdfAdminBtn");
+      if (adminPdfBtnView) adminPdfBtnView.style.display = "none";
+
+      // KEEP Export PDF visible for shared views
       const exportPdfBtnView = document.getElementById("exportPdfBtn");
-      if (exportPdfBtnView) exportPdfBtnView.style.display = "none";
-      const presetParent = document.getElementById("datePreset");
-      if (presetParent) presetParent.parentElement.style.display = "none";
+      if (exportPdfBtnView) exportPdfBtnView.style.display = "";
+
+      // Inject branded presentation header
+      const isQBRShare = __viewParams.get("mode") === "qbr";
+      const fiNameShare = __viewParams.get("fi") || '';
+      const partnerShare = __viewParams.get("partner") || '';
+      const daysCount = vpFrom && vpTo ? dayCountInclusive(vpFrom, vpTo) : null;
+
+      const presHeader = document.createElement("div");
+      presHeader.className = "presentation-header";
+      presHeader.innerHTML = `
+        <div class="pres-brand">
+          <span class="pres-brand-text">Strivve CardUpdatr\u2122</span>
+        </div>
+        <div class="pres-title">${isQBRShare ? 'Quarterly Business Review' : 'Cardholder Engagement Report'}</div>
+        ${fiNameShare ? `<div class="pres-fi">${fiNameShare}</div>` : ''}
+        ${partnerShare ? `<div class="pres-partner">${partnerShare}</div>` : ''}
+        <div class="pres-dates">
+          ${vpFrom || ''} \u2014 ${vpTo || ''}${daysCount ? ` (${daysCount} Days)` : ''}
+        </div>
+        <div class="pres-prepared">Prepared by Strivve CardUpdatr\u2122 Platform</div>
+        <div style="margin-top:10px;">
+          <button id="exportPdfBtnPres" class="form-button" style="font-size:0.85rem;padding:8px 20px;min-width:auto;">Export PDF</button>
+        </div>
+      `;
+
+      const sisContent = document.querySelector(".sis-content") || document.querySelector(".sis-panel");
+      if (sisContent) sisContent.insertBefore(presHeader, sisContent.firstChild);
+
+      // Wire the presentation Export PDF button to same handler
+      const presPdfBtn = document.getElementById("exportPdfBtnPres");
+      if (presPdfBtn && exportPdfBtnView) {
+        presPdfBtn.addEventListener("click", () => exportPdfBtnView.click());
+      }
+
+      // Inject clean footer
+      const presFooter = document.createElement("div");
+      presFooter.className = "presentation-footer";
+      presFooter.innerHTML = `Generated by Strivve CardUpdatr\u2122 Platform | <a href="https://strivve.com" target="_blank" rel="noopener">strivve.com</a>`;
+      if (sisContent) sisContent.appendChild(presFooter);
+
     } else {
       // Check for date params from redirect
       const urlFrom = __viewParams.get("from");
@@ -2754,6 +4336,10 @@
             const arr = Array.from(fs.partnerSet);
             if (arr.length === 1) params.set("partner", arr[0]);
           }
+          // Preserve QBR mode in share link
+          if (document.body.classList.contains("qbr-mode")) {
+            params.set("mode", "qbr");
+          }
           const shareUrl = window.location.origin + window.location.pathname + "?" + params.toString();
           navigator.clipboard.writeText(shareUrl).then(function() {
             shareLinkBtn.textContent = "Copied!";
@@ -2785,6 +4371,8 @@
     if (gaToggle) {
       gaToggle.addEventListener("change", () => {
         document.body.classList.toggle("hide-ga", !gaToggle.checked);
+        // Re-render funnel viz with updated stage pipeline
+        if (insightsCtx) renderFunnelViz(insightsCtx);
       });
     }
 
@@ -2898,6 +4486,88 @@
         const shareUrl = window.location.origin + window.location.pathname + "?" + shareParams.toString();
         try { fetch("/api/share-log", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sid: pdfSid, url: shareUrl }) }).catch(() => {}); } catch (e) {}
 
+        // Build insights payload for PDF
+        let insightsPayload = null;
+        if (insightsCtx && EI) {
+          try {
+            const ctx = insightsCtx;
+            const narrativeResults = EI.evaluateNarratives(ctx);
+            const spectrumDiag = EI.buildSpectrumDiagnosis(ctx);
+            const { actions } = EI.evaluateActions(ctx);
+            const projections = EI.computeProjections(ctx);
+
+            const pdfGaHidden = document.body.classList.contains('hide-ga');
+            const pdfFunnelStages = pdfGaHidden ? [
+              { label: 'Visits', value: ctx.totalSessions, color: '#fff7ed', borderColor: '#fdba74', textColor: '#9a3412' },
+              { label: 'Credential Entry', value: ctx.credSessions || ctx.gaCred, color: '#fef3c7', borderColor: '#fcd34d', textColor: '#92400e' },
+              { label: 'Successful Cardholders', value: ctx.sessionsWithSuccess, color: '#dbeafe', borderColor: '#93c5fd', textColor: '#1e40af' },
+              { label: 'Placements', value: ctx.successfulPlacements, color: '#dcfce7', borderColor: '#86efac', textColor: '#166534' },
+            ] : [
+              { label: 'Launches', value: ctx.gaSelect, color: '#ede9fe', borderColor: '#c4b5fd', textColor: '#5b21b6' },
+              { label: 'Visits', value: ctx.totalSessions, color: '#fff7ed', borderColor: '#fdba74', textColor: '#9a3412' },
+              { label: 'Credential Entry', value: ctx.credSessions || ctx.gaCred, color: '#fef3c7', borderColor: '#fcd34d', textColor: '#92400e' },
+              { label: 'Successful Cardholders', value: ctx.sessionsWithSuccess, color: '#dbeafe', borderColor: '#93c5fd', textColor: '#1e40af' },
+              { label: 'Placements', value: ctx.successfulPlacements, color: '#dcfce7', borderColor: '#86efac', textColor: '#166534' },
+            ];
+            insightsPayload = {
+              funnel: pdfFunnelStages,
+              narratives: narrativeResults.map(n => ({
+                sectionLabel: getSectionLabel(n.section),
+                html: n.html,
+                benchmarks: EI.getBenchmarkDisplay(n.benchmarkKeys),
+              })),
+              spectrum: {
+                currentRate: ctx.sessionSuccessPct,
+                bestRate: ctx.bestWeekRate,
+                diagnosisHtml: spectrumDiag.html,
+              },
+              actions: actions,
+              projection: projections,
+            };
+            // Add QBR data if in QBR mode
+            if (document.body.classList.contains('qbr-mode') && window.__qbrQuartersData) {
+            const qd = window.__qbrQuartersData;
+            insightsPayload.qbr = {
+              quarters: qd.map(q => ({
+                quarter: q.quarter,
+                startDate: q.startDate,
+                endDate: q.endDate,
+                metrics: {
+                  totalSessions: q.metrics.totalSessions,
+                  sessionsWithSuccess: q.metrics.sessionsWithSuccess,
+                  successfulPlacements: q.metrics.successfulPlacements,
+                  sessionSuccessPct: q.metrics.sessionSuccessPct,
+                  gaSelect: q.metrics.gaSelect,
+                  monthlyReachPct: q.metrics.monthlyReachPct,
+                  avgCardsPerSession: q.metrics.avgCardsPerSession,
+                  selCredPct: q.metrics.selCredPct,
+                },
+                tierLabel: q.tierInfo ? q.tierInfo.label : null,
+              })),
+              narratives: (window.__qbrNarratives || []).map(n => ({
+                id: n.id, section: n.section, html: n.html,
+              })),
+              sparklines: {
+                sessions: buildSparklineSVG(qd.map(q => q.metrics.totalSessions), { color: '#f59e0b' }),
+                successRate: buildSparklineSVG(qd.map(q => q.metrics.sessionSuccessPct || 0), { color: '#2563eb' }),
+                placements: buildSparklineSVG(qd.map(q => q.metrics.successfulPlacements), { color: '#16a34a' }),
+              },
+              summary: document.getElementById('qbrSummaryContent')?.innerHTML || '',
+              isAdmin: !!window.__pdfIncludeAdmin,
+            };
+            // Include admin insights if requested
+            if (window.__pdfIncludeAdmin && insightsCtx && EI) {
+              const adminData = EI.getAdminInsights(insightsCtx);
+              insightsPayload.qbr.adminInsights = {
+                talkingPoints: adminData.talkingPoints || [],
+                objections: adminData.objections || [],
+                benchmarkRefs: adminData.benchmarkRefs || [],
+              };
+            }
+            }
+          } catch (e) { console.warn('[pdf] insights build error:', e); }
+        }
+
         const payload = {
           startDate, endDate, filterContext, shareUrl,
           metrics: {
@@ -2913,6 +4583,7 @@
             selSuccessRatio: h.selSuccessRatio, sessionSuccessRatio: h.sessionSuccessRatio, empty: h.empty,
           })),
           partnerSummary: latestPartnerSummary || null,
+          insights: insightsPayload,
         };
         const token = window.sisAuth?.getToken?.() || localStorage.getItem("sis_session_token") || "";
         const resp = await fetch("/api/export-pdf-customer", {
@@ -2927,15 +4598,29 @@
         const blob = await resp.blob();
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
-        a.href = url; a.download = `cardholder-engagement-${startDate}-to-${endDate}.pdf`;
+        const isQBR = document.body.classList.contains('qbr-mode');
+        a.href = url; a.download = `${isQBR ? 'qbr' : 'cardholder-engagement'}-${startDate}-to-${endDate}.pdf`;
         document.body.appendChild(a); a.click(); a.remove();
         setTimeout(() => URL.revokeObjectURL(url), 0);
+        // Log QBR PDF export event
+        if (isQBR) {
+          logQBREvent(window.__pdfIncludeAdmin ? 'qbr_pdf_admin' : 'qbr_pdf', 'pdf');
+        }
       } catch (err) {
         console.error("[pdf] Export failed:", err);
         alert("PDF export failed: " + err.message);
       } finally {
         btn.textContent = origText; btn.disabled = false;
       }
+    });
+
+    // ─── Admin PDF Export (with internal notes) ───
+    document.getElementById("exportPdfAdminBtn")?.addEventListener("click", () => {
+      // Set admin flag and trigger the normal PDF export
+      window.__pdfIncludeAdmin = true;
+      document.getElementById("exportPdfBtn")?.click();
+      // Reset after a tick (the export handler reads it synchronously)
+      setTimeout(() => { window.__pdfIncludeAdmin = false; }, 100);
     });
 
     // ─── Init ───
@@ -3016,6 +4701,10 @@
     if (presetSelect) {
       presetSelect.addEventListener("change", () => {
         const val = presetSelect.value;
+        document.body.classList.toggle("qbr-mode", val === "qbr");
+        // Show/hide admin export button for QBR mode
+        const adminPdfBtn = document.getElementById("exportPdfAdminBtn");
+        if (adminPdfBtn) adminPdfBtn.style.display = (val === "qbr" && isAdminUser()) ? "" : "none";
         if (val) { applyPresetRange(val); safeApplyFilters(); }
       });
     }

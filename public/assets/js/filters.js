@@ -1345,6 +1345,24 @@
 
     renderFilterBar(container, state, options, apply);
 
+    /** Programmatically set filter values and trigger refresh + apply */
+    window.__FILTER_SET = (overrides) => {
+      if (overrides.integration) {
+        state.integrationSet = new Set([overrides.integration]);
+        state.__integrationSetTouched = true;
+        state.integration = overrides.integration;
+      }
+      if (overrides.partner) {
+        state.partnerSet = new Set([overrides.partner]);
+        state.__partnerSetTouched = true;
+        state.partner = overrides.partner;
+      }
+      refreshOptions();
+      writeQuery(state);
+      writeStorage(state);
+      apply();
+    };
+
     // In view mode, hide the Clear filters button
     if (isViewMode) {
       const clearBtn = container.querySelector("#filter-clear");

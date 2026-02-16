@@ -2620,6 +2620,7 @@ const server = http.createServer(async (req, res) => {
   // ========== Activity Logging ==========
   const ACTIVITY_LOG_FILE = path.join(DATA_DIR, "activity.log");
   const SHARED_VIEWS_LOG_FILE = path.join(DATA_DIR, "shared-views.log");
+  const QBR_EVENTS_LOG_FILE = path.join(DATA_DIR, "qbr-events.log");
 
   if (pathname === "/analytics/log" && req.method === "POST") {
     try {
@@ -2664,6 +2665,60 @@ const server = http.createServer(async (req, res) => {
     } catch (err) {
       console.error("[analytics] read error:", err);
       return send(res, 500, { error: "Failed to read activity log" });
+    }
+  }
+
+  // ========== QBR Event Logging ==========
+
+  if (pathname === "/api/qbr-log" && req.method === "POST") {
+    try {
+      const session = await validateSession(req, queryParams);
+      if (!session) return send(res, 401, { ok: false });
+
+      const body = await readRequestBody(req);
+      const payload = JSON.parse(body || "{}");
+
+      const logLine = JSON.stringify({
+        ts: new Date().toISOString(),
+        event_type: (payload.event_type || "qbr_generated").slice(0, 50),
+        generated_by: session.user.email,
+        fi_id: (payload.fi_id || "").slice(0, 100),
+        fi_name: (payload.fi_name || "").slice(0, 200),
+        partner: (payload.partner || "").slice(0, 100),
+        integration: (payload.integration || "").slice(0, 50),
+        quarter: (payload.quarter || "").slice(0, 20),
+        trend_period: (payload.trend_period || "").slice(0, 60),
+        date_range_start: (payload.date_range_start || "").slice(0, 10),
+        date_range_end: (payload.date_range_end || "").slice(0, 10),
+        format: (payload.format || "web").slice(0, 10),
+        metrics_snapshot: payload.metrics_snapshot || null,
+      }) + "\n";
+
+      await fs.appendFile(QBR_EVENTS_LOG_FILE, logLine);
+      return send(res, 200, { ok: true });
+    } catch (err) {
+      console.error("[qbr-log] error:", err);
+      return send(res, 500, { ok: false });
+    }
+  }
+
+  if (pathname === "/analytics/qbr-events" && req.method === "GET") {
+    const auth = await validateSession(req, queryParams);
+    if (!auth) return send(res, 401, { error: "Authentication required" });
+    if (auth.user.access_level !== "admin" && auth.user.access_level !== "full") {
+      return send(res, 403, { error: "Admin access required" });
+    }
+
+    try {
+      const content = await fs.readFile(QBR_EVENTS_LOG_FILE, "utf8").catch(() => "");
+      const lines = content.trim().split("\n").filter(Boolean);
+      const entries = lines.map(line => {
+        try { return JSON.parse(line); } catch { return null; }
+      }).filter(Boolean);
+      return send(res, 200, { entries });
+    } catch (err) {
+      console.error("[qbr-log] read error:", err);
+      return send(res, 500, { error: "Failed to read QBR events log" });
     }
   }
 
@@ -2744,8 +2799,10 @@ const server = http.createServer(async (req, res) => {
         highlights: body.highlights || [],
         partnerSummary: body.partnerSummary || null,
         shareUrl: body.shareUrl || null,
+        insights: body.insights || null,
       });
 
+      const isQBR = !!(body.insights && body.insights.qbr && body.insights.qbr.quarters);
       const browser = await getPdfBrowser();
       const page = await browser.newPage();
       try {
@@ -2753,16 +2810,27 @@ const server = http.createServer(async (req, res) => {
           waitUntil: "networkidle0",
           timeout: 15000,
         });
-        const pdfBuffer = await page.pdf({
+        const pdfOpts = {
           format: "Letter",
           printBackground: true,
-          margin: { top: "0", right: "0", bottom: "0", left: "0" },
-        });
+        };
+        if (isQBR) {
+          pdfOpts.margin = { top: "10px", right: "0", bottom: "36px", left: "0" };
+          pdfOpts.displayHeaderFooter = true;
+          pdfOpts.headerTemplate = '<span></span>';
+          pdfOpts.footerTemplate = `<div style="width:100%;font-size:8px;color:#94a3b8;display:flex;justify-content:space-between;padding:0 44px;font-family:Inter,-apple-system,sans-serif;">
+            <span>Strivve CardUpdatr™ Platform</span>
+            <span>Page <span class="pageNumber"></span> of <span class="totalPages"></span></span>
+          </div>`;
+        } else {
+          pdfOpts.margin = { top: "0", right: "0", bottom: "0", left: "0" };
+        }
+        const pdfBuffer = await page.pdf(pdfOpts);
 
         setCors(res);
         res.writeHead(200, {
           "Content-Type": "application/pdf",
-          "Content-Disposition": `attachment; filename="cardholder-engagement-${body.startDate}-to-${body.endDate}.pdf"`,
+          "Content-Disposition": `attachment; filename="${isQBR ? 'qbr' : 'cardholder-engagement'}-${body.startDate}-to-${body.endDate}.pdf"`,
           "Content-Length": pdfBuffer.length,
         });
         res.end(pdfBuffer);
