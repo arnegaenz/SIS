@@ -5069,6 +5069,46 @@ const server = http.createServer(async (req, res) => {
       return send(res, status, { error: err?.message || "Unable to build ops metrics" });
     }
   }
+
+  // ── Ops Event Feed (kiosk real-time feed) ──
+  if (pathname === "/api/metrics/ops-feed" && req.method === "GET") {
+    const session = await validateSession(req, queryParams);
+    if (!session) {
+      return send(res, 401, { error: "Authentication required" });
+    }
+    try {
+      const today = new Date().toISOString().slice(0, 10);
+      const placementsRaw = await readPlacementDay(today);
+      const placements = (placementsRaw && Array.isArray(placementsRaw.placements))
+        ? placementsRaw.placements
+        : [];
+      const fiRegistry = await loadFiRegistrySafe();
+      const fiMeta = buildFiMetaMap(fiRegistry);
+
+      const events = placements
+        .map((placement) => {
+          const job = mapPlacementToJob(placement, placement.fi_lookup_key || placement.fi, placement._instance);
+          const fiKey = normalizeFiKey(job.fi_key || placement.fi_lookup_key || placement.fi_name || "");
+          const fiName = fiMeta.get(fiKey)?.fi || placement.fi_name || fiKey || "Unknown";
+          const status = categorizeJobStatus(job);
+          const timestamp = job.created_on || placement.job_created_on || placement.created_on || "";
+          return {
+            timestamp,
+            merchant: (job.merchant || "unknown").toString(),
+            fi_name: fiName,
+            status,
+            termination_type: (job.termination || "").toString(),
+          };
+        })
+        .sort((a, b) => (b.timestamp || "").localeCompare(a.timestamp || ""))
+        .slice(0, 50);
+
+      return send(res, 200, { events });
+    } catch (err) {
+      return send(res, 500, { error: err?.message || "Unable to build ops feed" });
+    }
+  }
+
 	  if (pathname === "/sessions/jobs-stats") {
       let payload = null;
       if (req.method === "POST") {

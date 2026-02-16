@@ -156,6 +156,24 @@
         </div>
       </div>
     </section>
+
+    <!-- Kiosk mode containers (hidden in normal mode, shown when ?kiosk=1) -->
+    <div id="kioskKpiRow" class="kiosk-kpi-row" style="display:none;"></div>
+    <div id="kioskSplit" class="kiosk-split" style="display:none;">
+      <div>
+        <div class="kiosk-section-title">Merchant Health</div>
+        <div id="kioskMerchantGrid" class="merchant-health-grid"></div>
+      </div>
+      <div>
+        <div class="kiosk-section-title">Placement Volume (7 days)</div>
+        <div id="kioskVolumeChart" class="card chart-panel" style="min-height:200px;"></div>
+        <div class="kiosk-section-title" style="margin-top:16px;">Live Event Feed</div>
+        <div id="kioskEventFeed" class="event-feed">
+          <div class="event-feed__header">Recent Placements</div>
+          <div class="event-feed__list" id="kioskEventList"></div>
+        </div>
+      </div>
+    </div>
   </div>
 </body>
 </html>

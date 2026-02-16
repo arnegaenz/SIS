@@ -113,6 +113,16 @@ All partner-facing content follows engagement-positive tone:
 
 ## Feb 16, 2026
 
+### Command Center Dashboards (Kiosk Mode)
+- **Approach**: Added `?kiosk=1` query parameter to existing dashboards — no code duplication
+- **CS Portfolio** (`/dashboards/customer-success.html?kiosk=1`): Partner grid with health indicators, detail panel on click, alert section for low-performing FIs, 5-min auto-refresh
+- **Ops Command Center** (`/dashboards/operations.html?kiosk=1`): KPI row, merchant health grid, placement volume sparkline, live event feed, 30-sec auto-refresh
+- **New endpoint**: `GET /api/metrics/ops-feed` — returns last 50 placement events from today (timestamp, merchant, fi_name, status, termination_type)
+- **Shared kiosk infra**: `dashboard-utils.js` — `isKioskMode()`, `initKioskMode()`, `startAutoRefresh()`, `formatRelativeTime()`, `healthColor()`, `opsHealthColor()`
+- **CSS**: `.kiosk-mode` body class, `.kiosk-header`, `.partner-grid`, `.partner-card`, `.partner-detail-panel`, `.merchant-health-grid`, `.merchant-tile`, `.event-feed`, `.health-dot`, `.kiosk-alert`
+- Dark theme forced, nav/toolbar hidden, full-viewport layout
+- Health thresholds: CS uses >=15%/5% (green/amber/red), Ops uses >=85%/70%
+
 ### Engagement Playbook — Full Page + PDF Export
 - **New page**: `public/resources/engagement-playbook.html` — auto-generated from ACTION_LIBRARY (now tracked in git)
 - **Route**: `/resources/engagement-playbook` — explicit route added in serve-funnel.mjs (was missing, fell through to SPA fallback)

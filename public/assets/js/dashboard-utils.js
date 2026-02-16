@@ -168,3 +168,114 @@ export function attachSortHandlers(table, onSort) {
     });
   });
 }
+
+/* ── Kiosk / Command Center Utilities ── */
+
+export function isKioskMode() {
+  return new URLSearchParams(window.location.search).get("kiosk") === "1";
+}
+
+export function initKioskMode(title, refreshSeconds) {
+  document.body.classList.add("kiosk-mode");
+  document.documentElement.setAttribute("data-theme", "dark");
+
+  const header = document.createElement("div");
+  header.className = "kiosk-header";
+  header.innerHTML = `
+    <div class="kiosk-header__title">${title}</div>
+    <div class="kiosk-header__status">
+      <div class="kiosk-header__countdown">
+        <span class="kiosk-header__countdown-label">Next refresh</span>
+        <div class="kiosk-header__countdown-bar">
+          <div class="kiosk-header__countdown-fill" id="kioskCountdownFill"></div>
+        </div>
+      </div>
+      <div class="kiosk-header__clock" id="kioskClock"></div>
+      <div class="kiosk-header__dot" id="kioskDot"></div>
+    </div>
+  `;
+  document.body.prepend(header);
+
+  // Live clock
+  const clockEl = document.getElementById("kioskClock");
+  function updateClock() {
+    clockEl.textContent = new Date().toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    });
+  }
+  updateClock();
+  setInterval(updateClock, 1000);
+
+  return { header };
+}
+
+export function startAutoRefresh(fetchFn, intervalMs) {
+  const fillEl = document.getElementById("kioskCountdownFill");
+  const dotEl = document.getElementById("kioskDot");
+  let timer = null;
+  let countdownTimer = null;
+
+  function startCountdown() {
+    if (!fillEl) return;
+    const startTime = Date.now();
+    fillEl.style.transition = "none";
+    fillEl.style.width = "100%";
+    if (countdownTimer) clearInterval(countdownTimer);
+    countdownTimer = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      const pct = Math.max(0, 100 - (elapsed / intervalMs) * 100);
+      fillEl.style.transition = "none";
+      fillEl.style.width = `${pct}%`;
+    }, 1000);
+  }
+
+  async function refresh() {
+    try {
+      if (dotEl) dotEl.classList.remove("error");
+      await fetchFn();
+    } catch (err) {
+      console.error("[kiosk] refresh failed", err);
+      if (dotEl) dotEl.classList.add("error");
+    }
+    startCountdown();
+  }
+
+  // Initial fetch
+  refresh();
+
+  // Schedule repeating
+  timer = setInterval(refresh, intervalMs);
+
+  return {
+    stop() {
+      if (timer) clearInterval(timer);
+      if (countdownTimer) clearInterval(countdownTimer);
+    },
+  };
+}
+
+export function formatRelativeTime(dateStr) {
+  const now = Date.now();
+  const then = new Date(dateStr).getTime();
+  const diffSec = Math.floor((now - then) / 1000);
+  if (diffSec < 10) return "just now";
+  if (diffSec < 60) return `${diffSec}s ago`;
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffHr = Math.floor(diffMin / 60);
+  return `${diffHr}h ago`;
+}
+
+export function healthColor(successRate) {
+  if (successRate >= 0.15) return "green";
+  if (successRate >= 0.05) return "amber";
+  return "red";
+}
+
+export function opsHealthColor(successRate) {
+  if (successRate >= 0.85) return "green";
+  if (successRate >= 0.70) return "amber";
+  return "red";
+}

@@ -164,6 +164,19 @@
         </div>
       </div>
     </section>
+
+    <!-- Kiosk mode containers (hidden in normal mode, shown when ?kiosk=1) -->
+    <div id="kioskAlerts" class="kiosk-alerts" style="display:none;"></div>
+    <div id="kioskPartnerGrid" class="partner-grid" style="display:none;"></div>
+    <div id="kioskDetailPanel" class="partner-detail-panel">
+      <div class="partner-detail-panel__title">
+        <span id="detailPanelName"></span>
+        <span id="detailPanelHealth"></span>
+        <button class="partner-detail-panel__close" id="detailPanelClose">&times;</button>
+      </div>
+      <div class="partner-detail-panel__grid" id="detailPanelStats"></div>
+      <div class="partner-detail-panel__funnel" id="detailPanelFunnel"></div>
+    </div>
   </div>
 </body>
 </html>

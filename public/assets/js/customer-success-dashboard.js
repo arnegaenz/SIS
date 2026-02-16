@@ -7,6 +7,10 @@ import {
   createMultiSelect,
   sortRows,
   attachSortHandlers,
+  isKioskMode,
+  initKioskMode,
+  startAutoRefresh,
+  healthColor,
 } from "./dashboard-utils.js";
 
 const TIME_WINDOWS = [3, 30, 90, 180];
@@ -335,12 +339,16 @@ async function fetchMetrics() {
     const byFi = normalizeRows(data.by_fi || []);
     const bySource = normalizeRows(data.by_source || []);
 
-    renderKpis(overall);
-    renderFunnel(overall);
-    renderSsoComparison(data.by_sso_segment || []);
-    renderFiTable(byFi);
-    renderSourceTable(bySource);
-    updateSourceFilters(data.by_source || []);
+    if (isKioskMode()) {
+      renderKioskView();
+    } else {
+      renderKpis(overall);
+      renderFunnel(overall);
+      renderSsoComparison(data.by_sso_segment || []);
+      renderFiTable(byFi);
+      renderSourceTable(bySource);
+      updateSourceFilters(data.by_source || []);
+    }
   } catch (err) {
     if (err.name !== "AbortError") {
       console.error("[customer-success] fetch failed", err);
@@ -429,17 +437,228 @@ function bindSortHandlers() {
   });
 }
 
-function init() {
-  initTimeWindows();
-  bindSortHandlers();
-  loadFiRegistry();
-  els.fiScope.addEventListener("change", (event) => {
-    state.fiScope = event.target.value || "all";
-    fetchMetrics();
+/* ── Kiosk Mode: Partner Grid + Detail Panel + Alerts ── */
+
+const kioskEls = {
+  alerts: document.getElementById("kioskAlerts"),
+  partnerGrid: document.getElementById("kioskPartnerGrid"),
+  detailPanel: document.getElementById("kioskDetailPanel"),
+  detailPanelName: document.getElementById("detailPanelName"),
+  detailPanelHealth: document.getElementById("detailPanelHealth"),
+  detailPanelStats: document.getElementById("detailPanelStats"),
+  detailPanelFunnel: document.getElementById("detailPanelFunnel"),
+  detailPanelClose: document.getElementById("detailPanelClose"),
+};
+
+let selectedFi = null;
+
+function renderPartnerGrid(rows) {
+  if (!kioskEls.partnerGrid) return;
+  kioskEls.partnerGrid.innerHTML = "";
+  const sorted = [...rows].sort((a, b) => (b.SM_Sessions || 0) - (a.SM_Sessions || 0));
+
+  sorted.forEach((row) => {
+    const sm = row.SM_Sessions || 0;
+    const success = row.Success_Sessions || 0;
+    const rate = sm > 0 ? success / sm : 0;
+    const color = healthColor(rate);
+
+    const card = document.createElement("div");
+    card.className = `partner-card${selectedFi === row.fi_lookup_key ? " selected" : ""}`;
+    card.innerHTML = `
+      <div class="partner-card__header">
+        <span class="partner-card__name">${row.fi_name || row.fi_lookup_key || "Unknown"}</span>
+        <span class="health-dot ${color}"></span>
+      </div>
+      <div class="partner-card__metrics">
+        <div class="partner-card__metric">
+          <span class="partner-card__metric-value">${formatNumber(sm)}</span>
+          <span class="partner-card__metric-label">Sessions</span>
+        </div>
+        <div class="partner-card__metric">
+          <span class="partner-card__metric-value">${formatRate(success, sm)}</span>
+          <span class="partner-card__metric-label">Success</span>
+        </div>
+        <div class="partner-card__metric">
+          <span class="partner-card__metric-value">${formatNumber(success)}</span>
+          <span class="partner-card__metric-label">Successes</span>
+        </div>
+      </div>
+    `;
+    card.addEventListener("click", () => {
+      selectedFi = row.fi_lookup_key;
+      renderPartnerGrid(rows); // re-render to update selected state
+      renderDetailPanel(row);
+    });
+    kioskEls.partnerGrid.appendChild(card);
   });
-  els.exportOverall.addEventListener("click", handleExportFi);
-  els.exportSources.addEventListener("click", handleExportSources);
-  fetchMetrics();
+}
+
+function renderDetailPanel(row) {
+  if (!kioskEls.detailPanel) return;
+  const sm = row.SM_Sessions || 0;
+  const ce = row.CE_Sessions || 0;
+  const success = row.Success_Sessions || 0;
+  const jobsTotal = row.Jobs_Total || 0;
+  const jobsSuccess = row.Jobs_Success || 0;
+  const rate = sm > 0 ? success / sm : 0;
+
+  kioskEls.detailPanelName.textContent = row.fi_name || row.fi_lookup_key || "Unknown";
+  kioskEls.detailPanelHealth.innerHTML = `<span class="health-dot ${healthColor(rate)}"></span>`;
+
+  kioskEls.detailPanelStats.innerHTML = `
+    <div class="partner-detail-panel__stat">
+      <span class="partner-detail-panel__stat-value">${formatNumber(sm)}</span>
+      <span class="partner-detail-panel__stat-label">SM Sessions</span>
+    </div>
+    <div class="partner-detail-panel__stat">
+      <span class="partner-detail-panel__stat-value">${formatNumber(ce)}</span>
+      <span class="partner-detail-panel__stat-label">CE Sessions</span>
+    </div>
+    <div class="partner-detail-panel__stat">
+      <span class="partner-detail-panel__stat-value">${formatNumber(success)}</span>
+      <span class="partner-detail-panel__stat-label">Successes</span>
+    </div>
+    <div class="partner-detail-panel__stat">
+      <span class="partner-detail-panel__stat-value">${formatRate(success, sm)}</span>
+      <span class="partner-detail-panel__stat-label">SM → Success</span>
+    </div>
+    <div class="partner-detail-panel__stat">
+      <span class="partner-detail-panel__stat-value">${formatRate(ce, sm)}</span>
+      <span class="partner-detail-panel__stat-label">SM → CE</span>
+    </div>
+    <div class="partner-detail-panel__stat">
+      <span class="partner-detail-panel__stat-value">${formatRate(success, ce)}</span>
+      <span class="partner-detail-panel__stat-label">CE → Success</span>
+    </div>
+    <div class="partner-detail-panel__stat">
+      <span class="partner-detail-panel__stat-value">${formatNumber(jobsTotal)}</span>
+      <span class="partner-detail-panel__stat-label">Total Jobs</span>
+    </div>
+    <div class="partner-detail-panel__stat">
+      <span class="partner-detail-panel__stat-value">${formatRate(jobsSuccess, jobsTotal)}</span>
+      <span class="partner-detail-panel__stat-label">Jobs Success</span>
+    </div>
+  `;
+
+  // Mini funnel
+  const steps = [
+    { label: "Select Merchant", value: sm },
+    { label: "Credential Entry", value: ce },
+    { label: "Success", value: success },
+  ];
+  const max = Math.max(...steps.map((s) => s.value), 1);
+  kioskEls.detailPanelFunnel.innerHTML = steps
+    .map((step) => {
+      const width = step.value > 0 ? Math.max(6, (step.value / max) * 100) : 0;
+      return `
+        <div class="funnel-row">
+          <div class="funnel-label">${step.label}</div>
+          <div class="funnel-bar" style="width:${width}%"></div>
+          <div class="funnel-metric">${formatNumber(step.value)}</div>
+        </div>
+      `;
+    })
+    .join("");
+
+  kioskEls.detailPanel.classList.add("open");
+}
+
+function renderAlerts(rows) {
+  if (!kioskEls.alerts) return;
+  const alerts = [];
+
+  rows.forEach((row) => {
+    const sm = row.SM_Sessions || 0;
+    const success = row.Success_Sessions || 0;
+    const rate = sm > 0 ? success / sm : 0;
+    const name = row.fi_name || row.fi_lookup_key || "Unknown";
+
+    if (sm > 10 && rate < 0.03) {
+      alerts.push({
+        type: "danger",
+        text: `${name} — ${formatRate(success, sm)} success rate across ${formatNumber(sm)} sessions`,
+      });
+    } else if (sm === 0) {
+      alerts.push({
+        type: "warn",
+        text: `${name} — zero sessions in this window`,
+      });
+    }
+  });
+
+  if (!alerts.length) {
+    kioskEls.alerts.innerHTML = "";
+    return;
+  }
+
+  // Show max 5 alerts
+  kioskEls.alerts.innerHTML = alerts
+    .slice(0, 5)
+    .map(
+      (a) => `<div class="kiosk-alert ${a.type}"><span class="health-dot ${a.type === "danger" ? "red" : "amber"}"></span>${a.text}</div>`
+    )
+    .join("");
+}
+
+function initKioskLayout() {
+  // Hide normal dashboard sections
+  const normalSections = document.querySelectorAll(".dashboard-grid, .section-title, .table-wrap");
+  normalSections.forEach((el) => (el.style.display = "none"));
+  // Also hide the chart panels section
+  const chartSections = document.querySelectorAll('.dashboard-grid.two');
+  chartSections.forEach((el) => (el.style.display = "none"));
+
+  // Show kiosk containers
+  if (kioskEls.alerts) kioskEls.alerts.style.display = "";
+  if (kioskEls.partnerGrid) kioskEls.partnerGrid.style.display = "";
+
+  // Detail panel close button
+  if (kioskEls.detailPanelClose) {
+    kioskEls.detailPanelClose.addEventListener("click", () => {
+      selectedFi = null;
+      kioskEls.detailPanel.classList.remove("open");
+      if (state.data) renderPartnerGrid(normalizeRows(state.data.by_fi || []));
+    });
+  }
+}
+
+function renderKioskView() {
+  if (!state.data) return;
+  const byFi = normalizeRows(state.data.by_fi || []);
+  renderPartnerGrid(byFi);
+  renderAlerts(byFi);
+
+  // If an FI was selected, refresh its panel too
+  if (selectedFi) {
+    const match = byFi.find((r) => r.fi_lookup_key === selectedFi);
+    if (match) renderDetailPanel(match);
+  }
+}
+
+/* ── Init ── */
+
+function init() {
+  const kiosk = isKioskMode();
+
+  if (kiosk) {
+    initKioskMode("CS Portfolio Dashboard", 300);
+    initKioskLayout();
+    state.windowDays = 30;
+    loadFiRegistry();
+    startAutoRefresh(fetchMetrics, 300000); // 5 minutes
+  } else {
+    initTimeWindows();
+    bindSortHandlers();
+    loadFiRegistry();
+    els.fiScope.addEventListener("change", (event) => {
+      state.fiScope = event.target.value || "all";
+      fetchMetrics();
+    });
+    els.exportOverall.addEventListener("click", handleExportFi);
+    els.exportSources.addEventListener("click", handleExportSources);
+    fetchMetrics();
+  }
 }
 
 init();

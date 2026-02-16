@@ -7,6 +7,11 @@ import {
   createMultiSelect,
   sortRows,
   attachSortHandlers,
+  isKioskMode,
+  initKioskMode,
+  startAutoRefresh,
+  formatRelativeTime,
+  opsHealthColor,
 } from "./dashboard-utils.js";
 
 const TIME_WINDOWS = [3, 30, 90, 180];
@@ -331,13 +336,17 @@ async function fetchMetrics() {
     const byMerchant = addFailureRates(data.by_merchant || []);
     const byFiInstance = addFailureRates(data.by_fi_instance || []);
 
-    renderKpis(overall, byMerchant);
-    renderLineChart(byDay);
-    renderStatusBreakdown(data.status_breakdown || [], overall);
-    renderMerchantTable(byMerchant);
-    renderFiInstanceTable(byFiInstance);
-    updateMerchantFilters(byMerchant);
-    updateInstanceFilters(byFiInstance);
+    if (isKioskMode()) {
+      renderKioskView();
+    } else {
+      renderKpis(overall, byMerchant);
+      renderLineChart(byDay);
+      renderStatusBreakdown(data.status_breakdown || [], overall);
+      renderMerchantTable(byMerchant);
+      renderFiInstanceTable(byFiInstance);
+      updateMerchantFilters(byMerchant);
+      updateInstanceFilters(byFiInstance);
+    }
   } catch (err) {
     if (err.name !== "AbortError") {
       console.error("[operations] fetch failed", err);
@@ -397,17 +406,206 @@ function bindSortHandlers() {
   });
 }
 
-function init() {
-  initTimeWindows();
-  bindSortHandlers();
-  loadFiRegistry();
-  loadInstances();
-  els.fiScope.addEventListener("change", (event) => {
-    state.fiScope = event.target.value || "all";
-    fetchMetrics();
+/* ── Kiosk Mode: Merchant Health Grid + Event Feed + Volume Chart ── */
+
+const kioskEls = {
+  kpiRow: document.getElementById("kioskKpiRow"),
+  split: document.getElementById("kioskSplit"),
+  merchantGrid: document.getElementById("kioskMerchantGrid"),
+  volumeChart: document.getElementById("kioskVolumeChart"),
+  eventList: document.getElementById("kioskEventList"),
+};
+
+function renderKioskKpis(overall, byMerchant) {
+  if (!kioskEls.kpiRow) return;
+  const total = overall.Jobs_Total || 0;
+  const success = overall.Jobs_Success || 0;
+  const failed = overall.Jobs_Failed || 0;
+  const activeMerchants = byMerchant.filter((m) => (m.Jobs_Total || 0) > 0).length;
+
+  kioskEls.kpiRow.innerHTML = `
+    <div class="card">
+      <h3>Total Jobs</h3>
+      <div class="kpi-value">${formatNumber(total)}</div>
+    </div>
+    <div class="card">
+      <h3>Success Rate</h3>
+      <div class="kpi-value" style="color:${total > 0 && success / total >= 0.85 ? "#22c55e" : total > 0 && success / total >= 0.70 ? "#f59e0b" : "#ef4444"}">${formatRate(success, total)}</div>
+    </div>
+    <div class="card">
+      <h3>Failure Rate</h3>
+      <div class="kpi-value">${formatRate(failed, total)}</div>
+    </div>
+    <div class="card">
+      <h3>Active Merchants</h3>
+      <div class="kpi-value">${formatNumber(activeMerchants)}</div>
+    </div>
+  `;
+}
+
+function renderMerchantHealthGrid(rows) {
+  if (!kioskEls.merchantGrid) return;
+  const sorted = [...rows]
+    .filter((r) => (r.Jobs_Total || 0) > 0)
+    .sort((a, b) => (a.failure_rate || 0) > (b.failure_rate || 0) ? -1 : 1);
+
+  kioskEls.merchantGrid.innerHTML = sorted
+    .slice(0, 30)
+    .map((row) => {
+      const successRate = row.Jobs_Total > 0 ? (row.Jobs_Success || 0) / row.Jobs_Total : 1;
+      const color = opsHealthColor(successRate);
+      return `
+        <div class="merchant-tile">
+          <div class="merchant-tile__header">
+            <span class="merchant-tile__name">${row.merchant_name || "Unknown"}</span>
+            <span class="health-dot ${color}"></span>
+          </div>
+          <div class="merchant-tile__stats">
+            <span><span class="merchant-tile__stat-value">${formatNumber(row.Jobs_Total || 0)}</span> jobs</span>
+            <span><span class="merchant-tile__stat-value">${formatPercent(row.failure_rate || 0)}</span> fail</span>
+          </div>
+        </div>
+      `;
+    })
+    .join("");
+}
+
+function renderVolumeSparkline(byDay) {
+  if (!kioskEls.volumeChart) return;
+  if (!byDay.length) {
+    kioskEls.volumeChart.innerHTML = `<div class="empty-state">No daily data.</div>`;
+    return;
+  }
+
+  const width = kioskEls.volumeChart.clientWidth || 500;
+  const height = 180;
+  const padding = 36;
+  const maxVal = Math.max(...byDay.map((d) => d.Jobs_Total || 0), 1);
+  const stepX = byDay.length > 1 ? (width - padding * 2) / (byDay.length - 1) : 0;
+
+  // Success area
+  const successPoints = byDay.map((d, i) => {
+    const x = padding + i * stepX;
+    const y = height - padding - ((d.Jobs_Success || 0) / maxVal) * (height - padding * 2);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
   });
-  els.exportOps.addEventListener("click", handleExportOps);
-  fetchMetrics();
+  // Total area
+  const totalPoints = byDay.map((d, i) => {
+    const x = padding + i * stepX;
+    const y = height - padding - ((d.Jobs_Total || 0) / maxVal) * (height - padding * 2);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  });
+
+  const totalPath = `M${totalPoints.join(" L")}`;
+  const successPath = `M${successPoints.join(" L")}`;
+  const totalArea = `${totalPath} L${(padding + (byDay.length - 1) * stepX).toFixed(1)},${height - padding} L${padding},${height - padding} Z`;
+  const successArea = `${successPath} L${(padding + (byDay.length - 1) * stepX).toFixed(1)},${height - padding} L${padding},${height - padding} Z`;
+
+  // Date labels
+  const labels = byDay
+    .filter((_, i) => i === 0 || i === byDay.length - 1 || i === Math.floor(byDay.length / 2))
+    .map((d, idx, arr) => {
+      const i = idx === 0 ? 0 : idx === arr.length - 1 ? byDay.length - 1 : Math.floor(byDay.length / 2);
+      const x = padding + i * stepX;
+      return `<text x="${x}" y="${height - 8}" text-anchor="middle" fill="#64748b" font-size="10">${(d.date || "").slice(5)}</text>`;
+    })
+    .join("");
+
+  kioskEls.volumeChart.innerHTML = `
+    <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+      <path d="${totalArea}" fill="rgba(122,162,255,0.12)" />
+      <path d="${totalPath}" fill="none" stroke="#7aa2ff" stroke-width="2" />
+      <path d="${successArea}" fill="rgba(34,197,94,0.12)" />
+      <path d="${successPath}" fill="none" stroke="#22c55e" stroke-width="2" />
+      ${labels}
+    </svg>
+    <div class="legend" style="margin-top:6px;">
+      <span><i style="background:#7aa2ff"></i>Total Jobs</span>
+      <span><i style="background:#22c55e"></i>Successful</span>
+    </div>
+  `;
+}
+
+async function fetchEventFeed() {
+  if (!kioskEls.eventList) return;
+  try {
+    const res = await fetch("/api/metrics/ops-feed");
+    if (!res.ok) return;
+    const data = await res.json();
+    const events = data.events || [];
+    if (!events.length) {
+      kioskEls.eventList.innerHTML = `<div class="empty-state">No recent events.</div>`;
+      return;
+    }
+    kioskEls.eventList.innerHTML = events
+      .map((evt) => {
+        const statusClass = evt.status === "success" ? "success" : evt.status === "pending" ? "pending" : "failed";
+        return `
+          <div class="event-feed__item">
+            <span class="event-feed__time">${formatRelativeTime(evt.timestamp)}</span>
+            <span class="event-feed__merchant">${evt.merchant || "Unknown"}</span>
+            <span class="event-feed__fi">${evt.fi_name || ""}</span>
+            <span class="event-feed__status ${statusClass}">${evt.status || "unknown"}</span>
+          </div>
+        `;
+      })
+      .join("");
+  } catch (err) {
+    console.warn("[ops-kiosk] event feed failed", err);
+  }
+}
+
+function initKioskLayout() {
+  // Hide normal dashboard sections
+  const normalSections = document.querySelectorAll(
+    ".dashboard-grid, .dashboard-grid.two, .section-title, .table-wrap"
+  );
+  normalSections.forEach((el) => (el.style.display = "none"));
+
+  // Show kiosk containers
+  if (kioskEls.kpiRow) kioskEls.kpiRow.style.display = "";
+  if (kioskEls.split) kioskEls.split.style.display = "";
+}
+
+function renderKioskView() {
+  if (!state.data) return;
+  const overall = state.data.overall || {};
+  const byMerchant = addFailureRates(state.data.by_merchant || []);
+  const byDay = state.data.by_day || [];
+
+  renderKioskKpis(overall, byMerchant);
+  renderMerchantHealthGrid(byMerchant);
+  renderVolumeSparkline(byDay);
+}
+
+async function kioskRefresh() {
+  await fetchMetrics();
+  await fetchEventFeed();
+}
+
+/* ── Init ── */
+
+function init() {
+  const kiosk = isKioskMode();
+
+  if (kiosk) {
+    initKioskMode("Operations Command Center", 30);
+    initKioskLayout();
+    state.windowDays = 7;
+    loadFiRegistry();
+    startAutoRefresh(kioskRefresh, 30000); // 30 seconds
+  } else {
+    initTimeWindows();
+    bindSortHandlers();
+    loadFiRegistry();
+    loadInstances();
+    els.fiScope.addEventListener("change", (event) => {
+      state.fiScope = event.target.value || "all";
+      fetchMetrics();
+    });
+    els.exportOps.addEventListener("click", handleExportOps);
+    fetchMetrics();
+  }
 }
 
 init();
