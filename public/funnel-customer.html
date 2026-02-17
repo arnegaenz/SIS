@@ -1265,7 +1265,7 @@
             <th data-sort="ga_select" class="num ga-col">Launches</th>
             <th data-sort="cs_select" class="num">Sess @Select</th>
             <th data-sort="ga_cred" class="num ga-col">Credential Views</th>
-            <th data-sort="reach" class="num">Monthly Reach %</th>
+            <th data-sort="reach" class="num" title="Projected monthly rate based on selected time period">Monthly Reach %</th>
             <th data-sort="sel_cred_pct" class="num">Sel→Cred %</th>
             <th data-sort="sel_success_pct" class="num">Success Rate</th>
             <th data-sort="sessions" class="num">Visits</th>
@@ -1290,7 +1290,7 @@
             <th data-sort="cs_select" class="num">Sess @Select</th>
             <th data-sort="ga_user" class="num ga-col">User Data Views</th>
             <th data-sort="ga_cred" class="num ga-col">Credential Views</th>
-            <th data-sort="reach" class="num">Monthly Reach %</th>
+            <th data-sort="reach" class="num" title="Projected monthly rate based on selected time period">Monthly Reach %</th>
             <th data-sort="sel_user_pct" class="num">Sel→User %</th>
             <th data-sort="sel_cred_pct" class="num">Sel→Cred %</th>
             <th data-sort="sel_success_pct" class="num">Success Rate</th>
@@ -1316,7 +1316,7 @@
             <th data-sort="cs_select" class="num">Sess @Select</th>
             <th data-sort="ga_user" class="num ga-col">User Data Views</th>
             <th data-sort="ga_cred" class="num ga-col">Credential Views</th>
-            <th data-sort="reach" class="num">Monthly Reach %</th>
+            <th data-sort="reach" class="num" title="Projected monthly rate based on selected time period">Monthly Reach %</th>
             <th data-sort="sel_user_pct" class="num">Sel→User %</th>
             <th data-sort="sel_cred_pct" class="num">Sel→Cred %</th>
             <th data-sort="sel_success_pct" class="num">Success Rate</th>
@@ -1342,7 +1342,7 @@
             <th data-sort="cs_select" class="num">Sess @Select</th>
             <th data-sort="ga_user" class="num ga-col">User Data Views</th>
             <th data-sort="ga_cred" class="num ga-col">Credential Views</th>
-            <th data-sort="reach" class="num">Monthly Reach %</th>
+            <th data-sort="reach" class="num" title="Projected monthly rate based on selected time period">Monthly Reach %</th>
             <th data-sort="sel_user_pct" class="num">Sel→User %</th>
             <th data-sort="sel_cred_pct" class="num">Sel→Cred %</th>
             <th data-sort="sel_success_pct" class="num">Success Rate</th>
@@ -2556,7 +2556,9 @@
       const cardholders = row?.cardholders;
       if (!cardholders || cardholders <= 0) return 0;
       const dayCount = row.dayCount || dayCountInclusive(row.periodStart || row.start, row.periodEnd || row.end) || lastRenderContext?.daySpan || 1;
-      const reachBase = row.ga_select > 0 ? row.ga_select : row.sessions;
+      // SSO: use session data (true clickstream); non-SSO: use GA launches
+      const isSSO = (row.integration_type || "").toUpperCase() === "SSO";
+      const reachBase = isSSO ? (row.sessions || 0) : (row.ga_select > 0 ? row.ga_select : row.sessions);
       if (!reachBase || dayCount <= 0) return 0;
       const reachMonthly = reachBase * (30 / dayCount);
       return reachMonthly > 0 ? reachMonthly / cardholders : 0;
@@ -2564,7 +2566,9 @@
 
     function formatMonthlyReachPct(row) {
       const value = getMonthlyReachValue(row);
-      return value > 0 ? (value * 100).toFixed(1) + "%" : "";
+      if (value <= 0) return "";
+      const pctVal = value * 100;
+      return (pctVal < 1 ? pctVal.toFixed(2) : pctVal.toFixed(1)) + "%";
     }
 
     function formatSessSuccessPct(row) {
@@ -4116,7 +4120,7 @@
       if (!isSso) headerHtml += `<th data-sort="ga_user" class="num">User Data Views</th>`;
       headerHtml += `
           <th data-sort="ga_cred" class="num">Credential Views</th>
-          <th data-sort="reach" class="num">Monthly Reach %</th>`;
+          <th data-sort="reach" class="num" title="Projected monthly rate based on selected time period">Monthly Reach %</th>`;
       if (!isSso) headerHtml += `<th data-sort="sel_user_pct" class="num">Sel\u2192User %</th>`;
       headerHtml += `
           <th data-sort="sel_cred_pct" class="num">Sel\u2192Cred %</th>

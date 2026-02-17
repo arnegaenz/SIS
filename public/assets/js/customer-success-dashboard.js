@@ -49,6 +49,7 @@ const state = {
   fiSortDir: "desc",
   sourceSortKey: "SM_Sessions",
   sourceSortDir: "desc",
+  includeTests: false,
 };
 
 const fiSelect = createMultiSelect(document.getElementById("fiSelect"), {
@@ -281,6 +282,7 @@ function updateSourceFilters(bySource = []) {
 
 async function loadFiRegistry() {
   const sources = [
+    "/fi-registry",
     "../assets/data/fi_registry.json",
     "/assets/data/fi_registry.json",
     "/fi_registry.json",
@@ -300,6 +302,12 @@ async function loadFiRegistry() {
         map.set(key, {
           value: key,
           label: entry.fi_name || key,
+        });
+        // Store full registry info for kiosk use
+        fiRegistryMap.set(key, {
+          integration_type: (entry.integration_type || "").toString().toUpperCase(),
+          partner: entry.partner || "",
+          fi_name: entry.fi_name || key,
         });
       });
       const options = Array.from(map.values()).sort((a, b) => a.label.localeCompare(b.label));
@@ -323,6 +331,7 @@ async function fetchMetrics() {
     fi_list: state.fiList,
     source_type_list: state.sourceTypes,
     source_category_list: state.sourceCategories,
+    includeTests: state.includeTests,
   };
   setLoading(true);
   try {
@@ -452,6 +461,7 @@ const kioskEls = {
 
 let selectedFi = null;
 let weeklyTrends = new Map(); // fi_lookup_key → { weeks: [{sm, success, rate}], trend: "up"|"down"|"flat" }
+let fiRegistryMap = new Map(); // fi_lookup_key → { integration_type, partner, fi_name }
 
 async function fetchWeeklyTrends() {
   // Fetch 4 weekly buckets for per-FI trend data
@@ -475,7 +485,7 @@ async function fetchWeeklyTrends() {
         fetch("/api/metrics/funnel", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ date_from: w.date_from, date_to: w.date_to }),
+          body: JSON.stringify({ date_from: w.date_from, date_to: w.date_to, includeTests: state.includeTests }),
         }).then((r) => (r.ok ? r.json() : { by_fi: [] }))
       )
     );
@@ -526,22 +536,35 @@ async function fetchWeeklyTrends() {
   }
 }
 
-function buildSparklineSvg(weeks) {
+function buildSparklineSvg(weeks, size = "card") {
   // weeks[0] = most recent, weeks[3] = oldest — reverse for left-to-right chronological
   const points = [...weeks].reverse().map((w) => (w ? w.sm : 0));
   const max = Math.max(...points, 1);
-  const w = 48;
-  const h = 20;
-  const pad = 2;
+  const isLarge = size === "large";
+  const w = isLarge ? 280 : 80;
+  const h = isLarge ? 80 : 32;
+  const strokeW = isLarge ? 2.5 : 2;
+  const pad = isLarge ? 6 : 3;
+  const dotR = isLarge ? 4 : 0;
   const stepX = points.length > 1 ? (w - pad * 2) / (points.length - 1) : 0;
   const coords = points.map((val, i) => {
     const x = pad + i * stepX;
     const y = h - pad - (val / max) * (h - pad * 2);
-    return `${x.toFixed(1)},${y.toFixed(1)}`;
+    return { x: parseFloat(x.toFixed(1)), y: parseFloat(y.toFixed(1)) };
   });
-  const path = coords.map((c, i) => `${i === 0 ? "M" : "L"}${c}`).join(" ");
+  const pathD = coords.map((c, i) => `${i === 0 ? "M" : "L"}${c.x},${c.y}`).join(" ");
   const color = points[points.length - 1] >= points[points.length - 2] ? "#22c55e" : "#ef4444";
-  return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="vertical-align:middle;"><path d="${path}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linecap="round"/></svg>`;
+
+  // Fill area under line (subtle)
+  const fillD = pathD + ` L${coords[coords.length - 1].x},${h - pad} L${coords[0].x},${h - pad} Z`;
+  const fillOpacity = isLarge ? "0.12" : "0.08";
+
+  let dots = "";
+  if (dotR > 0) {
+    dots = coords.map((c) => `<circle cx="${c.x}" cy="${c.y}" r="${dotR}" fill="${color}" />`).join("");
+  }
+
+  return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="vertical-align:middle;display:block;"><path d="${fillD}" fill="${color}" opacity="${fillOpacity}"/><path d="${pathD}" fill="none" stroke="${color}" stroke-width="${strokeW}" stroke-linecap="round" stroke-linejoin="round"/>${dots}</svg>`;
 }
 
 function trendArrow(trend) {
@@ -550,102 +573,86 @@ function trendArrow(trend) {
   return `<span style="color:#64748b;font-size:0.7rem;" title="Flat">&#9644;</span>`;
 }
 
+function integrationBadge(fiKey) {
+  const reg = fiRegistryMap.get(fiKey);
+  if (!reg || !reg.integration_type) return "";
+  const type = reg.integration_type;
+  const isSSO = type === "SSO";
+  const label = isSSO ? "SSO" : "Non-SSO";
+  const cls = isSSO ? "badge-sso" : "badge-nonsso";
+  return `<span class="integration-badge ${cls}">${label}</span>`;
+}
+
+function buildPartnerCard(row, rows) {
+  const sm = row.SM_Sessions || 0;
+  const success = row.Success_Sessions || 0;
+  const rate = sm > 0 ? success / sm : 0;
+  const color = healthColor(rate);
+  const key = row.fi_lookup_key || row.fi_name || "";
+  const trendData = weeklyTrends.get(key);
+  const trend = trendData ? trendData.trend : "flat";
+  const sparkline = trendData ? buildSparklineSvg(trendData.weeks) : "";
+
+  const card = document.createElement("div");
+  card.className = `partner-card${selectedFi === row.fi_lookup_key ? " selected" : ""}`;
+  card.innerHTML = `
+    <div class="partner-card__header">
+      <span class="partner-card__name">${row.fi_name || row.fi_lookup_key || "Unknown"}</span>
+      <span style="display:flex;align-items:center;gap:6px;">${integrationBadge(key)} ${trendArrow(trend)} <span class="health-dot ${color}"></span></span>
+    </div>
+    <div class="partner-card__metrics">
+      <div class="partner-card__metric">
+        <span class="partner-card__metric-value">${formatNumber(sm)}</span>
+        <span class="partner-card__metric-label">Sessions</span>
+      </div>
+      <div class="partner-card__metric">
+        <span class="partner-card__metric-value">${formatRate(success, sm)}</span>
+        <span class="partner-card__metric-label">Success</span>
+      </div>
+      <div class="partner-card__metric">
+        <span class="partner-card__metric-value">${formatNumber(success)}</span>
+        <span class="partner-card__metric-label">Successes</span>
+      </div>
+      <div class="partner-card__metric" style="margin-left:auto;">
+        ${sparkline}
+        <span class="partner-card__metric-label">4-wk vol</span>
+      </div>
+    </div>
+  `;
+  card.addEventListener("click", () => {
+    selectedFi = row.fi_lookup_key;
+    renderKioskView();
+    renderDetailModal(row);
+  });
+  return card;
+}
+
 function renderPartnerGrid(rows) {
   if (!kioskEls.partnerGrid) return;
   kioskEls.partnerGrid.innerHTML = "";
   const sorted = [...rows].sort((a, b) => (b.SM_Sessions || 0) - (a.SM_Sessions || 0));
 
   sorted.forEach((row) => {
-    const sm = row.SM_Sessions || 0;
-    const success = row.Success_Sessions || 0;
-    const rate = sm > 0 ? success / sm : 0;
-    const color = healthColor(rate);
-    const key = row.fi_lookup_key || row.fi_name || "";
-    const trendData = weeklyTrends.get(key);
-    const trend = trendData ? trendData.trend : "flat";
-    const sparkline = trendData ? buildSparklineSvg(trendData.weeks) : "";
-
-    const card = document.createElement("div");
-    card.className = `partner-card${selectedFi === row.fi_lookup_key ? " selected" : ""}`;
-    card.innerHTML = `
-      <div class="partner-card__header">
-        <span class="partner-card__name">${row.fi_name || row.fi_lookup_key || "Unknown"}</span>
-        <span style="display:flex;align-items:center;gap:6px;">${trendArrow(trend)} <span class="health-dot ${color}"></span></span>
-      </div>
-      <div class="partner-card__metrics">
-        <div class="partner-card__metric">
-          <span class="partner-card__metric-value">${formatNumber(sm)}</span>
-          <span class="partner-card__metric-label">Sessions</span>
-        </div>
-        <div class="partner-card__metric">
-          <span class="partner-card__metric-value">${formatRate(success, sm)}</span>
-          <span class="partner-card__metric-label">Success</span>
-        </div>
-        <div class="partner-card__metric">
-          <span class="partner-card__metric-value">${formatNumber(success)}</span>
-          <span class="partner-card__metric-label">Successes</span>
-        </div>
-        <div class="partner-card__metric" style="margin-left:auto;">
-          ${sparkline}
-          <span class="partner-card__metric-label">4-wk vol</span>
-        </div>
-      </div>
-    `;
-    card.addEventListener("click", () => {
-      selectedFi = row.fi_lookup_key;
-      renderPartnerGrid(rows);
-      renderDetailPanel(row);
-    });
-    kioskEls.partnerGrid.appendChild(card);
+    kioskEls.partnerGrid.appendChild(buildPartnerCard(row, rows));
   });
 }
 
-function renderDetailPanel(row) {
-  if (!kioskEls.detailPanel) return;
+function renderDetailModal(row) {
+  // Remove any existing modal
+  const existing = document.getElementById("kioskDetailModal");
+  if (existing) existing.remove();
+
   const sm = row.SM_Sessions || 0;
   const ce = row.CE_Sessions || 0;
   const success = row.Success_Sessions || 0;
   const jobsTotal = row.Jobs_Total || 0;
   const jobsSuccess = row.Jobs_Success || 0;
   const rate = sm > 0 ? success / sm : 0;
-
-  kioskEls.detailPanelName.textContent = row.fi_name || row.fi_lookup_key || "Unknown";
-  kioskEls.detailPanelHealth.innerHTML = `<span class="health-dot ${healthColor(rate)}"></span>`;
-
-  kioskEls.detailPanelStats.innerHTML = `
-    <div class="partner-detail-panel__stat">
-      <span class="partner-detail-panel__stat-value">${formatNumber(sm)}</span>
-      <span class="partner-detail-panel__stat-label">SM Sessions</span>
-    </div>
-    <div class="partner-detail-panel__stat">
-      <span class="partner-detail-panel__stat-value">${formatNumber(ce)}</span>
-      <span class="partner-detail-panel__stat-label">CE Sessions</span>
-    </div>
-    <div class="partner-detail-panel__stat">
-      <span class="partner-detail-panel__stat-value">${formatNumber(success)}</span>
-      <span class="partner-detail-panel__stat-label">Successes</span>
-    </div>
-    <div class="partner-detail-panel__stat">
-      <span class="partner-detail-panel__stat-value">${formatRate(success, sm)}</span>
-      <span class="partner-detail-panel__stat-label">SM → Success</span>
-    </div>
-    <div class="partner-detail-panel__stat">
-      <span class="partner-detail-panel__stat-value">${formatRate(ce, sm)}</span>
-      <span class="partner-detail-panel__stat-label">SM → CE</span>
-    </div>
-    <div class="partner-detail-panel__stat">
-      <span class="partner-detail-panel__stat-value">${formatRate(success, ce)}</span>
-      <span class="partner-detail-panel__stat-label">CE → Success</span>
-    </div>
-    <div class="partner-detail-panel__stat">
-      <span class="partner-detail-panel__stat-value">${formatNumber(jobsTotal)}</span>
-      <span class="partner-detail-panel__stat-label">Total Jobs</span>
-    </div>
-    <div class="partner-detail-panel__stat">
-      <span class="partner-detail-panel__stat-value">${formatRate(jobsSuccess, jobsTotal)}</span>
-      <span class="partner-detail-panel__stat-label">Jobs Success</span>
-    </div>
-  `;
+  const key = row.fi_lookup_key || row.fi_name || "";
+  const reg = fiRegistryMap.get(key);
+  const intLabel = reg ? (reg.integration_type === "SSO" ? "SSO" : "Non-SSO") : "";
+  const partnerLabel = reg && reg.partner ? reg.partner : "";
+  const subtitle = [intLabel, partnerLabel].filter(Boolean).join(" · ");
 
   // Mini funnel
   const steps = [
@@ -654,21 +661,118 @@ function renderDetailPanel(row) {
     { label: "Success", value: success },
   ];
   const max = Math.max(...steps.map((s) => s.value), 1);
-  kioskEls.detailPanelFunnel.innerHTML = steps
-    .map((step) => {
-      const width = step.value > 0 ? Math.max(6, (step.value / max) * 100) : 0;
-      return `
-        <div class="funnel-row">
-          <div class="funnel-label">${step.label}</div>
-          <div class="funnel-bar" style="width:${width}%"></div>
-          <div class="funnel-metric">${formatNumber(step.value)}</div>
-        </div>
-      `;
-    })
-    .join("");
+  const funnelHtml = steps.map((step) => {
+    const width = step.value > 0 ? Math.max(6, (step.value / max) * 100) : 0;
+    return `<div class="funnel-row"><div class="funnel-label">${step.label}</div><div class="funnel-bar" style="width:${width}%"></div><div class="funnel-metric">${formatNumber(step.value)}</div></div>`;
+  }).join("");
 
-  kioskEls.detailPanel.classList.add("open");
+  // Weekly trend section
+  const trendData = weeklyTrends.get(key);
+  let weeklyHtml = "";
+  if (trendData && trendData.weeks) {
+    const largeSparkline = buildSparklineSvg(trendData.weeks, "large");
+    // weeks[0] = most recent, [3] = oldest — show oldest first (left to right)
+    const weekLabels = ["4 wks ago", "3 wks ago", "2 wks ago", "This week"];
+    const weeksReversed = [...trendData.weeks].reverse();
+    const weekRows = weeksReversed.map((w, i) => {
+      const wk = w || { sm: 0, success: 0, rate: 0 };
+      const ratePct = (wk.rate * 100).toFixed(1);
+      return `<tr>
+        <td>${weekLabels[i]}</td>
+        <td>${formatNumber(wk.sm)}</td>
+        <td>${formatNumber(wk.success)}</td>
+        <td>${ratePct}%</td>
+      </tr>`;
+    }).join("");
+
+    weeklyHtml = `
+      <div class="detail-modal__weekly">
+        <div class="detail-modal__weekly-title">4-Week Trend</div>
+        <div class="detail-modal__weekly-chart">${largeSparkline}</div>
+        <table class="detail-modal__weekly-table">
+          <thead><tr><th>Week</th><th>Sessions</th><th>Successes</th><th>Rate</th></tr></thead>
+          <tbody>${weekRows}</tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  const overlay = document.createElement("div");
+  overlay.id = "kioskDetailModal";
+  overlay.className = "detail-modal-overlay";
+  overlay.innerHTML = `
+    <div class="detail-modal">
+      <div class="detail-modal__header">
+        <div>
+          <span class="detail-modal__name">${row.fi_name || row.fi_lookup_key || "Unknown"}</span>
+          <span class="health-dot ${healthColor(rate)}" style="margin-left:8px;"></span>
+          ${subtitle ? `<div class="detail-modal__subtitle">${subtitle}</div>` : ""}
+        </div>
+        <button class="detail-modal__close" type="button">&times;</button>
+      </div>
+      <div class="detail-modal__stats">
+        <div class="partner-detail-panel__stat">
+          <span class="partner-detail-panel__stat-value">${formatNumber(sm)}</span>
+          <span class="partner-detail-panel__stat-label">SM Sessions</span>
+        </div>
+        <div class="partner-detail-panel__stat">
+          <span class="partner-detail-panel__stat-value">${formatNumber(ce)}</span>
+          <span class="partner-detail-panel__stat-label">CE Sessions</span>
+        </div>
+        <div class="partner-detail-panel__stat">
+          <span class="partner-detail-panel__stat-value">${formatNumber(success)}</span>
+          <span class="partner-detail-panel__stat-label">Successes</span>
+        </div>
+        <div class="partner-detail-panel__stat">
+          <span class="partner-detail-panel__stat-value">${formatRate(success, sm)}</span>
+          <span class="partner-detail-panel__stat-label">SM → Success</span>
+        </div>
+        <div class="partner-detail-panel__stat">
+          <span class="partner-detail-panel__stat-value">${formatRate(ce, sm)}</span>
+          <span class="partner-detail-panel__stat-label">SM → CE</span>
+        </div>
+        <div class="partner-detail-panel__stat">
+          <span class="partner-detail-panel__stat-value">${formatRate(success, ce)}</span>
+          <span class="partner-detail-panel__stat-label">CE → Success</span>
+        </div>
+        <div class="partner-detail-panel__stat">
+          <span class="partner-detail-panel__stat-value">${formatNumber(jobsTotal)}</span>
+          <span class="partner-detail-panel__stat-label">Total Jobs</span>
+        </div>
+        <div class="partner-detail-panel__stat">
+          <span class="partner-detail-panel__stat-value">${formatRate(jobsSuccess, jobsTotal)}</span>
+          <span class="partner-detail-panel__stat-label">Jobs Success</span>
+        </div>
+      </div>
+      ${weeklyHtml}
+      <div class="detail-modal__funnel">${funnelHtml}</div>
+    </div>
+  `;
+
+  // Close on backdrop click or close button
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) closeDetailModal();
+  });
+  overlay.querySelector(".detail-modal__close").addEventListener("click", closeDetailModal);
+
+  document.body.appendChild(overlay);
+  // Trigger animation
+  requestAnimationFrame(() => overlay.classList.add("open"));
 }
+
+function closeDetailModal() {
+  const modal = document.getElementById("kioskDetailModal");
+  if (modal) {
+    modal.classList.remove("open");
+    setTimeout(() => modal.remove(), 200);
+  }
+  selectedFi = null;
+  if (state.data) {
+    renderPartnerGrid(normalizeRows(state.data.by_fi || []));
+  }
+}
+
+let alertsExpanded = false;
 
 function renderAlerts(rows) {
   if (!kioskEls.alerts) return;
@@ -698,48 +802,80 @@ function renderAlerts(rows) {
     return;
   }
 
-  // Show max 5 alerts
-  kioskEls.alerts.innerHTML = alerts
-    .slice(0, 5)
+  const COLLAPSED_COUNT = 3;
+  const visible = alertsExpanded ? alerts : alerts.slice(0, COLLAPSED_COUNT);
+  const hasMore = alerts.length > COLLAPSED_COUNT;
+
+  let html = visible
     .map(
       (a) => `<div class="kiosk-alert ${a.type}"><span class="health-dot ${a.type === "danger" ? "red" : "amber"}"></span>${a.text}</div>`
     )
     .join("");
+
+  if (hasMore) {
+    const remaining = alerts.length - COLLAPSED_COUNT;
+    html += `<div class="kiosk-alerts__expand" id="alertsExpandToggle">${
+      alertsExpanded
+        ? '<span class="partner-grid__expand-arrow">&#9650;</span> Show less'
+        : `<span class="partner-grid__expand-arrow">&#9660;</span> Show ${remaining} more`
+    }</div>`;
+  }
+
+  kioskEls.alerts.innerHTML = html;
+
+  if (hasMore) {
+    document.getElementById("alertsExpandToggle").addEventListener("click", () => {
+      alertsExpanded = !alertsExpanded;
+      renderAlerts(rows);
+    });
+  }
 }
 
 function initKioskLayout() {
   // Hide normal dashboard sections
   const normalSections = document.querySelectorAll(".dashboard-grid, .section-title, .table-wrap");
   normalSections.forEach((el) => (el.style.display = "none"));
-  // Also hide the chart panels section
   const chartSections = document.querySelectorAll('.dashboard-grid.two');
   chartSections.forEach((el) => (el.style.display = "none"));
+
+  // Hide old detail panel (we use modal now)
+  if (kioskEls.detailPanel) kioskEls.detailPanel.style.display = "none";
 
   // Show kiosk containers
   if (kioskEls.alerts) kioskEls.alerts.style.display = "";
   if (kioskEls.partnerGrid) kioskEls.partnerGrid.style.display = "";
 
-  // Detail panel close button
-  if (kioskEls.detailPanelClose) {
-    kioskEls.detailPanelClose.addEventListener("click", () => {
-      selectedFi = null;
-      kioskEls.detailPanel.classList.remove("open");
-      if (state.data) renderPartnerGrid(normalizeRows(state.data.by_fi || []));
+  // Add "All FIs" section title before the grid
+  const gridTitle = document.createElement("div");
+  gridTitle.className = "kiosk-section-title";
+  gridTitle.textContent = "All FIs";
+  gridTitle.style.marginTop = "8px";
+  kioskEls.partnerGrid.parentNode.insertBefore(gridTitle, kioskEls.partnerGrid);
+
+  // Add "Include test data" checkbox to kiosk header
+  const headerStatus = document.querySelector(".kiosk-header__status");
+  if (headerStatus) {
+    const label = document.createElement("label");
+    label.className = "kiosk-test-toggle";
+    label.innerHTML = `<input type="checkbox" id="kioskIncludeTests" /> Include test data`;
+    headerStatus.insertBefore(label, headerStatus.firstChild);
+    document.getElementById("kioskIncludeTests").addEventListener("change", (e) => {
+      state.includeTests = e.target.checked;
+      fetchWeeklyTrends().then(() => fetchMetrics());
     });
   }
+
+  // ESC key closes modal
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeDetailModal();
+  });
 }
 
 function renderKioskView() {
   if (!state.data) return;
   const byFi = normalizeRows(state.data.by_fi || []);
-  renderPartnerGrid(byFi);
   renderAlerts(byFi);
-
-  // If an FI was selected, refresh its panel too
-  if (selectedFi) {
-    const match = byFi.find((r) => r.fi_lookup_key === selectedFi);
-    if (match) renderDetailPanel(match);
-  }
+  renderPartnerGrid(byFi);
 }
 
 /* ── Init ── */
@@ -766,6 +902,23 @@ function init() {
     });
     els.exportOverall.addEventListener("click", handleExportFi);
     els.exportSources.addEventListener("click", handleExportSources);
+    // Include test data checkbox
+    const testCheckbox = document.getElementById("includeTestsCheckbox");
+    if (testCheckbox) {
+      testCheckbox.addEventListener("change", (e) => {
+        state.includeTests = e.target.checked;
+        fetchMetrics();
+      });
+    }
+    // Kiosk view toggle
+    const kioskToggle = document.getElementById("kioskToggle");
+    if (kioskToggle) {
+      kioskToggle.addEventListener("click", () => {
+        const url = new URL(window.location);
+        url.searchParams.set("kiosk", "1");
+        window.location.href = url.toString();
+      });
+    }
     fetchMetrics();
   }
 }

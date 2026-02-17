@@ -174,7 +174,7 @@ const NARRATIVE_RULES = [
     metric: 'monthlyReachPct',
     section: 'reach',
     condition: (m) => m.monthlyReachPct !== null && m.monthlyReachPct < 0.5,
-    narrative: (m) => `You're reaching <strong>${fmt(m.monthlyReachPct)}%</strong> of your member base today — and even small increases in visibility unlock outsized impact. Embedding CardUpdatr in card activation or reissuance flows is the fastest path to expanding reach to motivated cardholders who are ready to act.`,
+    narrative: (m) => `You're reaching <strong>${fmtPct(m.monthlyReachPct)}%</strong> of your member base today — and even small increases in visibility unlock outsized impact. Embedding CardUpdatr in card activation or reissuance flows is the fastest path to expanding reach to motivated cardholders who are ready to act.`,
     benchmarks: ['motivationMultiplier'],
   },
   {
@@ -182,7 +182,7 @@ const NARRATIVE_RULES = [
     metric: 'monthlyReachPct',
     section: 'reach',
     condition: (m) => m.monthlyReachPct !== null && m.monthlyReachPct >= 0.5 && m.monthlyReachPct < 2.5,
-    narrative: (m) => `<strong>${fmt(m.monthlyReachPct)}%</strong> monthly reach shows cardholders are finding CardUpdatr — a growing foundation. Expanding visibility through card activation and reissuance touchpoints is the next high-impact move, connecting with cardholders at the moment their motivation is highest.`,
+    narrative: (m) => `<strong>${fmtPct(m.monthlyReachPct)}%</strong> monthly reach shows cardholders are finding CardUpdatr — a growing foundation. Expanding visibility through card activation and reissuance touchpoints is the next high-impact move, connecting with cardholders at the moment their motivation is highest.`,
     benchmarks: [],
   },
   {
@@ -190,7 +190,7 @@ const NARRATIVE_RULES = [
     metric: 'monthlyReachPct',
     section: 'reach',
     condition: (m) => m.monthlyReachPct !== null && m.monthlyReachPct >= 2.5,
-    narrative: (m) => `<strong>${fmt(m.monthlyReachPct)}%</strong> monthly reach is strong visibility — your cardholders are consistently encountering CardUpdatr. The opportunity now is optimizing conversion quality within this engaged audience, turning more encounters into completed placements.`,
+    narrative: (m) => `<strong>${fmtPct(m.monthlyReachPct)}%</strong> monthly reach is strong visibility — your cardholders are consistently encountering CardUpdatr. The opportunity now is optimizing conversion quality within this engaged audience, turning more encounters into completed placements.`,
     benchmarks: [],
   },
 
@@ -238,15 +238,22 @@ const NARRATIVE_RULES = [
 
 const ACTION_RULES = [
   {
+    id: 'activation_reissuance',
+    condition: () => true,  // always show — this is the #1 lever
+    priority: 0,
+    actions: [
+      {
+        headline: 'Embed CardUpdatr in card activation and reissuance flows',
+        detail: 'Cardholders receiving a new or replacement card have an immediate, natural need to update their merchants — this is peak motivation. Partners who connect CardUpdatr to these moments see 21–27% cardholder success rates, the highest tier across the network.',
+        impact: 'high',
+      },
+    ],
+  },
+  {
     id: 'tier3_incidental',
     condition: (d) => d.tier === 3,
     priority: 1,
     actions: [
-      {
-        headline: 'Activate your highest-impact channel: card activation flow',
-        detail: 'Partners who embed CardUpdatr in card activation and reissuance moments see 21–27% cardholder success — the highest conversion tier across the network. Your organic engagement proves cardholder demand; activation flows connect with that demand at the peak moment.',
-        impact: 'high',
-      },
       {
         headline: 'Launch a targeted SMS or email campaign',
         detail: 'A focused campaign drives motivated cardholders to CardUpdatr when they\'re ready to act. Campaign weeks consistently deliver 8–12% success rates across the network — a transformative step up from organic discovery.',
@@ -266,12 +273,7 @@ const ACTION_RULES = [
     actions: [
       {
         headline: 'Expand CardUpdatr visibility in your digital banking experience',
-        detail: (d) => `You're reaching ${fmt(d.metrics.monthlyReachPct)}% of members today — even a modest increase in visibility to motivated cardholders could meaningfully multiply your placement volume. This is your highest-leverage growth opportunity.`,
-        impact: 'high',
-      },
-      {
-        headline: 'Connect CardUpdatr to card activation and reissuance communications',
-        detail: 'Card activation and reissuance moments are when cardholder motivation peaks — a new or replacement card creates an immediate, natural need to update merchants. Meeting cardholders at this moment produces the strongest engagement.',
+        detail: (d) => `You're reaching ${fmtPct(d.metrics.monthlyReachPct)}% of members today — even a modest increase in visibility to motivated cardholders could meaningfully multiply your placement volume. This is your highest-leverage growth opportunity.`,
         impact: 'high',
       },
     ],
@@ -365,7 +367,7 @@ const ADMIN_TALKING_POINTS = [
   {
     id: 'low_reach_lever',
     condition: (m) => m.monthlyReachPct !== null && m.monthlyReachPct < 0.5,
-    point: (m) => `Only ${fmt(m.monthlyReachPct)}% of members seeing CardUpdatr. This is the biggest lever. Don't let them blame the product — the product works, it just needs motivated eyeballs.`,
+    point: (m) => `Only ${fmtPct(m.monthlyReachPct)}% of members seeing CardUpdatr. This is the biggest lever. Don't let them blame the product — the product works, it just needs motivated eyeballs.`,
     category: 'strategy',
   },
   {
@@ -428,6 +430,14 @@ function fmt(n) {
   return rounded % 1 === 0 ? rounded.toFixed(0) : rounded.toFixed(1);
 }
 
+/** Format a percentage: 2 decimal places when <1%, 1 decimal otherwise */
+function fmtPct(n) {
+  if (n === null || n === undefined || isNaN(n)) return '—';
+  if (n < 1) return n.toFixed(2);
+  const rounded = Math.round(n * 10) / 10;
+  return rounded % 1 === 0 ? rounded.toFixed(0) : rounded.toFixed(1);
+}
+
 /** Format an integer with commas */
 function fmtN(n) {
   if (n === null || n === undefined || isNaN(n)) return '—';
@@ -476,17 +486,20 @@ function buildMetricsContext(renderCtx, opts = {}) {
   if (visibleRows.length > 0) {
     const registry = opts.registryMap || {};
     let totalCardholders = 0;
-    let totalGaSelectForReach = 0;
+    let totalReachBase = 0;
     for (const row of visibleRows) {
       const key = row.fi_lookup_key || row.fi;
       const regEntry = registry[key];
       if (regEntry && regEntry.cardholder_total) {
         totalCardholders += regEntry.cardholder_total;
-        totalGaSelectForReach += row.ga?.select_merchants || 0;
+        // SSO: use session data (true clickstream); non-SSO: use GA launches
+        const isSSO = (row.integration_type || "").toUpperCase() === "SSO";
+        const gaVal = row.ga_select || row.ga?.select_merchants || 0;
+        totalReachBase += isSSO ? (row.sessions || 0) : (gaVal > 0 ? gaVal : (row.sessions || 0));
       }
     }
     if (totalCardholders > 0 && daySpan > 0) {
-      const monthlySelects = (totalGaSelectForReach / daySpan) * 30;
+      const monthlySelects = (totalReachBase / daySpan) * 30;
       monthlyReachPct = (monthlySelects / totalCardholders) * 100;
     }
   }

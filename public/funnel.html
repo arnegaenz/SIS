@@ -2004,7 +2004,7 @@ const COLUMN_TITLES = {
   ga_select: "Number of GA select-merchants page views.",
   ga_user: "GA user-data-collection page views.",
   ga_cred: "GA credential-entry page views.",
-  reach: "Monthly reach estimate (select views normalized by cardholders).",
+  reach: "Projected monthly rate based on selected time period. SSO FIs use session data; non-SSO use GA launches.",
   sel_user_pct: "Percent of sessions @select that reached user data (clickstream-based).",
   sel_cred_pct: "Percent of sessions @select that reached credential entry (clickstream-based).",
   sel_success_pct: "Percent of sessions @select that produced a successful outcome (clickstream-based).",
@@ -2799,7 +2799,9 @@ function applyColumnTitles(root = document) {
           dayCountInclusive(row.periodStart || row.start, row.periodEnd || row.end) ||
           lastRenderContext?.daySpan ||
           1;
-        const reachBase = row.ga_select > 0 ? row.ga_select : row.sessions;
+        // SSO: use session data (true clickstream); non-SSO: use GA launches
+        const isSSO = (row.integration_type || "").toUpperCase() === "SSO";
+        const reachBase = isSSO ? (row.sessions || 0) : (row.ga_select > 0 ? row.ga_select : row.sessions);
         if (!reachBase || dayCount <= 0) return 0;
         const reachMonthly = reachBase * (30 / dayCount);
         return reachMonthly > 0 ? reachMonthly / cardholders : 0;
@@ -2807,7 +2809,9 @@ function applyColumnTitles(root = document) {
 
       function formatMonthlyReachPct(row) {
         const value = getMonthlyReachValue(row);
-        return value > 0 ? (value * 100).toFixed(1) + "%" : "";
+        if (value <= 0) return "";
+        const pctVal = value * 100;
+        return (pctVal < 1 ? pctVal.toFixed(2) : pctVal.toFixed(1)) + "%";
       }
 
       function getSessSuccessRatio(row) {

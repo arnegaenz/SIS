@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>CS Portfolio Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <link rel="stylesheet" href="../sis-shared.css?v=navfix" />
+  <link rel="stylesheet" href="../assets/css/sis.css" />
+  <link rel="stylesheet" href="../assets/css/dashboards.css" />
+  <link rel="stylesheet" href="../assets/css/mobile.css" />
+  <script src="../assets/js/config.js"></script>
+  <script src="../assets/js/passcode-gate.js"></script>
+  <script defer src="../assets/js/sis.js"></script>
+  <script defer src="../assets/js/nav.js"></script>
+  <script defer src="../assets/js/action-library.js"></script>
+  <script defer src="../assets/js/engagement-insights.js"></script>
+  <script type="module" defer src="../assets/js/portfolio-dashboard.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function(){
+      if (window.renderHeaderNav && !window.__sisHeaderNav_portfolio) {
+        window.__sisHeaderNav_portfolio = true;
+        window.renderHeaderNav({
+          currentId: "portfolio",
+          title: "CS Portfolio Dashboard",
+          subtitle: "Engagement health, system health, and early warnings across all FIs."
+        });
+      }
+    });
+  </script>
+</head>
+<body>
+  <div id="sis-header"></div>
+  <div class="dashboard-shell">
+    <section class="dashboard-toolbar">
+      <div class="toolbar-left">
+        <div class="filter-group" title="How many days of data to include, counting back from today. 3d = quick pulse check. 30d = standard monthly view. 90d = quarterly review. 180d = half-year trend. All KPIs, scores, tiers, and warnings recalculate when you change this.">
+          <label>Time Window</label>
+          <div class="segmented" id="timeWindow"></div>
+        </div>
+        <div class="filter-group" title="Filter by integration type. SSO FIs have CardUpdatr embedded in online banking with single sign-on (higher conversion, Tier 1 potential). Non-SSO FIs use standalone CardUpdatr (cardholder enters card details manually, typically Tier 2-3).">
+          <label>FI Scope</label>
+          <select id="fiScope">
+            <option value="all">All FIs</option>
+            <option value="sso_only">SSO FIs only</option>
+            <option value="non_sso_only">Non-SSO FIs only</option>
+          </select>
+        </div>
+        <div class="filter-group" title="Filter by integration partner (e.g. Alkami, Q2, Digital Insight). Select one or more partners to focus on their FIs only. Useful for partner-specific QBRs or comparing partner performance.">
+          <label>Partner</label>
+          <div class="multi-select" id="partnerSelect">
+            <button type="button" class="multi-select__button">All partners</button>
+            <div class="multi-select__panel">
+              <input class="multi-select__search" type="text" placeholder="Search partners" />
+              <div class="multi-select__options"></div>
+            </div>
+          </div>
+        </div>
+        <div class="filter-group" title="Filter by Motivation Spectrum tier. Tier 1 = Card Activation (>=21% success). Tier 2 = Campaigns (>=8%). Tier 3 = Incidental (<3%). Useful for focusing on FIs that need the most attention (Tier 3) or celebrating top performers (Tier 1).">
+          <label>Tier</label>
+          <div class="multi-select" id="tierSelect">
+            <button type="button" class="multi-select__button">All tiers</button>
+            <div class="multi-select__panel">
+              <input class="multi-select__search" type="text" placeholder="Search tiers" />
+              <div class="multi-select__options"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="toolbar-right">
+        <label class="toolbar-test-toggle" title="When checked, includes sessions from test/demo FI instances (e.g. 'strivve-demo', 'test-instance'). These are normally excluded to keep metrics clean. Enable temporarily to verify test traffic is flowing."><input type="checkbox" id="includeTestsCheckbox" /> Include test data</label>
+        <button class="btn-secondary" id="kioskToggle" title="Switch to full-screen kiosk mode optimized for wall-mounted displays. Shows KPI row, early warnings, and FI card grid with auto-refresh every 5 minutes. Add ?kiosk=1 to the URL to bookmark directly. Press 'Regular View' button in kiosk mode to return.">Kiosk View</button>
+        <button class="btn-primary" id="exportCsv" title="Download all enriched FI data as a CSV file. Includes: FI name, tier, tier label, engagement score, sessions, success rate, trend direction, monthly reach %, job totals, failure rate, integration type, and partner. Respects current filters.">Export CSV</button>
+      </div>
+    </section>
+
+    <!-- System Health Banner -->
+    <div id="systemHealthBanner" class="system-health-banner green" style="display:none;" title="Network-wide job success rate across all merchants. Green >= 85%, Amber >= 70%, Red < 70%.">
+      <span class="health-dot green"></span>
+      <span class="system-health-banner__label"></span>
+      <span class="system-health-banner__detail"></span>
+    </div>
+
+    <!-- Portfolio KPIs -->
+    <section class="portfolio-kpi-row" id="portfolioKpis">
+      <div class="card" title="Number of FIs with at least 1 CardUpdatr session (Select Merchant page view) in this time window.">
+        <h3>Active FIs</h3>
+        <div class="kpi-value" id="kpiActiveFis">-</div>
+      </div>
+      <div class="card" title="Weighted average success rate across all FIs. Calculated as total successful sessions / total SM sessions. Not a simple average of per-FI rates.">
+        <h3>Network Success Rate</h3>
+        <div class="kpi-value" id="kpiNetworkRate">-</div>
+      </div>
+      <div class="card" title="Total Select Merchant (SM) sessions across all FIs. Each session = one cardholder opening CardUpdatr and reaching the merchant selection page.">
+        <h3>Total Sessions</h3>
+        <div class="kpi-value" id="kpiTotalSessions">-</div>
+      </div>
+      <div class="card" title="Total successful card placements (cards updated at merchants). One session can produce multiple placements if the cardholder updates multiple merchants.">
+        <h3>Total Placements</h3>
+        <div class="kpi-value" id="kpiTotalPlacements">-</div>
+      </div>
+      <div class="card" title="Week-over-week trend direction for each FI. Up = success rate improved >2pp vs prior week. Down = declined >2pp. Flat = within 2pp.">
+        <h3>Trend Summary</h3>
+        <div class="kpi-value" id="kpiTrendSummary">-</div>
+      </div>
+    </section>
+
+    <!-- Tier Distribution + Score Distribution -->
+    <section class="portfolio-distributions">
+      <div class="card" title="Motivation Spectrum classification for each FI based on their Session Success Rate. Tier 1 (>=21%): Card Activation Flow — cardholder just got a new card, peak motivation. Tier 1.5 (>=12%): Transitioning from campaigns to activation. Tier 2 (>=8%): SMS & Targeted Campaigns — manufactured motivation via outreach. Tier 2.5 (>=3%): Transitioning from discovery to campaigns. Tier 3 (<3%): Incidental Discovery — cardholder browsing online banking, no prompt. There is a validated 7.7x conversion gap between Tier 1 and Tier 3.">
+        <h3>Tier Distribution</h3>
+        <div id="tierDistribution"></div>
+      </div>
+      <div class="card" title="Composite engagement score (0-100) distribution. Formula: Success Rate (40% weight, normalized to 27% ceiling) + Week-over-Week Trend (20% weight: up=100, flat=50, down=0) + Monthly Reach % (20% weight, normalized to 2.5% ceiling, or 50 if no cardholder data) + Session Volume (20% weight, log-scaled relative to highest-volume FI). Green (75-100) = strong engagement. Amber (50-74) = moderate. Orange (25-49) = needs attention. Red (0-24) = critical.">
+        <h3>Score Distribution</h3>
+        <div id="scoreDistribution"></div>
+      </div>
+    </section>
+
+    <!-- Early Warnings -->
+    <div class="section-title" id="warningsTitle" style="display:none;" title="Auto-detected issues requiring attention. ENGAGEMENT warnings trigger when success rate drops >2 percentage points for 2+ consecutive weeks, or when an FI goes from active to zero sessions. SYSTEM warnings trigger when an FI's job failure rate exceeds 15% (warn) or 30% (danger).">Early Warnings</div>
+    <div class="portfolio-warnings" id="earlyWarnings"></div>
+
+    <!-- FI Card Grid -->
+    <div class="section-title" title="Every FI in the portfolio as a card. Sorted by engagement score (highest first). Click any card to open a detailed view with weekly trends, system health, tier diagnosis, and recommended actions.">All FIs</div>
+    <div class="partner-grid" id="fiCardGrid"></div>
+
+    <!-- FI Performance Table -->
+    <div class="section-title" title="Sortable table view of all FI data. Click any column header to sort. All the same data as the card grid, but in tabular form for easier comparison.">FI Performance Table</div>
+    <div class="table-wrap">
+      <div class="table-toolbar">
+        <span class="muted" id="fiTableMeta"></span>
+      </div>
+      <div class="table-scroll">
+        <table id="fiTable">
+          <thead>
+            <tr>
+              <th data-key="fi_name" title="Financial institution name from the FI registry. Click to sort alphabetically.">FI Name</th>
+              <th data-key="tier" title="Motivation Spectrum tier based on Session Success Rate. T1 (>=21%) = Activation, T1.5 (>=12%) = Campaign-to-Activation transition, T2 (>=8%) = Campaigns, T2.5 (>=3%) = Discovery-to-Campaign transition, T3 (<3%) = Incidental. Click to sort.">Tier</th>
+              <th data-key="score" title="Composite engagement score (0-100). Weights: 40% success rate (vs 27% ceiling), 20% week-over-week trend, 20% monthly reach (vs 2.5% ceiling), 20% session volume (log-scaled). Click to sort.">Score</th>
+              <th data-key="SM_Sessions" title="Select Merchant (SM) sessions — the number of times cardholders opened CardUpdatr and reached the merchant selection page. This is the top-of-funnel metric. Click to sort.">Sessions</th>
+              <th data-key="successRate" title="Session Success Rate = sessions with at least one successful card placement / total SM sessions. This is the primary conversion quality metric. Click to sort.">Success Rate</th>
+              <th data-key="trend" title="Week-over-week success rate trend. Compares most recent 7 days vs prior 7 days. Up (green arrow) = rate improved by >2 percentage points. Down (red arrow) = declined by >2pp. Flat (gray bar) = within +/-2pp. Click to sort.">Trend</th>
+              <th data-key="jobFailRate" title="Job-level failure rate from the Ops pipeline. Each 'job' is one card placement attempt at one merchant. Green (<15% fail) = healthy. Amber (15-30%) = elevated failures. Red (>30%) = degraded. Failures can be caused by merchant site changes, credential issues, or system errors. Click to sort.">System Health</th>
+              <th data-key="integration_type" title="How CardUpdatr is integrated at this FI. SSO = Single Sign-On (cardholder is pre-authenticated from online banking, higher conversion). Non-SSO = standalone (cardholder must enter card details manually). Click to sort.">Type</th>
+              <th data-key="partner" title="Integration partner that deployed CardUpdatr at this FI (e.g. Alkami, Q2, Digital Insight). Click to sort.">Partner</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Kiosk-only containers (hidden in regular mode) -->
+    <div id="kioskAlerts" class="kiosk-alerts" style="display:none;"></div>
+    <div id="kioskPartnerGrid" class="partner-grid" style="display:none;"></div>
+  </div>
+</body>
+</html>

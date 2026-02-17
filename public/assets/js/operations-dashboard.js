@@ -53,6 +53,7 @@ const state = {
   merchantSortDir: "desc",
   fiSortKey: "Jobs_Failed",
   fiSortDir: "desc",
+  includeTests: false,
 };
 
 const fiSelect = createMultiSelect(document.getElementById("fiSelect"), {
@@ -318,6 +319,7 @@ async function fetchMetrics() {
     fi_list: state.fiList,
     instance_list: state.instanceList,
     merchant_list: state.merchantList,
+    includeTests: state.includeTests,
   };
   setLoading(true);
   try {
@@ -435,6 +437,7 @@ async function fetchOpsTrends() {
       body: JSON.stringify({
         date_from: priorStart.toISOString().slice(0, 10),
         date_to: priorEnd.toISOString().slice(0, 10),
+        includeTests: state.includeTests,
       }),
     });
     if (!res.ok) return;
@@ -648,6 +651,19 @@ function initKioskLayout() {
   // Show kiosk containers
   if (kioskEls.kpiRow) kioskEls.kpiRow.style.display = "";
   if (kioskEls.split) kioskEls.split.style.display = "";
+
+  // Add "Include test data" checkbox to kiosk header
+  const headerStatus = document.querySelector(".kiosk-header__status");
+  if (headerStatus) {
+    const label = document.createElement("label");
+    label.className = "kiosk-test-toggle";
+    label.innerHTML = `<input type="checkbox" id="kioskIncludeTests" /> Include test data`;
+    headerStatus.insertBefore(label, headerStatus.firstChild);
+    document.getElementById("kioskIncludeTests").addEventListener("change", (e) => {
+      state.includeTests = e.target.checked;
+      kioskRefresh();
+    });
+  }
 }
 
 function renderKioskView() {
@@ -688,6 +704,23 @@ function init() {
       fetchMetrics();
     });
     els.exportOps.addEventListener("click", handleExportOps);
+    // Include test data checkbox
+    const testCheckbox = document.getElementById("includeTestsCheckbox");
+    if (testCheckbox) {
+      testCheckbox.addEventListener("change", (e) => {
+        state.includeTests = e.target.checked;
+        fetchMetrics();
+      });
+    }
+    // Kiosk view toggle
+    const kioskToggle = document.getElementById("kioskToggle");
+    if (kioskToggle) {
+      kioskToggle.addEventListener("click", () => {
+        const url = new URL(window.location);
+        url.searchParams.set("kiosk", "1");
+        window.location.href = url.toString();
+      });
+    }
     fetchMetrics();
   }
 }

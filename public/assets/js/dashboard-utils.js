@@ -177,7 +177,14 @@ export function isKioskMode() {
 
 export function initKioskMode(title, refreshSeconds) {
   document.body.classList.add("kiosk-mode");
-  document.documentElement.setAttribute("data-theme", "dark");
+
+  // Honor saved theme preference (or system preference), don't force dark
+  const STORAGE_KEY = "sis-theme";
+  let saved;
+  try { saved = localStorage.getItem(STORAGE_KEY); } catch { saved = null; }
+  const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+  const theme = saved || (prefersDark ? "dark" : "light");
+  document.documentElement.setAttribute("data-theme", theme);
 
   const header = document.createElement("div");
   header.className = "kiosk-header";
@@ -190,11 +197,40 @@ export function initKioskMode(title, refreshSeconds) {
           <div class="kiosk-header__countdown-fill" id="kioskCountdownFill"></div>
         </div>
       </div>
+      <button class="theme-toggle kiosk-theme-toggle" id="kioskThemeToggle" type="button">${theme === "dark" ? "Dark mode" : "Light mode"}</button>
+      <button class="kiosk-view-toggle" id="kioskViewToggle" type="button" title="Switch to regular view">Regular View</button>
       <div class="kiosk-header__clock" id="kioskClock"></div>
       <div class="kiosk-header__dot" id="kioskDot"></div>
     </div>
   `;
   document.body.prepend(header);
+
+  // Theme toggle in kiosk header
+  const themeBtn = document.getElementById("kioskThemeToggle");
+  if (themeBtn) {
+    // Add the dot
+    const dot = document.createElement("span");
+    dot.className = "theme-toggle__dot";
+    themeBtn.prepend(dot);
+    themeBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      const current = document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light";
+      const next = current === "dark" ? "light" : "dark";
+      document.documentElement.setAttribute("data-theme", next);
+      themeBtn.childNodes[themeBtn.childNodes.length - 1].textContent = next === "dark" ? "Dark mode" : "Light mode";
+      try { localStorage.setItem(STORAGE_KEY, next); } catch {}
+    });
+  }
+
+  // View toggle — switch to regular (non-kiosk) view
+  const viewBtn = document.getElementById("kioskViewToggle");
+  if (viewBtn) {
+    viewBtn.addEventListener("click", () => {
+      const url = new URL(window.location);
+      url.searchParams.delete("kiosk");
+      window.location.href = url.toString();
+    });
+  }
 
   // Live clock
   const clockEl = document.getElementById("kioskClock");

@@ -81,6 +81,7 @@ var GROUPS = [
 { id:"funnel", label:"FI Funnel", href:NAV_PREFIX+"funnel.html" },
 { id:"funnel-customer", label:"Cardholder Engagement", href:NAV_PREFIX+"funnel-customer.html" },
 { id:"customer-success", label:"Customer Success Dashboard", href:NAV_PREFIX+"dashboards/customer-success.html" },
+{ id:"portfolio", label:"CS Portfolio", href:NAV_PREFIX+"dashboards/portfolio.html" },
 { id:"sources", label:"Sources", href:NAV_PREFIX+"sources.html" },
 { id:"ux-paths", label:"UX Paths", href:NAV_PREFIX+"ux-paths.html" },
 { id:"placement-outcomes", label:"Placement Outcomes", href:NAV_PREFIX+"placement-outcomes.html" }

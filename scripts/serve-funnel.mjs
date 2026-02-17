@@ -4737,6 +4737,9 @@ const server = http.createServer(async (req, res) => {
       const days = daysBetween(start, end);
       const fiMeta = buildFiMetaMap(fiRegistry);
       const instanceMeta = await loadInstanceMetaMap();
+      const includeTests =
+        (payload?.includeTests === true) || (payload?.includeTests === "true") ||
+        queryParams.get("includeTests") === "true";
       const fiList = filters.fi_list.map((fi) => normalizeFiKey(fi)).filter(Boolean);
       const fiSet = fiList.length ? new Set(fiList) : null;
       const sourceTypeSet = new Set(
@@ -4805,6 +4808,7 @@ const server = http.createServer(async (req, res) => {
             session._instance || session.instance || session.instance_name || session.org_name || "";
           const instanceDisplay = formatInstanceDisplay(instanceRaw || "unknown");
           if (instanceSet && !instanceSet.has(normalizeInstanceKey(instanceDisplay))) continue;
+          if (!includeTests && isTestInstanceName(instanceDisplay)) continue;
 
           const instanceLookup = instanceMeta.get(instanceDisplay.toLowerCase());
           const fiLookupRaw =
@@ -4920,6 +4924,9 @@ const server = http.createServer(async (req, res) => {
       const { start, end } = resolveDateRange(filters);
       const days = daysBetween(start, end);
       const fiMeta = buildFiMetaMap(fiRegistry);
+      const includeTests =
+        (payload?.includeTests === true) || (payload?.includeTests === "true") ||
+        queryParams.get("includeTests") === "true";
       const fiList = filters.fi_list.map((fi) => normalizeFiKey(fi)).filter(Boolean);
       const fiSet = fiList.length ? new Set(fiList) : null;
       const instanceSet = filters.instance_list.length
@@ -4955,6 +4962,7 @@ const server = http.createServer(async (req, res) => {
           const job = mapPlacementToJob(placement, placement.fi_lookup_key || placement.fi, placement._instance);
           const instanceDisplay = formatInstanceDisplay(job.instance || placement._instance || "unknown");
           if (instanceSet && !instanceSet.has(normalizeInstanceKey(instanceDisplay))) continue;
+          if (!includeTests && isTestInstanceName(instanceDisplay)) continue;
 
           const fiKey = normalizeFiKey(job.fi_key || placement.fi_lookup_key || placement.fi_name || "");
           if (fiSet && !fiSet.has(fiKey)) continue;
@@ -5974,6 +5982,11 @@ const server = http.createServer(async (req, res) => {
 
   if (pathname === "/dashboards/operations" || pathname === "/dashboards/operations.html") {
     const fp = path.join(PUBLIC_DIR, "dashboards", "operations.html");
+    if (await fileExists(fp)) return serveFile(res, fp);
+  }
+
+  if (pathname === "/dashboards/portfolio" || pathname === "/dashboards/portfolio.html") {
+    const fp = path.join(PUBLIC_DIR, "dashboards", "portfolio.html");
     if (await fileExists(fp)) return serveFile(res, fp);
   }
 

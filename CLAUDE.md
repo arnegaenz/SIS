@@ -17,6 +17,8 @@
 - `public/funnel.html` - Internal FI Funnel page (HTML + CSS + JS, very large ~6900 lines)
 - `public/funnel-customer.html` - Customer-facing Cardholder Engagement Dashboard (~5100 lines)
 - `public/resources/engagement-playbook.html` - Full engagement playbook page (auto-generated from ACTION_LIBRARY)
+- `public/dashboards/portfolio.html` - CS Portfolio Dashboard (Phase 3 — engagement scores, tiers, warnings)
+- `public/assets/js/portfolio-dashboard.js` - Portfolio dashboard module (ES6, ~750 lines)
 - `templates/funnel-report-template.mjs` - Internal PDF template
 - `templates/funnel-customer-report-template.mjs` - Customer PDF template
 - `src/config/terminationMap.mjs` - Termination type definitions with labels
@@ -112,6 +114,46 @@ All partner-facing content follows engagement-positive tone:
 # Build History
 
 ## Feb 16, 2026
+
+### Phase 3 — CS Portfolio Dashboard (Completed)
+- **New page**: `public/dashboards/portfolio.html` — single-pane-of-glass view of entire FI book of business
+- **New module**: `public/assets/js/portfolio-dashboard.js` — ES6 module (~750 lines)
+- **Route**: `/dashboards/portfolio` added in serve-funnel.mjs
+- **Nav**: "CS Portfolio" added to Conversions group in nav.js (admin + internal only)
+- **No new API endpoints** — parallel-fetches existing `/api/metrics/funnel`, `/api/metrics/ops`, `/fi-registry` + 4 weekly trend windows via `Promise.all`
+
+**Page sections (regular view):**
+1. **System Health Banner**: Network-wide job success rate from ops, color-coded (green >=85%, amber >=70%, red <70%), top impacted merchants when degraded
+2. **Portfolio KPIs** (5-card row): Active FIs, Network Success Rate (weighted avg), Total Sessions, Total Placements, Trend Summary (X up / Y down / Z flat)
+3. **Tier Distribution + Score Distribution** (2-col): Horizontal stacked bar by tier count, 4-bucket histogram by score range
+4. **Early Warnings**: Multi-week engagement decline (rate down >2pp for 2+ weeks), gone dark (zero sessions after active), system health (job failure >15%/30%). ENGAGEMENT vs SYSTEM labels, collapsible
+5. **FI Card Grid**: Every FI as a card with tier badge, score circle, health dot, trend arrow, sparkline, SSO/Non-SSO badge, system flag. Sorted by engagement score. Click opens detail modal
+6. **FI Performance Table**: Sortable columns (FI, Tier, Score, Sessions, Success Rate, Trend, System Health, Type, Partner)
+7. **Detail Modal**: Stats grid (SM/CE/Success sessions, rates, jobs, reach, score), 4-week trend sparkline + table, system health section, tier diagnosis from `classifyTier()`, recommended actions from `evaluateActions()`
+
+**Engagement Score formula (0-100):**
+- Success Rate: 40% weight — `min(100, (rate / 0.27) * 100)`
+- Trend: 20% weight — up=100, flat=50, down=0
+- Monthly Reach: 20% weight — `min(100, (reach / 2.5) * 100)` or 50 if no data
+- Volume: 20% weight — `log(sessions+1) / log(maxSessions+1) * 100`
+- Colors: >=75 green, >=50 amber, >=25 orange, <25 red
+
+**Kiosk mode** (`?kiosk=1`): KPI row, early warnings, FI card grid, 5-min auto-refresh, detail modal on click
+
+**Filters**: Time window (3/30/90/180d), FI Scope (SSO/Non-SSO), Partner multi-select, Tier multi-select, Include test data toggle
+
+**CSV export**: All enriched FI data (name, tier, score, sessions, rates, trends, jobs, reach, partner)
+
+**Verbose tooltips**: Every element has detailed title attributes explaining formulas, thresholds, and strategic context. Touch-friendly: long-press (500ms) on iPad/mobile shows floating popup with close button and 8s auto-dismiss
+
+### Phase 2 — Share Links, QBR Mode, QBR PDF (Completed)
+- **Share Link Presentation Mode**: `shareLinkBtn` generates URL with encoded filters + date range, opens in `share-presentation-mode` (nav/admin hidden, branded header with partner name)
+- **Share Link Tracking**: `POST /api/share-log` logs creation + views, `GET /analytics/shared-views` admin endpoint, `shared-views.html` admin page
+- **QBR Range Preset**: Dropdown option auto-sets date range to last completed quarter, `qbr-mode` body class toggles QBR sections
+- **QBR 4-Quarter Trend Data**: `buildQBRQuarterlyData()` builds quarterly buckets, `renderQBRTrendTable()`, `renderQBRSparklines()`, `renderQBRYoY()`, `renderQBRMonthlyDetail()`, `renderQBRExecutiveSummary()`
+- **QBR PDF Export**: Server detects `isQBR` flag, template renders cover page, executive summary, trend tables, sparklines, admin section. Filename: `qbr-{dates}.pdf`
+- **QBR Event Logging**: `POST /api/qbr-log` + `GET /analytics/qbr-events` endpoints
+- **Share + QBR Integration**: Share links preserve QBR mode via `qbr=1` param, shared views render QBR content when present
 
 ### Command Center Dashboards (Kiosk Mode)
 - **Approach**: Added `?kiosk=1` query parameter to existing dashboards — no code duplication
@@ -250,13 +292,7 @@ Full audit in `narrative-rules-audit.md` in project root. 50 narrative templates
 
 # What's Pending / Queued
 
-## Ready to Build
-1. **Phase 2** (`customer_engagement_page_phase2_prompt.md`) — Share Link Presentation Mode, QBR Range Preset with 4-quarter trend data, QBR PDF Export (5-6 page branded document), QBR Event Logging, Share Link + QBR Integration
-
-## To Design / Build
-2. **Card Replacement Reach Calculation** — Add to dashboard as "CardUpdatr Activation Capture" metric
-3. **Phase 3 — Portfolio Dashboard / CS Intelligence Layer** — QBR tracking across all FIs, portfolio metrics, engagement scoring, early warning system, auto-generated reports
-4. **Dual-Monitor Command Center** (Mac Pro) — Left: Customer Success portfolio dashboard (5-min refresh), Right: Ops dashboard with merchant health and anomaly detection (30-sec refresh)
+_(Nothing currently queued — Phases 1-3 complete.)_
 
 ---
 
