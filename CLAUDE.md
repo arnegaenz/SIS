@@ -113,6 +113,14 @@ All partner-facing content follows engagement-positive tone:
 
 # Build History
 
+## Feb 17, 2026
+
+### Customer-Facing Content Audit & Hardening
+- **Benchmark proof text**: Removed time-specific references from `campaignWeeksSustained.proof` — was "6 separate weeks in 2025 and 3 in 2024", now "Multiple weeks sustained this range across hundreds of visits". Specific year/count detail preserved in `_admin` block only.
+- **Full audit result**: All named FI references, specific dates, and year references confirmed isolated in `_admin` blocks. `scaleProof` fallback in `getBenchmarkDisplay()` uses anonymized language ("One partner") — safe even if it leaked.
+- **Share link date controls**: Presentation mode header now has date range preset dropdown (7/14/30/60/90d, YTD, custom), date inputs, and Update button for live re-query
+- **Monthly reach calc fix**: `buildMetricsContext()` now uses pre-resolved `row.cardholders` instead of re-looking up the registry (avoids key normalization mismatches)
+
 ## Feb 16, 2026
 
 ### Phase 3 — CS Portfolio Dashboard (Completed)
