@@ -36,7 +36,7 @@ const BENCHMARKS = {
   campaignWeeksSustained: {
     sessionSuccessRange: '8–12%',
     description: 'Best campaign weeks across the network',
-    proof: '6 separate weeks in 2025 and 3 in 2024 sustained this range across hundreds of visits',
+    proof: 'Multiple weeks sustained this range across hundreds of visits',
     scaleProof: 'One partner achieved 409 visits at 9.8% in a single week — high volume doesn\'t dilute conversion when traffic is motivated',
     _admin: {
       sources: 'MSUFCU best weeks 2025 (6 weeks confirmed)',
@@ -482,16 +482,16 @@ function buildMetricsContext(renderCtx, opts = {}) {
   const credCompletionPct = credSessions > 0 ? (sessionsWithSuccess / credSessions) * 100 : null;
 
   // Monthly reach — average across visible FIs that have cardholder totals
+  // Uses row.cardholders (pre-resolved during aggregation) instead of re-looking
+  // up the registry, which can fail on key normalization mismatches.
   let monthlyReachPct = null;
   if (visibleRows.length > 0) {
-    const registry = opts.registryMap || {};
     let totalCardholders = 0;
     let totalReachBase = 0;
     for (const row of visibleRows) {
-      const key = row.fi_lookup_key || row.fi;
-      const regEntry = registry[key];
-      if (regEntry && regEntry.cardholder_total) {
-        totalCardholders += regEntry.cardholder_total;
+      const cardholders = Number(row.cardholders);
+      if (cardholders > 0) {
+        totalCardholders += cardholders;
         // SSO: use session data (true clickstream); non-SSO: use GA launches
         const isSSO = (row.integration_type || "").toUpperCase() === "SSO";
         const gaVal = row.ga_select || row.ga?.select_merchants || 0;

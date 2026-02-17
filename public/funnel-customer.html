@@ -625,6 +625,38 @@
     }
     .pres-prepared { margin-top: 6px; font-size: 11px; color: #64748b; }
 
+    .pres-date-controls {
+      display: flex; align-items: flex-end; gap: 10px;
+      margin-top: 14px; flex-wrap: wrap;
+    }
+    .pres-date-controls .pdc-field { display: flex; flex-direction: column; gap: 3px; }
+    .pres-date-controls .pdc-label {
+      font-size: 10px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.06em; color: #64748b;
+    }
+    .pres-date-controls select,
+    .pres-date-controls input[type="date"],
+    .pres-date-controls .pdc-update-btn {
+      height: 40px; box-sizing: border-box;
+      background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.18);
+      color: #e2e8f0; padding: 0 12px; border-radius: 6px; font-size: 14px;
+      outline: none; transition: border-color 0.15s;
+      -webkit-appearance: none; appearance: none;
+    }
+    .pres-date-controls select:focus,
+    .pres-date-controls input[type="date"]:focus {
+      border-color: rgba(14,165,233,0.6);
+    }
+    .pres-date-controls input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.7); }
+    .pres-date-controls .pdc-update-btn {
+      background: #0ea5e9; color: #fff; border-color: transparent;
+      padding: 0 22px; border-radius: 999px; font-weight: 600; cursor: pointer;
+    }
+    .pres-date-controls .pdc-update-btn:hover { background: #0284c7; }
+    .pres-date-controls .pdc-day-count {
+      font-size: 12px; color: #64748b; padding-bottom: 8px;
+    }
+
     .presentation-footer {
       text-align: center; padding: 16px; margin-top: 24px;
       border-top: 1px solid #e2e8f0; font-size: 11px; color: #94a3b8;
@@ -4478,8 +4510,29 @@
         <div class="pres-title">${isQBRShare ? 'Quarterly Business Review' : 'Cardholder Engagement Report'}</div>
         ${fiNameShare ? `<div class="pres-fi">${fiNameShare}</div>` : ''}
         ${partnerShare ? `<div class="pres-partner">${partnerShare}</div>` : ''}
-        <div class="pres-dates">
-          ${vpFrom || ''} \u2014 ${vpTo || ''}${daysCount ? ` (${daysCount} Days)` : ''}
+        <div class="pres-date-controls">
+          <div class="pdc-field">
+            <span class="pdc-label">Range</span>
+            <select id="presDatePreset">
+              <option value="last7">Last 7 days</option>
+              <option value="last14">Last 14 days</option>
+              <option value="last30">Last 30 days</option>
+              <option value="last60">Last 60 days</option>
+              <option value="last90">Last 90 days</option>
+              <option value="ytd">Year to date</option>
+              <option value="">Custom</option>
+            </select>
+          </div>
+          <div class="pdc-field">
+            <span class="pdc-label">From</span>
+            <input type="date" id="presStartDate" value="${vpFrom || ''}" />
+          </div>
+          <div class="pdc-field">
+            <span class="pdc-label">To</span>
+            <input type="date" id="presEndDate" value="${vpTo || ''}" />
+          </div>
+          <button class="pdc-update-btn" id="presApplyBtn">Update</button>
+          <span class="pdc-day-count" id="presDayCount">${daysCount ? `${daysCount} days` : ''}</span>
         </div>
         <div class="pres-prepared">Prepared by Strivve CardUpdatr\u2122 Platform</div>
         <div style="margin-top:10px;">
@@ -4494,6 +4547,62 @@
       const presPdfBtn = document.getElementById("exportPdfBtnPres");
       if (presPdfBtn && exportPdfBtnView) {
         presPdfBtn.addEventListener("click", () => exportPdfBtnView.click());
+      }
+
+      // ─── Wire presentation date controls ───
+      const presPreset = document.getElementById("presDatePreset");
+      const presStart = document.getElementById("presStartDate");
+      const presEnd = document.getElementById("presEndDate");
+      const presApply = document.getElementById("presApplyBtn");
+      const presDayCount = document.getElementById("presDayCount");
+
+      // Set initial preset to Custom since share link has explicit dates
+      if (presPreset) presPreset.value = "";
+
+      function updatePresDayCount() {
+        const s = presStart?.value || startDateInput.value;
+        const e = presEnd?.value || endDateInput.value;
+        const dc = s && e ? dayCountInclusive(s, e) : null;
+        if (presDayCount) presDayCount.textContent = dc ? `${dc} days` : '';
+      }
+
+      function syncPresToReal() {
+        if (presStart?.value) startDateInput.value = presStart.value;
+        if (presEnd?.value) endDateInput.value = presEnd.value;
+      }
+
+      if (presPreset) {
+        presPreset.addEventListener("change", () => {
+          const val = presPreset.value;
+          if (val) {
+            applyPresetRange(val);
+            // Copy real inputs back to presentation inputs
+            if (presStart) presStart.value = startDateInput.value;
+            if (presEnd) presEnd.value = endDateInput.value;
+          }
+          updatePresDayCount();
+        });
+      }
+
+      if (presStart) presStart.addEventListener("change", () => {
+        if (presPreset) presPreset.value = "";
+        updatePresDayCount();
+      });
+      if (presEnd) presEnd.addEventListener("change", () => {
+        if (presPreset) presPreset.value = "";
+        updatePresDayCount();
+      });
+
+      if (presApply) {
+        presApply.addEventListener("click", () => {
+          syncPresToReal();
+          lastRenderContext = null;
+          lastFilterSnapshot = null;
+          startLoading("Loading data\u2026");
+          safeApplyFilters()
+            .catch(err => console.error("apply failed", err))
+            .finally(() => stopLoading());
+        });
       }
 
       // Inject clean footer
