@@ -1428,6 +1428,26 @@
             <pre class="refresh-log" id="gaCredTestLog">(click "Test Access" to run)</pre>
           </div>
         </article>
+
+        <article class="maint-card share-settings-card">
+          <div>
+            <h2>Share Link Settings</h2>
+            <p class="description">Configure how long shared dashboard links remain valid. Changing this only affects newly generated links — existing links keep their original expiration.</p>
+          </div>
+          <div class="instances-controls">
+            <label>
+              Link expiration (hours)
+              <input type="number" id="shareTtlInput" min="0.01" max="8760" step="any" value="72" style="width:140px;" />
+            </label>
+            <div class="instance-actions">
+              <button class="btn" id="shareTtlSaveBtn" type="button">Save</button>
+            </div>
+          </div>
+          <div class="refresh-status">
+            <p>Status</p>
+            <div class="status-line" id="shareTtlStatus">Loading…</div>
+          </div>
+        </article>
       </div>
       <div class="build-stamp" id="buildStamp">Build: loading…</div>
     </section>
@@ -4028,6 +4048,60 @@
     })();
 
     // Theme toggle is handled by theme-toggle.js
+
+    // ── Share Link Settings ──
+    (function() {
+      const ttlInput = document.getElementById("shareTtlInput");
+      const saveBtn = document.getElementById("shareTtlSaveBtn");
+      const statusEl = document.getElementById("shareTtlStatus");
+      if (!ttlInput || !saveBtn || !statusEl) return;
+
+      async function loadShareSettings() {
+        try {
+          const res = await fetch(apiBase + "/api/share-settings", { cache: "no-store" });
+          const data = await res.json();
+          ttlInput.value = data.ttlHours ?? 72;
+          const hrs = data.ttlHours ?? 72;
+          statusEl.textContent = hrs >= 24
+            ? "Current: " + (hrs / 24) + " day" + (hrs / 24 === 1 ? "" : "s") + " (" + hrs + " hours)"
+            : "Current: " + hrs + " hour" + (hrs === 1 ? "" : "s");
+        } catch (e) {
+          statusEl.textContent = "Failed to load settings";
+        }
+      }
+
+      saveBtn.addEventListener("click", async function() {
+        const val = parseFloat(ttlInput.value);
+        if (!Number.isFinite(val) || val < 0.01 || val > 8760) {
+          statusEl.textContent = "Invalid value. Must be between 0.01 and 8760 hours.";
+          return;
+        }
+        saveBtn.disabled = true;
+        statusEl.textContent = "Saving…";
+        try {
+          const token = getSessionToken();
+          const res = await fetch(apiBase + "/api/share-settings", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+            body: JSON.stringify({ ttlHours: val })
+          });
+          const data = await res.json();
+          if (data.ok) {
+            const hrs = data.ttlHours;
+            statusEl.textContent = hrs >= 24
+              ? "Saved: " + (hrs / 24) + " day" + (hrs / 24 === 1 ? "" : "s") + " (" + hrs + " hours)"
+              : "Saved: " + hrs + " hour" + (hrs === 1 ? "" : "s");
+          } else {
+            statusEl.textContent = "Error: " + (data.error || "Failed to save");
+          }
+        } catch (e) {
+          statusEl.textContent = "Error: " + e.message;
+        }
+        saveBtn.disabled = false;
+      });
+
+      loadShareSettings();
+    })();
   </script>
 </body>
 </html>

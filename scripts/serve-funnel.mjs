@@ -2925,6 +2925,42 @@ const server = http.createServer(async (req, res) => {
 
   // ========== End Shared Link Tracking ==========
 
+  // ========== Share Link Settings ==========
+  const SHARE_SETTINGS_FILE = path.join(DATA_DIR, "share-settings.json");
+
+  if (pathname === "/api/share-settings" && req.method === "GET") {
+    try {
+      const raw = await fs.readFile(SHARE_SETTINGS_FILE, "utf8").catch(() => "{}");
+      const settings = JSON.parse(raw);
+      return send(res, 200, { ttlHours: settings.ttlHours ?? 72 });
+    } catch (err) {
+      console.error("[share-settings] read error:", err);
+      return send(res, 200, { ttlHours: 72 });
+    }
+  }
+
+  if (pathname === "/api/share-settings" && req.method === "POST") {
+    const auth = await validateSession(req, queryParams);
+    if (!auth) return send(res, 401, { ok: false });
+    if (auth.user.access_level !== "admin" && auth.user.access_level !== "full") {
+      return send(res, 403, { ok: false, error: "Admin access required" });
+    }
+    try {
+      const body = await readRequestBody(req);
+      const payload = JSON.parse(body || "{}");
+      const ttlHours = Number(payload.ttlHours);
+      if (!Number.isFinite(ttlHours) || ttlHours < 0.01 || ttlHours > 8760) {
+        return send(res, 400, { ok: false, error: "ttlHours must be between 0.01 and 8760" });
+      }
+      await fs.writeFile(SHARE_SETTINGS_FILE, JSON.stringify({ ttlHours }, null, 2));
+      return send(res, 200, { ok: true, ttlHours });
+    } catch (err) {
+      console.error("[share-settings] save error:", err);
+      return send(res, 500, { ok: false, error: "Failed to save settings" });
+    }
+  }
+  // ========== End Share Link Settings ==========
+
   // ========== End Activity Logging ==========
 
   if (pathname === "/run-update/status") {

@@ -4453,10 +4453,34 @@
     }
 
     // ─── View mode ───
+    // Wrapped in IIFE so `return` is valid (Safari rejects top-level return)
+    (function __viewModeInit() {
     const __viewParams = new URLSearchParams(window.location.search);
     const __isViewMode = __viewParams.get("view") === "1";
 
     if (__isViewMode) {
+      // ─── Share link expiration ───
+      // New links use "expires" param; legacy links use "created" with 3-day default
+      const __expiresTs = parseInt(__viewParams.get("expires"), 10);
+      const __createdTs = parseInt(__viewParams.get("created"), 10);
+      const __effectiveExpires = __expiresTs || (__createdTs ? __createdTs + 3 * 24 * 60 * 60 * 1000 : 0);
+      if (__effectiveExpires && Date.now() > __effectiveExpires) {
+        const sisContent = document.querySelector(".sis-content") || document.querySelector(".sis-panel") || document.body;
+        sisContent.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;min-height:60vh;"><div style="text-align:center;max-width:480px;padding:40px;"><div style="font-size:48px;margin-bottom:16px;">&#128279;</div><h2 style="color:#1e293b;margin:0 0 12px;">This shared link has expired</h2><p style="color:#64748b;font-size:15px;line-height:1.6;">Shared dashboard links expire for security. Please ask the sender to generate a new link.</p><p style="color:#94a3b8;font-size:13px;margin-top:20px;">Strivve CardUpdatr\u2122</p></div></div>';
+        const __expSid = __viewParams.get("sid");
+        if (__expSid) { try { fetch("/api/share-log/view?sid=" + encodeURIComponent(__expSid) + "&expired=1").catch(function() {}); } catch (e) {} }
+        return;
+      }
+      // Compute remaining time for header display
+      var __expiresInText = "";
+      if (__effectiveExpires) {
+        var __remainMs = __effectiveExpires - Date.now();
+        var __remainHrs = Math.max(0, Math.ceil(__remainMs / (60 * 60 * 1000)));
+        if (__remainHrs <= 0) __expiresInText = "Expiring soon";
+        else if (__remainHrs < 24) __expiresInText = "Link expires in " + __remainHrs + " hour" + (__remainHrs === 1 ? "" : "s");
+        else { var __remainDays = Math.ceil(__remainHrs / 24); __expiresInText = "Link expires in " + __remainDays + " day" + (__remainDays === 1 ? "" : "s"); }
+      }
+
       window.__sisViewMode = true;
       document.body.classList.add('share-presentation-mode');
 
@@ -4535,6 +4559,7 @@
           <span class="pdc-day-count" id="presDayCount">${daysCount ? `${daysCount} days` : ''}</span>
         </div>
         <div class="pres-prepared">Prepared by Strivve CardUpdatr\u2122 Platform</div>
+        ${__expiresInText ? '<div style="margin-top:6px;font-size:12px;color:#94a3b8;letter-spacing:0.3px;">' + __expiresInText + '</div>' : ''}
         <div style="margin-top:10px;">
           <button id="exportPdfBtnPres" class="form-button" style="font-size:0.85rem;padding:8px 20px;min-width:auto;">Export PDF</button>
         </div>
@@ -4626,7 +4651,9 @@
         const presetEl = document.getElementById("datePreset");
         if (presetEl) presetEl.value = "last7";
       }
-      // Share button
+      // Share button — fetch configurable TTL, then wire up
+      var __shareTtlHours = 72; // default fallback
+      fetch("/api/share-settings").then(function(r) { return r.json(); }).then(function(d) { __shareTtlHours = d.ttlHours || 72; }).catch(function() {});
       const shareLinkBtn = document.getElementById("shareLinkBtn");
       if (shareLinkBtn) {
         shareLinkBtn.style.display = "";
@@ -4638,6 +4665,7 @@
           crypto.getRandomValues(sidBytes);
           const sid = Array.from(sidBytes).map(b => b.toString(16).padStart(2, "0")).join("");
           params.set("sid", sid);
+          params.set("expires", Date.now() + __shareTtlHours * 60 * 60 * 1000);
           if (startDateInput && startDateInput.value) params.set("from", startDateInput.value);
           if (endDateInput && endDateInput.value) params.set("to", endDateInput.value);
           if (fs.fis && fs.fis.size > 0) {
@@ -5023,6 +5051,7 @@
     }
 
     applyDefaultDateRange(false);
+    })(); // end __viewModeInit IIFE
 
     // Initialize filters
     (function ensureFilters(pageId){

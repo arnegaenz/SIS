@@ -2263,7 +2263,22 @@ function applyColumnTitles(root = document) {
       const __viewParams = new URLSearchParams(window.location.search);
       const __isViewMode = __viewParams.get("view") === "1";
 
-      if (__isViewMode) {
+      // ─── Share link expiration (IIFE for Safari compat — no top-level return) ───
+      var __linkExpired = __isViewMode && (function() {
+        var __expiresTs = parseInt(__viewParams.get("expires"), 10);
+        var __createdTs = parseInt(__viewParams.get("created"), 10);
+        var __effectiveExpires = __expiresTs || (__createdTs ? __createdTs + 3 * 24 * 60 * 60 * 1000 : 0);
+        if (__effectiveExpires && Date.now() > __effectiveExpires) {
+          var sisContent = document.querySelector(".sis-content") || document.querySelector(".sis-panel") || document.body;
+          sisContent.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;min-height:60vh;"><div style="text-align:center;max-width:480px;padding:40px;"><div style="font-size:48px;margin-bottom:16px;">&#128279;</div><h2 style="color:#1e293b;margin:0 0 12px;">This shared link has expired</h2><p style="color:#64748b;font-size:15px;line-height:1.6;">Shared dashboard links expire for security. Please ask the sender to generate a new link.</p><p style="color:#94a3b8;font-size:13px;margin-top:20px;">Strivve CardUpdatr\u2122</p></div></div>';
+          var __expSid = __viewParams.get("sid");
+          if (__expSid) { try { fetch("/api/share-log/view?sid=" + encodeURIComponent(__expSid) + "&expired=1").catch(function() {}); } catch (e) {} }
+          return true;
+        }
+        return false;
+      })();
+
+      if (__isViewMode && !__linkExpired) {
         // Track shared link view (fire-and-forget, no auth)
         const __viewSid = __viewParams.get("sid");
         if (__viewSid) {
@@ -2301,7 +2316,9 @@ function applyColumnTitles(root = document) {
           if (endDateInput && !endDateInput.value) endDateInput.value = defaultEndDateStr;
           if (presetEl) presetEl.value = "last7";
         }
-        // Show Share button for authenticated users
+        // Show Share button for authenticated users — fetch configurable TTL
+        var __shareTtlHours = 72;
+        fetch("/api/share-settings").then(function(r) { return r.json(); }).then(function(d) { __shareTtlHours = d.ttlHours || 72; }).catch(function() {});
         const shareLinkBtn = document.getElementById("shareLinkBtn");
         if (shareLinkBtn) {
           shareLinkBtn.style.display = "";
@@ -2314,6 +2331,7 @@ function applyColumnTitles(root = document) {
             crypto.getRandomValues(sidBytes);
             const sid = Array.from(sidBytes).map(function(b) { return b.toString(16).padStart(2, "0"); }).join("");
             params.set("sid", sid);
+            params.set("expires", Date.now() + __shareTtlHours * 60 * 60 * 1000);
             // Date range
             if (startDateInput && startDateInput.value) params.set("from", startDateInput.value);
             if (endDateInput && endDateInput.value) params.set("to", endDateInput.value);
@@ -7019,25 +7037,26 @@ function applyColumnTitles(root = document) {
         rerenderFromCache();
       });
 
-      init().catch((err) => {
-        console.error("Init failed", err);
-        stopLoading();
-      });
-
-      const presetSelect = document.getElementById("datePreset");
-      if (presetSelect) {
-        presetSelect.addEventListener("change", () => {
-          const val = presetSelect.value;
-          if (val) {
-            applyPresetRange(val);
-            safeApplyFilters();
-          }
-          // When "Custom" is selected (value=""), do nothing — let user enter dates manually
+      if (!__linkExpired) {
+        init().catch((err) => {
+          console.error("Init failed", err);
+          stopLoading();
         });
-      }
 
-      applyDefaultDateRange(false);
-      applyColumnTitles();
+        const presetSelect = document.getElementById("datePreset");
+        if (presetSelect) {
+          presetSelect.addEventListener("change", () => {
+            const val = presetSelect.value;
+            if (val) {
+              applyPresetRange(val);
+              safeApplyFilters();
+            }
+          });
+        }
+
+        applyDefaultDateRange(false);
+        applyColumnTitles();
+      }
       (function ensureFilters(pageId){
         const run = () => {
           if (window.initFilters) {

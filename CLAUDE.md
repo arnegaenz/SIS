@@ -29,6 +29,7 @@
 
 ## Critical Lessons (Hard-Won)
 - **Do NOT expose window.applyFilters** — causes race condition that breaks ALL users
+- **NEVER use top-level `return` in inline `<script>` blocks** — Safari throws `SyntaxError: Return statements are only valid inside functions` at parse time, killing the ENTIRE script. Use IIFE wrapper or flag pattern instead. Chrome/Firefox tolerate it, Safari does not.
 - **FI keys not unique across instances** — always filter by partner/instance composite
 - **`calculateConversionMetrics()` sums from visibleRows** — can't be used for date-subsetting
 - **`assignMeta()` whitelists fields** — new registry fields must be added there
@@ -114,6 +115,15 @@ All partner-facing content follows engagement-positive tone:
 # Build History
 
 ## Feb 17, 2026
+
+### Admin-Configurable Share Link Expiration
+- **Server endpoints**: `GET /api/share-settings` (public read, returns `{ ttlHours }`), `POST /api/share-settings` (admin-only, saves to `data/share-settings.json`)
+- **Admin UI**: New "Share Link Settings" card on `maintenance.html` — number input for hours (0.01–8760), Save button, status display
+- **Share link generation**: Both `funnel.html` and `funnel-customer.html` fetch TTL from `/api/share-settings` on load, generate `expires` timestamp param instead of `created`
+- **Backward compat**: View check reads `expires` param; falls back to `created` + 3-day default for legacy links
+- **Countdown display**: Presentation header shows "Link expires in X hours/days" computed from `expires` timestamp
+- **Safari fix**: Top-level `return;` in inline `<script>` blocks caused `SyntaxError` in Safari, killing all page JS. Fixed with IIFE wrapper (funnel-customer.html) and flag pattern + small IIFE (funnel.html — broader IIFE broke `applyFilters` scoping)
+- **Config file**: `data/share-settings.json` stores `{ ttlHours: 72 }` (default), persists across server restarts
 
 ### Customer-Facing Content Audit & Hardening
 - **Benchmark proof text**: Removed time-specific references from `campaignWeeksSustained.proof` — was "6 separate weeks in 2025 and 3 in 2024", now "Multiple weeks sustained this range across hundreds of visits". Specific year/count detail preserved in `_admin` block only.
