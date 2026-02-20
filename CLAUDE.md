@@ -416,20 +416,45 @@ The current implementation shifts tier thresholds for non-SSO but still uses **s
 - **GA launches = true non-SSO top of funnel**, but undercounted 15-30% due to Safari ITP and ad blockers.
 - The real non-SSO conversion rate is **GA launches → successful placements**, which is much lower than the session-based rate.
 
-### What's needed from the user
-Arne is pulling together the full picture of how non-SSO data should be framed for the QBR with Digital Onboarding (100% non-SSO partner, meeting Feb 21). Key decisions pending:
+### Breakthrough: GA Undercount Calibration (Feb 20, 2026)
+Synthetic traffic testing confirmed that the CardSavr API clickstream records every page transition server-side, with NO browser blocking. Each non-SSO session object includes:
+```json
+"clickstream": [
+  { "url": "/select-merchants", "timestamp": "...", "page_title": "Select Merchants" },
+  { "url": "/user-data-collection", "timestamp": "...", "page_title": "User Data Collection" },
+  { "url": "/credential-entry", "timestamp": "...", "page_title": "Credential Entry" }
+]
+```
 
-1. Should non-SSO view use GA launches as the denominator instead of sessions?
-2. Should the session-based funnel be suppressed entirely for non-SSO?
-3. How to frame the GA undercount (acknowledge + estimate, or just caveat)?
-4. What tier thresholds make sense when using launch-based conversion rates?
-5. Any non-SSO-specific narratives or framing for the QBR?
+**Key findings from synthetic data analysis:**
+- **Session `created_on` = `/user-data-collection` timestamp** — confirms session creation happens at card data submission, not page load
+- **Clickstream is 100% accurate** (server-side) — no Safari ITP, no ad blockers
+- **Abandon sessions still record clickstream** — even `total_jobs: 0` sessions show the full page path up to where the user dropped off
+- **Non-SSO integration type = `CU2`** in raw API data (SIS maps this to "NON-SSO" during aggregation; SSO = `CU2_SSO`)
+- **Source metadata preserved end-to-end** — `source.sub_category` on each session matches the synthetic job's configured subcategory exactly
 
-### What to do when resuming
-Wait for Arne's direction on the data framing, then update:
-- `engagement-insights.js` — narrative overrides, tier thresholds, possibly a launch-based metric path
-- `funnel-customer.html` — breakdown rendering logic, possibly funnel viz changes for non-SSO
-- May need to rethink `computeProjections()` for non-SSO context
+**GA undercount calibration approach:**
+1. **Clickstream `/user-data-collection` count** = ground truth (server-side, 100% accurate)
+2. **GA `user_data_collection` count** = same event, undercounted by browser blocking
+3. **Ratio = per-FI GA accuracy rate** (e.g., clickstream 100 vs GA 78 → 22% undercount)
+4. **Apply ratio to GA `select_merchants`** = estimated true top-of-funnel for non-SSO
+5. **Caveat on dashboard**: "Select Merchant count estimated based on observed GA tracking rate of X% for this FI (derived from server-verified User Data submissions vs GA-reported User Data views)."
+
+This replaces the generic "15-30% undercount" guess with a **data-driven, per-FI calibration factor** that can be computed for any time window.
+
+### What to build
+1. **GA calibration factor computation**: Compare clickstream `/user-data-collection` count vs GA `user_data_collection` for same FI + date range → compute per-FI accuracy rate
+2. **Calibrated select-merchants estimate**: Apply calibration factor to GA `select_merchants` → show as "Estimated Launches" with tooltip explaining methodology
+3. **Non-SSO funnel reframe**: Use calibrated launches as true top of funnel, session-based metrics as post-commitment funnel
+4. **Insights engine updates**: Tier classification using launch-based conversion rates (calibrated GA launches → successful placements), not session-based rates
+5. **Dashboard caveats**: Inline explanation of methodology wherever estimated values appear
+
+### Key files to modify
+- `scripts/serve-funnel.mjs` — add clickstream aggregation endpoint or compute during daily rollup
+- `scripts/build-daily-from-raw.mjs` — extract clickstream page counts during aggregation (currently stripped)
+- `engagement-insights.js` — narrative overrides, tier thresholds using launch-based conversion
+- `funnel-customer.html` — breakdown rendering with calibrated metrics, caveat UI
+- `computeProjections()` — rethink for non-SSO context using calibrated launch data
 
 ---
 
