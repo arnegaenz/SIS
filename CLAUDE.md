@@ -333,7 +333,34 @@ Full audit in `narrative-rules-audit.md` in project root. 50 narrative templates
 
 # What's Pending / Queued
 
-_(Nothing currently queued — Phases 1-3 complete.)_
+## IN PROGRESS: Non-SSO Data Interpretation Fix (QBR prep for Digital Onboarding)
+
+### What was built
+SSO vs Non-SSO insights engine split (Feb 20) — when both SSO and non-SSO FIs are in the data, a "Performance by Integration Type" breakdown section appears with separate narratives, spectrum gauges, actions, and projections per type. Code is deployed and committed.
+
+### The problem discovered during review
+The current implementation shifts tier thresholds for non-SSO but still uses **session-based metrics** as the primary data source. This is fundamentally misleading because:
+
+- **SSO**: A "session" starts when the cardholder lands on the page (pre-authenticated). Sessions ≈ true top of funnel. Session success rate = real conversion.
+- **Non-SSO**: A "session" doesn't start until AFTER the cardholder has manually entered their card data. Every session represents an already-committed cardholder. Session success rate measures conversion from a pre-filtered audience — it looks artificially good.
+- **User Data conversion = 100% for non-SSO** — this is tautological, not a real metric. You can't have a non-SSO session without having entered user data.
+- **GA launches = true non-SSO top of funnel**, but undercounted 15-30% due to Safari ITP and ad blockers.
+- The real non-SSO conversion rate is **GA launches → successful placements**, which is much lower than the session-based rate.
+
+### What's needed from the user
+Arne is pulling together the full picture of how non-SSO data should be framed for the QBR with Digital Onboarding (100% non-SSO partner, meeting Feb 21). Key decisions pending:
+
+1. Should non-SSO view use GA launches as the denominator instead of sessions?
+2. Should the session-based funnel be suppressed entirely for non-SSO?
+3. How to frame the GA undercount (acknowledge + estimate, or just caveat)?
+4. What tier thresholds make sense when using launch-based conversion rates?
+5. Any non-SSO-specific narratives or framing for the QBR?
+
+### What to do when resuming
+Wait for Arne's direction on the data framing, then update:
+- `engagement-insights.js` — narrative overrides, tier thresholds, possibly a launch-based metric path
+- `funnel-customer.html` — breakdown rendering logic, possibly funnel viz changes for non-SSO
+- May need to rethink `computeProjections()` for non-SSO context
 
 ---
 
