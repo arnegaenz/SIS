@@ -661,8 +661,26 @@
     validateSourceSubcategory();
   }
 
-  function buildRateOptions(listEl, inputEl) {
+  function buildRateOptions(listEl, inputEl, extras) {
     listEl.innerHTML = "";
+    if (extras) {
+      extras.forEach(function (ex) {
+        var option = document.createElement("div");
+        option.className = "rate-option";
+        option.textContent = ex.label;
+        option.dataset.value = String(ex.value);
+        option.style.fontStyle = "italic";
+        option.style.borderBottom = "1px solid rgba(255,255,255,0.1)";
+        option.addEventListener("click", function (evt) {
+          var next = evt.currentTarget.dataset.value;
+          inputEl.value = next;
+          closeRateList(listEl);
+          updateRateValidation();
+          updateFunnelCascade();
+        });
+        listEl.appendChild(option);
+      });
+    }
     for (var val = 0; val <= 100; val += 5) {
       var option = document.createElement("div");
       option.className = "rate-option";
@@ -694,7 +712,11 @@
       var toggle = combo.querySelector("[data-rate-combo-toggle]");
       var list = combo.querySelector("[data-rate-combo-list]");
       if (!input || !toggle || !list) return;
-      buildRateOptions(list, input);
+      var extras = null;
+      if (input.id === "abandonCredentialEntry") {
+        extras = [{ label: "No interaction", value: 100 }];
+      }
+      buildRateOptions(list, input, extras);
       toggle.addEventListener("click", function (evt) {
         evt.preventDefault();
         evt.stopPropagation();
