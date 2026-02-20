@@ -87,6 +87,14 @@ The core thesis: CardUpdatr's conversion rate is determined by cardholder motiva
 - >=3% → Tier 2.5 (Discovery → Campaign transition)
 - <3% → Tier 3 (Incidental Discovery)
 
+### Non-SSO Tier Classification
+`classifyNonSSOTier()` — shifted thresholds because every non-SSO "visit" already represents a committed cardholder (they entered card data manually before seeing merchants).
+- >=35% → Tier 1 (Card Activation Flow)
+- >=25% → Tier 1.5 (Campaign → Activation transition)
+- >=15% → Tier 2 (Targeted Campaigns)
+- >=8% → Tier 2.5 (Discovery → Campaign transition)
+- <8% → Tier 3 (Organic Discovery)
+
 ## Benchmarking Philosophy
 Always benchmark against best-of-best performance (aspirational ceiling), never averages. Use the partner's own best-week/best-quarter data as proof their cardholders CAN convert. Named FI references (MSUFCU, Cape Cod Five, Kemba, ORNL) are admin-only — customer-facing benchmarks are anonymized.
 
@@ -113,6 +121,21 @@ All partner-facing content follows engagement-positive tone:
 ---
 
 # Build History
+
+## Feb 20, 2026
+
+### SSO vs Non-SSO Insights Engine Split
+- **Engine**: `classifyNonSSOTier()` with shifted thresholds (8/15/25/35% vs 3/8/12/21%) — every non-SSO visit represents a committed cardholder who already entered card data
+- **Narrative overrides**: `NONSSO_NARRATIVE_OVERRIDES` in engagement-insights.js — suppresses selCred rules (irrelevant for non-SSO), overrides sessSuccess rules with post-commitment framing, adds GA undercount caveats to reach rules
+- **Action overrides**: `NONSSO_ACTION_RULES` — "Time prompts to card activation moments" (always), "Consider SSO integration upgrade" (tier 2+)
+- **Spectrum diagnosis**: `buildNonSSOSpectrumDiagnosis()` — reframes diagnosis text for committed cardholder traffic
+- **Projections**: `computeProjections()` now integration-context-aware — non-SSO uses 15% campaign / 35% activation thresholds
+- **Integration context**: `buildMetricsContext()` accepts `opts.integrationContext` ('combined'|'sso'|'nonsso'), passed through to all engine functions
+- **Customer page breakdown**: New `#integrationBreakdownSection` in `funnel-customer.html` — when both SSO and non-SSO FIs are in view, renders separate narratives, spectrum gauges (non-SSO uses 0–50% scale), actions, and projections per type
+- **GA disclaimer**: Non-SSO block shows banner noting 15–30% GA undercount from Safari ITP and ad blockers
+- **Single-type hiding**: When only SSO or only non-SSO FIs are in the data, breakdown section is hidden (combined view IS the single-type view)
+- **Dark mode**: Full `[data-theme="dark"]` overrides for breakdown blocks, badges, and disclaimer
+- **PDF prep**: `window.__integrationBreakdown` stores split contexts for future PDF template extension
 
 ## Feb 17, 2026
 
