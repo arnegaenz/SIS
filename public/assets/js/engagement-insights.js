@@ -21,6 +21,16 @@ const TIER_BOUNDARIES = {
   tier3to2: { min: 3, max: 8, label: 'Discovery → Campaign', color: '#f97316' },
 };
 
+// Non-SSO tiers: post-commitment traffic has higher baselines
+// Every non-SSO "visit" already represents a cardholder who entered card data manually.
+const NONSSO_TIER_BOUNDARIES = {
+  tier1: { min: 35, max: 67, label: 'Card Activation Flow', color: '#22c55e' },
+  tier2: { min: 15, max: 25, label: 'Targeted Campaigns', color: '#eab308' },
+  tier3: { min: 0, max: 8, label: 'Organic Discovery', color: '#ef4444' },
+  tier2to1: { min: 25, max: 35, label: 'Campaign → Activation', color: '#84cc16' },
+  tier3to2: { min: 8, max: 15, label: 'Discovery → Campaign', color: '#f97316' },
+};
+
 // ─── Benchmark Data ─────────────────────────────────────────────────────────
 
 const BENCHMARKS = {
@@ -229,6 +239,65 @@ const NARRATIVE_RULES = [
       text: `Filter to ${m.bestWeekStart} – ${m.bestWeekEnd} to examine your best-performing window`,
       action: 'filter', filters: { dateFrom: m.bestWeekStart, dateTo: m.bestWeekEnd },
     } : null,
+  },
+];
+
+// ─── Non-SSO Narrative Overrides ────────────────────────────────────────────
+// When integrationContext === 'nonsso', these override or suppress standard narrative rules.
+// key = rule ID from NARRATIVE_RULES
+// value = { suppress: true } to hide, or { narrative: fn } to replace the text
+const NONSSO_NARRATIVE_OVERRIDES = {
+  // Select→Credential conversion doesn't apply for non-SSO — cardholders enter card data
+  // before they ever see merchants, so there is no "select → credential" funnel step.
+  selCred_low: { suppress: true },
+  selCred_mid: { suppress: true },
+  selCred_high: { suppress: true },
+
+  // Session success: reframe with non-SSO context
+  sessSuccess_low: {
+    narrative: (m) => `Your cardholders are converting at <strong>${fmt(m.sessionSuccessPct)}%</strong> — and because non-SSO cardholders have already entered their card details before this point, every visit represents a committed cardholder. This is a strong foundation: the next step is reaching these cardholders at peak-motivation moments like card activation or reissuance, where conversion rates climb to 15–25%.${m.totalSessions < 100 ? ' <em>Note: With fewer than 100 visits in this window, rates may fluctuate — look for directional trends rather than exact percentages.</em>' : ''}`,
+  },
+  sessSuccess_mid: {
+    narrative: (m) => `At <strong>${fmt(m.sessionSuccessPct)}%</strong>, your non-SSO cardholders are showing real engagement — remember, every one of these visitors manually entered their card information first. This conversion rate with committed traffic is promising. Sustained campaign cadence targeting card activation moments can push this toward the 15–25% range.`,
+  },
+  sessSuccess_high: {
+    narrative: (m) => `Excellent — <strong>${fmt(m.sessionSuccessPct)}%</strong> of your non-SSO cardholders are completing placements. Since every visitor has already committed by entering their card details, this high conversion rate demonstrates strong cardholder motivation. The focus now is expanding the volume of cardholders who reach this point.`,
+  },
+
+  // Reach: add GA undercount caveat for non-SSO
+  reach_low: {
+    narrative: (m) => `You're reaching <strong>${fmtPct(m.monthlyReachPct)}%</strong> of your member base today. <em>Note: Non-SSO traffic is measured via Google Analytics, which undercounts by 15–30% due to Safari and ad-blocker tracking prevention — your actual reach is likely higher.</em> Embedding CardUpdatr in card activation or reissuance flows is the fastest path to expanding reach.`,
+  },
+  reach_ok: {
+    narrative: (m) => `<strong>${fmtPct(m.monthlyReachPct)}%</strong> monthly reach shows cardholders are finding CardUpdatr. <em>Note: Non-SSO traffic measurement via GA may undercount by 15–30% due to browser tracking prevention.</em> Expanding touchpoints through card activation and reissuance moments is the next high-impact move.`,
+  },
+};
+
+// ─── Non-SSO Action Rules (supplements standard rules) ──────────────────────
+const NONSSO_ACTION_RULES = [
+  {
+    id: 'nonsso_activation_timing',
+    condition: () => true,
+    priority: 0,
+    actions: [
+      {
+        headline: 'Time prompts to card activation moments',
+        detail: 'Non-SSO cardholders who encounter CardUpdatr during card activation or reissuance show the strongest commitment. Timing outreach to these moments — when cardholders have a new card number — maximizes conversion from an already-motivated audience.',
+        impact: 'high',
+      },
+    ],
+  },
+  {
+    id: 'nonsso_sso_upgrade',
+    condition: (d) => d.tier >= 2,
+    priority: 6,
+    actions: [
+      {
+        headline: 'Consider SSO integration to remove the manual card entry step',
+        detail: 'An SSO integration pre-authenticates cardholders, eliminating the manual card entry barrier. This broadens the top of funnel — reaching cardholders who are interested but wouldn\'t have manually entered card data — while maintaining your strong conversion quality.',
+        impact: 'medium',
+      },
+    ],
   },
 ];
 
@@ -553,6 +622,9 @@ function buildMetricsContext(renderCtx, opts = {}) {
     // Pass-through
     startDate: renderCtx.startDate,
     endDate: renderCtx.endDate,
+
+    // Integration context for split views ('combined'|'sso'|'nonsso')
+    integrationContext: opts.integrationContext || 'combined',
   };
 }
 
@@ -587,15 +659,50 @@ function classifyTier(rate) {
 }
 
 /**
+ * Classify a session success rate into a motivation tier for non-SSO traffic.
+ * Non-SSO visitors have already entered card data manually, so every "visit"
+ * represents a committed cardholder — thresholds are shifted upward.
+ * @param {number} rate - session success percentage
+ * @returns {{ tier: number, label: string, color: string, zone: string }}
+ */
+function classifyNonSSOTier(rate) {
+  if (rate === null || rate === undefined) return { tier: 0, label: 'Insufficient Data', color: '#94a3b8', zone: 'unknown' };
+  if (rate >= 35) return { tier: 1, label: 'Card Activation Flow', color: NONSSO_TIER_BOUNDARIES.tier1.color, zone: 'tier1' };
+  if (rate >= 25) return { tier: 1.5, label: 'Campaign → Activation', color: NONSSO_TIER_BOUNDARIES.tier2to1.color, zone: 'tier2to1' };
+  if (rate >= 15) return { tier: 2, label: 'Targeted Campaigns', color: NONSSO_TIER_BOUNDARIES.tier2.color, zone: 'tier2' };
+  if (rate >= 8) return { tier: 2.5, label: 'Discovery → Campaign', color: NONSSO_TIER_BOUNDARIES.tier3to2.color, zone: 'tier3to2' };
+  return { tier: 3, label: 'Organic Discovery', color: NONSSO_TIER_BOUNDARIES.tier3.color, zone: 'tier3' };
+}
+
+/**
  * Evaluate all narrative rules against the metrics context.
  * @returns {{ id, section, html, benchmarkKeys[], filterHint? }[]}
  */
 function evaluateNarratives(metricsCtx) {
+  const isNonSSO = metricsCtx.integrationContext === 'nonsso';
+  const isSplitView = metricsCtx.integrationContext === 'sso' || isNonSSO;
   const results = [];
   for (const rule of NARRATIVE_RULES) {
     try {
+      // Check non-SSO overrides
+      if (isNonSSO && NONSSO_NARRATIVE_OVERRIDES[rule.id]) {
+        const override = NONSSO_NARRATIVE_OVERRIDES[rule.id];
+        if (override.suppress) continue;
+        if (override.narrative && rule.condition(metricsCtx)) {
+          results.push({
+            id: rule.id,
+            metric: rule.metric,
+            section: rule.section,
+            html: override.narrative(metricsCtx),
+            benchmarkKeys: rule.benchmarks || [],
+            filterHint: isSplitView ? null : (rule.filterHint ? rule.filterHint(metricsCtx) : null),
+          });
+          continue;
+        }
+      }
       if (rule.condition(metricsCtx)) {
-        const hint = rule.filterHint ? rule.filterHint(metricsCtx) : null;
+        // Suppress filter hints in split views (already filtered by type)
+        const hint = isSplitView ? null : (rule.filterHint ? rule.filterHint(metricsCtx) : null);
         results.push({
           id: rule.id,
           metric: rule.metric,
@@ -617,25 +724,29 @@ function evaluateNarratives(metricsCtx) {
  * @returns {{ diagnosis: Object, actions: { headline, detail, impact }[] }}
  */
 function evaluateActions(metricsCtx) {
+  const isNonSSO = metricsCtx.integrationContext === 'nonsso';
   const rate = metricsCtx.sessionSuccessPct;
-  const tierInfo = classifyTier(rate);
+  const tierInfo = isNonSSO ? classifyNonSSOTier(rate) : classifyTier(rate);
 
   const diagnosis = {
     tier: tierInfo.tier <= 1.5 ? 1 : tierInfo.tier <= 2.5 ? 2 : 3,
     tierInfo,
     lowReach: metricsCtx.monthlyReachPct !== null && metricsCtx.monthlyReachPct < 0.5,
-    lowCredEntry: metricsCtx.selCredPct !== null && metricsCtx.selCredPct < 5,
+    lowCredEntry: isNonSSO ? false : (metricsCtx.selCredPct !== null && metricsCtx.selCredPct < 5),
     lowCompletion: metricsCtx.credCompletionPct !== null && metricsCtx.credCompletionPct < 25,
-    goodPerformance: rate !== null && rate > 8,
+    goodPerformance: isNonSSO ? (rate !== null && rate > 15) : (rate !== null && rate > 8),
     bestWeekGap: metricsCtx.bestWeekRate !== null && rate !== null && rate > 0 && (metricsCtx.bestWeekRate / rate) > 2,
     metrics: metricsCtx,
+    integrationContext: metricsCtx.integrationContext || 'combined',
   };
 
   // Collect all matching actions, deduplicated by headline
   const allActions = [];
   const seen = new Set();
 
-  const matchingRules = ACTION_RULES
+  // Use standard rules plus non-SSO-specific rules when applicable
+  const ruleSets = isNonSSO ? [...NONSSO_ACTION_RULES, ...ACTION_RULES] : ACTION_RULES;
+  const matchingRules = ruleSets
     .filter(r => { try { return r.condition(diagnosis); } catch { return false; } })
     .sort((a, b) => a.priority - b.priority);
 
@@ -665,6 +776,13 @@ function evaluateActions(metricsCtx) {
 function computeProjections(metricsCtx, opts = {}) {
   const { totalSessions, sessionSuccessPct, successfulPlacements, avgCardsPerSession, daySpan, bestWeekRate } = metricsCtx;
   const cardsPerSession = avgCardsPerSession || 1;
+  const isNonSSO = metricsCtx.integrationContext === 'nonsso';
+
+  // Non-SSO thresholds are shifted up (post-commitment traffic)
+  const campaignRate = isNonSSO ? 15 : 8;
+  const activationRate = isNonSSO ? 35 : 21;
+  const campaignLabel = isNonSSO ? 'At campaign-tier performance (15%)' : 'At campaign-tier performance (8%)';
+  const activationLabel = isNonSSO ? 'At activation-flow performance (35%)' : 'At activation-flow performance (21%)';
 
   const current = {
     sessions: totalSessions,
@@ -678,7 +796,7 @@ function computeProjections(metricsCtx, opts = {}) {
   // Best-quarter scenario (QBR mode) — takes precedence over best-week when provided
   const qbrBestQuarterRate = opts.qbrBestQuarterRate;
   if (qbrBestQuarterRate && sessionSuccessPct && qbrBestQuarterRate > sessionSuccessPct * 1.3) {
-    const nearCampaign = Math.abs(qbrBestQuarterRate - 8) < 1.5;
+    const nearCampaign = Math.abs(qbrBestQuarterRate - campaignRate) < 1.5;
     if (!nearCampaign) {
       const projSuccess = Math.round(totalSessions * (qbrBestQuarterRate / 100));
       const projPlacements = Math.round(projSuccess * cardsPerSession);
@@ -707,13 +825,13 @@ function computeProjections(metricsCtx, opts = {}) {
 
   // Campaign tier (only if current is below it AND not redundant with best-week/best-quarter)
   const bestRate = qbrBestQuarterRate || bestWeekRate;
-  const bestNearCampaign = bestRate && Math.abs(bestRate - 8) < 1.5;
-  if ((!sessionSuccessPct || sessionSuccessPct < 8) && !bestNearCampaign) {
-    const projSuccess = Math.round(totalSessions * 0.08);
+  const bestNearCampaign = bestRate && Math.abs(bestRate - campaignRate) < 1.5;
+  if ((!sessionSuccessPct || sessionSuccessPct < campaignRate) && !bestNearCampaign) {
+    const projSuccess = Math.round(totalSessions * (campaignRate / 100));
     const projPlacements = Math.round(projSuccess * cardsPerSession);
     scenarios.push({
-      label: 'At campaign-tier performance (8%)',
-      rate: 8,
+      label: campaignLabel,
+      rate: campaignRate,
       projectedSessions: projSuccess,
       projectedPlacements: projPlacements,
       multiplier: successfulPlacements > 0 ? projPlacements / successfulPlacements : null,
@@ -721,12 +839,12 @@ function computeProjections(metricsCtx, opts = {}) {
   }
 
   // Activation flow (only if current is below it)
-  if (!sessionSuccessPct || sessionSuccessPct < 21) {
-    const projSuccess = Math.round(totalSessions * 0.21);
+  if (!sessionSuccessPct || sessionSuccessPct < activationRate) {
+    const projSuccess = Math.round(totalSessions * (activationRate / 100));
     const projPlacements = Math.round(projSuccess * cardsPerSession);
     scenarios.push({
-      label: 'At activation-flow performance (21%)',
-      rate: 21,
+      label: activationLabel,
+      rate: activationRate,
       projectedSessions: projSuccess,
       projectedPlacements: projPlacements,
       multiplier: successfulPlacements > 0 ? projPlacements / successfulPlacements : null,
@@ -795,6 +913,39 @@ function buildSpectrumDiagnosis(metricsCtx) {
 
   if (bestTier && metricsCtx.bestWeekRate && metricsCtx.bestWeekRate > (rate || 0) * 1.3) {
     html += ` Your best 7-day window hit <strong>${fmt(metricsCtx.bestWeekRate)}%</strong> — <strong>${bestTier.label}</strong> territory. This proves the potential within your cardholder base when the conditions are right.`;
+  }
+
+  return { currentTier, bestTier, html };
+}
+
+/**
+ * Build the motivation spectrum diagnosis for non-SSO traffic.
+ * Uses shifted tier boundaries and reframes around post-commitment behavior.
+ * @returns {{ currentTier: Object, bestTier: Object|null, html: string }}
+ */
+function buildNonSSOSpectrumDiagnosis(metricsCtx) {
+  const rate = metricsCtx.sessionSuccessPct;
+  const currentTier = classifyNonSSOTier(rate);
+  const bestTier = metricsCtx.bestWeekRate ? classifyNonSSOTier(metricsCtx.bestWeekRate) : null;
+
+  let html = '';
+
+  if (rate === null) {
+    html = 'Insufficient data to classify your current non-SSO traffic pattern.';
+  } else if (rate < 8) {
+    html = `Your non-SSO cardholders are converting at <strong>${fmt(rate)}%</strong> — in the <strong>Organic Discovery</strong> tier. Because every non-SSO visitor has already committed by entering their card details, even this baseline represents genuine engagement. Partners who time outreach to card activation moments see conversion climb to 15–25% with this same committed audience.`;
+  } else if (rate <= 15) {
+    html = `At <strong>${fmt(rate)}%</strong>, your non-SSO traffic is in the transition zone between <strong>Discovery</strong> and <strong>Campaign</strong> tiers. These cardholders have already entered their card details — they're committed. Sustaining campaign cadence and targeting card activation windows is the path to pushing above 15%.`;
+  } else if (rate <= 25) {
+    html = `Strong performance — <strong>${fmt(rate)}%</strong> puts your non-SSO traffic at <strong>campaign-tier levels</strong>. Remember, every one of these visitors manually entered their card data first — this conversion rate with committed traffic shows real engagement quality. The next step is embedding CardUpdatr in card activation flows to reach the 25–35% tier.`;
+  } else if (rate <= 35) {
+    html = `At <strong>${fmt(rate)}%</strong>, your non-SSO traffic is approaching <strong>activation-flow territory</strong>. Your cardholders are encountering CardUpdatr at high-motivation moments. This is excellent performance for non-SSO traffic — you're in the transition zone between Campaign and Activation tiers.`;
+  } else {
+    html = `Outstanding — <strong>${fmt(rate)}%</strong> puts your non-SSO traffic in the <strong>activation-flow tier</strong>, the highest performance bracket. This is exceptional for non-SSO traffic, matching what the best SSO-integrated partners achieve. Your cardholders are reaching CardUpdatr at exactly the right moment.`;
+  }
+
+  if (bestTier && metricsCtx.bestWeekRate && metricsCtx.bestWeekRate > (rate || 0) * 1.3) {
+    html += ` Your best 7-day window hit <strong>${fmt(metricsCtx.bestWeekRate)}%</strong> — <strong>${bestTier.label}</strong> territory. This proves the potential within your committed cardholder base.`;
   }
 
   return { currentTier, bestTier, html };
@@ -1249,9 +1400,11 @@ const AL = window.ActionLibrary || {};
 
 window.EngagementInsights = {
   TIER_BOUNDARIES,
+  NONSSO_TIER_BOUNDARIES,
   BENCHMARKS,
   NARRATIVE_RULES,
   ACTION_RULES,
+  NONSSO_ACTION_RULES,
   ADMIN_TALKING_POINTS,
   ADMIN_OBJECTIONS,
   ADMIN_BENCHMARK_REFS,
@@ -1268,11 +1421,13 @@ window.EngagementInsights = {
   // Engine
   buildMetricsContext,
   classifyTier,
+  classifyNonSSOTier,
   evaluateNarratives,
   evaluateActions,
   computeProjections,
   getAdminInsights,
   buildSpectrumDiagnosis,
+  buildNonSSOSpectrumDiagnosis,
   getBenchmarkDisplay,
 
   // QBR Engine

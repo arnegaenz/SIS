@@ -2,6 +2,7 @@
 <html lang="en">
   <head>
   <meta charset="utf-8" />
+  <script>try{var t=localStorage.getItem('sis-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
   <title>Cardholder Engagement Dashboard</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
   <link rel="stylesheet" href="./sis-shared.css?v=navfix" />
@@ -839,6 +840,38 @@
       font-size: 11px; color: #94a3b8; font-style: italic; margin-top: 4px;
     }
 
+    /* ── Integration Breakdown (SSO vs Non-SSO) ── */
+    .integration-breakdown-intro {
+      font-size: 0.85rem; line-height: 1.6; color: #475569;
+      background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px;
+      padding: 12px 16px; margin-bottom: 20px;
+    }
+    .breakdown-block {
+      margin-bottom: 28px; padding: 16px 20px;
+      border: 1px solid #e2e8f0; border-radius: 12px;
+      background: #fafbfc;
+    }
+    .breakdown-badge {
+      display: inline-block; font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.05em;
+      padding: 4px 12px; border-radius: 6px; margin-bottom: 14px;
+    }
+    .breakdown-badge.sso-badge {
+      background: #dbeafe; color: #1e40af;
+    }
+    .breakdown-badge.nonsso-badge {
+      background: #fef3c7; color: #92400e;
+    }
+    .ga-undercount-disclaimer {
+      font-size: 0.8rem; line-height: 1.5; color: #92400e;
+      background: #fffbeb; border: 1px solid #fde68a; border-radius: 6px;
+      padding: 8px 12px; margin-bottom: 14px;
+    }
+    .ga-undercount-disclaimer strong { color: #78350f; }
+    .breakdown-narratives { margin-bottom: 14px; }
+    .breakdown-spectrum { margin-bottom: 14px; }
+    .breakdown-projection { margin-top: 10px; }
+
     /* ── Admin Overlay ── */
     .admin-overlay { display: none; }
     body.show-admin-overlay .admin-overlay { display: block; }
@@ -918,6 +951,337 @@
       font-size: 9px; font-weight: 700; text-transform: uppercase;
       letter-spacing: 0.05em; color: #dc2626; margin-bottom: 4px;
     }
+
+    /* ══════════════════════════════════════════════════════════════════
+       DARK MODE OVERRIDES
+       ══════════════════════════════════════════════════════════════════ */
+    [data-theme="dark"] body { background: var(--bg); color: var(--text); }
+
+    /* Date warning */
+    [data-theme="dark"] .date-warning {
+      background: rgba(254,243,199,0.10); border-color: rgba(252,211,77,0.3);
+      color: #fcd34d;
+    }
+
+    /* Performance section titles */
+    [data-theme="dark"] .perf-section-title {
+      color: var(--text); border-bottom-color: var(--border);
+    }
+
+    /* Metric cards */
+    [data-theme="dark"] .perf-card {
+      background: var(--panel); border-color: var(--border);
+      box-shadow: 0 14px 34px rgba(0,0,0,0.25);
+    }
+    [data-theme="dark"] .perf-card:hover {
+      box-shadow: 0 18px 42px rgba(0,0,0,0.35);
+    }
+    [data-theme="dark"] .perf-card .card-label { color: var(--muted); }
+    [data-theme="dark"] .perf-card .card-value { color: var(--text); }
+    [data-theme="dark"] .perf-card .card-sub { color: #64748b; }
+
+    /* Highlight card (blue accent) */
+    [data-theme="dark"] .perf-card.highlight {
+      background: linear-gradient(135deg, rgba(37,99,235,0.15) 0%, rgba(37,99,235,0.05) 55%, transparent 100%), var(--panel);
+      border-color: rgba(37,99,235,0.35);
+    }
+    [data-theme="dark"] .perf-card.highlight .card-value { color: #7aa2ff; }
+
+    /* Success card (green accent) */
+    [data-theme="dark"] .perf-card.success {
+      background: linear-gradient(135deg, rgba(22,163,74,0.15) 0%, rgba(22,163,74,0.05) 55%, transparent 100%), var(--panel);
+      border-color: rgba(22,163,74,0.35);
+    }
+    [data-theme="dark"] .perf-card.success .card-value { color: #4ade80; }
+
+    /* GA card (purple accent) */
+    [data-theme="dark"] .perf-card.ga-card {
+      background: linear-gradient(135deg, rgba(124,58,237,0.15) 0%, rgba(124,58,237,0.05) 55%, transparent 100%), var(--panel);
+      border-color: rgba(124,58,237,0.30);
+    }
+    [data-theme="dark"] .perf-card.ga-card .card-label { color: #a78bfa; }
+
+    /* CS card (amber accent) */
+    [data-theme="dark"] .perf-card.cs-card,
+    [data-theme="dark"] .perf-card.cs-card.stats-card {
+      background: linear-gradient(135deg, rgba(217,119,6,0.15) 0%, rgba(217,119,6,0.05) 55%, transparent 100%), var(--panel);
+      border-color: rgba(217,119,6,0.30);
+    }
+    [data-theme="dark"] .perf-card.cs-card .card-label,
+    [data-theme="dark"] .perf-card.cs-card.stats-card .card-label { color: #fbbf24; }
+
+    /* Stats card (teal accent) */
+    [data-theme="dark"] .perf-card.stats-card {
+      background: linear-gradient(135deg, rgba(74,158,186,0.15) 0%, rgba(74,158,186,0.05) 55%, transparent 100%), var(--panel);
+      border-color: rgba(74,158,186,0.35);
+    }
+    [data-theme="dark"] .perf-card.stats-card .card-label { color: #67d5ef; }
+
+    /* Stats chips */
+    [data-theme="dark"] .stats-chip {
+      background: var(--panel); border-color: var(--border); color: var(--muted);
+    }
+    [data-theme="dark"] .stats-chip .chip-val { color: var(--text); }
+    [data-theme="dark"] .stats-dist-toggle {
+      border-color: var(--border); background: var(--panel); color: var(--text);
+    }
+    [data-theme="dark"] .stats-dist-panel {
+      background: var(--panel); border-color: var(--border);
+      box-shadow: 0 16px 40px rgba(0,0,0,0.35);
+    }
+    [data-theme="dark"] .stats-dist-panel::before {
+      background: var(--panel); border-left-color: var(--border); border-top-color: var(--border);
+    }
+    [data-theme="dark"] .stats-dist-table th { color: var(--muted); }
+    [data-theme="dark"] .stats-dist-table td { border-bottom-color: var(--border); }
+    [data-theme="dark"] .stats-dist-empty { color: #64748b; }
+
+    /* Merchant detail popover */
+    [data-theme="dark"] .card-merchant-detail {
+      background: var(--panel); border-color: var(--border); color: #cbd5e1;
+      box-shadow: 0 16px 40px rgba(0,0,0,0.35);
+    }
+    [data-theme="dark"] .card-merchant-detail .merchant-pop-title { color: var(--muted); }
+    [data-theme="dark"] .card-merchant-row:nth-child(even) { background: rgba(255,255,255,0.03); }
+
+    /* Metrics color key */
+    [data-theme="dark"] .metrics-key {
+      background: var(--panel); border-color: var(--border); color: var(--muted);
+    }
+    [data-theme="dark"] .key-label { color: #cbd5e1; }
+    [data-theme="dark"] .key-swatch.ga { background: rgba(124,58,237,0.20); border-color: rgba(167,139,250,0.4); }
+    [data-theme="dark"] .key-swatch.cs { background: rgba(251,191,36,0.15); border-color: rgba(252,211,77,0.35); }
+    [data-theme="dark"] .key-swatch.stats { background: rgba(74,158,186,0.15); border-color: rgba(74,158,186,0.35); }
+    [data-theme="dark"] .key-swatch.highlight { background: rgba(37,99,235,0.20); border-color: rgba(147,197,253,0.35); }
+    [data-theme="dark"] .key-swatch.success { background: rgba(34,197,94,0.20); border-color: rgba(134,239,172,0.35); }
+
+    /* GA toggle */
+    [data-theme="dark"] .key-toggle {
+      background: rgba(124,58,237,0.12); border-color: rgba(167,139,250,0.3);
+    }
+    [data-theme="dark"] .hide-ga .key-toggle {
+      background: var(--panel); border-color: var(--border);
+    }
+
+    /* Grid row labels */
+    [data-theme="dark"] .grid-row-label {
+      color: var(--muted); border-bottom-color: var(--border);
+    }
+    [data-theme="dark"] .grid-row-label .muted { color: #64748b; }
+
+    /* Tables (highlights, partner summary, fi-table) */
+    [data-theme="dark"] .highlights-table th,
+    [data-theme="dark"] .partner-summary th,
+    [data-theme="dark"] .fi-table th {
+      color: var(--muted); background: var(--table-header); border-bottom-color: var(--border);
+    }
+    [data-theme="dark"] .highlights-table td,
+    [data-theme="dark"] .partner-summary td,
+    [data-theme="dark"] .fi-table td {
+      border-bottom-color: var(--border);
+    }
+    [data-theme="dark"] .highlights-table tbody tr:nth-child(even),
+    [data-theme="dark"] .fi-table tbody tr:hover {
+      background: var(--table-alt);
+    }
+    [data-theme="dark"] .fi-table th:hover { color: var(--text); }
+    [data-theme="dark"] .fi-table .totals-row td {
+      border-top-color: var(--border-strong); background: var(--table-alt);
+    }
+    [data-theme="dark"] .fi-table .reach-good { color: #4ade80; }
+    [data-theme="dark"] .fi-table .reach-low { color: #fbbf24; }
+    [data-theme="dark"] .partner-summary .total-row td {
+      border-top-color: var(--border-strong); background: var(--table-header);
+    }
+
+    /* Group headers */
+    [data-theme="dark"] .group-header {
+      color: var(--text); border-bottom-color: var(--border);
+    }
+
+    /* Totals bar */
+    [data-theme="dark"] .totals-bar { color: var(--muted); }
+
+    /* Date window */
+    [data-theme="dark"] .date-window { color: var(--muted); }
+
+    /* Muted text */
+    [data-theme="dark"] .muted { color: #64748b; }
+
+    /* Loading */
+    [data-theme="dark"] .loading-banner {
+      background: var(--panel); border-color: var(--border);
+    }
+    [data-theme="dark"] .spinner { border-color: var(--border); border-top-color: #7aa2ff; }
+    [data-theme="dark"] .loading-text { color: var(--muted); }
+
+    /* Insights section */
+    [data-theme="dark"] .insights-section-title {
+      color: var(--text); border-bottom-color: var(--border);
+    }
+    [data-theme="dark"] .insights-section-title .section-badge {
+      background: rgba(37,99,235,0.20); color: #93c5fd;
+    }
+
+    /* Insight blocks */
+    [data-theme="dark"] .insight-block {
+      background: var(--panel); border-color: var(--border); color: #cbd5e1;
+    }
+    [data-theme="dark"] .insight-block strong { color: var(--text); }
+    [data-theme="dark"] .insight-block em { color: var(--muted); }
+    [data-theme="dark"] .insight-block .insight-label { color: #64748b; }
+    [data-theme="dark"] .insight-block .benchmark-ref {
+      border-top-color: var(--border); color: var(--muted);
+    }
+    [data-theme="dark"] .insight-block .benchmark-ref strong { color: #cbd5e1; }
+    [data-theme="dark"] .insight-block .filter-hint {
+      background: rgba(37,99,235,0.12); border-color: rgba(37,99,235,0.25); color: #93c5fd;
+    }
+    [data-theme="dark"] .insight-block .filter-hint:hover { background: rgba(37,99,235,0.18); }
+    [data-theme="dark"] .insight-block .filter-hint-secondary { color: #64748b; }
+    [data-theme="dark"] .insight-block .filter-hint-secondary a { color: #64748b; }
+    [data-theme="dark"] .insight-block .filter-hint-secondary a:hover { color: #93c5fd; }
+
+    /* Funnel visualization */
+    [data-theme="dark"] .funnel-stage .stage-label { color: var(--muted); }
+    [data-theme="dark"] .funnel-stage .stage-value { color: var(--text); }
+    [data-theme="dark"] .funnel-arrow { color: #334155; }
+    [data-theme="dark"] .dropoff-green { color: #4ade80; background: rgba(34,197,94,0.12); }
+    [data-theme="dark"] .dropoff-yellow { color: #fbbf24; background: rgba(251,191,36,0.12); }
+    [data-theme="dark"] .dropoff-red { color: #f87171; background: rgba(239,68,68,0.12); }
+    [data-theme="dark"] .funnel-expansion { color: #93c5fd; background: rgba(37,99,235,0.12); }
+    [data-theme="dark"] .funnel-neutral { color: var(--muted); background: rgba(255,255,255,0.04); }
+    [data-theme="dark"] .funnel-insight-link { color: #7aa2ff; }
+    [data-theme="dark"] .funnel-insight-link:hover { color: #93c5fd; }
+
+    /* QBR */
+    [data-theme="dark"] .qbr-badge {
+      background: rgba(254,243,199,0.12); color: #fcd34d;
+    }
+    [data-theme="dark"] .qbr-trend-table th { color: var(--text); }
+    [data-theme="dark"] .qbr-trend-table th,
+    [data-theme="dark"] .qbr-trend-table td { border-bottom-color: var(--border); }
+    [data-theme="dark"] .qbr-trend-table .trend-up { color: #4ade80; }
+    [data-theme="dark"] .qbr-trend-table .trend-down { color: #f87171; }
+    [data-theme="dark"] .qbr-trend-table .trend-flat { color: #64748b; }
+    [data-theme="dark"] .qbr-sparkline-label { color: var(--muted); }
+    [data-theme="dark"] .qbr-summary-block strong { color: var(--text); }
+    [data-theme="dark"] .qbr-yoy-callout {
+      background: rgba(14,165,233,0.08); border-color: rgba(14,165,233,0.25);
+    }
+    [data-theme="dark"] .qbr-yoy-callout .yoy-title { color: #38bdf8; }
+    [data-theme="dark"] .qbr-yoy-callout .yoy-row { color: var(--text); }
+    [data-theme="dark"] .qbr-monthly-table th { color: var(--text); }
+    [data-theme="dark"] .qbr-monthly-table th,
+    [data-theme="dark"] .qbr-monthly-table td { border-bottom-color: var(--border); }
+    [data-theme="dark"] .qbr-monthly-table tr.totals-row { border-top-color: var(--border-strong); }
+    [data-theme="dark"] .qbr-intra-narrative { color: var(--muted); }
+
+    /* Presentation footer */
+    [data-theme="dark"] .presentation-footer {
+      border-top-color: var(--border); color: #64748b;
+    }
+
+    /* Spectrum */
+    [data-theme="dark"] .spectrum-marker { background: #e5edff; }
+    [data-theme="dark"] .spectrum-marker::after {
+      color: var(--text); background: var(--panel); border-color: var(--border);
+    }
+    [data-theme="dark"] .spectrum-marker.best-marker { background: #7aa2ff; }
+    [data-theme="dark"] .spectrum-marker.best-marker::after { color: #7aa2ff; border-color: rgba(122,162,255,0.35); }
+    [data-theme="dark"] .spectrum-labels { color: #64748b; }
+    [data-theme="dark"] .spectrum-diagnosis { color: #cbd5e1; }
+
+    /* Prescriptive actions */
+    [data-theme="dark"] .action-item {
+      background: var(--panel); border-color: var(--border);
+    }
+    [data-theme="dark"] .action-item:hover {
+      border-color: rgba(122,162,255,0.3); box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    [data-theme="dark"] .action-headline { color: var(--text); }
+    [data-theme="dark"] .action-detail { color: var(--muted); }
+
+    /* Action library drawer */
+    [data-theme="dark"] .library-toggle {
+      border-color: var(--border); color: #7aa2ff;
+    }
+    [data-theme="dark"] .library-toggle:hover { background: rgba(255,255,255,0.04); border-color: #7aa2ff; }
+    [data-theme="dark"] .action-library-drawer {
+      background: var(--panel); border-left-color: #7aa2ff;
+    }
+    [data-theme="dark"] .library-channel-header { color: var(--muted); }
+    [data-theme="dark"] .library-example {
+      background: rgba(255,255,255,0.03); border-color: var(--border);
+    }
+    [data-theme="dark"] .library-example-headline { color: var(--text); }
+    [data-theme="dark"] .library-example-body { color: #cbd5e1; }
+    [data-theme="dark"] .library-copy-btn {
+      border-color: var(--border); color: var(--muted);
+    }
+    [data-theme="dark"] .library-copy-btn:hover { background: rgba(255,255,255,0.06); border-color: #64748b; }
+    [data-theme="dark"] .library-copy-btn.copy-success { background: rgba(34,197,94,0.15); border-color: rgba(134,239,172,0.35); color: #4ade80; }
+    [data-theme="dark"] .library-section-intro {
+      background: rgba(14,165,233,0.08); border-color: rgba(14,165,233,0.25); color: var(--muted);
+    }
+    [data-theme="dark"] .library-section-intro strong { color: var(--text); }
+    [data-theme="dark"] .library-shared-note { color: #64748b; }
+    [data-theme="dark"] .library-footer { border-top-color: var(--border); }
+    [data-theme="dark"] .library-playbook-link { color: #7aa2ff; }
+    [data-theme="dark"] .library-version { color: #64748b; }
+    [data-theme="dark"] .admin-library-status { background: rgba(254,243,199,0.10); color: #fcd34d; }
+
+    /* Projection table */
+    [data-theme="dark"] .projection-table th {
+      color: var(--muted); background: var(--table-header); border-bottom-color: var(--border);
+    }
+    [data-theme="dark"] .projection-table td { border-bottom-color: var(--border); }
+    [data-theme="dark"] .projection-table .current-row td { background: var(--table-alt); }
+    [data-theme="dark"] .projection-table .scenario-row td { color: #93c5fd; }
+    [data-theme="dark"] .projection-table .multiplier { color: #4ade80; }
+    [data-theme="dark"] .projection-note { color: #64748b; }
+
+    /* Integration breakdown */
+    [data-theme="dark"] .integration-breakdown-intro {
+      background: rgba(14,165,233,0.08); border-color: rgba(14,165,233,0.25); color: #cbd5e1;
+    }
+    [data-theme="dark"] .breakdown-block {
+      background: var(--panel); border-color: var(--border);
+    }
+    [data-theme="dark"] .breakdown-badge.sso-badge {
+      background: rgba(37,99,235,0.20); color: #93c5fd;
+    }
+    [data-theme="dark"] .breakdown-badge.nonsso-badge {
+      background: rgba(251,191,36,0.15); color: #fcd34d;
+    }
+    [data-theme="dark"] .ga-undercount-disclaimer {
+      background: rgba(251,191,36,0.08); border-color: rgba(251,191,36,0.25); color: #fcd34d;
+    }
+    [data-theme="dark"] .ga-undercount-disclaimer strong { color: #fde68a; }
+
+    /* Admin overlay */
+    [data-theme="dark"] .admin-panel {
+      background: rgba(30,40,75,0.5); border-color: rgba(59,130,246,0.2);
+    }
+    [data-theme="dark"] .admin-panel-header .admin-panel-title { color: #93c5fd; }
+    [data-theme="dark"] .admin-panel-body { color: #cbd5e1; }
+    [data-theme="dark"] .admin-panel-body .talking-point { border-bottom-color: rgba(59,130,246,0.15); }
+    [data-theme="dark"] .admin-panel-body .tp-category { color: #a78bfa; }
+    [data-theme="dark"] .admin-panel-body .copy-btn { border-color: var(--border); color: var(--muted); }
+    [data-theme="dark"] .admin-panel-body .copy-btn:hover { border-color: #7aa2ff; color: #7aa2ff; }
+
+    /* Objection cards */
+    [data-theme="dark"] .objection-card {
+      background: var(--panel); border-color: var(--border);
+    }
+    [data-theme="dark"] .objection-card .objection-q { color: #f87171; }
+    [data-theme="dark"] .objection-card .objection-a { color: #cbd5e1; }
+
+    /* Admin benchmark refs */
+    [data-theme="dark"] .admin-benchmark-refs {
+      background: var(--panel); border-color: var(--border); color: var(--muted);
+    }
+    [data-theme="dark"] .admin-benchmark-refs .ref-title { color: #f87171; }
   </style>
 </head>
 <body>
@@ -1214,6 +1578,58 @@
           <span class="section-badge">Projection</span>
         </div>
         <div id="projectionContent"></div>
+      </div>
+
+      <!-- ═══ Performance by Integration Type (SSO vs Non-SSO breakdown) ═══ -->
+      <div id="integrationBreakdownSection" class="insights-section page-section" style="display:none;">
+        <div class="insights-section-title">
+          Performance by Integration Type
+          <span class="section-badge">Breakdown</span>
+        </div>
+        <div id="integrationBreakdownIntro" class="integration-breakdown-intro">
+          Your portfolio includes both SSO and non-SSO integrations — two fundamentally different cardholder journeys. SSO cardholders are pre-authenticated and land directly on the merchant selection page. Non-SSO cardholders enter their card details manually before seeing merchants — every visit represents a committed cardholder. The metrics below separate these flows to show what's really driving performance in each.
+        </div>
+
+        <!-- SSO Breakdown -->
+        <div id="ssoBreakdownBlock" class="breakdown-block" style="display:none;">
+          <div class="breakdown-badge sso-badge">SSO — Pre-Authenticated Traffic</div>
+          <div id="ssoNarrativeBlocks" class="breakdown-narratives"></div>
+          <div class="spectrum-container breakdown-spectrum">
+            <div class="spectrum-gauge" id="ssoSpectrumGauge"></div>
+            <div class="spectrum-labels">
+              <span>0%</span>
+              <span>Incidental</span>
+              <span>Campaigns</span>
+              <span>Activation</span>
+              <span>27%+</span>
+            </div>
+            <div class="spectrum-diagnosis" id="ssoSpectrumDiagnosis"></div>
+          </div>
+          <ul class="actions-list" id="ssoActionsList"></ul>
+          <div id="ssoProjectionContent" class="breakdown-projection"></div>
+        </div>
+
+        <!-- Non-SSO Breakdown -->
+        <div id="nonssoBreakdownBlock" class="breakdown-block" style="display:none;">
+          <div class="breakdown-badge nonsso-badge">Non-SSO — Manual Card Entry Traffic</div>
+          <div class="ga-undercount-disclaimer">
+            <strong>GA measurement note:</strong> Non-SSO traffic is tracked via Google Analytics, which undercounts by approximately 15–30% due to Safari Intelligent Tracking Prevention and ad blockers. Actual cardholder volume is likely higher than reported.
+          </div>
+          <div id="nonssoNarrativeBlocks" class="breakdown-narratives"></div>
+          <div class="spectrum-container breakdown-spectrum">
+            <div class="spectrum-gauge" id="nonssoSpectrumGauge"></div>
+            <div class="spectrum-labels">
+              <span>0%</span>
+              <span>Organic</span>
+              <span>Campaigns</span>
+              <span>Activation</span>
+              <span>50%+</span>
+            </div>
+            <div class="spectrum-diagnosis" id="nonssoSpectrumDiagnosis"></div>
+          </div>
+          <ul class="actions-list" id="nonssoActionsList"></ul>
+          <div id="nonssoProjectionContent" class="breakdown-projection"></div>
+        </div>
       </div>
 
       <!-- ═══ QBR Sections (visible only in QBR mode) ═══ -->
@@ -2832,6 +3248,11 @@
       renderActions(insightsCtx);
       renderProjections(insightsCtx);
 
+      // Integration type breakdown (SSO vs Non-SSO)
+      try {
+        renderIntegrationBreakdown(startDate, endDate, daySpan, visibleRows, best);
+      } catch (err) { console.warn('[insights] integration breakdown error:', err); }
+
       // QBR sections (only render when QBR mode is active)
       renderQBRSections(startDate, endDate);
 
@@ -2844,7 +3265,7 @@
     }
 
     function hideInsightsSections() {
-      ['funnelVizSection', 'narrativeSection', 'spectrumSection', 'actionsSection', 'projectionSection', 'qbrTrendSection', 'qbrNarrativeSection', 'qbrYoySection', 'qbrMonthlySection', 'qbrSummarySection', 'adminObjectionsSection', 'adminBenchmarkRefsSection'].forEach(id => {
+      ['funnelVizSection', 'narrativeSection', 'spectrumSection', 'actionsSection', 'projectionSection', 'integrationBreakdownSection', 'qbrTrendSection', 'qbrNarrativeSection', 'qbrYoySection', 'qbrMonthlySection', 'qbrSummarySection', 'adminObjectionsSection', 'adminBenchmarkRefsSection'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.style.display = 'none';
       });
@@ -3310,6 +3731,228 @@
 
       container.innerHTML = html;
       section.style.display = '';
+    }
+
+    // ── Integration Breakdown (SSO vs Non-SSO) ────────────────────────────
+
+    /**
+     * Render per-integration-type breakdown when both SSO and non-SSO FIs are present.
+     * Splits visibleRows by integration type, runs the insights engine separately for each,
+     * and renders narratives, spectrum, actions, and projections per type.
+     */
+    function renderIntegrationBreakdown(startDate, endDate, daySpan, visibleRows, best) {
+      var section = document.getElementById('integrationBreakdownSection');
+      if (!section || !EI) { if (section) section.style.display = 'none'; return; }
+
+      // Split rows by integration type
+      var ssoRows = [];
+      var nonssoRows = [];
+      for (var i = 0; i < visibleRows.length; i++) {
+        var row = visibleRows[i];
+        var intType = (row.integration_type || row.integration || '').toUpperCase();
+        if (intType === 'SSO') {
+          ssoRows.push(row);
+        } else {
+          nonssoRows.push(row);
+        }
+      }
+
+      // Only show breakdown when BOTH types are present
+      if (ssoRows.length === 0 || nonssoRows.length === 0) {
+        section.style.display = 'none';
+        return;
+      }
+
+      // Calculate metrics for each subset
+      var ssoMetrics = calculateMetrics(startDate, endDate, ssoRows);
+      var nonssoMetrics = calculateMetrics(startDate, endDate, nonssoRows);
+      var ssoBest = computeBestWindows(startDate, endDate, lastAggregated || {}, ssoRows);
+      var nonssoBest = computeBestWindows(startDate, endDate, lastAggregated || {}, nonssoRows);
+
+      // Build metrics context for each
+      var ssoCtx = EI.buildMetricsContext(
+        { metrics: ssoMetrics, best: ssoBest, startDate: startDate, endDate: endDate, daySpan: daySpan },
+        { registryMap: registryMap, visibleRows: ssoRows, filterState: window.__FILTER_STATE, integrationContext: 'sso' }
+      );
+      var nonssoCtx = EI.buildMetricsContext(
+        { metrics: nonssoMetrics, best: nonssoBest, startDate: startDate, endDate: endDate, daySpan: daySpan },
+        { registryMap: registryMap, visibleRows: nonssoRows, filterState: window.__FILTER_STATE, integrationContext: 'nonsso' }
+      );
+
+      // SSO block
+      var ssoBlock = document.getElementById('ssoBreakdownBlock');
+      if (ssoBlock && ssoCtx.totalSessions > 0) {
+        renderBreakdownNarratives('ssoNarrativeBlocks', ssoCtx);
+        renderBreakdownSpectrum('ssoSpectrumGauge', 'ssoSpectrumDiagnosis', ssoCtx, 'sso');
+        renderBreakdownActions('ssoActionsList', ssoCtx);
+        renderBreakdownProjection('ssoProjectionContent', ssoCtx);
+        ssoBlock.style.display = '';
+      } else if (ssoBlock) {
+        ssoBlock.style.display = 'none';
+      }
+
+      // Non-SSO block
+      var nonssoBlock = document.getElementById('nonssoBreakdownBlock');
+      if (nonssoBlock && nonssoCtx.totalSessions > 0) {
+        renderBreakdownNarratives('nonssoNarrativeBlocks', nonssoCtx);
+        renderBreakdownSpectrum('nonssoSpectrumGauge', 'nonssoSpectrumDiagnosis', nonssoCtx, 'nonsso');
+        renderBreakdownActions('nonssoActionsList', nonssoCtx);
+        renderBreakdownProjection('nonssoProjectionContent', nonssoCtx);
+        nonssoBlock.style.display = '';
+      } else if (nonssoBlock) {
+        nonssoBlock.style.display = 'none';
+      }
+
+      // Store split contexts for PDF payload
+      window.__integrationBreakdown = { ssoCtx: ssoCtx, nonssoCtx: nonssoCtx };
+
+      section.style.display = '';
+    }
+
+    /** Render narrative blocks into a breakdown container */
+    function renderBreakdownNarratives(containerId, ctx) {
+      var container = document.getElementById(containerId);
+      if (!container) return;
+
+      var narratives = EI.evaluateNarratives(ctx);
+      if (!narratives.length) { container.innerHTML = ''; return; }
+
+      var html = '';
+      for (var n = 0; n < narratives.length; n++) {
+        var narr = narratives[n];
+        html += '<div class="insight-block" data-insight-id="' + narr.id + '">';
+        html += '<div class="insight-label">' + getSectionLabel(narr.section) + '</div>';
+        html += '<div>' + narr.html + '</div>';
+        if (narr.benchmarkKeys.length > 0) {
+          var benchmarks = EI.getBenchmarkDisplay(narr.benchmarkKeys);
+          if (benchmarks.length > 0) {
+            html += '<div class="benchmark-ref">';
+            for (var b = 0; b < benchmarks.length; b++) {
+              html += '<strong>' + benchmarks[b].value + '</strong> \u2014 ' + benchmarks[b].description;
+              if (benchmarks[b].proof) html += ' <span style="color:#94a3b8;">(' + benchmarks[b].proof + ')</span>';
+              html += '<br>';
+            }
+            html += '</div>';
+          }
+        }
+        html += '</div>';
+      }
+      container.innerHTML = html;
+    }
+
+    /** Render spectrum gauge into a breakdown container */
+    function renderBreakdownSpectrum(gaugeId, diagId, ctx, type) {
+      var gauge = document.getElementById(gaugeId);
+      var diagEl = document.getElementById(diagId);
+      if (!gauge) return;
+
+      if (ctx.sessionSuccessPct === null) {
+        gauge.innerHTML = '';
+        if (diagEl) diagEl.innerHTML = '';
+        return;
+      }
+
+      var isNonSSO = (type === 'nonsso');
+      var maxScale = isNonSSO ? 50 : 30;
+
+      var zones;
+      if (isNonSSO) {
+        zones = [
+          { label: 'Tier 3: Organic', min: 0, max: 8, color: '#ef4444' },
+          { label: '\u27F6', min: 8, max: 15, color: '#f97316' },
+          { label: 'Tier 2: Campaigns', min: 15, max: 25, color: '#eab308' },
+          { label: '\u27F6', min: 25, max: 35, color: '#84cc16' },
+          { label: 'Tier 1: Activation', min: 35, max: 50, color: '#22c55e' },
+        ];
+      } else {
+        zones = [
+          { label: 'Tier 3: Incidental', min: 0, max: 3, color: '#ef4444' },
+          { label: '\u27F6', min: 3, max: 8, color: '#f97316' },
+          { label: 'Tier 2: Campaigns', min: 8, max: 12, color: '#eab308' },
+          { label: '\u27F6', min: 12, max: 21, color: '#84cc16' },
+          { label: 'Tier 1: Activation', min: 21, max: 30, color: '#22c55e' },
+        ];
+      }
+
+      var gaugeHtml = '';
+      for (var z = 0; z < zones.length; z++) {
+        var widthPct = ((zones[z].max - zones[z].min) / maxScale) * 100;
+        gaugeHtml += '<div class="spectrum-zone" style="width:' + widthPct + '%;background:' + zones[z].color + ';">' + zones[z].label + '</div>';
+      }
+
+      // Current rate marker
+      var currentPos = Math.min(ctx.sessionSuccessPct / maxScale, 1) * 100;
+      gaugeHtml += '<div class="spectrum-marker" style="left:' + currentPos + '%;" data-label="Current: ' + EI.fmt(ctx.sessionSuccessPct) + '%"></div>';
+
+      // Best week marker
+      if (ctx.bestWeekRate && ctx.bestWeekRate > ctx.sessionSuccessPct * 1.1) {
+        var bestPos = Math.min(ctx.bestWeekRate / maxScale, 1) * 100;
+        gaugeHtml += '<div class="spectrum-marker best-marker" style="left:' + bestPos + '%;" data-label="Best: ' + EI.fmt(ctx.bestWeekRate) + '%"></div>';
+      }
+
+      gauge.innerHTML = gaugeHtml;
+
+      // Diagnosis
+      if (diagEl) {
+        var diag = isNonSSO ? EI.buildNonSSOSpectrumDiagnosis(ctx) : EI.buildSpectrumDiagnosis(ctx);
+        diagEl.innerHTML = diag.html;
+      }
+    }
+
+    /** Render action items into a breakdown container */
+    function renderBreakdownActions(listId, ctx) {
+      var list = document.getElementById(listId);
+      if (!list) return;
+
+      var result = EI.evaluateActions(ctx);
+      var actions = result.actions;
+      if (!actions.length) { list.innerHTML = ''; return; }
+
+      var html = '';
+      for (var i = 0; i < actions.length; i++) {
+        var action = actions[i];
+        html += '<li class="action-item">';
+        html += '<div class="action-priority ' + action.impact + '">' + (i + 1) + '</div>';
+        html += '<div class="action-body">';
+        html += '<div class="action-headline">' + action.headline + '</div>';
+        html += '<div class="action-detail">' + action.detail + '</div>';
+        html += '</div></li>';
+      }
+      list.innerHTML = html;
+    }
+
+    /** Render projection table into a breakdown container */
+    function renderBreakdownProjection(containerId, ctx) {
+      var container = document.getElementById(containerId);
+      if (!container) return;
+
+      var result = EI.computeProjections(ctx);
+      var current = result.current;
+      var scenarios = result.scenarios;
+      if (!scenarios.length || current.sessions < 10) { container.innerHTML = ''; return; }
+
+      var html = '<table class="projection-table">';
+      html += '<thead><tr><th>Scenario</th><th class="num">Success Rate</th><th class="num">Projected Placements</th><th class="num">vs Current</th></tr></thead>';
+      html += '<tbody><tr class="current-row">';
+      html += '<td>Current performance</td>';
+      html += '<td class="num">' + (current.successRate !== null ? EI.fmt(current.successRate) + '%' : '\u2014') + '</td>';
+      html += '<td class="num">' + EI.fmtN(current.placements) + '</td>';
+      html += '<td class="num">\u2014</td></tr>';
+
+      for (var s = 0; s < scenarios.length; s++) {
+        var scen = scenarios[s];
+        var multiplierStr = scen.multiplier && scen.multiplier > 1
+          ? '<span class="multiplier">' + EI.fmt(scen.multiplier) + '\u00D7</span>'
+          : '\u2014';
+        html += '<tr class="scenario-row"><td>' + scen.label + '</td>';
+        html += '<td class="num">' + EI.fmt(scen.rate) + '%</td>';
+        html += '<td class="num">~' + EI.fmtN(scen.projectedPlacements) + '</td>';
+        html += '<td class="num">' + multiplierStr + '</td></tr>';
+      }
+
+      html += '</tbody></table>';
+      html += '<div class="projection-note">Projections based on current volume of ' + EI.fmtN(current.sessions) + ' visits over ' + current.days + ' days.</div>';
+      container.innerHTML = html;
     }
 
     // ── QBR Rendering ─────────────────────────────────────────────────────
