@@ -97,6 +97,9 @@ var GROUPS = [
 { id:"synthetic-traffic", label:"Synthetic Traffic", href:NAV_PREFIX+"synthetic-traffic.html", adminOnly: true },
 { id:"fi-api", label:"FI API", href:NAV_PREFIX+"fi-api.html" }
 ]},
+{ label: "Tools", items: [
+{ id:"campaign-builder", label:"Campaign URL Builder", href:NAV_PREFIX+"campaign-builder.html" }
+]},
 { label: "Admin", fullAccessOnly: true, items: [
 { id:"maintenance", label:"Data & Config", href:NAV_PREFIX+"maintenance.html" },
 { id:"users", label:"Users", href:NAV_PREFIX+"users.html" },

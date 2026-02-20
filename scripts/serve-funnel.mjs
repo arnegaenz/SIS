@@ -6031,6 +6031,11 @@ const server = http.createServer(async (req, res) => {
     if (await fileExists(fp)) return serveFile(res, fp);
   }
 
+  if (pathname === "/campaign-builder" || pathname === "/campaign-builder.html") {
+    const fp = path.join(PUBLIC_DIR, "campaign-builder.html");
+    if (await fileExists(fp)) return serveFile(res, fp);
+  }
+
   // Serve static assets from public (CSS/JS/data/etc)
   const relPath = pathname.replace(/^\/+/, "");
   const staticCandidates = [path.join(PUBLIC_DIR, relPath)];

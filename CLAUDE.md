@@ -25,6 +25,9 @@
 - `public/login.html` - Magic link login page
 - `secrets/users.json` - User data with access levels, login stats
 - `fi_registry.json` - FI registry (fi_lookup_key, instance, partner, integration_type)
+- `public/campaign-builder.html` - Campaign URL Builder page (form → tracked CardUpdatr launch URL + QR code)
+- `public/assets/js/campaign-builder.js` - Campaign builder module (IIFE, ~400 lines)
+- `public/assets/js/qrcode.min.js` - QR code generator library (qrcode-generator by Kazuhiko Arase, MIT)
 - `assets/images/StrivveLogo.png` - Strivve logo (used in playbook page + PDF, base64-embedded)
 
 ## Critical Lessons (Hard-Won)
@@ -126,6 +129,51 @@ All partner-facing content follows engagement-positive tone:
 ---
 
 # Build History
+
+## Feb 21, 2026
+
+### Campaign URL Builder — New Page
+- **New page**: `public/campaign-builder.html` — form-based tool to build tracked CardUpdatr launch URLs with `#settings=` hash encoding
+- **New module**: `public/assets/js/campaign-builder.js` — IIFE-wrapped, ~400 lines
+- **New library**: `public/assets/js/qrcode.min.js` — qrcode-generator (MIT, Kazuhiko Arase)
+- **Route**: `/campaign-builder` added in serve-funnel.mjs
+- **Nav**: "Tools" group added between Ops and Admin in nav.js (admin + full + internal access)
+
+**Form panels (3 collapsible cards):**
+1. **Configuration**: Hostname (required, protocol auto-stripped), Top Sites (chip input with domain validation), Merchant Site Tags (single `<select>` dropdown, default "demo"), Overlay Mode toggle
+2. **Source Tracking**: Source Type (select), Category (select), Sub-Category (free text). Device/Grant/CardID omitted — device is auto-detected by page load
+3. **Styling** (collapsed by default): Card Description, Button Color (text + color picker sync), Border Color (text + color picker sync), Button Border Radius
+
+**Output section (always visible):**
+- Generated URL with Copy button + Open in New Tab
+- QR code (canvas-rendered, 256px, PNG download)
+- Collapsible JSON preview with Copy button
+
+**Presets**: Save/Load/Delete via localStorage (`sis_campaign_presets` key)
+
+**Settings JSON structure:**
+```json
+{
+  "config": {
+    "top_sites": ["amazon.com"],
+    "merchant_site_tags": "demo",
+    "overlay": true
+  },
+  "user": {
+    "source": { "type": "email", "category": "campaign", "sub_category": "spring-2026" }
+  },
+  "style": { "card_description": "Your Visa Debit Card", "button_color": "#1E40AF" }
+}
+```
+- Hostname is in the URL domain only (not duplicated in settings JSON)
+- `merchant_site_tags` is a plain string (not array) — matches CardUpdatr client expectations
+- Only non-empty sections/fields included in output
+- No server API needed — purely client-side
+
+**Key lessons:**
+- CardUpdatr `config.merchant_site_tags` expects a plain string (e.g. `"demo"`), not an array
+- Hostname must not appear in both the URL domain AND the settings JSON — only in the URL
+- `stripProtocol()` handles users pasting full URLs (e.g. `https://fi.cardupdatr.app`) into hostname field
 
 ## Feb 20, 2026
 
