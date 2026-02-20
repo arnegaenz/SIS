@@ -137,6 +137,22 @@ All partner-facing content follows engagement-positive tone:
 - **Dark mode**: Full `[data-theme="dark"]` overrides for breakdown blocks, badges, and disclaimer
 - **PDF prep**: `window.__integrationBreakdown` stores split contexts for future PDF template extension
 
+### Dark Mode Fix — `--hover-bg` CSS Variable
+- `users.html` filter bar was white in dark mode — `var(--hover-bg, #f9fafb)` fell back to light color because `--hover-bg` was never defined in `sis-shared.css`
+- Added `--hover-bg` to both themes in `sis-shared.css`: light `#f9fafb`, dark `rgba(255, 255, 255, 0.04)`
+
+### Dark Mode FOUC Fix — All Pages
+- Added inline `<script>` in `<head>` of all 13 remaining pages to read `sis-theme` from localStorage before CSS loads, preventing flash of unstyled content
+
+### Synthetic Traffic — Test Preset + Cascading Funnel Disable
+- **Test preset**: source type `test`, category `other`, campaign mode, 25 runs/day, 2 days, 50/50 success/fail, zero abandon rates
+- **Cascading disable logic**: upstream abandon rate at 100% disables all downstream funnel fields
+  - Select Merchant 100% → User Data, Cred Entry, Success, Fail disabled
+  - User Data 100% → Cred Entry, Success, Fail disabled
+  - Cred Entry 100% → Success, Fail disabled
+  - Respects SSO disable on User Data (won't re-enable if SSO flow selected)
+- **Files**: `synthetic-traffic.html` (dropdown option), `assets/js/synthetic-traffic.js` (preset data + `updateFunnelCascade()`)
+
 ## Feb 17, 2026
 
 ### Admin-Configurable Share Link Expiration
