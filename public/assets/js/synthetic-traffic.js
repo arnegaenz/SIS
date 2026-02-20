@@ -476,19 +476,12 @@
   }
 
   function setSuccessBounds(targetSuccess) {
+    // No longer enforces min/max bounds on the input — success + fail <= 100 is the only constraint
     var input = document.getElementById("successRate");
     if (!input) return;
-    if (typeof targetSuccess !== "number") {
-      input.removeAttribute("min");
-      input.removeAttribute("max");
-      input.removeAttribute("title");
-      return;
-    }
-    var min = Math.max(0, Math.round((targetSuccess - 5) * 10) / 10);
-    var max = Math.min(100, Math.round((targetSuccess + 5) * 10) / 10);
-    input.min = String(min);
-    input.max = String(max);
-    input.title = "Allowed range: " + min + "% to " + max + "%";
+    input.removeAttribute("min");
+    input.max = "100";
+    input.removeAttribute("title");
   }
 
   function clampSuccessRate() {
@@ -496,12 +489,9 @@
     var input = document.getElementById("successRate");
     var fail = document.getElementById("failRate");
     if (!input) return;
-    var min = Number(input.min);
-    var max = Number(input.max);
     var value = Number(input.value);
-    if (Number.isFinite(min) && value < min) value = min;
-    if (Number.isFinite(max) && value > max) value = max;
-    if (Number.isFinite(value)) input.value = String(value);
+    if (value > 100) { value = 100; input.value = "100"; }
+    if (value < 0) { value = 0; input.value = "0"; }
     if (fail) {
       var nextFail = Math.max(0, Math.round((100 - value) * 10) / 10);
       fail.value = String(nextFail);
