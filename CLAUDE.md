@@ -55,7 +55,12 @@
 - `getVisibleRows()` checks `shared.page === "funnel-customer"` (not `"funnel"`)
 
 ## Related Repos
-- **arg-fcu**: Contains traffic runner at `tools/traffic-runner/`
+- **arg-fcu**: Contains traffic runner at `tools/traffic-runner/`, hosted on GitHub Pages (arg-fcu.com)
+  - **Traffic runner deployment**: `scp -i ~/.ssh/LightsailDefaultKey-us-west-2.pem <files> ubuntu@34.220.57.7:/home/ubuntu/traffic-runner/` then `pm2 restart traffic-runner`
+  - **PM2 process**: `traffic-runner` (runs `runner-loop.mjs`, polls every 30s, spawns fresh `run-sis-jobs.js` each cycle)
+  - **Logs**: `pm2 logs traffic-runner --lines N`
+  - **Error screenshots**: `/home/ubuntu/traffic-runner/run-*-error.png` (on exception), `timeout-debug.png` (on timeout, captured before overlay close)
+  - **arg-fcu.com pages**: Deploy via `git push` to main (GitHub Pages)
 
 ## Known Issues
 - `[analytics] log error: ReferenceError: readBody is not defined` - seen in logs, separate bug
@@ -143,6 +148,25 @@ All partner-facing content follows engagement-positive tone:
 
 ### Dark Mode FOUC Fix — All Pages
 - Added inline `<script>` in `<head>` of all 13 remaining pages to read `sis-theme` from localStorage before CSS loads, preventing flash of unstyled content
+
+### Traffic Runner — Non-SSO Flow Support
+- **Problem**: All synthetic jobs using `overlay_nosso` (or `embedded_nosso`) failed because the Playwright runner had no logic for the **user data page** (card/billing entry form) that appears between merchant selection and credential entry in non-SSO CardUpdatr flows
+- **Root cause chain** (3 bugs found iteratively):
+  1. **Missing user data handler**: Runner skipped the card entry form entirely → timed out waiting for credential fields
+  2. **Expired test card**: `config.json` had `expDate: "12/25"` (December 2025, expired) → form validation blocked Continue → fixed to `"12/28"`
+  3. **Wrong success detection text**: Runner looked for `"Success"` but non-SSO completion shows `"Update complete."` → jobs were actually succeeding but being recorded as timeouts
+- **Files changed** (in `arg-fcu/tools/traffic-runner/`):
+  - `run-tests.js`: Added non-SSO detection (`testFlow.includes("nosso")`), card/billing form filling by label, Continue click to advance to credential entry. Added timeout debug screenshots inside `runSingle()` before overlay close
+  - `config.json`: Added `cardData` block (test Visa `4111111111111111`, Anaheim CA address), changed `finalState.success.text` from `"Success"` to `"Update complete"`, changed `expDate` to `"12/28"`
+- **SSO flows unaffected**: `isNonSSO` check only triggers when test flow name includes `nosso`
+- **Deployment**: Files SCP'd to `/home/ubuntu/traffic-runner/`, PM2 `traffic-runner` process restarted (each poll cycle spawns fresh `node run-tests.js`)
+- **Merchant search note**: Non-SSO flow doesn't have a "Search for sites" label → 30s timeout on search (caught silently), falls back to clicking merchant tile text directly
+
+### Merchant Site Tags — Demo Only
+- **Change**: `integration-test.html` and `playground.html` switched from `["demo", "prod"]` to `["demo"]` only
+- `integration-test.html`: Hardcoded `merchant_site_tags` and `tags` changed to demo-only
+- `playground.html`: Unchecked `prod` checkbox default in merchant site tags multi-select
+- **Deployed via**: GitHub Pages (arg-fcu repo, `git push` to main)
 
 ### Synthetic Traffic — Test Preset + Cascading Funnel Disable
 - **Test preset**: source type `test`, category `other`, campaign mode, 25 runs/day, 2 days, 50/50 success/fail, zero abandon rates
@@ -348,6 +372,35 @@ Full audit in `narrative-rules-audit.md` in project root. 50 narrative templates
 ---
 
 # What's Pending / Queued
+
+## QUEUED: Synthetic Traffic → Funnel Data Correlation
+
+### Goal
+Enable viewing synthetic job results alongside actual funnel metrics — look at a synthetic job's source metadata (type, category, subcategory) and find matching sessions/placements in the dashboard.
+
+### Current State
+- **Source data flows end-to-end**: Traffic runner passes `source.{type, category, subCategory}` → integration test page → CardSavr API → raw session/placement JSON files
+- **Raw files retain source**: `raw/sessions/{date}.json` and `raw/placements/{date}.json` contain full source objects
+- **Daily rollups DO NOT include source**: `data/daily/{date}.json` only has aggregated metrics (GA views, session counts, placement counts by termination type) — source metadata is stripped during aggregation
+- **On-demand extraction exists**: `/api/metrics/funnel` and `/troubleshoot/day` endpoints extract source from raw files at request time
+- **Synthetic jobs stored separately**: `/data/synthetic/jobs.json` has per-job aggregate counters (attempted, success, failed, abandoned) + source metadata, but no link to individual sessions/placements
+
+### Implementation Options
+1. **"View Sessions" on synthetic job rows** — query raw data filtered by job's source type + category + subcategory + date range (created_at → last_run_at), show matching sessions inline or in modal
+2. **Source filter on troubleshoot/sources page** — add source_type/category filter dropdowns for manual cross-referencing
+3. **Aggregate source data into daily rollups** — add source breakdown to `build-daily-from-raw.mjs` (performance trade-off)
+
+### Key Files
+- `scripts/build-daily-from-raw.mjs` — daily rollup aggregation (source data stripped here)
+- `scripts/serve-funnel.mjs` — `extractSourceFromPlacement()` (line ~1857), `extractSourceFromSession()` (line ~1881)
+- `public/synthetic-traffic.html` + `public/assets/js/synthetic-traffic.js` — job monitoring UI
+- `src/lib/rawStorage.mjs` — raw session/placement file I/O
+- `src/lib/analytics/sources.mjs` — source grouping logic (integration type, device, category/subcategory)
+
+### Post-results POST failure
+- Runner logs show `[SIS] Post results failed (attempt 1/3): fetch failed` — results endpoint works via curl but Node.js `fetch()` intermittently fails. Retries may succeed silently (only failures logged). Needs investigation if job results are missing.
+
+---
 
 ## IN PROGRESS: Non-SSO Data Interpretation Fix (QBR prep for Digital Onboarding)
 
