@@ -142,6 +142,16 @@ All partner-facing content follows engagement-positive tone:
 - **Dark mode**: Full `[data-theme="dark"]` overrides for breakdown blocks, badges, and disclaimer
 - **PDF prep**: `window.__integrationBreakdown` stores split contexts for future PDF template extension
 
+### GA Tracking Rate % Column — FI Detail Tables
+- **New column**: "GA Rate %" added to all 4 multi-FI tables (SSO, NON-SSO, CardSavr, UNKNOWN) and single-FI time breakdown tables in `funnel-customer.html`
+- **Formula**: SSO → `ga_select / cs_select`, Non-SSO → `ga_user / cs_user` — compares GA-reported counts against server-side session counts (100% accurate, no browser blocking)
+- **Helper**: `computeGaRate(row, integration)` returns `{ value, display, cls }`
+- **Color thresholds**: green >=85%, amber 70-84%, red <70%
+- **Position**: After "Credential Views", before "Monthly Reach %"
+- **Sortable**: `ga_rate` case in both `getSortValue()` and `getSingleSortValue()`
+- **Totals row**: Weighted aggregate GA rate with color coding
+- **Dark mode**: Full `[data-theme="dark"]` overrides for `.ga-good`, `.ga-warn`, `.ga-low`
+
 ### Dark Mode Fix — `--hover-bg` CSS Variable
 - `users.html` filter bar was white in dark mode — `var(--hover-bg, #f9fafb)` fell back to light color because `--hover-bg` was never defined in `sis-shared.css`
 - Added `--hover-bg` to both themes in `sis-shared.css`: light `#f9fafb`, dark `rgba(255, 255, 255, 0.04)`
@@ -443,11 +453,12 @@ Synthetic traffic testing confirmed that the CardSavr API clickstream records ev
 This replaces the generic "15-30% undercount" guess with a **data-driven, per-FI calibration factor** that can be computed for any time window.
 
 ### What to build
-1. **GA calibration factor computation**: Compare clickstream `/user-data-collection` count vs GA `user_data_collection` for same FI + date range → compute per-FI accuracy rate
-2. **Calibrated select-merchants estimate**: Apply calibration factor to GA `select_merchants` → show as "Estimated Launches" with tooltip explaining methodology
-3. **Non-SSO funnel reframe**: Use calibrated launches as true top of funnel, session-based metrics as post-commitment funnel
-4. **Insights engine updates**: Tier classification using launch-based conversion rates (calibrated GA launches → successful placements), not session-based rates
-5. **Dashboard caveats**: Inline explanation of methodology wherever estimated values appear
+1. ~~**GA tracking rate visibility**: Show per-FI GA accuracy rate on dashboard~~ ✅ Done — "GA Rate %" column in FI detail tables (SSO: `ga_select/cs_select`, Non-SSO: `ga_user/cs_user`)
+2. **Clickstream-based calibration**: Compare clickstream `/user-data-collection` count vs GA `user_data_collection` for same FI + date range → more accurate per-FI calibration factor (requires extracting clickstream page counts during daily rollup)
+3. **Calibrated select-merchants estimate**: Apply calibration factor to GA `select_merchants` → show as "Estimated Launches" with tooltip explaining methodology
+4. **Non-SSO funnel reframe**: Use calibrated launches as true top of funnel, session-based metrics as post-commitment funnel
+5. **Insights engine updates**: Tier classification using launch-based conversion rates (calibrated GA launches → successful placements), not session-based rates
+6. **Dashboard caveats**: Inline explanation of methodology wherever estimated values appear
 
 ### Key files to modify
 - `scripts/serve-funnel.mjs` — add clickstream aggregation endpoint or compute during daily rollup

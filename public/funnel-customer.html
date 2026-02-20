@@ -390,6 +390,9 @@
     .fi-table .muted { color: #94a3b8; font-size: 10px; }
     .fi-table .reach-good { color: #16a34a; font-weight: 600; }
     .fi-table .reach-low { color: #d97706; }
+    .fi-table .ga-good { color: #16a34a; font-weight: 600; }
+    .fi-table .ga-warn { color: #d97706; }
+    .fi-table .ga-low { color: #dc2626; }
     .fi-table th:first-child, .fi-table td:first-child { text-align: left; }
 
     /* Tab bar (single-FI time breakdowns) */
@@ -1090,6 +1093,9 @@
     }
     [data-theme="dark"] .fi-table .reach-good { color: #4ade80; }
     [data-theme="dark"] .fi-table .reach-low { color: #fbbf24; }
+    [data-theme="dark"] .fi-table .ga-good { color: #4ade80; }
+    [data-theme="dark"] .fi-table .ga-warn { color: #fbbf24; }
+    [data-theme="dark"] .fi-table .ga-low { color: #f87171; }
     [data-theme="dark"] .partner-summary .total-row td {
       border-top-color: var(--border-strong); background: var(--table-header);
     }
@@ -1713,6 +1719,7 @@
             <th data-sort="ga_select" class="num ga-col">Launches</th>
             <th data-sort="cs_select" class="num">Sess @Select</th>
             <th data-sort="ga_cred" class="num ga-col">Credential Views</th>
+            <th data-sort="ga_rate" class="num" title="Percentage of server-recorded visits detected by Google Analytics. Lower values indicate tracking gaps (Safari ITP, ad blockers).">GA Rate %</th>
             <th data-sort="reach" class="num" title="Projected monthly rate based on selected time period">Monthly Reach %</th>
             <th data-sort="sel_cred_pct" class="num">Sel→Cred %</th>
             <th data-sort="sel_success_pct" class="num">Success Rate</th>
@@ -1738,6 +1745,7 @@
             <th data-sort="cs_select" class="num">Sess @Select</th>
             <th data-sort="ga_user" class="num ga-col">User Data Views</th>
             <th data-sort="ga_cred" class="num ga-col">Credential Views</th>
+            <th data-sort="ga_rate" class="num" title="Percentage of server-recorded visits detected by Google Analytics. Lower values indicate tracking gaps (Safari ITP, ad blockers).">GA Rate %</th>
             <th data-sort="reach" class="num" title="Projected monthly rate based on selected time period">Monthly Reach %</th>
             <th data-sort="sel_user_pct" class="num">Sel→User %</th>
             <th data-sort="sel_cred_pct" class="num">Sel→Cred %</th>
@@ -1764,6 +1772,7 @@
             <th data-sort="cs_select" class="num">Sess @Select</th>
             <th data-sort="ga_user" class="num ga-col">User Data Views</th>
             <th data-sort="ga_cred" class="num ga-col">Credential Views</th>
+            <th data-sort="ga_rate" class="num" title="Percentage of server-recorded visits detected by Google Analytics. Lower values indicate tracking gaps (Safari ITP, ad blockers).">GA Rate %</th>
             <th data-sort="reach" class="num" title="Projected monthly rate based on selected time period">Monthly Reach %</th>
             <th data-sort="sel_user_pct" class="num">Sel→User %</th>
             <th data-sort="sel_cred_pct" class="num">Sel→Cred %</th>
@@ -1790,6 +1799,7 @@
             <th data-sort="cs_select" class="num">Sess @Select</th>
             <th data-sort="ga_user" class="num ga-col">User Data Views</th>
             <th data-sort="ga_cred" class="num ga-col">Credential Views</th>
+            <th data-sort="ga_rate" class="num" title="Percentage of server-recorded visits detected by Google Analytics. Lower values indicate tracking gaps (Safari ITP, ad blockers).">GA Rate %</th>
             <th data-sort="reach" class="num" title="Projected monthly rate based on selected time period">Monthly Reach %</th>
             <th data-sort="sel_user_pct" class="num">Sel→User %</th>
             <th data-sort="sel_cred_pct" class="num">Sel→Cred %</th>
@@ -3030,6 +3040,16 @@
       return ((row.sess_with_success / sel) * 100).toFixed(1) + "%";
     }
 
+    function computeGaRate(row, integration) {
+      var isSso = integration === "SSO";
+      var ga = isSso ? (row.ga_select || 0) : (row.ga_user || 0);
+      var cs = isSso ? (row.cs_select || 0) : (row.cs_user || 0);
+      if (!cs) return { value: null, display: "", cls: "" };
+      var rate = ga / cs;
+      var cls = rate >= 0.85 ? "ga-good" : rate >= 0.70 ? "ga-warn" : "ga-low";
+      return { value: rate, display: (rate * 100).toFixed(1) + "%", cls: cls };
+    }
+
     function getSortValue(row, key) {
       switch (key) {
         case "fi": return (row.fi || "").toLowerCase();
@@ -3039,6 +3059,11 @@
         case "cs_select": return row.cs_select || 0;
         case "ga_user": return row.ga_user || 0;
         case "ga_cred": return row.ga_cred || 0;
+        case "ga_rate":
+          var _isSso = row.integration_type === "SSO";
+          var _ga = _isSso ? (row.ga_select || 0) : (row.ga_user || 0);
+          var _cs = _isSso ? (row.cs_select || 0) : (row.cs_user || 0);
+          return _cs ? _ga / _cs : 0;
         case "reach": return getMonthlyReachValue(row);
         case "sel_user_pct": return row.cs_select ? (row.cs_user || 0) / row.cs_select : 0;
         case "sel_cred_pct": return row.cs_select ? (row.cs_cred || 0) / row.cs_select : 0;
@@ -3061,6 +3086,7 @@
       const reachVal = getMonthlyReachValue(row);
       const reachCls = reachVal >= 0.025 ? " reach-good" : reachVal > 0 ? " reach-low" : "";
       const sessSuccPct = formatSessSuccessPct(row);
+      const gaRate = computeGaRate(row, integration);
 
       const tr = document.createElement("tr");
       let cells = `
@@ -3072,6 +3098,7 @@
       if (!isSso) cells += `<td class="num ga-col">${row.ga_user || 0}</td>`;
       cells += `
         <td class="num ga-col">${row.ga_cred || 0}</td>
+        <td class="num ${gaRate.cls}">${gaRate.display}</td>
         <td class="num${reachCls}">${reachPct}</td>`;
       if (!isSso) cells += `<td class="num">${selUserPct}</td>`;
       cells += `
@@ -3105,6 +3132,7 @@
       const selCredPct = t.cs_select ? ((t.cs_cred / t.cs_select) * 100).toFixed(1) + "%" : "";
       const selSuccPct = t.cs_select && t.sess_with_success ? ((t.sess_with_success / t.cs_select) * 100).toFixed(1) + "%" : "";
       const sessSuccPct = t.sessions ? ((t.sess_with_success / t.sessions) * 100).toFixed(1) + "%" : "";
+      const gaRate = computeGaRate(t, integration);
 
       const tr = document.createElement("tr");
       tr.className = "totals-row";
@@ -3117,6 +3145,7 @@
       if (!isSso) cells += `<td class="num ga-col">${t.ga_user}</td>`;
       cells += `
         <td class="num ga-col">${t.ga_cred}</td>
+        <td class="num ${gaRate.cls}">${gaRate.display}</td>
         <td class="num"></td>`;
       if (!isSso) cells += `<td class="num">${selUserPct}</td>`;
       cells += `
@@ -4795,6 +4824,7 @@
       if (!isSso) headerHtml += `<th data-sort="ga_user" class="num">User Data Views</th>`;
       headerHtml += `
           <th data-sort="ga_cred" class="num">Credential Views</th>
+          <th data-sort="ga_rate" class="num" title="Percentage of server-recorded visits detected by Google Analytics. Lower values indicate tracking gaps (Safari ITP, ad blockers).">GA Rate %</th>
           <th data-sort="reach" class="num" title="Projected monthly rate based on selected time period">Monthly Reach %</th>`;
       if (!isSso) headerHtml += `<th data-sort="sel_user_pct" class="num">Sel\u2192User %</th>`;
       headerHtml += `
@@ -4871,6 +4901,11 @@
         case "cs_select": return row.cs_select || 0;
         case "ga_user": return row.ga_user || 0;
         case "ga_cred": return row.ga_cred || 0;
+        case "ga_rate":
+          var _isSso2 = row.integration_type === "SSO";
+          var _ga2 = _isSso2 ? (row.ga_select || 0) : (row.ga_user || 0);
+          var _cs2 = _isSso2 ? (row.cs_select || 0) : (row.cs_user || 0);
+          return _cs2 ? _ga2 / _cs2 : 0;
         case "reach": return getMonthlyReachValue(row);
         case "sel_user_pct": return row.cs_select ? (row.cs_user || 0) / row.cs_select : 0;
         case "sel_cred_pct": return row.cs_select ? (row.cs_cred || 0) / row.cs_select : 0;
@@ -4893,6 +4928,7 @@
       const reachVal = getMonthlyReachValue(row);
       const reachCls = reachVal >= 0.025 ? " reach-good" : reachVal > 0 ? " reach-low" : "";
       const sessSuccPct = formatSessSuccessPct(row);
+      const gaRate = computeGaRate(row, isSso ? "SSO" : "NON-SSO");
       let cells = `
         <td>${row.periodLabel || ""}</td>
         <td>${row.fi || ""}</td>
@@ -4903,6 +4939,7 @@
       if (!isSso) cells += `<td class="num">${row.ga_user || 0}</td>`;
       cells += `
         <td class="num">${row.ga_cred || 0}</td>
+        <td class="num ${gaRate.cls}">${gaRate.display}</td>
         <td class="num${reachCls}">${reachPct}</td>`;
       if (!isSso) cells += `<td class="num">${selUserPct}</td>`;
       cells += `
