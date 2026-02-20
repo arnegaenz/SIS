@@ -114,6 +114,7 @@
       setRateFieldDisabled("abandonCredentialEntry", true);
       setRateFieldDisabled("successRate", true);
       setRateFieldDisabled("failRate", true);
+      updateCredNoInteractionBadge();
       return;
     }
 
@@ -125,6 +126,7 @@
       setRateFieldDisabled("abandonCredentialEntry", true);
       setRateFieldDisabled("successRate", true);
       setRateFieldDisabled("failRate", true);
+      updateCredNoInteractionBadge();
       return;
     }
 
@@ -135,12 +137,23 @@
     if (credVal >= 100) {
       setRateFieldDisabled("successRate", true);
       setRateFieldDisabled("failRate", true);
+      updateCredNoInteractionBadge();
       return;
     }
 
     // Re-enable success and fail
     setRateFieldDisabled("successRate", false);
     setRateFieldDisabled("failRate", false);
+
+    updateCredNoInteractionBadge();
+  }
+
+  function updateCredNoInteractionBadge() {
+    var badge = document.getElementById("credNoInteractionBadge");
+    var input = document.getElementById("abandonCredentialEntry");
+    if (!badge || !input) return;
+    var show = parseFloat(input.value) >= 100 && !input.disabled;
+    badge.style.display = show ? "" : "none";
   }
 
   function setSubcategoryHint(message) {

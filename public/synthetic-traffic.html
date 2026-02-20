@@ -118,6 +118,19 @@
       width: 100%;
       padding-right: 34px;
     }
+    .no-interaction-badge {
+      position: absolute;
+      left: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 13px;
+      font-style: italic;
+      color: var(--panel-title);
+      pointer-events: none;
+      z-index: 1;
+      background: var(--input-bg, #1e293b);
+      padding: 0 4px;
+    }
     .rate-toggle {
       position: absolute;
       right: 6px;
@@ -596,6 +609,7 @@
                   Cred Entry Abandon (%)
                   <div class="rate-combo" data-rate-combo>
                     <input type="number" id="abandonCredentialEntry" min="0" max="100" step="0.1" value="0" data-rate-combo-input />
+                    <span id="credNoInteractionBadge" class="no-interaction-badge" style="display:none;">No interaction</span>
                     <button type="button" class="rate-toggle" data-rate-combo-toggle aria-label="Show rate options">▾</button>
                     <div class="rate-list" data-rate-combo-list></div>
                   </div>
