@@ -70,23 +70,77 @@
     return (value || "").toString().toLowerCase().indexOf("_sso") !== -1;
   }
 
+  function setRateFieldDisabled(inputId, disabled) {
+    var input = document.getElementById(inputId);
+    if (!input) return;
+    var combo = input.closest(".rate-combo");
+    var toggle = combo ? combo.querySelector(".rate-toggle") : null;
+    var list = combo ? combo.querySelector(".rate-list") : null;
+    input.disabled = disabled;
+    if (toggle) toggle.disabled = disabled;
+    if (disabled && list) list.classList.remove("open");
+  }
+
   function toggleUserDataAbandon() {
     var flow = document.getElementById("integrationFlow");
     var input = document.getElementById("abandonUserData");
-    var toggle = input ? input.closest(".rate-combo")?.querySelector(".rate-toggle") : null;
     if (!flow || !input) return;
     if (isSsoFlow(flow.value)) {
       if (!activeDemoPreset || activeDemoPreset.integration !== "sso") {
         input.value = "0";
       }
-      input.disabled = true;
-      if (toggle) toggle.disabled = true;
-      var list = input.closest(".rate-combo")?.querySelector(".rate-list");
-      if (list) list.classList.remove("open");
+      setRateFieldDisabled("abandonUserData", true);
     } else {
-      input.disabled = false;
-      if (toggle) toggle.disabled = false;
+      setRateFieldDisabled("abandonUserData", false);
     }
+    updateFunnelCascade();
+  }
+
+  /**
+   * Cascading disable: if an upstream abandon rate is 100%, all downstream fields are disabled.
+   * Select Merchant 100% → disables User Data, Cred Entry, Success, Fail
+   * User Data 100% → disables Cred Entry, Success, Fail
+   * Cred Entry 100% → disables Success, Fail (but really just Fail since success is implied 0)
+   */
+  function updateFunnelCascade() {
+    var selectVal = parseFloat(document.getElementById("abandonSelectMerchant")?.value) || 0;
+    var userVal = parseFloat(document.getElementById("abandonUserData")?.value) || 0;
+    var credVal = parseFloat(document.getElementById("abandonCredentialEntry")?.value) || 0;
+    var userDisabledBySSO = document.getElementById("abandonUserData")?.disabled || false;
+
+    // Select Merchant at 100% → everything downstream disabled
+    if (selectVal >= 100) {
+      if (!userDisabledBySSO) setRateFieldDisabled("abandonUserData", true);
+      setRateFieldDisabled("abandonCredentialEntry", true);
+      setRateFieldDisabled("successRate", true);
+      setRateFieldDisabled("failRate", true);
+      return;
+    }
+
+    // Re-enable User Data if not SSO-disabled
+    if (!userDisabledBySSO) setRateFieldDisabled("abandonUserData", false);
+
+    // User Data at 100% → cred entry, success, fail disabled
+    if (userVal >= 100) {
+      setRateFieldDisabled("abandonCredentialEntry", true);
+      setRateFieldDisabled("successRate", true);
+      setRateFieldDisabled("failRate", true);
+      return;
+    }
+
+    // Re-enable Cred Entry
+    setRateFieldDisabled("abandonCredentialEntry", false);
+
+    // Cred Entry at 100% → success, fail disabled
+    if (credVal >= 100) {
+      setRateFieldDisabled("successRate", true);
+      setRateFieldDisabled("failRate", true);
+      return;
+    }
+
+    // Re-enable success and fail
+    setRateFieldDisabled("successRate", false);
+    setRateFieldDisabled("failRate", false);
   }
 
   function setSubcategoryHint(message) {
@@ -540,6 +594,20 @@
         abandonCredential: 65,
         success: 38,
         fail: 62
+      },
+      test: {
+        integration: "sso",
+        sourceType: "test",
+        sourceCategory: "other",
+        sourceSubcategoryHint: "test",
+        mode: "campaign",
+        runsPerDay: 25,
+        durationDays: 2,
+        abandonSelect: 0,
+        abandonUser: 0,
+        abandonCredential: 0,
+        success: 50,
+        fail: 50
       }
     };
 
@@ -605,6 +673,7 @@
         inputEl.value = next;
         closeRateList(listEl);
         updateRateValidation();
+        updateFunnelCascade();
       });
       listEl.appendChild(option);
     }
@@ -638,7 +707,10 @@
           closeRateList(list);
         }, 120);
       });
-      input.addEventListener("input", updateRateValidation);
+      input.addEventListener("input", function () {
+        updateRateValidation();
+        updateFunnelCascade();
+      });
       combo.addEventListener("click", function (evt) {
         evt.stopPropagation();
       });
