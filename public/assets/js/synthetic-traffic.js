@@ -24,6 +24,7 @@
   var pendingCancelJobId = null;
   var activeDemoPreset = null;
   var latestJobs = [];
+  var sessionDataCache = {};
 
   var options = {
     fiHostEnv: ["argfcu", "orb_prod"],
@@ -273,8 +274,9 @@
       );
     }
     if ((job.attempted || 0) > 0) {
-      var hasData = (job.placements_success || 0) > 0 || (job.placements_failed || 0) > 0;
-      var eyeCls = hasData ? "icon-btn eye-has-data" : "icon-btn eye-no-data";
+      var eyeCls = sessionDataCache[id] === true ? "icon-btn eye-has-data"
+        : sessionDataCache[id] === false ? "icon-btn eye-no-data"
+        : "icon-btn eye-pending";
       actions.push(
         '<button class="' + eyeCls + '" type="button" data-action="viewSessions" data-id="' + escapeHtml(id) + '"' +
         ' aria-label="View Sessions" title="View Sessions">' +
@@ -334,6 +336,32 @@
         jobsCount.textContent = "Showing " + visible.length + " of " + total + " jobs.";
       }
     }
+    checkSessionData(visible);
+  }
+
+  function checkSessionData(jobs) {
+    var toCheck = jobs.filter(function (j) {
+      return (j.attempted || 0) > 0 && sessionDataCache[j.id] === undefined;
+    });
+    if (!toCheck.length) return;
+    toCheck.forEach(function (job) {
+      sessionDataCache[job.id] = null; // mark in-flight
+      fetch(JOBS_ENDPOINT + "/" + encodeURIComponent(job.id) + "/sessions?count_only=true&max_days=30")
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (data) {
+          if (!data) return;
+          sessionDataCache[job.id] = !!data.has_data;
+          updateEyeIcon(job.id, data.has_data);
+        })
+        .catch(function () {});
+    });
+  }
+
+  function updateEyeIcon(jobId, hasData) {
+    var btn = document.querySelector('[data-action="viewSessions"][data-id="' + jobId + '"]');
+    if (!btn) return;
+    btn.classList.remove("eye-pending", "eye-has-data", "eye-no-data");
+    btn.classList.add(hasData ? "eye-has-data" : "eye-no-data");
   }
 
   function getJobById(jobId) {

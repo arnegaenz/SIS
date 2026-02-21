@@ -3204,20 +3204,24 @@ const server = http.createServer(async (req, res) => {
     const fiMeta = buildFiMetaMap(fiRegistry);
     const instanceMeta = await loadInstanceMetaMap();
 
+    const countOnly = queryParams.get("count_only") === "true";
+
     const jobType = normalizeSourceToken(job.source_type);
     const jobCat = normalizeSourceToken(job.source_category);
     const jobSub = normalizeSourceToken(job.source_subcategory);
 
     const matched = [];
+    let foundAny = false;
 
     for (const day of days) {
-      const [sessionsRaw, placementsRaw] = await Promise.all([
-        readSessionDay(day),
-        readPlacementDay(day),
-      ]);
+      if (countOnly && foundAny) break;
+
+      const readPromises = [readSessionDay(day)];
+      if (!countOnly) readPromises.push(readPlacementDay(day));
+      const [sessionsRaw, placementsRaw] = await Promise.all(readPromises);
       if (!sessionsRaw || sessionsRaw.error) continue;
 
-      const placements = Array.isArray(placementsRaw?.placements)
+      const placements = !countOnly && Array.isArray(placementsRaw?.placements)
         ? placementsRaw.placements
         : [];
       const placementMap = new Map();
@@ -3247,7 +3251,7 @@ const server = http.createServer(async (req, res) => {
           session.id ||
           session.cuid ||
           null;
-        const fallback = agentId ? placementSourceMap.get(agentId) || null : null;
+        const fallback = !countOnly && agentId ? placementSourceMap.get(agentId) || null : null;
         const source = extractSourceFromSession(session, fallback);
         if (!source) continue;
 
@@ -3263,6 +3267,8 @@ const server = http.createServer(async (req, res) => {
         );
         const matchSub = !jobSub || rawSub === jobSub;
         if (!matchSub) continue;
+
+        if (countOnly) { foundAny = true; break; }
 
         const entry = mapSessionToTroubleshootEntry(
           session,
@@ -3281,6 +3287,10 @@ const server = http.createServer(async (req, res) => {
         delete entry.placements_raw;
         matched.push(entry);
       }
+    }
+
+    if (countOnly) {
+      return send(res, 200, { job_id: jobId, has_data: foundAny });
     }
 
     const summary = summarizeTroubleshootSessions(matched);
