@@ -7,12 +7,13 @@
   var jobsBody = document.getElementById("jobsBody");
   var modeSelect = document.getElementById("modeSelect");
   var jobsCount = document.getElementById("jobsCount");
-  var activeOnlyToggle = document.getElementById("activeOnlyToggle");
+  var jobsShowMore = document.getElementById("jobsShowMore");
   var demoPreset = document.getElementById("demoPreset");
   var sourceSubcategoryInput = document.getElementById("sourceSubcategory");
   var sourceSubcategoryHint = document.getElementById("sourceSubcategoryHint");
   var createJobButton = document.getElementById("createJobButton");
-  var activeOnly = false;
+  var PAGE_SIZE = 10;
+  var visibleLimit = PAGE_SIZE;
   var jobModal = document.getElementById("jobModal");
   var jobModalBody = document.getElementById("jobModalBody");
   var jobModalSubtitle = document.getElementById("jobModalSubtitle");
@@ -314,27 +315,29 @@
     if (!jobsBody) return;
     latestJobs = list || [];
     var total = latestJobs.length;
-    var filtered = activeOnly ? latestJobs.filter(isActiveJob) : latestJobs.slice();
-    var filteredTotal = filtered.length;
-    var visible = filtered;
-    if (!visible.length) {
-      var emptyLabel = activeOnly && total ? "No active jobs." : "No jobs yet.";
-      jobsBody.innerHTML = '<tr><td colspan="10">' + emptyLabel + "</td></tr>";
-      if (jobsCount) {
-        jobsCount.textContent = activeOnly && total
-          ? "Showing 0 active jobs (" + total + " total)."
-          : "Showing 0 jobs.";
-      }
+    if (!total) {
+      jobsBody.innerHTML = '<tr><td colspan="10">No jobs yet.</td></tr>';
+      if (jobsCount) jobsCount.textContent = "Showing 0 jobs.";
+      if (jobsShowMore) jobsShowMore.style.display = "none";
       return;
     }
+    // Active jobs always shown; fill remaining slots with most recent inactive
+    var active = latestJobs.filter(isActiveJob);
+    var inactive = latestJobs.filter(function (j) { return !isActiveJob(j); });
+    var fillSlots = Math.max(0, visibleLimit - active.length);
+    var visible = active.concat(inactive.slice(0, fillSlots));
+    var remaining = total - visible.length;
     jobsBody.innerHTML = visible.map(buildJobRow).join("");
     if (jobsCount) {
-      if (activeOnly) {
-        var suffix = total !== filteredTotal ? " (" + total + " total)." : ".";
-        jobsCount.textContent = "Showing " + visible.length + " of " + filteredTotal + " active jobs" + suffix;
-      } else {
-        jobsCount.textContent = "Showing " + visible.length + " of " + total + " jobs.";
-      }
+      var parts = [];
+      if (active.length) parts.push(active.length + " active");
+      var inactiveShown = visible.length - active.length;
+      if (inactiveShown) parts.push(inactiveShown + " recent");
+      jobsCount.textContent = "Showing " + parts.join(" + ") + " of " + total + " jobs.";
+    }
+    if (jobsShowMore) {
+      jobsShowMore.style.display = remaining > 0 ? "" : "none";
+      jobsShowMore.textContent = "Show more (" + remaining + " remaining)";
     }
     checkSessionData(visible);
   }
@@ -1239,13 +1242,10 @@
         closeSessionsModal();
       }
     });
-    if (activeOnlyToggle) {
-      activeOnly = activeOnlyToggle.checked;
-      activeOnlyToggle.addEventListener("change", function () {
-        activeOnly = activeOnlyToggle.checked;
-        renderJobs(latestJobs);
-      });
-    }
+    window.__synthShowMore = function () {
+      visibleLimit += PAGE_SIZE;
+      renderJobs(latestJobs);
+    };
     if (cancelConfirmInput) {
       cancelConfirmInput.addEventListener("input", updateCancelState);
       cancelConfirmInput.addEventListener("keydown", function (evt) {

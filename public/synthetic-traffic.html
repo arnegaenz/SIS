@@ -973,10 +973,7 @@
           </div>
           <div class="jobs-toolbar">
             <div class="status-line jobs-status" id="jobsStatus">Loading jobs...</div>
-            <label class="jobs-filter">
-              <input type="checkbox" id="activeOnlyToggle" checked />
-              Hide completed/canceled
-            </label>
+            <span id="jobsFilterPlaceholder"></span>
           </div>
           <div class="table-wrap">
             <table>
@@ -1003,6 +1000,7 @@
           </div>
           <div class="jobs-footer">
             <div id="jobsCount">Showing 0 jobs.</div>
+            <a href="#" id="jobsShowMore" style="display:none;font-size:12px;color:var(--accent,#3b82f6);cursor:pointer" onclick="event.preventDefault();window.__synthShowMore&&window.__synthShowMore()">Show more</a>
           </div>
         </div>
       </section>
