@@ -132,6 +132,23 @@ All partner-facing content follows engagement-positive tone:
 
 ## Feb 21, 2026
 
+### Calibrated Launch Metrics for Non-SSO Funnel Interpretation
+- **Problem**: Non-SSO session metrics are misleading — a "session" starts AFTER card data entry, so session success rate measures conversion from an already-committed audience, not true top of funnel
+- **Solution**: Use GA calibration rate (`ga_user / cs_user`) to estimate true launches from `ga_select`, giving a real top-of-funnel metric comparable to SSO session counts
+- **Engine changes** (`engagement-insights.js`):
+  - `buildMetricsContext()`: computes `gaCalibrationRate`, `estimatedLaunches` (`ga_select / gaCalibrationRate`), `launchSuccessPct` (`sessionsWithSuccess / estimatedLaunches`)
+  - Monthly reach uses per-row calibrated estimated launches for non-SSO FIs
+  - `evaluateActions()`: uses `launchSuccessPct` with `classifyTier()` (SSO thresholds 3/8/12/21%) when calibrated; falls back to `classifyNonSSOTier()` when not
+  - `NONSSO_NARRATIVE_OVERRIDES`: show both launch-based and session-based rates; reach narratives show per-FI GA tracking rate
+  - `buildNonSSOSpectrumDiagnosis()`: uses launch-based rates with SSO-scale diagnosis when calibrated
+  - `computeProjections()`: uses `estimatedLaunches` as volume base with SSO thresholds (8%/21%) when calibrated
+- **Dashboard changes** (`funnel-customer.html`):
+  - Non-SSO table: new "Est. Launches" and "Launch → Success %" columns with sorting, color coding (green ≥21%, amber ≥8%, red <8%)
+  - `computeEstLaunches()`, `computeLaunchSuccessRate()` helper functions
+  - Spectrum gauge uses SSO scale (0–30%) with "Launch: X%" marker when calibrated
+  - Calibration banner dynamically shows per-FI GA tracking rate or generic fallback
+- **Graceful fallback**: When `cs_user` is unavailable, everything falls back to pre-existing session-based behavior with generic 15–30% GA undercount disclaimer
+
 ### Synthetic Traffic → Funnel Data Correlation
 - **New endpoint**: `GET /api/synth/jobs/:id/sessions` — scans raw session/placement files, matches by source `type` + `category` + `sub_category` + date range, returns enriched troubleshoot-level session detail
 - **Source matching**: Uses `normalizeSourceToken()` for case-insensitive comparison; `sub_category` read from `session.source.sub_category` (CardSavr API field, not extracted by `extractSourceFromSession`)
@@ -450,10 +467,12 @@ Full audit in `narrative-rules-audit.md` in project root. 50 narrative templates
 
 ---
 
-## IN PROGRESS: Non-SSO Data Interpretation Fix (QBR prep for Digital Onboarding)
+## COMPLETED: Non-SSO Data Interpretation Fix (QBR prep for Digital Onboarding)
 
 ### What was built
 SSO vs Non-SSO insights engine split (Feb 20) — when both SSO and non-SSO FIs are in the data, a "Performance by Integration Type" breakdown section appears with separate narratives, spectrum gauges, actions, and projections per type. Code is deployed and committed.
+
+**Calibrated launch metrics (Feb 21)** — uses GA calibration rate (`ga_user / cs_user`, already available in daily rollups) to compute estimated true launches and launch-based conversion rates. See Build History → Feb 21 for full details.
 
 ### The problem discovered during review
 The current implementation shifts tier thresholds for non-SSO but still uses **session-based metrics** as the primary data source. This is fundamentally misleading because:
@@ -490,20 +509,14 @@ Synthetic traffic testing confirmed that the CardSavr API clickstream records ev
 
 This replaces the generic "15-30% undercount" guess with a **data-driven, per-FI calibration factor** that can be computed for any time window.
 
-### What to build
-1. ~~**GA tracking rate visibility**: Show per-FI GA accuracy rate on dashboard~~ ✅ Done — "GA Rate %" column in FI detail tables (SSO: `ga_select/cs_select`, Non-SSO: `ga_user/cs_user`)
-2. **Clickstream-based calibration**: Compare clickstream `/user-data-collection` count vs GA `user_data_collection` for same FI + date range → more accurate per-FI calibration factor (requires extracting clickstream page counts during daily rollup)
-3. **Calibrated select-merchants estimate**: Apply calibration factor to GA `select_merchants` → show as "Estimated Launches" with tooltip explaining methodology
-4. **Non-SSO funnel reframe**: Use calibrated launches as true top of funnel, session-based metrics as post-commitment funnel
-5. **Insights engine updates**: Tier classification using launch-based conversion rates (calibrated GA launches → successful placements), not session-based rates
-6. **Dashboard caveats**: Inline explanation of methodology wherever estimated values appear
-
-### Key files to modify
-- `scripts/serve-funnel.mjs` — add clickstream aggregation endpoint or compute during daily rollup
-- `scripts/build-daily-from-raw.mjs` — extract clickstream page counts during aggregation (currently stripped)
-- `engagement-insights.js` — narrative overrides, tier thresholds using launch-based conversion
-- `funnel-customer.html` — breakdown rendering with calibrated metrics, caveat UI
-- `computeProjections()` — rethink for non-SSO context using calibrated launch data
+### What was built (checklist)
+1. ~~**GA tracking rate visibility**: Show per-FI GA accuracy rate on dashboard~~ ✅ Done (Feb 20)
+2. ~~**Calibrated launch estimates**: Use `ga_user/cs_user` calibration to inflate `ga_select` → "Est. Launches" column~~ ✅ Done (Feb 21)
+3. ~~**Launch → Success % column**: True non-SSO conversion from estimated launches to successful placements~~ ✅ Done (Feb 21)
+4. ~~**Non-SSO funnel reframe**: Launch-based conversion as primary metric, session-based as post-commitment~~ ✅ Done (Feb 21)
+5. ~~**Insights engine updates**: Tier classification, narratives, spectrum, projections all use launch-based rates~~ ✅ Done (Feb 21)
+6. ~~**Dashboard caveats**: Dynamic calibration banner with per-FI GA tracking rate~~ ✅ Done (Feb 21)
+7. **Clickstream-based calibration** (future): Compare raw clickstream `/user-data-collection` page counts vs `cs_user` for even more granular calibration (requires `build-daily-from-raw.mjs` changes — current approach using `cs_user` from daily rollups is sufficient)
 
 ---
 
