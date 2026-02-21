@@ -41,6 +41,7 @@
 
   // Page access restrictions
   var LIMITED_PAGES = ["funnel.html", "funnel-customer.html"];
+  var EXECUTIVE_PAGES = ["funnel-customer.html", "executive.html"];
   var ADMIN_ONLY_PAGES = ["users.html", "synthetic-traffic.html", "maintenance.html", "activity-log.html", "shared-views.html", "logs.html"]; // Pages only admin can access (not internal)
 
   function getPageName() {
@@ -61,6 +62,15 @@
     if (page === "" || page === "/") page = "index.html";
     for (var i = 0; i < LIMITED_PAGES.length; i++) {
       if (page === LIMITED_PAGES[i]) return true;
+    }
+    return false;
+  }
+
+  function isExecutiveAllowedPage() {
+    var page = getPageName().toLowerCase();
+    if (page === "" || page === "/") page = "index.html";
+    for (var i = 0; i < EXECUTIVE_PAGES.length; i++) {
+      if (page === EXECUTIVE_PAGES[i]) return true;
     }
     return false;
   }
@@ -89,20 +99,29 @@
     return null;
   }
 
-  function getAccessLevel() {
-    // First check session-based auth
+  function getRealAccessLevel() {
     var user = getStoredUser();
     if (user && user.access_level) {
       return user.access_level;
     }
-
-    // Legacy fallback for transition period
     try {
       var level = sessionStorage.getItem(LEGACY_ACCESS_KEY);
-      if (level === "full" || level === "admin" || level === "internal" || level === "limited") return level;
+      if (level === "full" || level === "admin" || level === "internal" || level === "limited" || level === "executive") return level;
       if (sessionStorage.getItem(LEGACY_STORAGE_KEY) === "1") return "admin";
     } catch (e) {}
     return "";
+  }
+
+  function getAccessLevel() {
+    var real = getRealAccessLevel();
+    // Admin/full users can preview other access levels via "View as" switcher
+    if (real === "admin" || real === "full") {
+      try {
+        var override = sessionStorage.getItem("sis_view_as");
+        if (override === "internal" || override === "limited" || override === "executive") return override;
+      } catch (e) {}
+    }
+    return real;
   }
 
   function isAuthenticated() {
@@ -133,23 +152,39 @@
     window.location.href = prefix + "login.html";
   }
 
+  function isViewAsActive() {
+    try { return !!(sessionStorage.getItem("sis_view_as")); } catch (e) { return false; }
+  }
+
   function checkPageAccess() {
     var level = getAccessLevel();
     var page = getPageName().toLowerCase();
-    var prefix = page.indexOf("/dashboards/") !== -1 ? "../" : "./";
+    var pathname = window.location.pathname || "";
+    var prefix = (pathname.indexOf("/dashboards/") !== -1 || pathname.indexOf("/resources/") !== -1) ? "../" : "./";
 
     // admin (and legacy "full") can access everything
     if (level === "admin" || level === "full") {
       return true;
     }
 
+    // When "View as" is active, skip page redirects — admin is previewing UI only
+    if (isViewAsActive()) {
+      return true;
+    }
+
     // internal can access everything except admin-only pages (users.html)
     if (level === "internal") {
       if (isAdminOnlyPage()) {
-        window.location.href = prefix + "index.html";
+        window.location.href = prefix + "dashboards/portfolio.html";
         return false;
       }
       return true;
+    }
+
+    // executive can access executive dashboard + cardholder engagement
+    if (level === "executive" && !isExecutiveAllowedPage()) {
+      window.location.href = prefix + "dashboards/executive.html";
+      return false;
     }
 
     // limited can only access specific pages

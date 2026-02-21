@@ -208,9 +208,9 @@
             if (redir.startsWith("./") || redir.startsWith("/")) return redir;
           }
         } catch (e) {}
-        if (level === "billing") return "./fi-api-billing.html";
-        if (level === "limited") return "./funnel.html";
-        return "./index.html";
+        if (level === "limited") return "./funnel-customer.html";
+        if (level === "executive") return "./dashboards/executive.html";
+        return "./dashboards/portfolio.html";
       }
 
       // Request link form

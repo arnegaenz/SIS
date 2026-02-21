@@ -72,55 +72,63 @@ return el;
 
 // Default groups and pages. Keys match page ids we will pass from each page.
 // Prefix for relative links - "../" if in subdirectory, "./" if at root
-var NAV_PREFIX = window.location.pathname.indexOf("/dashboards/") !== -1 ? "../" : "./";
-
-var HOME_LINK = { id:"overview", label:"Home", href:NAV_PREFIX+"index.html" };
+var NAV_PREFIX = (window.location.pathname.indexOf("/dashboards/") !== -1 || window.location.pathname.indexOf("/resources/") !== -1) ? "../" : "./";
 
 var GROUPS = [
-{ label: "Conversions", items: [
-{ id:"funnel", label:"FI Funnel", href:NAV_PREFIX+"funnel.html" },
+{ label: "Partner Analytics", items: [
+{ id:"executive", label:"Executive Summary", href:NAV_PREFIX+"dashboards/executive.html" },
 { id:"funnel-customer", label:"Cardholder Engagement", href:NAV_PREFIX+"funnel-customer.html" },
-{ id:"customer-success", label:"Customer Success Dashboard", href:NAV_PREFIX+"dashboards/customer-success.html" },
 { id:"portfolio", label:"CS Portfolio", href:NAV_PREFIX+"dashboards/portfolio.html" },
+{ id:"engagement-playbook", label:"Engagement Playbook", href:NAV_PREFIX+"resources/engagement-playbook.html" },
+{ id:"campaign-builder", label:"Campaign URL Builder", href:NAV_PREFIX+"campaign-builder.html" }
+]},
+{ label: "Monitoring", items: [
+{ id:"operations", label:"Operations Dashboard", href:NAV_PREFIX+"dashboards/operations.html" },
+{ id:"heatmap", label:"Merchant Heatmap", href:NAV_PREFIX+"heatmap.html" },
+{ id:"watchlist", label:"Alerts & Watchlist", href:NAV_PREFIX+"watchlist.html" },
+{ id:"realtime", label:"Real-Time", href:NAV_PREFIX+"realtime.html" },
+{ id:"troubleshoot", label:"Troubleshoot", href:NAV_PREFIX+"troubleshoot.html" }
+]},
+{ label: "Analysis", items: [
+{ id:"funnel", label:"FI Funnel", href:NAV_PREFIX+"funnel.html" },
+{ id:"customer-success", label:"Customer Success Dashboard", href:NAV_PREFIX+"dashboards/customer-success.html" },
 { id:"sources", label:"Sources", href:NAV_PREFIX+"sources.html" },
 { id:"ux-paths", label:"UX Paths", href:NAV_PREFIX+"ux-paths.html" },
-{ id:"placement-outcomes", label:"Placement Outcomes", href:NAV_PREFIX+"placement-outcomes.html" }
-]},
-{ label: "Reliability", items: [
-{ id:"heatmap", label:"Merchant Heatmap", href:NAV_PREFIX+"heatmap.html" },
-{ id:"watchlist", label:"Alerts & Watchlist", href:NAV_PREFIX+"watchlist.html" }
-]},
-{ label: "Ops", items: [
-{ id:"operations", label:"Operations Dashboard", href:NAV_PREFIX+"dashboards/operations.html" },
-{ id:"troubleshoot", label:"Troubleshoot", href:NAV_PREFIX+"troubleshoot.html" },
-{ id:"realtime", label:"Real-Time", href:NAV_PREFIX+"realtime.html" },
-{ id:"synthetic-traffic", label:"Synthetic Traffic", href:NAV_PREFIX+"synthetic-traffic.html", adminOnly: true },
+{ id:"placement-outcomes", label:"Placement Outcomes", href:NAV_PREFIX+"placement-outcomes.html" },
 { id:"fi-api", label:"FI API", href:NAV_PREFIX+"fi-api.html" }
-]},
-{ label: "Tools", items: [
-{ id:"campaign-builder", label:"Campaign URL Builder", href:NAV_PREFIX+"campaign-builder.html" }
 ]},
 { label: "Admin", fullAccessOnly: true, items: [
 { id:"maintenance", label:"Data & Config", href:NAV_PREFIX+"maintenance.html" },
 { id:"users", label:"Users", href:NAV_PREFIX+"users.html" },
 { id:"activity-log", label:"User Activity", href:NAV_PREFIX+"activity-log.html" },
 { id:"shared-views", label:"Shared Links", href:NAV_PREFIX+"shared-views.html" },
-{ id:"logs", label:"Server Logs", href:NAV_PREFIX+"logs.html" }
+{ id:"logs", label:"Server Logs", href:NAV_PREFIX+"logs.html" },
+{ id:"synthetic-traffic", label:"Synthetic Traffic", href:NAV_PREFIX+"synthetic-traffic.html" }
 ]}
 ];
 
-function getAccessLevel() {
-  // Use sisAuth if available (new session-based auth)
+function getRealAccessLevel() {
   if (global.sisAuth && global.sisAuth.getAccessLevel) {
     return global.sisAuth.getAccessLevel();
   }
-  // Legacy fallback
   try {
     var level = sessionStorage.getItem("sis_access_level");
-    if (level === "admin" || level === "full" || level === "internal" || level === "limited") return level;
+    if (level === "admin" || level === "full" || level === "internal" || level === "limited" || level === "executive") return level;
     if (sessionStorage.getItem("sis_passcode_ok") === "1") return "full";
   } catch (e) {}
   return "";
+}
+
+function getAccessLevel() {
+  var real = getRealAccessLevel();
+  // Admin/full users can override their view via "View as" switcher
+  if (real === "admin" || real === "full") {
+    try {
+      var override = sessionStorage.getItem("sis_view_as");
+      if (override === "internal" || override === "limited" || override === "executive") return override;
+    } catch (e) {}
+  }
+  return real;
 }
 
 function getCurrentUser() {
@@ -138,6 +146,16 @@ function getGroupsForAccess() {
   var isAdmin = access === "admin" || access === "full";
   var isInternal = access === "internal";
   var isLimited = access === "limited";
+
+  // Executive access: executive summary + cardholder engagement
+  if (access === "executive") {
+    return [
+      { label: "Dashboards", items: [
+        { id:"executive", label:"Executive Summary", href:NAV_PREFIX+"dashboards/executive.html" },
+        { id:"funnel-customer", label:"Cardholder Engagement", href:NAV_PREFIX+"funnel-customer.html" }
+      ]}
+    ];
+  }
 
   // Limited access: customer-facing pages only
   if (isLimited) {
@@ -274,16 +292,6 @@ targetWrap.appendChild(wrap);
 
 var navGroups = getGroupsForAccess();
 
-// Home link only for users who have nav groups (not limited)
-if (navGroups.length > 0) {
-var homeLink = h("a", {
-  href: HOME_LINK.href,
-  class: "sis-pill" + (HOME_LINK.id === currentId ? " sis-active" : ""),
-  style: "text-decoration:none;"
-}, [HOME_LINK.label]);
-rightGroup.appendChild(homeLink);
-}
-
 for (var g=0; g<navGroups.length; g++){
 var group = navGroups[g];
 addDropdown(group, rightGroup);
@@ -340,6 +348,85 @@ if (isViewMode) {
     userSpan.style.marginRight = "8px";
     rightGroup.appendChild(userSpan);
   }
+  // "View as" switcher — admin/full users only
+  var realLevel = getRealAccessLevel();
+  if (realLevel === "admin" || realLevel === "full") {
+    var currentOverride = "";
+    try { currentOverride = sessionStorage.getItem("sis_view_as") || ""; } catch (e) {}
+    var viewAsWrap = h("div", { class: "sis-view-as" }, []);
+    viewAsWrap.style.display = "inline-flex";
+    viewAsWrap.style.alignItems = "center";
+    viewAsWrap.style.position = "relative";
+    viewAsWrap.style.marginRight = "8px";
+
+    var viewAsLabel = currentOverride ? "Viewing as: " + currentOverride.charAt(0).toUpperCase() + currentOverride.slice(1) : "View as";
+    var viewAsBtn = h("button", { class: "sis-pill" + (currentOverride ? " sis-view-as-active" : ""), type: "button" }, [viewAsLabel]);
+    viewAsBtn.style.fontSize = "11px";
+    viewAsBtn.style.padding = "4px 10px";
+    viewAsBtn.style.cursor = "pointer";
+    if (currentOverride) {
+      viewAsBtn.style.background = "#f59e0b";
+      viewAsBtn.style.color = "#1e293b";
+      viewAsBtn.style.fontWeight = "600";
+    }
+
+    var viewAsMenu = h("div", { class: "sis-view-as-menu" }, []);
+    viewAsMenu.style.display = "none";
+    viewAsMenu.style.position = "absolute";
+    viewAsMenu.style.top = "100%";
+    viewAsMenu.style.right = "0";
+    viewAsMenu.style.marginTop = "4px";
+    viewAsMenu.style.background = "var(--panel-bg, #1e293b)";
+    viewAsMenu.style.border = "1px solid var(--panel-border, #334155)";
+    viewAsMenu.style.borderRadius = "8px";
+    viewAsMenu.style.padding = "4px 0";
+    viewAsMenu.style.zIndex = "1000";
+    viewAsMenu.style.minWidth = "140px";
+    viewAsMenu.style.boxShadow = "0 8px 24px rgba(0,0,0,0.3)";
+
+    var levels = [
+      { key: "", label: "Admin (actual)" },
+      { key: "internal", label: "Internal" },
+      { key: "executive", label: "Executive" },
+      { key: "limited", label: "Limited" }
+    ];
+    for (var li = 0; li < levels.length; li++) {
+      (function(lv) {
+        var opt = h("button", { type: "button" }, [lv.label]);
+        opt.style.display = "block";
+        opt.style.width = "100%";
+        opt.style.textAlign = "left";
+        opt.style.padding = "8px 14px";
+        opt.style.border = "none";
+        opt.style.background = currentOverride === lv.key ? "var(--hover-bg, rgba(255,255,255,0.08))" : "transparent";
+        opt.style.color = "var(--text, #e2e8f0)";
+        opt.style.fontSize = "12px";
+        opt.style.cursor = "pointer";
+        opt.style.fontWeight = currentOverride === lv.key ? "600" : "400";
+        opt.addEventListener("mouseenter", function() { opt.style.background = "var(--hover-bg, rgba(255,255,255,0.08))"; });
+        opt.addEventListener("mouseleave", function() { opt.style.background = currentOverride === lv.key ? "var(--hover-bg, rgba(255,255,255,0.08))" : "transparent"; });
+        opt.addEventListener("click", function() {
+          try {
+            if (lv.key) sessionStorage.setItem("sis_view_as", lv.key);
+            else sessionStorage.removeItem("sis_view_as");
+          } catch (e) {}
+          window.location.reload();
+        });
+        viewAsMenu.appendChild(opt);
+      })(levels[li]);
+    }
+
+    viewAsBtn.addEventListener("click", function(e) {
+      e.stopPropagation();
+      var isOpen = viewAsMenu.style.display === "block";
+      viewAsMenu.style.display = isOpen ? "none" : "block";
+    });
+
+    viewAsWrap.appendChild(viewAsBtn);
+    viewAsWrap.appendChild(viewAsMenu);
+    rightGroup.appendChild(viewAsWrap);
+  }
+
   var logoutBtn = h("button", { class: "sis-pill sis-pill-outline", type: "button" }, ["Sign Out"]);
   logoutBtn.style.fontSize = "12px";
   logoutBtn.style.padding = "6px 12px";
@@ -414,6 +501,12 @@ global.__sisHeaderNavDocBound = true;
 document.addEventListener("click", function(e){
 var activeMount = document.getElementById("sis-header");
 if (!activeMount) return;
+// Close view-as menu if clicking outside it
+var viewAsMenus = activeMount.querySelectorAll(".sis-view-as-menu");
+for (var v=0;v<viewAsMenus.length;v++){
+  var wrap = viewAsMenus[v].parentNode;
+  if (wrap && !wrap.contains(e.target)) viewAsMenus[v].style.display = "none";
+}
 var hdr = activeMount.querySelector("header");
 if (!hdr) return;
 if (hdr.contains(e.target)) return;
@@ -536,16 +629,6 @@ targetWrap.appendChild(wrap);
 }
 
 var navGroups = getGroupsForAccess();
-
-// Home link only for users who have nav groups (not limited)
-if (navGroups.length > 0) {
-var homeLink = h("a", {
-  href: HOME_LINK.href,
-  class: "sis-pill" + (HOME_LINK.id === currentId ? " sis-active" : ""),
-  style: "text-decoration:none;"
-}, [HOME_LINK.label]);
-rightGroup.appendChild(homeLink);
-}
 
 for (var g=0; g<navGroups.length; g++){
 var group = navGroups[g];

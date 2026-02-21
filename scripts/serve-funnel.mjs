@@ -6163,6 +6163,11 @@ const server = http.createServer(async (req, res) => {
     if (await fileExists(fp)) return serveFile(res, fp);
   }
 
+  if (pathname === "/dashboards/executive" || pathname === "/dashboards/executive.html") {
+    const fp = path.join(PUBLIC_DIR, "dashboards", "executive.html");
+    if (await fileExists(fp)) return serveFile(res, fp);
+  }
+
   if (pathname === "/resources/engagement-playbook" || pathname === "/resources/engagement-playbook.html") {
     const fp = path.join(PUBLIC_DIR, "resources", "engagement-playbook.html");
     if (await fileExists(fp)) return serveFile(res, fp);

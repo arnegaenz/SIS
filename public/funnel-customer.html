@@ -2350,7 +2350,7 @@
       let allowedPartners = null;
       try {
         const user = window.sisAuth?.getUser?.();
-        if (user && user.access_level === "limited") {
+        if (user && (user.access_level === "limited" || user.access_level === "executive")) {
           if (Array.isArray(user.instance_keys) && user.instance_keys.length > 0) {
             allowedInstances = new Set(user.instance_keys.map(k => (k || "").toString().trim().toLowerCase()));
           }
