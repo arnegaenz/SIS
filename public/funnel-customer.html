@@ -393,6 +393,9 @@
     .fi-table .ga-good { color: #16a34a; font-weight: 600; }
     .fi-table .ga-warn { color: #d97706; }
     .fi-table .ga-low { color: #dc2626; }
+    .fi-table .launch-high { color: #16a34a; font-weight: 600; }
+    .fi-table .launch-mid { color: #d97706; }
+    .fi-table .launch-low { color: #dc2626; }
     .fi-table th:first-child, .fi-table td:first-child { text-align: left; }
 
     /* Tab bar (single-FI time breakdowns) */
@@ -1096,6 +1099,9 @@
     [data-theme="dark"] .fi-table .ga-good { color: #4ade80; }
     [data-theme="dark"] .fi-table .ga-warn { color: #fbbf24; }
     [data-theme="dark"] .fi-table .ga-low { color: #f87171; }
+    [data-theme="dark"] .fi-table .launch-high { color: #4ade80; }
+    [data-theme="dark"] .fi-table .launch-mid { color: #fbbf24; }
+    [data-theme="dark"] .fi-table .launch-low { color: #f87171; }
     [data-theme="dark"] .partner-summary .total-row td {
       border-top-color: var(--border-strong); background: var(--table-header);
     }
@@ -1618,7 +1624,7 @@
         <!-- Non-SSO Breakdown -->
         <div id="nonssoBreakdownBlock" class="breakdown-block" style="display:none;">
           <div class="breakdown-badge nonsso-badge">Non-SSO — Manual Card Entry Traffic</div>
-          <div class="ga-undercount-disclaimer">
+          <div class="ga-undercount-disclaimer" id="nonssoCalibrationBanner">
             <strong>GA measurement note:</strong> Non-SSO traffic is tracked via Google Analytics, which undercounts by approximately 15–30% due to Safari Intelligent Tracking Prevention and ad blockers. Actual cardholder volume is likely higher than reported.
           </div>
           <div id="nonssoNarrativeBlocks" class="breakdown-narratives"></div>
@@ -1746,7 +1752,9 @@
             <th data-sort="ga_user" class="num ga-col">User Data Views</th>
             <th data-sort="ga_cred" class="num ga-col">Credential Views</th>
             <th data-sort="ga_rate" class="num" title="Percentage of server-recorded visits detected by Google Analytics. Lower values indicate tracking gaps (Safari ITP, ad blockers).">GA Rate %</th>
-            <th data-sort="reach" class="num" title="Projected monthly rate based on selected time period">Monthly Reach %</th>
+            <th data-sort="est_launches" class="num" title="Estimated true launches: GA Select Merchant count adjusted for GA undercount using per-FI calibration (GA User Data ÷ Server User Data).">Est. Launches</th>
+            <th data-sort="launch_success_pct" class="num" title="True conversion rate from estimated launches to successful placements. Comparable to SSO session success rate — both measure from true top of funnel.">Launch→Success %</th>
+            <th data-sort="reach" class="num" title="Projected monthly rate based on selected time period (using calibrated launches when available)">Monthly Reach %</th>
             <th data-sort="sel_user_pct" class="num">Sel→User %</th>
             <th data-sort="sel_cred_pct" class="num">Sel→Cred %</th>
             <th data-sort="sel_success_pct" class="num">Success Rate</th>
@@ -3064,6 +3072,10 @@
           var _ga = _isSso ? (row.ga_select || 0) : (row.ga_user || 0);
           var _cs = _isSso ? (row.cs_select || 0) : (row.cs_user || 0);
           return _cs ? _ga / _cs : 0;
+        case "est_launches": return computeEstLaunches(row) || 0;
+        case "launch_success_pct":
+          var _lsr = computeLaunchSuccessRate(row);
+          return _lsr.value !== null ? _lsr.value : 0;
         case "reach": return getMonthlyReachValue(row);
         case "sel_user_pct": return row.cs_select ? (row.cs_user || 0) / row.cs_select : 0;
         case "sel_cred_pct": return row.cs_select ? (row.cs_cred || 0) / row.cs_select : 0;
@@ -3076,8 +3088,26 @@
       }
     }
 
+    function computeEstLaunches(row) {
+      var gaUser = row.ga_user || 0;
+      var csUser = row.cs_user || 0;
+      var gaSelect = row.ga_select || 0;
+      var gaRate = csUser > 0 && gaUser > 0 ? gaUser / csUser : null;
+      var estLaunches = gaRate && gaSelect > 0 ? Math.round(gaSelect / gaRate) : null;
+      return estLaunches;
+    }
+
+    function computeLaunchSuccessRate(row) {
+      var est = computeEstLaunches(row);
+      if (!est || est <= 0) return { value: null, display: "", cls: "" };
+      var rate = (row.sess_with_success || 0) / est * 100;
+      var cls = rate >= 21 ? "launch-high" : rate >= 8 ? "launch-mid" : "launch-low";
+      return { value: rate, display: rate.toFixed(1) + "%", cls: cls };
+    }
+
     function renderFiRow(row, integration) {
       const isSso = integration === "SSO";
+      const isNonSso = !isSso;
       const instancesText = row.instance || (Array.isArray(row.instances) ? row.instances.join(", ") : "");
       const selUserPct = row.cs_select ? ((row.cs_user / row.cs_select) * 100).toFixed(1) + "%" : "";
       const selCredPct = row.cs_select ? ((row.cs_cred / row.cs_select) * 100).toFixed(1) + "%" : "";
@@ -3095,12 +3125,19 @@
         <td>${integration}</td>
         <td class="num ga-col">${row.ga_select || 0}</td>
         <td class="num">${row.cs_select || 0}</td>`;
-      if (!isSso) cells += `<td class="num ga-col">${row.ga_user || 0}</td>`;
+      if (isNonSso) cells += `<td class="num ga-col">${row.ga_user || 0}</td>`;
       cells += `
         <td class="num ga-col">${row.ga_cred || 0}</td>
-        <td class="num ${gaRate.cls}">${gaRate.display}</td>
+        <td class="num ${gaRate.cls}">${gaRate.display}</td>`;
+      if (isNonSso) {
+        var estL = computeEstLaunches(row);
+        var lsr = computeLaunchSuccessRate(row);
+        cells += `<td class="num">${estL !== null ? estL : ""}</td>`;
+        cells += `<td class="num ${lsr.cls}">${lsr.display}</td>`;
+      }
+      cells += `
         <td class="num${reachCls}">${reachPct}</td>`;
-      if (!isSso) cells += `<td class="num">${selUserPct}</td>`;
+      if (isNonSso) cells += `<td class="num">${selUserPct}</td>`;
       cells += `
         <td class="num">${selCredPct}</td>
         <td class="num">${selSuccPct}</td>
@@ -3145,7 +3182,14 @@
       if (!isSso) cells += `<td class="num ga-col">${t.ga_user}</td>`;
       cells += `
         <td class="num ga-col">${t.ga_cred}</td>
-        <td class="num ${gaRate.cls}">${gaRate.display}</td>
+        <td class="num ${gaRate.cls}">${gaRate.display}</td>`;
+      if (!isSso) {
+        var tEstLaunches = computeEstLaunches(t);
+        var tLaunchRate = computeLaunchSuccessRate(t);
+        cells += `<td class="num">${tEstLaunches !== null ? tEstLaunches : ""}</td>`;
+        cells += `<td class="num ${tLaunchRate.cls}">${tLaunchRate.display}</td>`;
+      }
+      cells += `
         <td class="num"></td>`;
       if (!isSso) cells += `<td class="num">${selUserPct}</td>`;
       cells += `
@@ -3823,6 +3867,20 @@
       // Non-SSO block
       var nonssoBlock = document.getElementById('nonssoBreakdownBlock');
       if (nonssoBlock && nonssoCtx.totalSessions > 0) {
+        // Update calibration banner with data-driven text when available
+        var calBanner = document.getElementById('nonssoCalibrationBanner');
+        if (calBanner) {
+          if (nonssoCtx.gaCalibrationRate !== null && nonssoCtx.gaCalibrationRate !== undefined) {
+            var gaRatePctStr = (nonssoCtx.gaCalibrationRate * 100).toFixed(0);
+            calBanner.innerHTML = '<strong>GA calibration:</strong> Estimated launches derived from per-FI GA tracking rate (' +
+              gaRatePctStr + '% for this view — GA-reported User Data views \u00F7 server-verified User Data sessions). ' +
+              'GA Select Merchant counts adjusted by this factor to account for Safari ITP and ad-blocker undercount. ' +
+              '"Launch\u2009\u2192\u2009Success %" reflects the true conversion rate from estimated launches to successful placements.';
+          } else {
+            calBanner.innerHTML = '<strong>GA measurement note:</strong> Non-SSO traffic is tracked via Google Analytics, which undercounts by approximately 15\u201330% due to Safari Intelligent Tracking Prevention and ad blockers. ' +
+              'Server-side clickstream calibration data is not yet available for this partner \u2014 actual cardholder volume is likely higher than reported.';
+          }
+        }
         renderBreakdownNarratives('nonssoNarrativeBlocks', nonssoCtx);
         renderBreakdownSpectrum('nonssoSpectrumGauge', 'nonssoSpectrumDiagnosis', nonssoCtx, 'nonsso');
         renderBreakdownActions('nonssoActionsList', nonssoCtx);
@@ -3882,10 +3940,15 @@
       }
 
       var isNonSSO = (type === 'nonsso');
-      var maxScale = isNonSSO ? 50 : 30;
+      // When calibration data is available for non-SSO, use SSO-scale gauge
+      // (launch-based conversion is directly comparable to SSO session-based)
+      var hasCalibration = isNonSSO && ctx.launchSuccessPct !== null && ctx.launchSuccessPct !== undefined;
+      var useSSScale = !isNonSSO || hasCalibration;
+      var maxScale = useSSScale ? 30 : 50;
+      var displayRate = hasCalibration ? ctx.launchSuccessPct : ctx.sessionSuccessPct;
 
       var zones;
-      if (isNonSSO) {
+      if (isNonSSO && !hasCalibration) {
         zones = [
           { label: 'Tier 3: Organic', min: 0, max: 8, color: '#ef4444' },
           { label: '\u27F6', min: 8, max: 15, color: '#f97316' },
@@ -3903,18 +3966,27 @@
         ];
       }
 
+      // Update spectrum labels for non-SSO with calibration
+      if (hasCalibration) {
+        var labelsEl = gauge.parentElement ? gauge.parentElement.querySelector('.spectrum-labels') : null;
+        if (labelsEl) {
+          labelsEl.innerHTML = '<span>0%</span><span>Incidental</span><span>Campaigns</span><span>Activation</span><span>30%+</span>';
+        }
+      }
+
       var gaugeHtml = '';
       for (var z = 0; z < zones.length; z++) {
         var widthPct = ((zones[z].max - zones[z].min) / maxScale) * 100;
         gaugeHtml += '<div class="spectrum-zone" style="width:' + widthPct + '%;background:' + zones[z].color + ';">' + zones[z].label + '</div>';
       }
 
-      // Current rate marker
-      var currentPos = Math.min(ctx.sessionSuccessPct / maxScale, 1) * 100;
-      gaugeHtml += '<div class="spectrum-marker" style="left:' + currentPos + '%;" data-label="Current: ' + EI.fmt(ctx.sessionSuccessPct) + '%"></div>';
+      // Current rate marker — use launch-based rate when calibrated
+      var markerLabel = hasCalibration ? 'Launch: ' + EI.fmt(displayRate) + '%' : 'Current: ' + EI.fmt(displayRate) + '%';
+      var currentPos = Math.min(displayRate / maxScale, 1) * 100;
+      gaugeHtml += '<div class="spectrum-marker" style="left:' + currentPos + '%;" data-label="' + markerLabel + '"></div>';
 
       // Best week marker
-      if (ctx.bestWeekRate && ctx.bestWeekRate > ctx.sessionSuccessPct * 1.1) {
+      if (ctx.bestWeekRate && ctx.bestWeekRate > displayRate * 1.1) {
         var bestPos = Math.min(ctx.bestWeekRate / maxScale, 1) * 100;
         gaugeHtml += '<div class="spectrum-marker best-marker" style="left:' + bestPos + '%;" data-label="Best: ' + EI.fmt(ctx.bestWeekRate) + '%"></div>';
       }
@@ -4906,6 +4978,10 @@
           var _ga2 = _isSso2 ? (row.ga_select || 0) : (row.ga_user || 0);
           var _cs2 = _isSso2 ? (row.cs_select || 0) : (row.cs_user || 0);
           return _cs2 ? _ga2 / _cs2 : 0;
+        case "est_launches": return computeEstLaunches(row) || 0;
+        case "launch_success_pct":
+          var _lsr2 = computeLaunchSuccessRate(row);
+          return _lsr2.value !== null ? _lsr2.value : 0;
         case "reach": return getMonthlyReachValue(row);
         case "sel_user_pct": return row.cs_select ? (row.cs_user || 0) / row.cs_select : 0;
         case "sel_cred_pct": return row.cs_select ? (row.cs_cred || 0) / row.cs_select : 0;

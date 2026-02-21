@@ -253,23 +253,50 @@ const NONSSO_NARRATIVE_OVERRIDES = {
   selCred_mid: { suppress: true },
   selCred_high: { suppress: true },
 
-  // Session success: reframe with non-SSO context
+  // Session success: show both launch-based (true conversion) and session-based (post-commitment) rates
   sessSuccess_low: {
-    narrative: (m) => `Your cardholders are converting at <strong>${fmt(m.sessionSuccessPct)}%</strong> — and because non-SSO cardholders have already entered their card details before this point, every visit represents a committed cardholder. This is a strong foundation: the next step is reaching these cardholders at peak-motivation moments like card activation or reissuance, where conversion rates climb to 15–25%.${m.totalSessions < 100 ? ' <em>Note: With fewer than 100 visits in this window, rates may fluctuate — look for directional trends rather than exact percentages.</em>' : ''}`,
+    narrative: (m) => {
+      if (m.launchSuccessPct !== null && m.launchSuccessPct !== undefined) {
+        return `Your non-SSO cardholders convert at <strong>${fmt(m.launchSuccessPct)}%</strong> from launch to completion (estimated from ${fmtN(m.estimatedLaunches)} calibrated launches). Among cardholders who entered their card details, <strong>${fmt(m.sessionSuccessPct)}%</strong> completed — showing ${m.sessionSuccessPct >= 15 ? 'strong' : 'solid'} post-commitment engagement. The gap between launch and session rates reflects cardholders who browse but don't enter card data — this is normal for non-SSO flows. Timing outreach to card activation moments is the fastest path to improving launch conversion.${m.totalSessions < 100 ? ' <em>Note: With fewer than 100 visits, rates may fluctuate — look for directional trends.</em>' : ''}`;
+      }
+      return `Your cardholders are converting at <strong>${fmt(m.sessionSuccessPct)}%</strong> — and because non-SSO cardholders have already entered their card details before this point, every visit represents a committed cardholder. This is a strong foundation: the next step is reaching these cardholders at peak-motivation moments like card activation or reissuance, where conversion rates climb to 15–25%.${m.totalSessions < 100 ? ' <em>Note: With fewer than 100 visits in this window, rates may fluctuate — look for directional trends rather than exact percentages.</em>' : ''}`;
+    },
   },
   sessSuccess_mid: {
-    narrative: (m) => `At <strong>${fmt(m.sessionSuccessPct)}%</strong>, your non-SSO cardholders are showing real engagement — remember, every one of these visitors manually entered their card information first. This conversion rate with committed traffic is promising. Sustained campaign cadence targeting card activation moments can push this toward the 15–25% range.`,
+    narrative: (m) => {
+      if (m.launchSuccessPct !== null && m.launchSuccessPct !== undefined) {
+        return `Your non-SSO cardholders convert at <strong>${fmt(m.launchSuccessPct)}%</strong> from launch to completion — a solid result measured from an estimated ${fmtN(m.estimatedLaunches)} true launches. Post-commitment conversion (among those who entered card details) is <strong>${fmt(m.sessionSuccessPct)}%</strong>, demonstrating real engagement quality. Sustained campaign cadence targeting card activation moments can push launch conversion toward the 8–12% campaign tier.`;
+      }
+      return `At <strong>${fmt(m.sessionSuccessPct)}%</strong>, your non-SSO cardholders are showing real engagement — remember, every one of these visitors manually entered their card information first. This conversion rate with committed traffic is promising. Sustained campaign cadence targeting card activation moments can push this toward the 15–25% range.`;
+    },
   },
   sessSuccess_high: {
-    narrative: (m) => `Excellent — <strong>${fmt(m.sessionSuccessPct)}%</strong> of your non-SSO cardholders are completing placements. Since every visitor has already committed by entering their card details, this high conversion rate demonstrates strong cardholder motivation. The focus now is expanding the volume of cardholders who reach this point.`,
+    narrative: (m) => {
+      if (m.launchSuccessPct !== null && m.launchSuccessPct !== undefined) {
+        return `Excellent — <strong>${fmt(m.launchSuccessPct)}%</strong> launch-to-completion conversion from an estimated ${fmtN(m.estimatedLaunches)} true launches. Post-commitment conversion is <strong>${fmt(m.sessionSuccessPct)}%</strong>, showing outstanding cardholder follow-through. The focus now is expanding the volume of cardholders who encounter CardUpdatr at high-motivation moments.`;
+      }
+      return `Excellent — <strong>${fmt(m.sessionSuccessPct)}%</strong> of your non-SSO cardholders are completing placements. Since every visitor has already committed by entering their card details, this high conversion rate demonstrates strong cardholder motivation. The focus now is expanding the volume of cardholders who reach this point.`;
+    },
   },
 
-  // Reach: add GA undercount caveat for non-SSO
+  // Reach: use calibrated data when available, fall back to generic disclaimer
   reach_low: {
-    narrative: (m) => `You're reaching <strong>${fmtPct(m.monthlyReachPct)}%</strong> of your member base today. <em>Note: Non-SSO traffic is measured via Google Analytics, which undercounts by 15–30% due to Safari and ad-blocker tracking prevention — your actual reach is likely higher.</em> Embedding CardUpdatr in card activation or reissuance flows is the fastest path to expanding reach.`,
+    narrative: (m) => {
+      if (m.gaCalibrationRate !== null && m.gaCalibrationRate !== undefined) {
+        const gaRatePct = (m.gaCalibrationRate * 100).toFixed(0);
+        return `You're reaching <strong>${fmtPct(m.monthlyReachPct)}%</strong> of your member base monthly (estimated from calibrated launch data — GA tracking rate of <strong>${gaRatePct}%</strong> for this partner). Embedding CardUpdatr in card activation or reissuance flows is the fastest path to expanding reach.`;
+      }
+      return `You're reaching <strong>${fmtPct(m.monthlyReachPct)}%</strong> of your member base today. <em>Note: Non-SSO traffic is measured via Google Analytics, which undercounts by 15–30% due to Safari and ad-blocker tracking prevention — your actual reach is likely higher.</em> Embedding CardUpdatr in card activation or reissuance flows is the fastest path to expanding reach.`;
+    },
   },
   reach_ok: {
-    narrative: (m) => `<strong>${fmtPct(m.monthlyReachPct)}%</strong> monthly reach shows cardholders are finding CardUpdatr. <em>Note: Non-SSO traffic measurement via GA may undercount by 15–30% due to browser tracking prevention.</em> Expanding touchpoints through card activation and reissuance moments is the next high-impact move.`,
+    narrative: (m) => {
+      if (m.gaCalibrationRate !== null && m.gaCalibrationRate !== undefined) {
+        const gaRatePct = (m.gaCalibrationRate * 100).toFixed(0);
+        return `<strong>${fmtPct(m.monthlyReachPct)}%</strong> monthly reach shows cardholders are finding CardUpdatr (estimated from calibrated launch data — GA tracking rate of <strong>${gaRatePct}%</strong>). Expanding touchpoints through card activation and reissuance moments is the next high-impact move.`;
+      }
+      return `<strong>${fmtPct(m.monthlyReachPct)}%</strong> monthly reach shows cardholders are finding CardUpdatr. <em>Note: Non-SSO traffic measurement via GA may undercount by 15–30% due to browser tracking prevention.</em> Expanding touchpoints through card activation and reissuance moments is the next high-impact move.`;
+    },
   },
 };
 
@@ -541,6 +568,22 @@ function buildMetricsContext(renderCtx, opts = {}) {
   const gaUser = m.totalGaUser || 0;
   const gaCred = m.totalGaCred || 0;
 
+  // Clickstream metrics (server-side, 100% accurate)
+  const csSelect = m.totalCsSelect || 0;
+  const csUser = m.totalCsUser || 0;
+
+  // GA calibration: compare GA-reported vs server-verified user data counts
+  // gaCalibrationRate = GA accuracy (e.g. 0.78 means 22% undercount)
+  const gaCalibrationRate = csUser > 0 && gaUser > 0 ? gaUser / csUser : null;
+  // Estimated true launches: inflate ga_select by the undercount factor
+  const estimatedLaunches = gaCalibrationRate && gaSelect > 0
+    ? Math.round(gaSelect / gaCalibrationRate)
+    : null;
+  // True non-SSO conversion: launches → successful placements
+  const launchSuccessPct = estimatedLaunches > 0
+    ? (sessionsWithSuccess / estimatedLaunches) * 100
+    : null;
+
   // Conversion rates
   const selCredPct = gaSelect > 0 ? (gaCred / gaSelect) * 100 : null;
   const selUserPct = gaSelect > 0 ? (gaUser / gaSelect) * 100 : null;
@@ -561,10 +604,19 @@ function buildMetricsContext(renderCtx, opts = {}) {
       const cardholders = Number(row.cardholders);
       if (cardholders > 0) {
         totalCardholders += cardholders;
-        // SSO: use session data (true clickstream); non-SSO: use GA launches
         const isSSO = (row.integration_type || "").toUpperCase() === "SSO";
-        const gaVal = row.ga_select || row.ga?.select_merchants || 0;
-        totalReachBase += isSSO ? (row.sessions || 0) : (gaVal > 0 ? gaVal : (row.sessions || 0));
+        if (isSSO) {
+          // SSO: use session data (true clickstream top of funnel)
+          totalReachBase += row.sessions || 0;
+        } else {
+          // Non-SSO: use calibrated estimated launches when available, fall back to GA
+          const rowGaUser = row.ga_user || 0;
+          const rowCsUser = row.cs_user || 0;
+          const rowGaRate = rowCsUser > 0 && rowGaUser > 0 ? rowGaUser / rowCsUser : null;
+          const gaVal = row.ga_select || row.ga?.select_merchants || 0;
+          const rowEstLaunches = rowGaRate && gaVal > 0 ? Math.round(gaVal / rowGaRate) : null;
+          totalReachBase += rowEstLaunches || (gaVal > 0 ? gaVal : (row.sessions || 0));
+        }
       }
     }
     if (totalCardholders > 0 && daySpan > 0) {
@@ -596,6 +648,8 @@ function buildMetricsContext(renderCtx, opts = {}) {
     gaSelect,
     gaUser,
     gaCred,
+    csSelect,
+    csUser,
     credSessions,
     daySpan,
 
@@ -607,6 +661,11 @@ function buildMetricsContext(renderCtx, opts = {}) {
     selSuccessPct,
     credCompletionPct,
     monthlyReachPct,
+
+    // Calibrated launch metrics (non-SSO)
+    gaCalibrationRate,
+    estimatedLaunches,
+    launchSuccessPct,
 
     // Best week
     bestWeekRate,
@@ -725,8 +784,11 @@ function evaluateNarratives(metricsCtx) {
  */
 function evaluateActions(metricsCtx) {
   const isNonSSO = metricsCtx.integrationContext === 'nonsso';
-  const rate = metricsCtx.sessionSuccessPct;
-  const tierInfo = isNonSSO ? classifyNonSSOTier(rate) : classifyTier(rate);
+  const hasCalibration = isNonSSO && metricsCtx.launchSuccessPct !== null && metricsCtx.launchSuccessPct !== undefined;
+  // When calibration data is available for non-SSO, use launch-based conversion with SSO thresholds
+  // (launch-based rate is apples-to-apples with SSO session-based rate — both measure from true top of funnel)
+  const rate = hasCalibration ? metricsCtx.launchSuccessPct : metricsCtx.sessionSuccessPct;
+  const tierInfo = (isNonSSO && !hasCalibration) ? classifyNonSSOTier(rate) : classifyTier(rate);
 
   const diagnosis = {
     tier: tierInfo.tier <= 1.5 ? 1 : tierInfo.tier <= 2.5 ? 2 : 3,
@@ -734,10 +796,11 @@ function evaluateActions(metricsCtx) {
     lowReach: metricsCtx.monthlyReachPct !== null && metricsCtx.monthlyReachPct < 0.5,
     lowCredEntry: isNonSSO ? false : (metricsCtx.selCredPct !== null && metricsCtx.selCredPct < 5),
     lowCompletion: metricsCtx.credCompletionPct !== null && metricsCtx.credCompletionPct < 25,
-    goodPerformance: isNonSSO ? (rate !== null && rate > 15) : (rate !== null && rate > 8),
+    goodPerformance: hasCalibration ? (rate !== null && rate > 8) : (isNonSSO ? (rate !== null && rate > 15) : (rate !== null && rate > 8)),
     bestWeekGap: metricsCtx.bestWeekRate !== null && rate !== null && rate > 0 && (metricsCtx.bestWeekRate / rate) > 2,
     metrics: metricsCtx,
     integrationContext: metricsCtx.integrationContext || 'combined',
+    hasCalibration,
   };
 
   // Collect all matching actions, deduplicated by headline
@@ -777,28 +840,38 @@ function computeProjections(metricsCtx, opts = {}) {
   const { totalSessions, sessionSuccessPct, successfulPlacements, avgCardsPerSession, daySpan, bestWeekRate } = metricsCtx;
   const cardsPerSession = avgCardsPerSession || 1;
   const isNonSSO = metricsCtx.integrationContext === 'nonsso';
+  const hasCalibration = isNonSSO && metricsCtx.estimatedLaunches > 0 && metricsCtx.launchSuccessPct !== null;
 
-  // Non-SSO thresholds are shifted up (post-commitment traffic)
-  const campaignRate = isNonSSO ? 15 : 8;
-  const activationRate = isNonSSO ? 35 : 21;
-  const campaignLabel = isNonSSO ? 'At campaign-tier performance (15%)' : 'At campaign-tier performance (8%)';
-  const activationLabel = isNonSSO ? 'At activation-flow performance (35%)' : 'At activation-flow performance (21%)';
+  // When calibration data is available for non-SSO, use launch-based metrics with SSO thresholds
+  // (launch-based conversion is directly comparable to SSO session-based conversion)
+  const volumeBase = hasCalibration ? metricsCtx.estimatedLaunches : totalSessions;
+  const currentRate = hasCalibration ? metricsCtx.launchSuccessPct : sessionSuccessPct;
+  const campaignRate = (isNonSSO && !hasCalibration) ? 15 : 8;
+  const activationRate = (isNonSSO && !hasCalibration) ? 35 : 21;
+  const campaignLabel = hasCalibration
+    ? 'At campaign-tier launch conversion (8%)'
+    : (isNonSSO ? 'At campaign-tier performance (15%)' : 'At campaign-tier performance (8%)');
+  const activationLabel = hasCalibration
+    ? 'At activation-flow launch conversion (21%)'
+    : (isNonSSO ? 'At activation-flow performance (35%)' : 'At activation-flow performance (21%)');
 
   const current = {
     sessions: totalSessions,
     successRate: sessionSuccessPct,
     placements: successfulPlacements,
     days: daySpan,
+    estimatedLaunches: hasCalibration ? metricsCtx.estimatedLaunches : null,
+    launchSuccessPct: hasCalibration ? metricsCtx.launchSuccessPct : null,
   };
 
   const scenarios = [];
 
   // Best-quarter scenario (QBR mode) — takes precedence over best-week when provided
   const qbrBestQuarterRate = opts.qbrBestQuarterRate;
-  if (qbrBestQuarterRate && sessionSuccessPct && qbrBestQuarterRate > sessionSuccessPct * 1.3) {
+  if (qbrBestQuarterRate && currentRate && qbrBestQuarterRate > currentRate * 1.3) {
     const nearCampaign = Math.abs(qbrBestQuarterRate - campaignRate) < 1.5;
     if (!nearCampaign) {
-      const projSuccess = Math.round(totalSessions * (qbrBestQuarterRate / 100));
+      const projSuccess = Math.round(volumeBase * (qbrBestQuarterRate / 100));
       const projPlacements = Math.round(projSuccess * cardsPerSession);
       scenarios.push({
         label: `At your best-quarter rate (${fmt(qbrBestQuarterRate)}%)`,
@@ -811,8 +884,8 @@ function computeProjections(metricsCtx, opts = {}) {
   }
 
   // Only show best-week scenario if it's meaningfully different (skip if best-quarter already shown)
-  if (!qbrBestQuarterRate && bestWeekRate && sessionSuccessPct && bestWeekRate > sessionSuccessPct * 1.3) {
-    const projSuccess = Math.round(totalSessions * (bestWeekRate / 100));
+  if (!qbrBestQuarterRate && bestWeekRate && currentRate && bestWeekRate > currentRate * 1.3) {
+    const projSuccess = Math.round(volumeBase * (bestWeekRate / 100));
     const projPlacements = Math.round(projSuccess * cardsPerSession);
     scenarios.push({
       label: 'At your best-week rate',
@@ -826,8 +899,8 @@ function computeProjections(metricsCtx, opts = {}) {
   // Campaign tier (only if current is below it AND not redundant with best-week/best-quarter)
   const bestRate = qbrBestQuarterRate || bestWeekRate;
   const bestNearCampaign = bestRate && Math.abs(bestRate - campaignRate) < 1.5;
-  if ((!sessionSuccessPct || sessionSuccessPct < campaignRate) && !bestNearCampaign) {
-    const projSuccess = Math.round(totalSessions * (campaignRate / 100));
+  if ((!currentRate || currentRate < campaignRate) && !bestNearCampaign) {
+    const projSuccess = Math.round(volumeBase * (campaignRate / 100));
     const projPlacements = Math.round(projSuccess * cardsPerSession);
     scenarios.push({
       label: campaignLabel,
@@ -839,8 +912,8 @@ function computeProjections(metricsCtx, opts = {}) {
   }
 
   // Activation flow (only if current is below it)
-  if (!sessionSuccessPct || sessionSuccessPct < activationRate) {
-    const projSuccess = Math.round(totalSessions * (activationRate / 100));
+  if (!currentRate || currentRate < activationRate) {
+    const projSuccess = Math.round(volumeBase * (activationRate / 100));
     const projPlacements = Math.round(projSuccess * cardsPerSession);
     scenarios.push({
       label: activationLabel,
@@ -924,6 +997,40 @@ function buildSpectrumDiagnosis(metricsCtx) {
  * @returns {{ currentTier: Object, bestTier: Object|null, html: string }}
  */
 function buildNonSSOSpectrumDiagnosis(metricsCtx) {
+  const hasCalibration = metricsCtx.launchSuccessPct !== null && metricsCtx.launchSuccessPct !== undefined;
+
+  if (hasCalibration) {
+    // Use launch-based conversion with standard SSO thresholds (apples-to-apples comparison)
+    const rate = metricsCtx.launchSuccessPct;
+    const sessRate = metricsCtx.sessionSuccessPct;
+    const currentTier = classifyTier(rate);
+    const bestTier = metricsCtx.bestWeekRate ? classifyTier(metricsCtx.bestWeekRate) : null;
+    const gaRatePct = metricsCtx.gaCalibrationRate ? (metricsCtx.gaCalibrationRate * 100).toFixed(0) : null;
+    const launchNote = ` <em>(Based on ${fmtN(metricsCtx.estimatedLaunches)} estimated launches, calibrated from a ${gaRatePct}% GA tracking rate.)</em>`;
+
+    let html = '';
+    if (rate === null) {
+      html = 'Insufficient data to classify your current non-SSO traffic pattern.';
+    } else if (rate < 3) {
+      html = `Your non-SSO launch-to-completion conversion is <strong>${fmt(rate)}%</strong> — in the <strong>Incidental Discovery</strong> tier. Among cardholders who entered their card details, <strong>${fmt(sessRate)}%</strong> completed, showing solid post-commitment engagement. The gap reflects cardholders who browse but don't enter card data — timing outreach to card activation moments is the fastest path to improving launch conversion.${launchNote}`;
+    } else if (rate <= 8) {
+      html = `Your non-SSO launch-to-completion rate is <strong>${fmt(rate)}%</strong>, in the transition zone between <strong>Discovery</strong> and <strong>Campaign</strong> tiers. Post-commitment conversion is <strong>${fmt(sessRate)}%</strong>. Sustaining campaign cadence and targeting card activation windows is the path to pushing above 8%.${launchNote}`;
+    } else if (rate <= 12) {
+      html = `Strong performance — <strong>${fmt(rate)}%</strong> launch-to-completion puts your non-SSO traffic at <strong>campaign-tier levels (Tier 2)</strong>. Post-commitment conversion of <strong>${fmt(sessRate)}%</strong> confirms engaged cardholders. The next tier up — activation-flow performance at 21–27% — is achieved by embedding CardUpdatr directly in card activation and reissuance moments.${launchNote}`;
+    } else if (rate <= 21) {
+      html = `You're approaching <strong>activation-flow territory</strong> — <strong>${fmt(rate)}%</strong> launch-to-completion conversion, with <strong>${fmt(sessRate)}%</strong> post-commitment success. You're in the transition zone between Campaign (Tier 2) and Activation Flow (Tier 1). Embedding CardUpdatr in card activation moments bridges this gap.${launchNote}`;
+    } else {
+      html = `Outstanding — <strong>${fmt(rate)}%</strong> launch-to-completion conversion puts your non-SSO traffic in the <strong>activation-flow tier (Tier 1)</strong>. Post-commitment success of <strong>${fmt(sessRate)}%</strong> confirms exceptional follow-through. This is best-in-class performance.${launchNote}`;
+    }
+
+    if (bestTier && metricsCtx.bestWeekRate && metricsCtx.bestWeekRate > (rate || 0) * 1.3) {
+      html += ` Your best 7-day window hit <strong>${fmt(metricsCtx.bestWeekRate)}%</strong> — <strong>${bestTier.label}</strong> territory.`;
+    }
+
+    return { currentTier, bestTier, html };
+  }
+
+  // Fallback: no calibration data — use session-based rates with non-SSO thresholds
   const rate = metricsCtx.sessionSuccessPct;
   const currentTier = classifyNonSSOTier(rate);
   const bestTier = metricsCtx.bestWeekRate ? classifyNonSSOTier(metricsCtx.bestWeekRate) : null;
@@ -933,7 +1040,7 @@ function buildNonSSOSpectrumDiagnosis(metricsCtx) {
   if (rate === null) {
     html = 'Insufficient data to classify your current non-SSO traffic pattern.';
   } else if (rate < 8) {
-    html = `Your non-SSO cardholders are converting at <strong>${fmt(rate)}%</strong> — in the <strong>Organic Discovery</strong> tier. Because every non-SSO visitor has already committed by entering their card details, even this baseline represents genuine engagement. Partners who time outreach to card activation moments see conversion climb to 15–25% with this same committed audience.`;
+    html = `Your non-SSO cardholders are converting at <strong>${fmt(rate)}%</strong> — in the <strong>Organic Discovery</strong> tier. Because every non-SSO visitor has already committed by entering their card details, even this baseline represents genuine engagement. Partners who time outreach to card activation moments see conversion climb to 15–25% with this same committed audience. <em>Note: GA metrics may undercount by 15–30% — server-side calibration data not yet available for this partner.</em>`;
   } else if (rate <= 15) {
     html = `At <strong>${fmt(rate)}%</strong>, your non-SSO traffic is in the transition zone between <strong>Discovery</strong> and <strong>Campaign</strong> tiers. These cardholders have already entered their card details — they're committed. Sustaining campaign cadence and targeting card activation windows is the path to pushing above 15%.`;
   } else if (rate <= 25) {
