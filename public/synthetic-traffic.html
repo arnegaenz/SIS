@@ -602,7 +602,6 @@
       background: rgba(148,163,184,0.04);
       border: 1px solid var(--panel-border);
       border-radius: 12px;
-      overflow: hidden;
     }
     .session-toggle {
       display: flex;
@@ -616,6 +615,7 @@
       text-align: left;
       color: inherit;
       font: inherit;
+      border-radius: 12px;
     }
     .session-toggle:hover {
       background: rgba(148,163,184,0.06);
@@ -785,12 +785,13 @@
     .synth-raw-details pre {
       margin: 6px 0 0;
       padding: 10px;
-      background: rgba(15,23,42,0.4);
+      background: var(--panel-bg, #1e293b);
+      border: 1px solid var(--panel-border);
       border-radius: 8px;
       overflow-x: auto;
       font-size: 10px;
       color: var(--panel-title);
-      max-height: 300px;
+      max-height: 400px;
       overflow-y: auto;
     }
     .sessions-load-more {
