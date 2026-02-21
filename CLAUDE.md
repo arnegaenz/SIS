@@ -132,6 +132,16 @@ All partner-facing content follows engagement-positive tone:
 
 ## Feb 21, 2026
 
+### Synthetic Traffic → Funnel Data Correlation
+- **New endpoint**: `GET /api/synth/jobs/:id/sessions` — scans raw session/placement files, matches by source `type` + `category` + `sub_category` + date range, returns enriched troubleshoot-level session detail
+- **Source matching**: Uses `normalizeSourceToken()` for case-insensitive comparison; `sub_category` read from `session.source.sub_category` (CardSavr API field, not extracted by `extractSourceFromSession`)
+- **count_only mode**: `?count_only=true` short-circuits on first match, returns `{ has_data: true/false }` — used for background availability checks
+- **Reuses**: `mapSessionToTroubleshootEntry()`, `summarizeTroubleshootSessions()`, `extractSourceFromSession()`, `readSessionDay()`, `readPlacementDay()` — no new data functions
+- **View Sessions button**: Eye icon on job rows with `attempted > 0`, color-coded via background `count_only` checks — green (has matching sessions), dim gray (no sessions in raw data), pending (checking)
+- **Sessions modal**: Source filter badges, summary counters (sessions/success/jobs), job-vs-raw counter comparison (green check / red X), individual session cards with clickstream timeline pills, placement cards with status badges, source verification items, collapsible raw JSON
+- **Performance**: `?max_days=N` (default 30, max 90) limits scan range; truncation shows "Load more" button; `count_only` skips placement loading and enrichment
+- **Files**: `scripts/serve-funnel.mjs` (endpoint), `public/synthetic-traffic.html` (modal HTML + CSS), `public/assets/js/synthetic-traffic.js` (button, modal logic, background checker)
+
 ### Campaign URL Builder — New Page
 - **New page**: `public/campaign-builder.html` — form-based tool to build tracked CardUpdatr launch URLs with `#settings=` hash encoding
 - **New module**: `public/assets/js/campaign-builder.js` — IIFE-wrapped, ~400 lines
@@ -431,31 +441,11 @@ Full audit in `narrative-rules-audit.md` in project root. 50 narrative templates
 
 # What's Pending / Queued
 
-## QUEUED: Synthetic Traffic → Funnel Data Correlation
+## COMPLETED: Synthetic Traffic → Funnel Data Correlation (Feb 21)
+- Implemented as Option 1: "View Sessions" modal on synthetic job rows
+- See Build History → Feb 21 for full details
 
-### Goal
-Enable viewing synthetic job results alongside actual funnel metrics — look at a synthetic job's source metadata (type, category, subcategory) and find matching sessions/placements in the dashboard.
-
-### Current State
-- **Source data flows end-to-end**: Traffic runner passes `source.{type, category, subCategory}` → integration test page → CardSavr API → raw session/placement JSON files
-- **Raw files retain source**: `raw/sessions/{date}.json` and `raw/placements/{date}.json` contain full source objects
-- **Daily rollups DO NOT include source**: `data/daily/{date}.json` only has aggregated metrics (GA views, session counts, placement counts by termination type) — source metadata is stripped during aggregation
-- **On-demand extraction exists**: `/api/metrics/funnel` and `/troubleshoot/day` endpoints extract source from raw files at request time
-- **Synthetic jobs stored separately**: `/data/synthetic/jobs.json` has per-job aggregate counters (attempted, success, failed, abandoned) + source metadata, but no link to individual sessions/placements
-
-### Implementation Options
-1. **"View Sessions" on synthetic job rows** — query raw data filtered by job's source type + category + subcategory + date range (created_at → last_run_at), show matching sessions inline or in modal
-2. **Source filter on troubleshoot/sources page** — add source_type/category filter dropdowns for manual cross-referencing
-3. **Aggregate source data into daily rollups** — add source breakdown to `build-daily-from-raw.mjs` (performance trade-off)
-
-### Key Files
-- `scripts/build-daily-from-raw.mjs` — daily rollup aggregation (source data stripped here)
-- `scripts/serve-funnel.mjs` — `extractSourceFromPlacement()` (line ~1857), `extractSourceFromSession()` (line ~1881)
-- `public/synthetic-traffic.html` + `public/assets/js/synthetic-traffic.js` — job monitoring UI
-- `src/lib/rawStorage.mjs` — raw session/placement file I/O
-- `src/lib/analytics/sources.mjs` — source grouping logic (integration type, device, category/subcategory)
-
-### Post-results POST failure
+### Post-results POST failure (still open)
 - Runner logs show `[SIS] Post results failed (attempt 1/3): fetch failed` — results endpoint works via curl but Node.js `fetch()` intermittently fails. Retries may succeed silently (only failures logged). Needs investigation if job results are missing.
 
 ---
