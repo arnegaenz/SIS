@@ -715,11 +715,10 @@
     }
     .synth-placement {
       display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 6px;
+      flex-direction: column;
+      gap: 4px;
       font-size: 12px;
-      padding: 6px 10px;
+      padding: 8px 10px;
       background: rgba(148,163,184,0.04);
       border: 1px solid var(--panel-border);
       border-radius: 8px;
@@ -741,6 +740,39 @@
     .synth-badge.pending {
       background: rgba(234,179,8,0.12);
       color: #eab308;
+    }
+    .synth-badge.warn {
+      background: rgba(249,115,22,0.12);
+      color: #f97316;
+    }
+    .synth-badge.neutral {
+      background: rgba(148,163,184,0.12);
+      color: #94a3b8;
+    }
+    .synth-job-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .synth-job-merchant {
+      font-weight: 600;
+      font-size: 13px;
+      color: var(--panel-title, #e2e8f0);
+    }
+    .synth-job-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px 14px;
+      font-size: 11px;
+      color: var(--muted, #94a3b8);
+      margin-top: 2px;
+    }
+    .synth-job-message {
+      font-size: 11px;
+      color: var(--muted, #94a3b8);
+      margin-top: 2px;
+      font-style: italic;
     }
     .synth-raw-details {
       font-size: 11px;

@@ -1055,14 +1055,31 @@
     );
   }
 
+  function jobBadgeClass(job) {
+    if (job.is_success) return "success";
+    if (job.severity === "ux") return "warn";
+    if (job.severity === "site-failure") return "failure";
+    return "neutral";
+  }
+
+  function formatDurationMs(ms) {
+    if (!ms || isNaN(ms)) return null;
+    var secs = Math.round(ms / 1000);
+    if (secs < 60) return secs + "s";
+    var mins = Math.floor(secs / 60);
+    return mins + "m " + (secs % 60) + "s";
+  }
+
   function renderSessionCard(s) {
-    // Toggle header: FI name + pills + job summary
+    // Toggle header: FI name + pills + job outcome badge
     var headerPills = [];
     if (s.instance) headerPills.push('<span class="session-pill">' + escapeHtml(s.instance) + "</span>");
     if (s.integration_display) headerPills.push('<span class="session-pill">' + escapeHtml(s.integration_display) + "</span>");
+    if (s.partner) headerPills.push('<span class="session-pill">' + escapeHtml(s.partner) + "</span>");
     if (s.is_test) headerPills.push('<span class="session-pill" style="color:#eab308">TEST</span>');
     var jobsSummary = (s.total_jobs || 0) + " jobs (" + (s.successful_jobs || 0) + " ok, " + (s.failed_jobs || 0) + " fail)";
-    headerPills.push('<span class="session-pill">' + escapeHtml(jobsSummary) + "</span>");
+    var outcomeCls = (s.successful_jobs || 0) > 0 ? "success" : ((s.total_jobs || 0) > 0 ? "failure" : "pending");
+    headerPills.push('<span class="synth-badge ' + outcomeCls + '">' + escapeHtml(jobsSummary) + "</span>");
 
     var toggleHtml =
       '<button type="button" class="session-toggle" onclick="this.closest(\'.synth-session-card\').classList.toggle(\'open\')">' +
@@ -1076,13 +1093,17 @@
     // Collapsible details
     var details = [];
 
-    // Meta
+    // Meta (matching troubleshoot detail level)
     var meta = [];
-    if (s.created_on) meta.push("Opened: " + escapeHtml(formatDateTime(s.created_on)));
-    if (s.closed_on) meta.push("Closed: " + escapeHtml(formatDateTime(s.closed_on)));
-    if (s.created_on && s.closed_on) meta.push("Duration: " + formatDuration(s.created_on, s.closed_on));
-    meta.push("Jobs: " + (s.total_jobs || 0) + " (" + (s.successful_jobs || 0) + " ok, " + (s.failed_jobs || 0) + " fail)");
-    if (s.agent_session_id) meta.push("ID: " + escapeHtml(s.agent_session_id.substring(0, 12)) + "\u2026");
+    if (s.created_on) meta.push("<strong>Opened</strong> " + escapeHtml(formatDateTime(s.created_on)));
+    if (s.closed_on) meta.push("<strong>Closed</strong> " + escapeHtml(formatDateTime(s.closed_on)));
+    if (s.created_on && s.closed_on) meta.push("<strong>Duration</strong> " + formatDuration(s.created_on, s.closed_on));
+    meta.push("<strong>Jobs</strong> " + (s.total_jobs || 0) + " (success " + (s.successful_jobs || 0) + " / fail " + (s.failed_jobs || 0) + ")");
+    if (s.source && s.source.integration) meta.push("<strong>Source</strong> " + escapeHtml(s.source.integration));
+    if (s.source && s.source.device) meta.push("<strong>Device</strong> " + escapeHtml(s.source.device));
+    if (s.fi_lookup_key) meta.push("<strong>FI key</strong> " + escapeHtml(s.fi_lookup_key));
+    if (s.cuid) meta.push("<strong>CUID</strong> " + escapeHtml(s.cuid));
+    if (s.agent_session_id) meta.push("<strong>Session ID</strong> " + escapeHtml(s.agent_session_id.substring(0, 16)) + "\u2026");
     details.push('<div class="session-meta">' + meta.map(function (m) { return "<span>" + m + "</span>"; }).join("") + "</div>");
 
     // Source verification
@@ -1109,25 +1130,36 @@
       details.push('<div class="synth-clickstream">' + clicks.join("") + "</div>");
     }
 
-    // Placements / jobs
+    // Placements / jobs (full troubleshoot-level detail)
     if (s.jobs && s.jobs.length > 0) {
       var jobCards = [];
       for (var j = 0; j < s.jobs.length; j++) {
         var jb = s.jobs[j];
-        var statusCls = jb.is_success ? "success" : "failure";
-        var statusLabel = jb.is_success ? "Success" : (jb.termination || "Failed");
-        var merchant = jb.merchant_site || jb.site_name || "Unknown";
-        var timing = "";
-        if (jb.created_on && jb.completed_on) timing = " \u00B7 " + formatDuration(jb.created_on, jb.completed_on);
+        var badgeCls = jobBadgeClass(jb);
+        var badgeLabel = jb.termination_label || jb.termination || (jb.is_success ? "Success" : "Failed");
+        var merchant = jb.merchant || jb.merchant_site || jb.site_name || "Unknown";
+        var jobMeta = [];
+        if (jb.created_on) jobMeta.push("Created " + escapeHtml(formatDateTime(jb.created_on)));
+        if (jb.completed_on) jobMeta.push("Completed " + escapeHtml(formatDateTime(jb.completed_on)));
+        var dur = formatDurationMs(jb.duration_ms);
+        if (dur) jobMeta.push("Duration " + dur);
+        if (jb.instance) jobMeta.push("Instance " + escapeHtml(jb.instance));
+
         jobCards.push(
           '<div class="synth-placement">' +
-            '<span class="synth-badge ' + statusCls + '">' + escapeHtml(statusLabel) + "</span>" +
-            "<span>" + escapeHtml(merchant) + "</span>" +
-            (timing ? '<span style="color:var(--muted);font-size:11px">' + timing + "</span>" : "") +
+            '<div class="synth-job-header">' +
+              '<span class="synth-badge ' + badgeCls + '">' + escapeHtml(badgeLabel) + "</span>" +
+              '<span class="synth-job-merchant">' + escapeHtml(merchant) + "</span>" +
+              (jb.status ? '<span class="session-pill">' + escapeHtml(jb.status) + "</span>" : "") +
+            "</div>" +
+            (jobMeta.length ? '<div class="synth-job-meta">' + jobMeta.map(function(m) { return "<span>" + m + "</span>"; }).join("") + "</div>" : "") +
+            (jb.status_message ? '<div class="synth-job-message">' + escapeHtml(jb.status_message) + "</div>" : "") +
           "</div>"
         );
       }
       details.push(jobCards.join(""));
+    } else {
+      details.push('<div class="synth-placement" style="color:var(--muted)">No placements/jobs recorded in this session.</div>');
     }
 
     // Raw JSON
