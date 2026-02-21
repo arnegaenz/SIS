@@ -462,8 +462,8 @@ Full audit in `narrative-rules-audit.md` in project root. 50 narrative templates
 - Implemented as Option 1: "View Sessions" modal on synthetic job rows
 - See Build History → Feb 21 for full details
 
-### Post-results POST failure (still open)
-- Runner logs show `[SIS] Post results failed (attempt 1/3): fetch failed` — results endpoint works via curl but Node.js `fetch()` intermittently fails. Retries may succeed silently (only failures logged). Needs investigation if job results are missing.
+### Post-results POST failure (mitigated)
+- Runner logs occasionally show `[SIS] Post results failed (attempt 1/3): fetch failed` — Node.js `fetch()` intermittently fails, retries usually recover. Mitigated by View Sessions correlation feature: raw session data can be verified independently of POST-back success.
 
 ---
 
