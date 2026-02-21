@@ -413,7 +413,11 @@ if (isViewMode) {
             if (lv.key) sessionStorage.setItem("sis_view_as", lv.key);
             else sessionStorage.removeItem("sis_view_as");
           } catch (e) {}
-          window.location.reload();
+          // Navigate to default page for the selected role
+          var dest = NAV_PREFIX + "dashboards/portfolio.html";
+          if (lv.key === "limited") dest = NAV_PREFIX + "funnel-customer.html";
+          else if (lv.key === "executive") dest = NAV_PREFIX + "dashboards/executive.html";
+          window.location.href = dest;
         });
         viewAsMenu.appendChild(opt);
       })(levels[li]);
