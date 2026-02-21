@@ -546,15 +546,4 @@ Used throughout design as the working example:
 **Strategic thinking and prompt creation** → Claude Chat
 **Implementation** → Claude Code (VS Code / CoWork / terminal)
 **Audit and review** → Claude Code generates audit docs, brought back to Claude Chat for analysis
-**Iteration** → Fixes/enhancements designed in Claude Chat, prompt files updated, handed to Claude Code
-
-Prompt files in project root:
-- `customer_engagement_page_prompt.md` — Phase 1 (completed)
-- `customer_engagement_page_phase2_prompt.md` — Phase 2 (ready to build)
-- `narrative_rules_audit_prompt.md` — Audit request (completed)
-- `narrative-rules-audit.md` — Audit results
-- `narrative_engine_cleanup_prompt.md` — Bug fix + tone + gaps (completed)
-- `terminology_highlights_scroll_prompt.md` — Terminology + highlights + scroll (completed)
-- `filter_hints_fix_prompt.md` — Filter hint wiring (completed)
-- `funnel_interstitial_prompt.md` — Funnel clickable labels (completed)
-- `action_library_prompt.md` — Implementation resources + playbook architecture (completed Feb 16)
+**Iteration** → Fixes/enhancements designed in Claude Chat, handed to Claude Code
