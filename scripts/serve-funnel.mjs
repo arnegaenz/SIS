@@ -3181,6 +3181,133 @@ const server = http.createServer(async (req, res) => {
     return send(res, 200, { job });
   }
 
+  // ── Synthetic job → correlated sessions ──────────────────────
+  const synthSessionsMatch = pathname.match(/^\/api\/synth\/jobs\/([^/]+)\/sessions$/);
+  if (synthSessionsMatch && req.method === "GET") {
+    const jobId = decodeURIComponent(synthSessionsMatch[1]);
+    const jobs = await loadSynthJobs();
+    const job = jobs.find((j) => j.id === jobId);
+    if (!job) return send(res, 404, { error: "Job not found" });
+
+    const startDate = job.created_at ? job.created_at.split("T")[0] : null;
+    const endDate = job.last_run_at
+      ? job.last_run_at.split("T")[0]
+      : new Date().toISOString().split("T")[0];
+    if (!startDate) return send(res, 400, { error: "Job has no created_at date" });
+
+    const maxDays = Math.min(Math.max(1, parseInt(queryParams.get("max_days") || "30", 10)), 90);
+    const allDays = daysBetween(startDate, endDate);
+    const truncated = allDays.length > maxDays;
+    const days = truncated ? allDays.slice(allDays.length - maxDays) : allDays;
+
+    const fiRegistry = await loadFiRegistrySafe();
+    const fiMeta = buildFiMetaMap(fiRegistry);
+    const instanceMeta = await loadInstanceMetaMap();
+
+    const jobType = normalizeSourceToken(job.source_type);
+    const jobCat = normalizeSourceToken(job.source_category);
+    const jobSub = normalizeSourceToken(job.source_subcategory);
+
+    const matched = [];
+
+    for (const day of days) {
+      const [sessionsRaw, placementsRaw] = await Promise.all([
+        readSessionDay(day),
+        readPlacementDay(day),
+      ]);
+      if (!sessionsRaw || sessionsRaw.error) continue;
+
+      const placements = Array.isArray(placementsRaw?.placements)
+        ? placementsRaw.placements
+        : [];
+      const placementMap = new Map();
+      const placementSourceMap = new Map();
+      for (const pl of placements) {
+        const key =
+          pl.agent_session_id ||
+          pl.session_id ||
+          pl.cardholder_session_id ||
+          pl.cuid ||
+          null;
+        if (!key) continue;
+        const list = placementMap.get(key) || [];
+        list.push(pl);
+        placementMap.set(key, list);
+        if (!placementSourceMap.has(key)) {
+          const sourceInfo = extractSourceFromPlacement(pl);
+          if (sourceInfo) placementSourceMap.set(key, sourceInfo);
+        }
+      }
+
+      const sessions = Array.isArray(sessionsRaw.sessions) ? sessionsRaw.sessions : [];
+      for (const session of sessions) {
+        const agentId =
+          session.agent_session_id ||
+          session.session_id ||
+          session.id ||
+          session.cuid ||
+          null;
+        const fallback = agentId ? placementSourceMap.get(agentId) || null : null;
+        const source = extractSourceFromSession(session, fallback);
+        if (!source) continue;
+
+        const matchType = normalizeSourceToken(source.source_type) === jobType;
+        const matchCat = normalizeSourceToken(source.source_category) === jobCat;
+        if (!matchType || !matchCat) continue;
+
+        const rawSub = normalizeSourceToken(
+          session.source?.sub_category ||
+            session.source?.subCategory ||
+            session.custom_data?.sub_category ||
+            ""
+        );
+        const matchSub = !jobSub || rawSub === jobSub;
+        if (!matchSub) continue;
+
+        const entry = mapSessionToTroubleshootEntry(
+          session,
+          placementMap,
+          fiMeta,
+          instanceMeta
+        );
+        entry.source_match = {
+          type: source.source_type,
+          category: source.source_category,
+          sub_category: rawSub,
+          match_type: matchType,
+          match_category: matchCat,
+          match_sub: !jobSub ? null : matchSub,
+        };
+        delete entry.placements_raw;
+        matched.push(entry);
+      }
+    }
+
+    const summary = summarizeTroubleshootSessions(matched);
+
+    return send(res, 200, {
+      job_id: jobId,
+      job_name: job.job_name || job.source_subcategory || "",
+      source_filter: {
+        type: job.source_type || "",
+        category: job.source_category || "",
+        sub_category: job.source_subcategory || "",
+      },
+      date_range: { start: days[0] || startDate, end: days[days.length - 1] || endDate },
+      days_scanned: days.length,
+      truncated,
+      total_days: allDays.length,
+      summary,
+      job_counters: {
+        attempted: job.attempted || 0,
+        success: job.placements_success || 0,
+        failed: job.placements_failed || 0,
+        abandoned: job.placements_abandoned || 0,
+      },
+      sessions: matched,
+    });
+  }
+
   // Check raw data metadata status
   if (pathname === "/api/check-raw-data") {
     const qsStart = queryParams.get("start");

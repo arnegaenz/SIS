@@ -483,6 +483,235 @@
     @media (max-width: 900px) {
       .form-actions { flex-direction: column; align-items: flex-start; }
     }
+
+    /* ── Sessions modal ───────────────────────────────── */
+    .sessions-modal-card {
+      width: min(960px, 94vw);
+      max-height: 88vh;
+    }
+    .sessions-modal-body {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      font-size: 13px;
+    }
+    .sessions-loading {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 32px 0;
+      justify-content: center;
+      color: var(--muted);
+    }
+    .sessions-spinner {
+      width: 22px; height: 22px;
+      border: 2.5px solid rgba(148,163,184,0.25);
+      border-top-color: var(--accent, #3b82f6);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .sessions-empty {
+      text-align: center;
+      padding: 32px 0;
+      color: var(--muted);
+    }
+    .source-filter-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+    }
+    .source-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 9px;
+      border-radius: 999px;
+      background: rgba(59,130,246,0.12);
+      color: #3b82f6;
+    }
+    .source-badge.muted {
+      background: rgba(148,163,184,0.12);
+      color: var(--muted);
+    }
+    .sessions-summary {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .sessions-summary .summary-stat {
+      flex: 1 1 100px;
+      text-align: center;
+      background: rgba(148,163,184,0.07);
+      border: 1px solid var(--panel-border);
+      border-radius: 10px;
+      padding: 10px 8px;
+    }
+    .summary-stat .stat-value {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--ink);
+    }
+    .summary-stat .stat-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+    .sessions-compare {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      font-size: 12px;
+    }
+    .compare-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      border-radius: 8px;
+      background: rgba(148,163,184,0.06);
+      border: 1px solid var(--panel-border);
+    }
+    .compare-match { color: #22c55e; }
+    .compare-mismatch { color: #ef4444; }
+    .synth-session-card {
+      background: rgba(148,163,184,0.04);
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .session-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+    }
+    .session-fi {
+      font-weight: 700;
+      font-size: 14px;
+      color: var(--ink);
+    }
+    .session-pill {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: rgba(148,163,184,0.12);
+      color: var(--muted);
+    }
+    .session-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .source-verify {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .source-verify-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 6px;
+      background: rgba(34,197,94,0.08);
+      color: #22c55e;
+    }
+    .source-verify-item.fail {
+      background: rgba(239,68,68,0.08);
+      color: #ef4444;
+    }
+    .synth-clickstream {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      align-items: center;
+    }
+    .synth-click-pill {
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 6px;
+      background: rgba(59,130,246,0.08);
+      color: #3b82f6;
+      white-space: nowrap;
+    }
+    .synth-click-arrow {
+      color: var(--muted);
+      font-size: 11px;
+    }
+    .synth-placement {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      padding: 6px 10px;
+      background: rgba(148,163,184,0.04);
+      border: 1px solid var(--panel-border);
+      border-radius: 8px;
+    }
+    .synth-badge {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 999px;
+    }
+    .synth-badge.success {
+      background: rgba(34,197,94,0.12);
+      color: #22c55e;
+    }
+    .synth-badge.failure {
+      background: rgba(239,68,68,0.12);
+      color: #ef4444;
+    }
+    .synth-badge.pending {
+      background: rgba(234,179,8,0.12);
+      color: #eab308;
+    }
+    .synth-raw-details {
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .synth-raw-details summary {
+      cursor: pointer;
+      user-select: none;
+    }
+    .synth-raw-details pre {
+      margin: 6px 0 0;
+      padding: 10px;
+      background: rgba(15,23,42,0.4);
+      border-radius: 8px;
+      overflow-x: auto;
+      font-size: 10px;
+      color: var(--panel-title);
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    .sessions-load-more {
+      text-align: center;
+      padding: 8px 0;
+    }
+    .sessions-load-more button {
+      background: rgba(59,130,246,0.1);
+      color: #3b82f6;
+      border: 1px solid rgba(59,130,246,0.2);
+      border-radius: 8px;
+      padding: 8px 20px;
+      font-size: 13px;
+      cursor: pointer;
+    }
   </style>
   <script defer src="./assets/js/card-tooltips.js"></script>
 </head>
@@ -717,6 +946,22 @@
           <button class="btn secondary" type="button" data-modal-close>Nevermind</button>
           <button class="btn" type="button" id="cancelConfirmButton" disabled>Cancel job</button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="sessionsModal" aria-hidden="true">
+    <div class="modal-backdrop" data-modal-close></div>
+    <div class="modal-card sessions-modal-card" role="dialog" aria-modal="true" aria-labelledby="sessionsModalTitle">
+      <div class="modal-header">
+        <div>
+          <div class="modal-title" id="sessionsModalTitle">Correlated Sessions</div>
+          <div class="modal-subtitle" id="sessionsModalSubtitle"></div>
+        </div>
+        <button class="modal-close" type="button" data-modal-close aria-label="Close">&#x2715;</button>
+      </div>
+      <div class="modal-body sessions-modal-body" id="sessionsModalBody">
+        <div class="sessions-loading"><div class="sessions-spinner"></div> Loading sessions&hellip;</div>
       </div>
     </div>
   </div>

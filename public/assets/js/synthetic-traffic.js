@@ -272,6 +272,16 @@
         )
       );
     }
+    if ((job.attempted || 0) > 0) {
+      actions.push(
+        buildActionButton(
+          "viewSessions",
+          id,
+          "View Sessions",
+          '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>'
+        )
+      );
+    }
     var actionHtml = actions.length
       ? actions.join("")
       : '<span class="pill muted">—</span>';
@@ -866,10 +876,257 @@
       continueJob(jobId);
       return;
     }
+    if (action === "viewSessions") {
+      var sjob = getJobById(jobId);
+      if (sjob) openSessionsModal(sjob);
+      return;
+    }
     if (action === "detail") {
       var job = getJobById(jobId);
       if (job) openJobModal(job);
     }
+  }
+
+  // ── Sessions modal ────────────────────────────────────────
+  var sessionsModal = document.getElementById("sessionsModal");
+  var sessionsModalBody = document.getElementById("sessionsModalBody");
+  var sessionsModalSubtitle = document.getElementById("sessionsModalSubtitle");
+
+  function openSessionsModal(job) {
+    if (!sessionsModal || !sessionsModalBody) return;
+    var name = job.job_name || job.source_subcategory || job.id || "";
+    var parts = [escapeHtml(name)];
+    if (job.source_type) parts.push(escapeHtml(job.source_type));
+    if (job.source_category) parts.push(escapeHtml(job.source_category));
+    if (job.source_subcategory) parts.push(escapeHtml(job.source_subcategory));
+    if (sessionsModalSubtitle) sessionsModalSubtitle.innerHTML = parts.join(" &middot; ");
+    sessionsModalBody.innerHTML = '<div class="sessions-loading"><div class="sessions-spinner"></div> Loading sessions&hellip;</div>';
+    sessionsModal.classList.add("open");
+    sessionsModal.setAttribute("aria-hidden", "false");
+    fetchJobSessions(job.id, 30);
+  }
+
+  function closeSessionsModal() {
+    if (!sessionsModal) return;
+    sessionsModal.classList.remove("open");
+    sessionsModal.setAttribute("aria-hidden", "true");
+  }
+
+  function fetchJobSessions(jobId, maxDays) {
+    var url = JOBS_ENDPOINT + "/" + encodeURIComponent(jobId) + "/sessions";
+    if (maxDays) url += "?max_days=" + maxDays;
+    fetch(url)
+      .then(function (r) {
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        return r.json();
+      })
+      .then(function (data) {
+        renderSessionsResult(data, jobId);
+      })
+      .catch(function (err) {
+        renderSessionsError(err);
+      });
+  }
+
+  function renderSessionsError(err) {
+    if (!sessionsModalBody) return;
+    sessionsModalBody.innerHTML =
+      '<div class="sessions-empty">Failed to load sessions: ' + escapeHtml(err.message || "Unknown error") + "</div>";
+  }
+
+  function renderSessionsResult(data, jobId) {
+    if (!sessionsModalBody) return;
+    var html = [];
+
+    // Source filter badges
+    var sf = data.source_filter || {};
+    var filterParts = [];
+    if (sf.type) filterParts.push('<span class="source-badge">type: ' + escapeHtml(sf.type) + "</span>");
+    if (sf.category) filterParts.push('<span class="source-badge">cat: ' + escapeHtml(sf.category) + "</span>");
+    if (sf.sub_category) filterParts.push('<span class="source-badge">sub: ' + escapeHtml(sf.sub_category) + "</span>");
+    var dr = data.date_range || {};
+    filterParts.push('<span class="source-badge muted">' + escapeHtml(dr.start || "?") + " \u2192 " + escapeHtml(dr.end || "?") + "</span>");
+    if (data.truncated) filterParts.push('<span class="source-badge muted">showing last ' + data.days_scanned + " of " + data.total_days + " days</span>");
+    html.push('<div class="source-filter-bar">' + filterParts.join("") + "</div>");
+
+    // Summary
+    var sm = data.summary || {};
+    html.push(
+      '<div class="sessions-summary">' +
+        renderSummaryItem(sm.sessions, "Sessions") +
+        renderSummaryItem(sm.sessions_with_success, "w/ Success") +
+        renderSummaryItem(sm.jobs, "Total Jobs") +
+        renderSummaryItem(sm.jobs_success, "Successful") +
+        renderSummaryItem(sm.jobs_failure, "Failed") +
+      "</div>"
+    );
+
+    // Counter comparison (job counters vs raw data)
+    var jc = data.job_counters || {};
+    html.push(
+      '<div class="sessions-compare">' +
+        renderCompareItem("Attempted", jc.attempted, sm.sessions) +
+        renderCompareItem("Success", jc.success, sm.jobs_success) +
+        renderCompareItem("Failed", jc.failed, sm.jobs_failure) +
+      "</div>"
+    );
+
+    // Session cards
+    var sessions = data.sessions || [];
+    if (sessions.length === 0) {
+      html.push('<div class="sessions-empty">No matching sessions found in raw data.</div>');
+    } else {
+      for (var i = 0; i < sessions.length; i++) {
+        html.push(renderSessionCard(sessions[i]));
+      }
+    }
+
+    // Load more
+    if (data.truncated) {
+      html.push(
+        '<div class="sessions-load-more">' +
+          '<button type="button" onclick="(function(b){b.disabled=true;b.textContent=\'Loading...\';})(this)" ' +
+          'data-load-more="' + escapeHtml(jobId) + '" data-max-days="' + (data.total_days || 90) + '">' +
+          "Load all " + data.total_days + " days" +
+        "</button></div>"
+      );
+    }
+
+    sessionsModalBody.innerHTML = html.join("");
+
+    // Bind load-more
+    var loadMoreBtn = sessionsModalBody.querySelector("[data-load-more]");
+    if (loadMoreBtn) {
+      loadMoreBtn.addEventListener("click", function () {
+        var jid = loadMoreBtn.getAttribute("data-load-more");
+        var md = parseInt(loadMoreBtn.getAttribute("data-max-days") || "90", 10);
+        fetchJobSessions(jid, md);
+      });
+    }
+  }
+
+  function renderSummaryItem(value, label) {
+    return (
+      '<div class="summary-stat">' +
+        '<div class="stat-value">' + escapeHtml(value != null ? value : 0) + "</div>" +
+        '<div class="stat-label">' + escapeHtml(label) + "</div>" +
+      "</div>"
+    );
+  }
+
+  function renderCompareItem(label, jobVal, rawVal) {
+    var match = jobVal === rawVal;
+    var cls = match ? "compare-match" : "compare-mismatch";
+    var icon = match ? "\u2713" : "\u2717";
+    return (
+      '<div class="compare-item">' +
+        '<span class="' + cls + '">' + icon + "</span> " +
+        escapeHtml(label) + ": job=" + escapeHtml(jobVal != null ? jobVal : "?") +
+        " raw=" + escapeHtml(rawVal != null ? rawVal : "?") +
+      "</div>"
+    );
+  }
+
+  function renderSessionCard(s) {
+    var parts = [];
+    // Header
+    var headerPills = [];
+    if (s.instance) headerPills.push('<span class="session-pill">' + escapeHtml(s.instance) + "</span>");
+    if (s.integration_display) headerPills.push('<span class="session-pill">' + escapeHtml(s.integration_display) + "</span>");
+    if (s.is_test) headerPills.push('<span class="session-pill" style="color:#eab308">TEST</span>');
+    parts.push(
+      '<div class="session-header">' +
+        '<span class="session-fi">' + escapeHtml(s.fi_name || "Unknown FI") + "</span>" +
+        headerPills.join("") +
+      "</div>"
+    );
+
+    // Meta
+    var meta = [];
+    if (s.created_on) meta.push("Opened: " + escapeHtml(formatDateTime(s.created_on)));
+    if (s.closed_on) meta.push("Closed: " + escapeHtml(formatDateTime(s.closed_on)));
+    if (s.created_on && s.closed_on) meta.push("Duration: " + formatDuration(s.created_on, s.closed_on));
+    meta.push("Jobs: " + (s.total_jobs || 0) + " (" + (s.successful_jobs || 0) + " ok, " + (s.failed_jobs || 0) + " fail)");
+    if (s.agent_session_id) meta.push("ID: " + escapeHtml(s.agent_session_id.substring(0, 12)) + "\u2026");
+    parts.push('<div class="session-meta">' + meta.map(function (m) { return "<span>" + m + "</span>"; }).join("") + "</div>");
+
+    // Source verification
+    if (s.source_match) {
+      var sv = [];
+      sv.push(sourceVerifyItem("type", s.source_match.type, s.source_match.match_type));
+      sv.push(sourceVerifyItem("cat", s.source_match.category, s.source_match.match_category));
+      if (s.source_match.match_sub !== null) {
+        sv.push(sourceVerifyItem("sub", s.source_match.sub_category, s.source_match.match_sub));
+      }
+      parts.push('<div class="source-verify">' + sv.join("") + "</div>");
+    }
+
+    // Clickstream
+    if (s.clickstream && s.clickstream.length > 0) {
+      var clicks = [];
+      for (var i = 0; i < s.clickstream.length; i++) {
+        var step = s.clickstream[i];
+        var label = step.page_title || step.url || "?";
+        var time = step.at ? new Date(step.at).toLocaleTimeString() : "";
+        if (i > 0) clicks.push('<span class="synth-click-arrow">\u2192</span>');
+        clicks.push('<span class="synth-click-pill">' + escapeHtml(label) + (time ? " <small>" + escapeHtml(time) + "</small>" : "") + "</span>");
+      }
+      parts.push('<div class="synth-clickstream">' + clicks.join("") + "</div>");
+    }
+
+    // Placements / jobs
+    if (s.jobs && s.jobs.length > 0) {
+      var jobCards = [];
+      for (var j = 0; j < s.jobs.length; j++) {
+        var jb = s.jobs[j];
+        var statusCls = jb.is_success ? "success" : "failure";
+        var statusLabel = jb.is_success ? "Success" : (jb.termination || "Failed");
+        var merchant = jb.merchant_site || jb.site_name || "Unknown";
+        var timing = "";
+        if (jb.created_on && jb.completed_on) timing = " \u00B7 " + formatDuration(jb.created_on, jb.completed_on);
+        jobCards.push(
+          '<div class="synth-placement">' +
+            '<span class="synth-badge ' + statusCls + '">' + escapeHtml(statusLabel) + "</span>" +
+            "<span>" + escapeHtml(merchant) + "</span>" +
+            (timing ? '<span style="color:var(--muted);font-size:11px">' + timing + "</span>" : "") +
+          "</div>"
+        );
+      }
+      parts.push(jobCards.join(""));
+    }
+
+    // Raw JSON
+    parts.push(
+      '<details class="synth-raw-details">' +
+        "<summary>Raw session data</summary>" +
+        "<pre>" + escapeHtml(JSON.stringify(s, null, 2)) + "</pre>" +
+      "</details>"
+    );
+
+    return '<div class="synth-session-card">' + parts.join("") + "</div>";
+  }
+
+  function sourceVerifyItem(label, value, matched) {
+    var cls = matched ? "" : " fail";
+    var icon = matched ? "\u2713" : "\u2717";
+    return (
+      '<span class="source-verify-item' + cls + '">' +
+        icon + " " + escapeHtml(label) + ": " + escapeHtml(value || "(empty)") +
+      "</span>"
+    );
+  }
+
+  function formatDuration(start, end) {
+    var ms = new Date(end).getTime() - new Date(start).getTime();
+    if (isNaN(ms) || ms < 0) return "—";
+    var secs = Math.round(ms / 1000);
+    if (secs < 60) return secs + "s";
+    var mins = Math.floor(secs / 60);
+    var remSecs = secs % 60;
+    if (mins < 60) return mins + "m " + remSecs + "s";
+    var hrs = Math.floor(mins / 60);
+    var remMins = mins % 60;
+    return hrs + "h " + remMins + "m";
   }
 
   function init() {
@@ -901,10 +1158,18 @@
         }
       });
     }
+    if (sessionsModal) {
+      sessionsModal.addEventListener("click", function (evt) {
+        if (evt.target && evt.target.hasAttribute("data-modal-close")) {
+          closeSessionsModal();
+        }
+      });
+    }
     document.addEventListener("keydown", function (evt) {
       if (evt.key === "Escape") {
         closeJobModal();
         closeCancelModal();
+        closeSessionsModal();
       }
     });
     if (activeOnlyToggle) {
