@@ -273,13 +273,13 @@
       );
     }
     if ((job.attempted || 0) > 0) {
+      var hasData = (job.placements_success || 0) > 0 || (job.placements_failed || 0) > 0;
+      var eyeCls = hasData ? "icon-btn eye-has-data" : "icon-btn eye-no-data";
       actions.push(
-        buildActionButton(
-          "viewSessions",
-          id,
-          "View Sessions",
-          '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>'
-        )
+        '<button class="' + eyeCls + '" type="button" data-action="viewSessions" data-id="' + escapeHtml(id) + '"' +
+        ' aria-label="View Sessions" title="View Sessions">' +
+        '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>' +
+        "</button>"
       );
     }
     var actionHtml = actions.length
