@@ -29,6 +29,9 @@
 - `public/assets/js/campaign-builder.js` - Campaign builder module (IIFE, ~400 lines)
 - `public/assets/js/qrcode.min.js` - QR code generator library (qrcode-generator by Kazuhiko Arase, MIT)
 - `assets/images/StrivveLogo.png` - Strivve logo (used in playbook page + PDF, base64-embedded)
+- `public/dashboards/executive.html` - Executive Summary dashboard (verdict, KPIs, 12-week trend, warnings, distributions, kiosk mode)
+- `public/assets/js/executive-dashboard.js` - Executive dashboard module (ES6, ~350 lines)
+- `public/assets/js/synthetic-traffic.js` - Synthetic traffic job management + correlated sessions modal
 
 ## Critical Lessons (Hard-Won)
 - **Do NOT expose window.applyFilters** — causes race condition that breaks ALL users
@@ -40,11 +43,16 @@
 
 ## Access Control System
 - **Admin pages**: users.html, synthetic-traffic.html, maintenance.html, activity-log.html, shared-views.html, logs.html
-- **Limited user pages**: funnel.html, funnel-customer.html, troubleshoot.html, realtime.html
+- **Executive user pages**: funnel-customer.html, executive.html (redirects elsewhere → executive dashboard)
+- **Executive user redirect**: → dashboards/executive.html
+- **Executive user nav**: "Dashboards" group with Executive Summary + Cardholder Engagement
+- **Limited user pages**: funnel.html, funnel-customer.html, campaign-builder.html
 - **Limited user redirect**: → funnel-customer.html (NOT funnel.html)
-- **Limited user nav**: "Dashboards" group with Cardholder Engagement link
+- **Limited user nav**: "Dashboards" group with Cardholder Engagement + Campaign URL Builder
 - **Limited user filters**: Partner + FI visible; Instance + Integration hidden
-- Access levels: admin, full (legacy=admin), internal (all except admin pages), limited
+- Access levels: admin, full (legacy=admin), internal (all except admin pages), executive, limited
+- **View-as switcher**: Admin/full users can preview other roles. Uses `sisAuth.getRealAccessLevel()` to check true level (not overridden). Switching navigates to role's default page.
+- **Homepage (index.html)**: Thin redirect stub — admin/internal→portfolio, limited→funnel-customer, executive→executive dashboard
 
 ## Architecture Patterns
 - IIFE wrapper on engine module (avoids global variable collision)
@@ -119,18 +127,51 @@ All partner-facing content follows engagement-positive tone:
 
 **Admin view stays unvarnished** — Strivve employees need the real story.
 
-## Card Replacement Reach Math (Discussed, Not Yet Built)
-- ~25% annual portfolio turnover from expirations (cards expire every 4 years)
-- ~3-5% additional from lost/stolen
-- **Total: ~28-30% annual, or 2.3-2.5% monthly** receiving new card numbers
-- These are Tier 1 motivation cardholders — peak urgency
-- Framing: "You have ~1,000 cardholders per month at peak motivation. How many encounter CardUpdatr at that moment?"
-
 ---
 
 # Build History
 
 ## Feb 21, 2026
+
+### Site Reorganization Phase 3 — Homepage Kill, Executive Access Level & Dashboard
+- **Home link removed** from nav entirely (4-group nav makes it redundant)
+- **index.html → redirect stub**: Reads `sis_user` from localStorage, redirects by access level (admin/internal→portfolio, limited→funnel-customer, executive→executive dashboard). Uses `window.location.replace()` to stay out of browser history.
+- **Executive access level** added across the stack:
+  - `passcode-gate.js`: `EXECUTIVE_PAGES`, `isExecutiveAllowedPage()`, executive in `checkPageAccess()` + `getAccessLevel()` view-as
+  - `nav.js`: Executive nav group (Executive Summary + Cardholder Engagement), "Executive" in view-as switcher
+  - `login.html`: Executive redirect to executive dashboard, admin/internal default changed from index.html to portfolio
+  - `users.html`: Executive in filter/edit dropdowns, `.badge-executive` (purple), reference table row, sort order
+  - `serve-funnel.mjs`: `/dashboards/executive` route
+  - `funnel-customer.html`: Executive users get same scoped data as limited
+- **Executive Summary dashboard** (`dashboards/executive.html` + `executive-dashboard.js`):
+  - Network Health Verdict banner (green/amber/red based on warnings + attention FIs)
+  - 5-card KPI row: Active FIs, Network Success Rate, Successful Placements, Portfolio Engagement Score, FIs Needing Attention
+  - 12-week SVG trend chart (volume bars + success rate line)
+  - Early warnings section (engagement declines, gone dark, system health)
+  - Tier + score distributions (horizontal stacked bars)
+  - Kiosk mode (`?kiosk=1`): dark mode forced, 5-min auto-refresh, no nav
+- **View-as switcher fixes**:
+  - Was disappearing when override active — `getRealAccessLevel()` was calling `getAccessLevel()` (includes overrides). Fixed by exposing `sisAuth.getRealAccessLevel()` from passcode-gate.
+  - Switching roles now navigates to the role's default page instead of just reloading
+- **Campaign URL Builder** added to limited user pages (`LIMITED_PAGES` in passcode-gate + limited nav group)
+
+### Synthetic Traffic — Session Cards & Job List UX
+- **Enriched session cards** in correlated sessions modal: full troubleshoot-level detail per session
+  - Severity-based job badges (`jobBadgeClass()`: success/warn/fail/neutral)
+  - Partner pill in header, outcome badge (color-coded)
+  - Rich meta: source integration, device, FI key, CUID, session ID
+  - Full per-job cards: termination_label, merchant, status, timestamps, duration_ms, instance, status_message
+  - "No placements/jobs recorded" empty state
+  - CSS: `.synth-badge.warn`/`.neutral`, `.synth-job-header`, `.synth-job-merchant`, `.synth-job-meta`, `.synth-job-message`
+- **Collapsed card UX**: Session cards default collapsed with chevron toggle, expand in place
+  - Fixed CSS bug: `.session-details` had `display:none` overridden by `display:flex` on next line, making details always visible with scrollbars
+  - Raw JSON `pre` uses opaque `var(--panel-bg)` background, `pre-wrap` word wrapping, no inner scroll constraints
+  - Only the modal body scrolls — no scrollbars on individual cards
+- **Progressive job list**: Replaced "Hide completed/canceled" checkbox with smart defaults
+  - Always shows all active jobs + fills to 10 with most recent inactive
+  - "Show more (N remaining)" link loads next 10 incrementally
+  - Status line: "Showing 3 active + 7 recent of 34 jobs."
+- **Files**: `synthetic-traffic.html` (CSS), `assets/js/synthetic-traffic.js` (renderSessionCard, renderJobs, jobBadgeClass, formatDurationMs)
 
 ### Calibrated Launch Metrics for Non-SSO Funnel Interpretation
 - **Problem**: Non-SSO session metrics are misleading — a "session" starts AFTER card data entry, so session success rate measures conversion from an already-committed audience, not true top of funnel
@@ -458,64 +499,14 @@ Full audit in `narrative-rules-audit.md` in project root. 50 narrative templates
 
 # What's Pending / Queued
 
-## COMPLETED: Synthetic Traffic → Funnel Data Correlation (Feb 21)
-- Implemented as Option 1: "View Sessions" modal on synthetic job rows
-- See Build History → Feb 21 for full details
-
 ### Post-results POST failure (mitigated)
 - Runner logs occasionally show `[SIS] Post results failed (attempt 1/3): fetch failed` — Node.js `fetch()` intermittently fails, retries usually recover. Mitigated by View Sessions correlation feature: raw session data can be verified independently of POST-back success.
 
----
-
-## COMPLETED: Non-SSO Data Interpretation Fix (QBR prep for Digital Onboarding)
-
-### What was built
-SSO vs Non-SSO insights engine split (Feb 20) — when both SSO and non-SSO FIs are in the data, a "Performance by Integration Type" breakdown section appears with separate narratives, spectrum gauges, actions, and projections per type. Code is deployed and committed.
-
-**Calibrated launch metrics (Feb 21)** — uses GA calibration rate (`ga_user / cs_user`, already available in daily rollups) to compute estimated true launches and launch-based conversion rates. See Build History → Feb 21 for full details.
-
-### The problem discovered during review
-The current implementation shifts tier thresholds for non-SSO but still uses **session-based metrics** as the primary data source. This is fundamentally misleading because:
-
-- **SSO**: A "session" starts when the cardholder lands on the page (pre-authenticated). Sessions ≈ true top of funnel. Session success rate = real conversion.
-- **Non-SSO**: A "session" doesn't start until AFTER the cardholder has manually entered their card data. Every session represents an already-committed cardholder. Session success rate measures conversion from a pre-filtered audience — it looks artificially good.
-- **User Data conversion = 100% for non-SSO** — this is tautological, not a real metric. You can't have a non-SSO session without having entered user data.
-- **GA launches = true non-SSO top of funnel**, but undercounted 15-30% due to Safari ITP and ad blockers.
-- The real non-SSO conversion rate is **GA launches → successful placements**, which is much lower than the session-based rate.
-
-### Breakthrough: GA Undercount Calibration (Feb 20, 2026)
-Synthetic traffic testing confirmed that the CardSavr API clickstream records every page transition server-side, with NO browser blocking. Each non-SSO session object includes:
-```json
-"clickstream": [
-  { "url": "/select-merchants", "timestamp": "...", "page_title": "Select Merchants" },
-  { "url": "/user-data-collection", "timestamp": "...", "page_title": "User Data Collection" },
-  { "url": "/credential-entry", "timestamp": "...", "page_title": "Credential Entry" }
-]
-```
-
-**Key findings from synthetic data analysis:**
-- **Session `created_on` = `/user-data-collection` timestamp** — confirms session creation happens at card data submission, not page load
-- **Clickstream is 100% accurate** (server-side) — no Safari ITP, no ad blockers
-- **Abandon sessions still record clickstream** — even `total_jobs: 0` sessions show the full page path up to where the user dropped off
-- **Non-SSO integration type = `CU2`** in raw API data (SIS maps this to "NON-SSO" during aggregation; SSO = `CU2_SSO`)
-- **Source metadata preserved end-to-end** — `source.sub_category` on each session matches the synthetic job's configured subcategory exactly
-
-**GA undercount calibration approach:**
-1. **Clickstream `/user-data-collection` count** = ground truth (server-side, 100% accurate)
-2. **GA `user_data_collection` count** = same event, undercounted by browser blocking
-3. **Ratio = per-FI GA accuracy rate** (e.g., clickstream 100 vs GA 78 → 22% undercount)
-4. **Apply ratio to GA `select_merchants`** = estimated true top-of-funnel for non-SSO
-5. **Caveat on dashboard**: "Select Merchant count estimated based on observed GA tracking rate of X% for this FI (derived from server-verified User Data submissions vs GA-reported User Data views)."
-
-This replaces the generic "15-30% undercount" guess with a **data-driven, per-FI calibration factor** that can be computed for any time window.
-
-### What was built (checklist)
-1. ~~**GA tracking rate visibility**: Show per-FI GA accuracy rate on dashboard~~ ✅ Done (Feb 20)
-2. ~~**Calibrated launch estimates**: Use `ga_user/cs_user` calibration to inflate `ga_select` → "Est. Launches" column~~ ✅ Done (Feb 21)
-3. ~~**Launch → Success % column**: True non-SSO conversion from estimated launches to successful placements~~ ✅ Done (Feb 21)
-4. ~~**Non-SSO funnel reframe**: Launch-based conversion as primary metric, session-based as post-commitment~~ ✅ Done (Feb 21)
-5. ~~**Insights engine updates**: Tier classification, narratives, spectrum, projections all use launch-based rates~~ ✅ Done (Feb 21)
-6. ~~**Dashboard caveats**: Dynamic calibration banner with per-FI GA tracking rate~~ ✅ Done (Feb 21)
+### Card Replacement Reach Math (Discussed, Not Yet Built)
+- ~25% annual portfolio turnover from expirations, ~3-5% lost/stolen = ~28-30% annual (2.3-2.5% monthly)
+- These are Tier 1 motivation cardholders at peak urgency
+- Framing: "You have ~1,000 cardholders per month at peak motivation. How many encounter CardUpdatr at that moment?"
+- Could become a calculator widget or narrative rule
 
 ---
 
