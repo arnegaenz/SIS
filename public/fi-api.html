@@ -404,20 +404,18 @@
   <script defer src="./assets/js/card-tooltips.js"></script>
 </head>
 <body>
-  <header class="sis-header">
-    <div class="sis-topbar">
-      <div class="sis-title">Strivve Insights Service</div>
-      <nav class="sis-nav" data-current="fi-api"></nav>
-    </div>
-
-    <div class="sis-page-header">
-      <h1 class="sis-page-title">Financial Institutions API</h1>
-      <div class="sis-page-header-row">
-        <p class="sis-page-subtitle">Live FI data from the API across configured instances with search and filtering.</p>
-        <button class="theme-toggle" type="button" aria-pressed="false">Light mode</button>
-      </div>
-    </div>
-  </header>
+  <div id="sis-header"></div>
+  <script>
+    document.addEventListener("DOMContentLoaded", function(){
+      if (window.renderHeaderNav) {
+        window.renderHeaderNav({
+          currentId: "fi-api",
+          title: "Financial Institutions API",
+          subtitle: "Live FI data from the API across configured instances with search and filtering."
+        });
+      }
+    });
+  </script>
 
   <div class="sis-content">
     <main class="sis-main">
