@@ -1056,18 +1056,25 @@
   }
 
   function renderSessionCard(s) {
-    var parts = [];
-    // Header
+    // Toggle header: FI name + pills + job summary
     var headerPills = [];
     if (s.instance) headerPills.push('<span class="session-pill">' + escapeHtml(s.instance) + "</span>");
     if (s.integration_display) headerPills.push('<span class="session-pill">' + escapeHtml(s.integration_display) + "</span>");
     if (s.is_test) headerPills.push('<span class="session-pill" style="color:#eab308">TEST</span>');
-    parts.push(
-      '<div class="session-header">' +
-        '<span class="session-fi">' + escapeHtml(s.fi_name || "Unknown FI") + "</span>" +
-        headerPills.join("") +
-      "</div>"
-    );
+    var jobsSummary = (s.total_jobs || 0) + " jobs (" + (s.successful_jobs || 0) + " ok, " + (s.failed_jobs || 0) + " fail)";
+    headerPills.push('<span class="session-pill">' + escapeHtml(jobsSummary) + "</span>");
+
+    var toggleHtml =
+      '<button type="button" class="session-toggle" onclick="this.closest(\'.synth-session-card\').classList.toggle(\'open\')">' +
+        '<span class="session-toggle__chevron">&#9654;</span>' +
+        '<span class="session-toggle__summary">' +
+          '<span class="session-fi">' + escapeHtml(s.fi_name || "Unknown FI") + "</span>" +
+          headerPills.join("") +
+        "</span>" +
+      "</button>";
+
+    // Collapsible details
+    var details = [];
 
     // Meta
     var meta = [];
@@ -1076,7 +1083,7 @@
     if (s.created_on && s.closed_on) meta.push("Duration: " + formatDuration(s.created_on, s.closed_on));
     meta.push("Jobs: " + (s.total_jobs || 0) + " (" + (s.successful_jobs || 0) + " ok, " + (s.failed_jobs || 0) + " fail)");
     if (s.agent_session_id) meta.push("ID: " + escapeHtml(s.agent_session_id.substring(0, 12)) + "\u2026");
-    parts.push('<div class="session-meta">' + meta.map(function (m) { return "<span>" + m + "</span>"; }).join("") + "</div>");
+    details.push('<div class="session-meta">' + meta.map(function (m) { return "<span>" + m + "</span>"; }).join("") + "</div>");
 
     // Source verification
     if (s.source_match) {
@@ -1086,7 +1093,7 @@
       if (s.source_match.match_sub !== null) {
         sv.push(sourceVerifyItem("sub", s.source_match.sub_category, s.source_match.match_sub));
       }
-      parts.push('<div class="source-verify">' + sv.join("") + "</div>");
+      details.push('<div class="source-verify">' + sv.join("") + "</div>");
     }
 
     // Clickstream
@@ -1099,7 +1106,7 @@
         if (i > 0) clicks.push('<span class="synth-click-arrow">\u2192</span>');
         clicks.push('<span class="synth-click-pill">' + escapeHtml(label) + (time ? " <small>" + escapeHtml(time) + "</small>" : "") + "</span>");
       }
-      parts.push('<div class="synth-clickstream">' + clicks.join("") + "</div>");
+      details.push('<div class="synth-clickstream">' + clicks.join("") + "</div>");
     }
 
     // Placements / jobs
@@ -1120,18 +1127,18 @@
           "</div>"
         );
       }
-      parts.push(jobCards.join(""));
+      details.push(jobCards.join(""));
     }
 
     // Raw JSON
-    parts.push(
+    details.push(
       '<details class="synth-raw-details">' +
         "<summary>Raw session data</summary>" +
         "<pre>" + escapeHtml(JSON.stringify(s, null, 2)) + "</pre>" +
       "</details>"
     );
 
-    return '<div class="synth-session-card">' + parts.join("") + "</div>";
+    return '<div class="synth-session-card">' + toggleHtml + '<div class="session-details">' + details.join("") + "</div></div>";
   }
 
   function sourceVerifyItem(label, value, matched) {

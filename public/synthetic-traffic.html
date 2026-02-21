@@ -602,10 +602,53 @@
       background: rgba(148,163,184,0.04);
       border: 1px solid var(--panel-border);
       border-radius: 12px;
-      padding: 14px 16px;
+      overflow: hidden;
+    }
+    .session-toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+      padding: 12px 16px;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      text-align: left;
+      color: inherit;
+      font: inherit;
+    }
+    .session-toggle:hover {
+      background: rgba(148,163,184,0.06);
+    }
+    .session-toggle__chevron {
+      flex-shrink: 0;
+      font-size: 12px;
+      color: var(--muted);
+      transition: transform 0.15s ease;
+    }
+    .synth-session-card.open .session-toggle__chevron {
+      transform: rotate(90deg);
+    }
+    .session-toggle__summary {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+      flex: 1;
+      min-width: 0;
+    }
+    .session-details {
+      display: none;
+      padding: 0 16px 14px;
       display: flex;
       flex-direction: column;
       gap: 10px;
+    }
+    .synth-session-card:not(.open) .session-details {
+      display: none;
+    }
+    .synth-session-card.open .session-details {
+      display: flex;
     }
     .session-header {
       display: flex;
