@@ -108,6 +108,9 @@ var GROUPS = [
 ];
 
 function getRealAccessLevel() {
+  if (global.sisAuth && global.sisAuth.getRealAccessLevel) {
+    return global.sisAuth.getRealAccessLevel();
+  }
   if (global.sisAuth && global.sisAuth.getAccessLevel) {
     return global.sisAuth.getAccessLevel();
   }

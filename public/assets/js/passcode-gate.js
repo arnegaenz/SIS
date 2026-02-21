@@ -330,6 +330,7 @@
     getUser: getStoredUser,
     getToken: getSessionToken,
     getAccessLevel: getAccessLevel,
+    getRealAccessLevel: getRealAccessLevel,
     isAuthenticated: isAuthenticated,
     logout: function() {
       clearAuth();
