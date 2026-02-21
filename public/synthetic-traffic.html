@@ -602,6 +602,7 @@
       background: rgba(148,163,184,0.04);
       border: 1px solid var(--panel-border);
       border-radius: 12px;
+      overflow: visible;
     }
     .session-toggle {
       display: flex;
@@ -640,12 +641,8 @@
     .session-details {
       display: none;
       padding: 0 16px 14px;
-      display: flex;
       flex-direction: column;
       gap: 10px;
-    }
-    .synth-session-card:not(.open) .session-details {
-      display: none;
     }
     .synth-session-card.open .session-details {
       display: flex;
