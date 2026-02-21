@@ -164,7 +164,8 @@ function getGroupsForAccess() {
   if (isLimited) {
     return [
       { label: "Dashboards", items: [
-        { id:"funnel-customer", label:"Cardholder Engagement", href:NAV_PREFIX+"funnel-customer.html" }
+        { id:"funnel-customer", label:"Cardholder Engagement", href:NAV_PREFIX+"funnel-customer.html" },
+        { id:"campaign-builder", label:"Campaign URL Builder", href:NAV_PREFIX+"campaign-builder.html" }
       ]}
     ];
   }

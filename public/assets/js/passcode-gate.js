@@ -40,7 +40,7 @@
   var LEGACY_ACCESS_KEY = "sis_access_level";
 
   // Page access restrictions
-  var LIMITED_PAGES = ["funnel.html", "funnel-customer.html"];
+  var LIMITED_PAGES = ["funnel.html", "funnel-customer.html", "campaign-builder.html"];
   var EXECUTIVE_PAGES = ["funnel-customer.html", "executive.html"];
   var ADMIN_ONLY_PAGES = ["users.html", "synthetic-traffic.html", "maintenance.html", "activity-log.html", "shared-views.html", "logs.html"]; // Pages only admin can access (not internal)
 
