@@ -516,7 +516,6 @@ This replaces the generic "15-30% undercount" guess with a **data-driven, per-FI
 4. ~~**Non-SSO funnel reframe**: Launch-based conversion as primary metric, session-based as post-commitment~~ ✅ Done (Feb 21)
 5. ~~**Insights engine updates**: Tier classification, narratives, spectrum, projections all use launch-based rates~~ ✅ Done (Feb 21)
 6. ~~**Dashboard caveats**: Dynamic calibration banner with per-FI GA tracking rate~~ ✅ Done (Feb 21)
-7. **Clickstream-based calibration** (future): Compare raw clickstream `/user-data-collection` page counts vs `cs_user` for even more granular calibration (requires `build-daily-from-raw.mjs` changes — current approach using `cs_user` from daily rollups is sufficient)
 
 ---
 
