@@ -131,6 +131,32 @@ All partner-facing content follows engagement-positive tone:
 
 # Build History
 
+## Feb 22, 2026
+
+### Customer Dashboard Card Layout Cleanup & Table Width Fix
+- **Row 1 label**: Added "Key Metrics" label before the headline KPI cards (was the only unlabeled row)
+- **GA Sel→Cred % card**: New 4th card in GA Page Views row showing `(ga_cred / ga_select * 100)%` — fills the empty slot
+- **Session Milestones hidden for non-SSO**: Wrapped in `<div id="sessionMilestonesRow" class="perf-grid-subsection">` (`display: contents` → `display: none` toggle). Non-SSO sessions start after card data entry, making session milestones meaningless
+- **Engagement Depth hidden for non-SSO**: Same wrapper pattern (`id="engagementDepthRow"`), same hide logic
+- **Outcomes row removed**: Total Sessions and Avg Cards cards were redundant. Avg cards moved to Cards Updated card subtitle ("X.XX avg per successful cardholder")
+- **Table headers shortened**: All 4 multi-FI tables + single-FI table: FI, Inst, Type, @Select, UD Views, Cred Views, GA %, Est. Lnch, Reach %, Sel→U %, Sel→C %, Successful, Rate, Placed
+- **Table CSS fixed**: `white-space: nowrap` moved from `.fi-table` to `.fi-table td` only (headers can now wrap). Header font 10px→11px
+- **Outcomes color swatch removed** from data source legend
+
+### QBR Monthly Detail — Launches Column & Alignment
+- **Launches column added**: Uses blended top-of-funnel (`mMetrics.totalCardholders` = SSO sessions + non-SSO estimated launches), stored alongside metrics context in months array
+- **Column alignment**: Changed from `text-align: right` to `text-align: center` for all data columns (Month stays left-aligned)
+
+### QBR Executive Summary — Rate/Volume Mismatch Fix
+- **Bug**: Opening line showed `m.totalSessions` as "visits" but used `effectiveRate` (which divides by `estimatedLaunches` for non-SSO) — volume and rate had different denominators, producing nonsensical text like "75 visits... 0.3% success rate"
+- **Fix**: Uses `latest.rawMetrics.totalCardholders` (blended top-of-funnel) instead of `m.totalSessions`. Text changed from "made X visits" to "X cardholders launched CardUpdatr"
+- **File**: `engagement-insights.js` line ~1473
+
+### Non-SSO Calibrated Metrics — Best Windows & PDF Template
+- **Best windows**: `computeBestWindows()` now computes per-window calibrated `successRatio` (launch-based) for non-SSO FIs, with `isEstimated` flag for display
+- **PDF template**: Uses `successRatio` (calibrated) over `sessionSuccessRatio`, shows `~` prefix for estimated values
+- **File**: `funnel-customer.html` (computeBestWindows), `funnel-customer-report-template.mjs`
+
 ## Feb 21, 2026
 
 ### Site Reorganization Phase 3 — Homepage Kill, Executive Access Level & Dashboard
