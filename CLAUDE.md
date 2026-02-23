@@ -32,6 +32,8 @@
 - `public/dashboards/executive.html` - Executive Summary dashboard (verdict, KPIs, 12-week trend, warnings, distributions, kiosk mode)
 - `public/assets/js/executive-dashboard.js` - Executive dashboard module (ES6, ~350 lines)
 - `public/assets/js/synthetic-traffic.js` - Synthetic traffic job management + correlated sessions modal
+- `public/supported-sites.html` - Supported Sites page (Living Ecosystem narrative + merchant sites table, ~1200 lines)
+- `templates/supported-sites-report-template.mjs` - Supported Sites PDF template (Puppeteer-rendered)
 
 ## Critical Lessons (Hard-Won)
 - **Do NOT expose window.applyFilters** — causes race condition that breaks ALL users
@@ -40,13 +42,14 @@
 - **`calculateConversionMetrics()` sums from visibleRows** — can't be used for date-subsetting
 - **`assignMeta()` whitelists fields** — new registry fields must be added there
 - **Customer page `getCardholderMap()` returns `{}`** — cardholders come from registry `total` field fallback
+- **Never trust client-side expiration** — share link `expires` query params can be stripped/edited. Use server-side validation via `GET /api/share-validate?sid=xxx` (checks share log creation time + admin TTL)
 
 ## Access Control System
 - **Admin pages**: users.html, synthetic-traffic.html, maintenance.html, activity-log.html, shared-views.html, logs.html
-- **Executive user pages**: funnel-customer.html, executive.html (redirects elsewhere → executive dashboard)
+- **Executive user pages**: funnel-customer.html, executive.html, supported-sites.html (redirects elsewhere → executive dashboard)
 - **Executive user redirect**: → dashboards/executive.html
 - **Executive user nav**: "Dashboards" group with Executive Summary + Cardholder Engagement
-- **Limited user pages**: funnel.html, funnel-customer.html, campaign-builder.html
+- **Limited user pages**: funnel.html, funnel-customer.html, campaign-builder.html, supported-sites.html
 - **Limited user redirect**: → funnel-customer.html (NOT funnel.html)
 - **Limited user nav**: "Dashboards" group with Cardholder Engagement + Campaign URL Builder
 - **Limited user filters**: Partner + FI visible; Instance + Integration hidden
@@ -130,6 +133,37 @@ All partner-facing content follows engagement-positive tone:
 ---
 
 # Build History
+
+## Feb 23, 2026
+
+### Supported Sites Page — New Partner-Facing Page
+- **New page**: `public/supported-sites.html` — Living Ecosystem narrative + merchant sites table with status classification, sorting, filtering, CSV/PDF export, share links
+- **New PDF template**: `templates/supported-sites-report-template.mjs` — Puppeteer-rendered, branded header, summary bar, narrative section, tier-grouped site tables
+- **Route**: `/supported-sites` added in serve-funnel.mjs
+- **Nav**: Added to Partner Analytics group (admin/internal), limited nav, executive nav
+- **Access**: Added to `LIMITED_PAGES` and `EXECUTIVE_PAGES` in passcode-gate.js
+- **Removed**: Merchant sites card from `maintenance.html` (HTML, CSS, ~420 lines JS)
+
+**Living Ecosystem narrative**: Big Idea, How We Stay on Top of It (3 cards: Automated Testing, Production Telemetry, Watchlist Protocol), How We Prioritize (4 items including Campaign Support), What This Means for You. Framed for active live FIs, not pre-launch rollout.
+
+**Merchant sites table**:
+- Status classification from tags: down/disabled → Down, limited/beta/degraded → Limited, unrestricted/prod → Up
+- **Admin view**: All 5 columns (Name, Host, Status, Tags, Tier), status toggle pills + dynamic tag pills sorted by frequency with "..." overflow for remaining tags, full sort controls (primary/secondary on every column)
+- **Limited/view-mode view**: 4 columns (Tags hidden), status toggle pills only (Up + Limited active, Maintenance off by default), sort controls hidden, Tier column centered. Down sites filtered to Tier 1-2 only.
+- `body.limited-view` CSS class controls column hiding + width redistribution
+
+**Status toggle pills**: Up (green), Limited (amber), Maintenance (red) — toggle on/off to filter table. Admin also gets inline tag pills (blue) computed dynamically from loaded data, plus "..." button opening overflow dropdown. OR logic for tag pills (site has ANY active tag).
+
+**PDF button**: Fixed-width during generation (locks `minWidth`), CSS `@keyframes btn-fill` left-to-right sweep animation instead of spinner.
+
+### Share Links — Server-Side Expiration
+- **Security fix**: Share link `expires` query param was client-side only — anyone could strip or edit it to bypass expiration
+- **New endpoint**: `GET /api/share-validate?sid=xxx` (unauthenticated) — looks up `sid` in share log, finds creation timestamp, checks against admin-configured TTL from `share-settings.json`, returns `{ valid: true/false, expiresIn: "2 days" }`
+- **Clean URLs**: Share links now just `?view=1&sid=abc123` — no `expires` param. Server is sole authority on validity.
+- **Client validation**: Synchronous XHR to `/api/share-validate` blocks page render until server confirms validity. Invalid/unknown/expired → expired screen.
+- **Shared view UX**: Nav bar stays visible (shows "Read-only view" + "Log in to explore" link), compact blue notice bar shows "link expires in X" instead of large branded header
+- **Also patched**: `funnel-customer.html` and `funnel.html` — missing `expires` param now treated as expired (`!__effectiveExpires || Date.now() > __effectiveExpires`)
+- **Note**: funnel-customer and funnel still use client-side `expires` param; only supported-sites uses full server-side validation. Migration is a follow-up.
 
 ## Feb 22, 2026
 

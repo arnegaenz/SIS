@@ -1,0 +1,1215 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <script>try{var t=localStorage.getItem('sis-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+  <title>Supported Sites</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <link rel="stylesheet" href="./sis-shared.css?v=navfix" />
+  <link rel="stylesheet" href="./assets/css/sis.css">
+  <link rel="stylesheet" href="./assets/css/mobile.css">
+  <script src="./assets/js/passcode-gate.js"></script>
+  <script defer src="./assets/js/sis.js"></script>
+  <script src="./assets/js/config.js"></script>
+  <script defer src="./assets/js/nav.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function(){
+      if (window.renderHeaderNav && !window.__sisHeaderNav_sites) {
+        window.__sisHeaderNav_sites = true;
+        window.renderHeaderNav({
+          currentId: "supported-sites",
+          title: "Supported Sites",
+          subtitle: "Merchant site status and availability"
+        });
+      }
+    });
+  </script>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      background: var(--bg);
+      color: var(--panel-title);
+      font-family: "Inter", "Segoe UI", ui-sans-serif, system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+
+    .sites-wrap {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 24px 20px 60px;
+    }
+
+    /* ── Ecosystem Narrative ── */
+    .ecosystem-section {
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 18px;
+      padding: 32px 36px;
+      margin-bottom: 24px;
+      box-shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
+    }
+    .ecosystem-section h2 {
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--panel-title);
+      margin: 0 0 4px;
+    }
+    .ecosystem-section .eco-subtitle {
+      font-size: 14px;
+      color: var(--muted);
+      margin: 0 0 24px;
+      line-height: 1.5;
+    }
+    .ecosystem-section h3 {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--accent);
+      margin: 24px 0 8px;
+    }
+    .ecosystem-section h3:first-of-type {
+      margin-top: 0;
+    }
+    .eco-big-idea {
+      font-size: 14px;
+      line-height: 1.7;
+      color: var(--panel-title);
+      margin: 0 0 8px;
+    }
+    .eco-columns {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 16px;
+      margin: 8px 0 0;
+    }
+    .eco-card {
+      background: var(--hover-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+      padding: 16px 18px;
+    }
+    .eco-card h4 {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--panel-title);
+      margin: 0 0 6px;
+    }
+    .eco-card p {
+      font-size: 12.5px;
+      line-height: 1.6;
+      color: var(--muted);
+      margin: 0;
+    }
+    .eco-priorities {
+      margin: 8px 0 0;
+      padding: 0;
+      list-style: none;
+    }
+    .eco-priorities li {
+      font-size: 13px;
+      line-height: 1.6;
+      color: var(--panel-title);
+      padding: 6px 0;
+      border-bottom: 1px solid var(--panel-border);
+    }
+    .eco-priorities li:last-child {
+      border-bottom: none;
+    }
+    .eco-priorities li strong {
+      color: var(--accent);
+    }
+    .eco-rollout {
+      background: var(--hover-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+      padding: 18px 20px;
+      margin-top: 12px;
+    }
+    .eco-rollout h3 {
+      margin-top: 0;
+    }
+    .eco-rollout p {
+      font-size: 13px;
+      line-height: 1.7;
+      color: var(--panel-title);
+      margin: 0 0 10px;
+    }
+    .eco-rollout p:last-child {
+      margin-bottom: 0;
+    }
+    .eco-contact {
+      display: inline-block;
+      color: var(--accent);
+      font-weight: 600;
+      text-decoration: none;
+    }
+    @media (max-width: 800px) {
+      .eco-columns {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* ── Merchant Sites Table Card ── */
+    .sites-card {
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 18px;
+      padding: 24px 28px;
+      box-shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
+    }
+    .sites-card h2 {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--panel-title);
+      margin: 0 0 2px;
+    }
+    .sites-card .description {
+      font-size: 13px;
+      color: var(--muted);
+      margin: 0;
+    }
+    .sites-header-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .sites-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    .btn-pdf-wrap {
+      display: inline-flex;
+    }
+    .btn-pdf-wrap .btn {
+      min-width: var(--pdf-btn-w, auto);
+    }
+    /* PDF generating fill animation */
+    @keyframes btn-fill {
+      0%   { background-size: 0% 100%; }
+      100% { background-size: 100% 100%; }
+    }
+    .btn.generating {
+      background-image: linear-gradient(90deg, rgba(37, 99, 235, 0.15) 0%, rgba(37, 99, 235, 0.15) 100%);
+      background-repeat: no-repeat;
+      background-position: left center;
+      background-size: 0% 100%;
+      animation: btn-fill 3.5s ease-out forwards;
+    }
+
+    /* ── Share Link + Presentation Mode ── */
+    .presentation-header {
+      background: linear-gradient(135deg, #0f172a, #1e293b);
+      color: #fff;
+      padding: 28px 32px 20px;
+      border-radius: 0 0 12px 12px;
+      margin-bottom: 16px;
+    }
+    .pres-brand-text {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #0ea5e9;
+    }
+    .pres-title {
+      font-size: 22px;
+      font-weight: 800;
+      margin: 8px 0 4px;
+    }
+    .pres-subtitle {
+      font-size: 13px;
+      color: #94a3b8;
+    }
+    .pres-expires {
+      font-size: 12px;
+      color: #94a3b8;
+      margin-top: 6px;
+      letter-spacing: 0.3px;
+    }
+    .pres-prepared {
+      font-size: 11px;
+      color: #64748b;
+      margin-top: 10px;
+    }
+    /* View mode: keep nav visible (shows "Read-only view" + "Log in to explore") */
+    .table-filter-bar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 14px;
+      padding: 8px 12px;
+      background: var(--hover-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 10px 10px 0 0;
+      border-bottom: none;
+    }
+    .status-toggles {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+      flex: 1;
+    }
+    .status-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 14px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1.5px solid var(--panel-border);
+      background: var(--panel-bg);
+      color: var(--muted);
+      transition: all 0.2s;
+      user-select: none;
+    }
+    .status-toggle:hover {
+      border-color: var(--text);
+    }
+    .status-toggle.active.up {
+      background: rgba(16, 185, 129, 0.12);
+      border-color: rgba(34, 197, 94, 0.5);
+      color: #0f5132;
+    }
+    .status-toggle.active.limited {
+      background: rgba(234, 179, 8, 0.12);
+      border-color: rgba(234, 179, 8, 0.5);
+      color: #854d0e;
+    }
+    .status-toggle.active.maintenance {
+      background: rgba(220, 38, 38, 0.1);
+      border-color: rgba(220, 38, 38, 0.4);
+      color: #7f1d1d;
+    }
+    [data-theme="dark"] .status-toggle.active.up {
+      background: rgba(16, 185, 129, 0.18);
+      color: #6ee7b7;
+    }
+    [data-theme="dark"] .status-toggle.active.limited {
+      background: rgba(234, 179, 8, 0.16);
+      color: #fde68a;
+    }
+    [data-theme="dark"] .status-toggle.active.maintenance {
+      background: rgba(220, 38, 38, 0.16);
+      color: #fca5a5;
+    }
+    .status-toggle.active.tag-pill {
+      background: rgba(37, 99, 235, 0.12);
+      border-color: rgba(37, 99, 235, 0.4);
+      color: #1e40af;
+    }
+    [data-theme="dark"] .status-toggle.active.tag-pill {
+      background: rgba(96, 165, 250, 0.18);
+      color: #93c5fd;
+    }
+    .toggle-separator {
+      display: inline-block;
+      width: 1px;
+      height: 20px;
+      background: var(--panel-border);
+      margin: 0 4px;
+      vertical-align: middle;
+    }
+    .tag-overflow {
+      position: relative;
+      display: inline-flex;
+    }
+    .status-toggle.more-btn {
+      min-width: 36px;
+      padding: 5px 10px;
+      font-size: 16px;
+      font-weight: 900;
+      letter-spacing: 2px;
+    }
+
+    /* Limited view: hide Tags column + sort controls */
+    body.limited-view .sites-card th:nth-child(4),
+    body.limited-view .sites-card td:nth-child(4) { display: none; }
+    body.limited-view .th-sort-controls { display: none; }
+    body.limited-view .sites-card th { cursor: default; }
+    /* Redistribute column widths without Tags */
+    body.limited-view .sites-card th:nth-child(1),
+    body.limited-view .sites-card td:nth-child(1) { width: 34% !important; }
+    body.limited-view .sites-card th:nth-child(2),
+    body.limited-view .sites-card td:nth-child(2) { width: 32% !important; }
+    body.limited-view .sites-card th:nth-child(3),
+    body.limited-view .sites-card td:nth-child(3) { width: 18% !important; }
+    body.limited-view .sites-card th:nth-child(5),
+    body.limited-view .sites-card td:nth-child(5) { width: 16% !important; text-align: center; }
+
+    /* Table styles */
+    .merchant-sites-table-wrapper {
+      border: 1px solid var(--panel-border);
+      border-radius: 0 0 10px 10px;
+      overflow-x: hidden;
+      overflow-y: hidden;
+      -webkit-overflow-scrolling: touch;
+      max-height: 600px;
+      background: var(--surface);
+      display: flex;
+      flex-direction: column;
+    }
+    .sites-card table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+      min-width: 0;
+    }
+    .sites-card thead {
+      background: var(--surface);
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+    .sites-card th,
+    .sites-card td {
+      padding: 10px 12px;
+      text-align: left;
+      border-bottom: 1px solid var(--panel-border);
+    }
+    .sites-card th:nth-child(1),
+    .sites-card td:nth-child(1) { width: 26%; }
+    .sites-card th:nth-child(2),
+    .sites-card td:nth-child(2) { width: 24%; }
+    .sites-card th:nth-child(3),
+    .sites-card td:nth-child(3) { width: 13%; }
+    .sites-card th:nth-child(4),
+    .sites-card td:nth-child(4) { width: 22%; }
+    .sites-card th:nth-child(5),
+    .sites-card td:nth-child(5) { width: 15%; text-align: center; }
+    .sites-card th {
+      background: rgba(37, 99, 235, 0.06);
+      color: var(--panel-title);
+      font-weight: 700;
+      backdrop-filter: blur(2px);
+      cursor: pointer;
+    }
+    .sites-card tbody {
+      display: block;
+      overflow-y: auto;
+      max-height: 540px;
+    }
+    .sites-card thead,
+    .sites-card tbody tr {
+      display: table;
+      width: 100%;
+      table-layout: fixed;
+    }
+    .sites-card tbody tr:last-child td {
+      border-bottom: none;
+    }
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 12px;
+      letter-spacing: 0.2px;
+      border: 1px solid transparent;
+      background: linear-gradient(135deg, rgba(255,255,255,0.7), rgba(255,255,255,0.2));
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      cursor: default;
+    }
+    .status-pill.up {
+      color: #0f5132;
+      border-color: rgba(34, 197, 94, 0.35);
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.16), rgba(16, 185, 129, 0.04));
+    }
+    .status-pill.down {
+      color: #7f1d1d;
+      border-color: rgba(220, 38, 38, 0.35);
+      background: linear-gradient(135deg, rgba(248, 113, 113, 0.2), rgba(248, 113, 113, 0.06));
+    }
+    .status-pill.limited {
+      color: #854d0e;
+      border-color: rgba(234, 179, 8, 0.35);
+      background: linear-gradient(135deg, rgba(234, 179, 8, 0.2), rgba(234, 179, 8, 0.06));
+    }
+    .status-pill.unknown {
+      color: #334155;
+      border-color: rgba(100, 116, 139, 0.35);
+      background: linear-gradient(135deg, rgba(148, 163, 184, 0.2), rgba(148, 163, 184, 0.06));
+    }
+    .tag-filter {
+      position: relative;
+    }
+    .th-inner {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 8px;
+    }
+    .th-sort-controls {
+      display: inline-flex;
+      align-items: center;
+      font-size: 12px;
+    }
+    .sort-pill {
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+      background: rgba(15, 23, 42, 0.04);
+      overflow: hidden;
+    }
+    .sort-segment {
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      padding: 2px 6px;
+      cursor: pointer;
+      font-weight: 700;
+      min-width: 28px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      font-size: 11px;
+    }
+    .sort-segment + .sort-segment {
+      border-left: 1px solid var(--panel-border);
+    }
+    .sort-segment.active {
+      background: rgba(37, 99, 235, 0.14);
+      color: var(--accent);
+    }
+    .sort-segment:focus {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+    .tag-filter-menu {
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 0;
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+      padding: 10px 14px;
+      box-shadow: 0 12px 30px rgba(15, 23, 42, 0.2);
+      max-height: 320px;
+      overflow-y: auto;
+      overflow-x: hidden;
+      min-width: 280px;
+      z-index: 5;
+      white-space: nowrap;
+    }
+    .tag-filter-menu label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--panel-title);
+      padding: 4px 0;
+      cursor: pointer;
+    }
+    .tag-filter-menu input {
+      width: 16px;
+      height: 16px;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 18px;
+      font-size: 14px;
+      font-weight: 600;
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: var(--panel-bg);
+      color: var(--panel-title);
+    }
+    .btn:hover:not(:disabled) {
+      background: var(--hover-bg);
+      border-color: var(--accent);
+    }
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .btn.secondary {
+      background: var(--surface);
+    }
+
+    @media (max-width: 900px) {
+      .merchant-sites-table-wrapper,
+      .sites-card tbody {
+        max-height: 400px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="sites-wrap">
+
+    <!-- Living Ecosystem Narrative -->
+    <div class="ecosystem-section">
+      <h2>Strivve Supported Sites: A Living Ecosystem</h2>
+      <p class="eco-subtitle">How Strivve monitors, tests, and prioritizes our broad portfolio of merchant sites to deliver reliable card placement.</p>
+
+      <h3>The Big Idea</h3>
+      <p class="eco-big-idea">Every merchant site Strivve supports is a living, dynamic entity. Sites can and do go up and down at any time due to merchant-side changes &mdash; UI redesigns, security updates, fraud detection changes, rate limiting, and platform migrations. This is normal. What matters is how quickly we detect it, how we respond, and how we prioritize.</p>
+      <p class="eco-big-idea">Strivve is always aware of site status changes. We prioritize resolution starting with our highest-impact sites, informed by customer feedback, cross-customer popularity, and payments industry research.</p>
+
+      <h3>How We Stay on Top of It</h3>
+      <div class="eco-columns">
+        <div class="eco-card">
+          <h4>Bi-Weekly Automated Testing</h4>
+          <p>Supported sites are tested on a rigorous bi-weekly cycle to verify end-to-end card placement for CardUpdatr and CardSavr.</p>
+        </div>
+        <div class="eco-card">
+          <h4>Production Telemetry</h4>
+          <p>Every cardholder interaction is instrumented. Real production usage gives us more coverage than any manual testing could &mdash; a technology advantage built over years.</p>
+        </div>
+        <div class="eco-card">
+          <h4>Watchlist Protocol</h4>
+          <p>Any site failure triggers immediate daily monitoring for a week. We decide to temporarily pull the site or keep it active based on real data &mdash; never guesswork.</p>
+        </div>
+      </div>
+
+      <h3>How We Prioritize</h3>
+      <p class="eco-big-idea" style="margin-bottom:4px;">With a broad and growing portfolio of supported sites, not every issue is addressed at once. Our prioritization framework:</p>
+      <ul class="eco-priorities">
+        <li><strong>Customer Feedback</strong> &mdash; Your reports directly influence what gets fixed first. We want to hear from you.</li>
+        <li><strong>Cross-Customer Popularity</strong> &mdash; The most-used sites across all Strivve partners are prioritized first.</li>
+        <li><strong>Payments Research</strong> &mdash; We proactively track industry trends to add and prioritize emerging merchant sites.</li>
+        <li><strong>Campaign Support</strong> &mdash; Planning a promotion that features specific merchant sites? Let us know at <a class="eco-contact" href="mailto:helpdesk@strivve.com">helpdesk@strivve.com</a> and we&rsquo;ll put extra eyes on those sites to ensure they&rsquo;re performing at their best throughout your campaign.</li>
+      </ul>
+
+      <div class="eco-rollout">
+        <h3>What This Means for You</h3>
+        <p>If you see a site listed as &ldquo;Limited&rdquo; or &ldquo;In Maintenance,&rdquo; it does not mean cardholders are stuck. Strivve is already aware and actively working on it. A temporarily unavailable site is not an abandoned site &mdash; our team works every day to correct, improve, and restore sites. The same site may be fully operational tomorrow, and a different site may rotate out briefly next week. That is the nature of a living ecosystem, and Strivve is built to manage it.</p>
+        <p>Your cardholders will still see the full list of available merchants and can update any active site in the meantime. Site availability fluctuations do not affect the overall CardUpdatr experience &mdash; cardholders simply choose from whichever sites are live at that moment.</p>
+        <p>Questions or noticing something we should know about? Contact us at <a class="eco-contact" href="mailto:helpdesk@strivve.com">helpdesk@strivve.com</a></p>
+      </div>
+    </div>
+
+    <!-- Merchant Sites Table -->
+    <div class="sites-card" id="merchantSitesCard">
+      <div class="sites-header-row">
+        <div>
+          <h2>Merchant Sites</h2>
+          <p class="description" id="merchantSitesMeta">Loading&hellip;</p>
+        </div>
+        <div class="sites-actions">
+          <button class="btn secondary" id="shareLinkBtn" type="button">Share</button>
+          <button class="btn secondary" id="merchantSitesCsvBtn" type="button" disabled>Download CSV</button>
+          <span class="btn-pdf-wrap"><button class="btn secondary" id="merchantSitesPdfBtn" type="button" disabled>Download Status Report PDF</button></span>
+        </div>
+      </div>
+      <div class="table-filter-bar">
+        <div class="status-toggles" id="statusToggles">
+          <button type="button" class="status-toggle active up" data-status="up">Up</button>
+          <button type="button" class="status-toggle active limited" data-status="limited">Limited</button>
+          <button type="button" class="status-toggle maintenance" data-status="down">Maintenance</button>
+          <span class="toggle-separator" id="tagSeparator" style="display:none;"></span>
+          <span id="dynamicTagPills"></span>
+          <span class="tag-overflow" id="tagOverflowWrap" style="display:none;">
+            <button type="button" class="status-toggle more-btn" id="tagOverflowBtn">&hellip;</button>
+            <div id="merchantSitesTagFilter" class="tag-filter-menu" hidden></div>
+          </span>
+        </div>
+      </div>
+      <div class="merchant-sites-table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 26%;" data-column="name">
+                <span class="th-inner">
+                  <span class="th-label">Name</span>
+                  <span class="th-sort-controls">
+                    <span class="sort-pill">
+                      <button type="button" class="sort-segment" data-sort-role="primary" data-column="name" aria-label="Primary sort by Name">&#x21C5;</button>
+                      <button type="button" class="sort-segment" data-sort-role="secondary" data-column="name" aria-label="Secondary sort by Name">&#x21C5;</button>
+                    </span>
+                  </span>
+                </span>
+              </th>
+              <th style="width: 24%;" data-column="host">
+                <span class="th-inner">
+                  <span class="th-label">Host</span>
+                  <span class="th-sort-controls">
+                    <span class="sort-pill">
+                      <button type="button" class="sort-segment" data-sort-role="primary" data-column="host" aria-label="Primary sort by Host">&#x21C5;</button>
+                      <button type="button" class="sort-segment" data-sort-role="secondary" data-column="host" aria-label="Secondary sort by Host">&#x21C5;</button>
+                    </span>
+                  </span>
+                </span>
+              </th>
+              <th style="width: 13%;" data-column="status">
+                <span class="th-inner">
+                  <span class="th-label">Status</span>
+                  <span class="th-sort-controls">
+                    <span class="sort-pill">
+                      <button type="button" class="sort-segment" data-sort-role="primary" data-column="status" aria-label="Primary sort by Status">&#x21C5;</button>
+                      <button type="button" class="sort-segment" data-sort-role="secondary" data-column="status" aria-label="Secondary sort by Status">&#x21C5;</button>
+                    </span>
+                  </span>
+                </span>
+              </th>
+              <th style="width: 22%;" data-column="tags">
+                <span class="th-inner">
+                  <span class="th-label">Tags</span>
+                  <span class="th-sort-controls">
+                    <span class="sort-pill">
+                      <button type="button" class="sort-segment" data-sort-role="primary" data-column="tags" aria-label="Primary sort by Tags">&#x21C5;</button>
+                      <button type="button" class="sort-segment" data-sort-role="secondary" data-column="tags" aria-label="Secondary sort by Tags">&#x21C5;</button>
+                    </span>
+                  </span>
+                </span>
+              </th>
+              <th style="width: 15%;" data-column="tier">
+                <span class="th-inner">
+                  <span class="th-label">Tier</span>
+                  <span class="th-sort-controls">
+                    <span class="sort-pill">
+                      <button type="button" class="sort-segment" data-sort-role="primary" data-column="tier" aria-label="Primary sort by Tier">&#x21C5;</button>
+                      <button type="button" class="sort-segment" data-sort-role="secondary" data-column="tier" aria-label="Secondary sort by Tier">&#x21C5;</button>
+                    </span>
+                  </span>
+                </span>
+              </th>
+            </tr>
+          </thead>
+          <tbody id="merchantSitesBody">
+            <tr><td colspan="5">Loading&hellip;</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // ── View Mode (shared link) detection ──
+    (function() {
+      var params = new URLSearchParams(window.location.search || "");
+      var isView = params.get("view") === "1";
+      if (!isView) return;
+
+      var sid = params.get("sid") || "";
+      var wrap = document.querySelector(".sites-wrap") || document.body;
+
+      function showExpired() {
+        wrap.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;min-height:60vh;"><div style="text-align:center;max-width:480px;padding:40px;"><div style="font-size:48px;margin-bottom:16px;">&#128279;</div><h2 style="color:var(--panel-title);margin:0 0 12px;">This shared link has expired</h2><p style="color:var(--muted);font-size:15px;line-height:1.6;">Shared links expire for security. Please ask the sender to generate a new link.</p><p style="color:#94a3b8;font-size:13px;margin-top:20px;">Strivve CardUpdatr\u2122</p></div></div>';
+        if (sid) { try { fetch("/api/share-log/view?sid=" + encodeURIComponent(sid) + "&expired=1").catch(function(){}); } catch(e){} }
+      }
+
+      // No sid = invalid link
+      if (!sid) { showExpired(); return; }
+
+      // Server-side expiration check — blocks until validated
+      var validated = false;
+      var xhr = new XMLHttpRequest();
+      xhr.open("GET", "/api/share-validate?sid=" + encodeURIComponent(sid), false); // synchronous
+      try {
+        xhr.send();
+        if (xhr.status === 200) {
+          var data = JSON.parse(xhr.responseText);
+          if (!data.valid) { showExpired(); return; }
+          validated = true;
+          var expiresText = data.expiresIn ? "link expires in " + data.expiresIn : "";
+        }
+      } catch (e) {
+        // Network error — allow page to load (offline tolerance)
+        validated = true;
+        var expiresText = "";
+      }
+
+      window.__sisViewMode = true;
+      document.body.classList.add("share-presentation-mode");
+
+      // Track view
+      try { fetch("/api/share-log/view?sid=" + encodeURIComponent(sid)).catch(function(){}); } catch(e){}
+
+      // Inject compact share notice (nav bar handles branding + login link)
+      if (expiresText) {
+        var siteWrap = document.querySelector(".sites-wrap");
+        if (siteWrap) {
+          var notice = document.createElement("div");
+          notice.style.cssText = "padding:10px 16px;margin-bottom:12px;border-radius:8px;background:rgba(14,165,233,0.08);border:1px solid rgba(14,165,233,0.2);color:var(--muted);font-size:13px;display:flex;align-items:center;gap:8px;";
+          notice.innerHTML = '<span style="font-size:16px;">&#128279;</span> <span>Shared view &mdash; ' + expiresText + '</span>';
+          siteWrap.insertBefore(notice, siteWrap.firstChild);
+        }
+      }
+
+      // Hide share button in view mode
+      var shareBtn = document.getElementById("shareLinkBtn");
+      if (shareBtn) shareBtn.style.display = "none";
+    })();
+
+    (function setupMerchantSitesCard() {
+      var tbody = document.getElementById("merchantSitesBody");
+      var meta = document.getElementById("merchantSitesMeta");
+      var csvBtn = document.getElementById("merchantSitesCsvBtn");
+      var pdfBtn = document.getElementById("merchantSitesPdfBtn");
+      var tagFilterMenu = document.getElementById("merchantSitesTagFilter");
+      var tagOverflowWrap = document.getElementById("tagOverflowWrap");
+      var tagOverflowBtn = document.getElementById("tagOverflowBtn");
+      var tagSeparator = document.getElementById("tagSeparator");
+      var dynamicTagPills = document.getElementById("dynamicTagPills");
+      var statusTogglesEl = document.getElementById("statusToggles");
+      var sortButtons = document.querySelectorAll(
+        "#merchantSitesCard [data-sort-role][data-column]"
+      );
+      if (!tbody || !meta || !csvBtn) return;
+
+      var statusOrder = { up: 0, limited: 1, unknown: 2, down: 3 };
+      var apiBase =
+        typeof window.SIS_API_BASE === "string" && window.SIS_API_BASE
+          ? window.SIS_API_BASE.replace(/\/+$/, "")
+          : window.location.origin.includes("8787")
+          ? window.location.origin
+          : "";
+
+      // Determine if user should see all tiers or only Tier 1 & 2
+      var accessLevel = (window.sisAuth && window.sisAuth.getAccessLevel) ? window.sisAuth.getAccessLevel() : "";
+      var isFullAccess = !window.__sisViewMode && (accessLevel === "admin" || accessLevel === "full" || accessLevel === "internal");
+
+      // Admin: all status pills active by default. Limited: Up+Limited only.
+      if (isFullAccess) {
+        var maintBtn = statusTogglesEl.querySelector('[data-status="down"]');
+        if (maintBtn) maintBtn.classList.add("active");
+      } else {
+        document.body.classList.add("limited-view");
+      }
+
+      // All users: default sort by Tier then Name alphabetical
+      var sortState = { primary: { column: "tier", direction: "asc" }, secondary: { column: "name", direction: "asc" } };
+
+      function filterByAccess(sites) {
+        if (isFullAccess) return sites;
+        // Limited/executive: show all Up/Limited (any tier), hide Down above Tier 2
+        return sites.filter(function(s) {
+          var status = classifyStatus(s.tags).css;
+          if (status === "up" || status === "limited") return true;
+          return s.tier != null && s.tier <= 2;
+        });
+      }
+
+      // Status toggle helpers — now used by everyone
+      function getActiveStatuses() {
+        if (!statusTogglesEl) return null;
+        var active = [];
+        statusTogglesEl.querySelectorAll(".status-toggle.active[data-status]").forEach(function(btn) {
+          active.push(btn.dataset.status);
+        });
+        return active;
+      }
+
+      // Get active tag pills (admin only)
+      function getActiveTagFilters() {
+        if (!dynamicTagPills) return [];
+        var active = [];
+        dynamicTagPills.querySelectorAll(".status-toggle.active[data-tag]").forEach(function(btn) {
+          active.push(btn.dataset.tag);
+        });
+        return active;
+      }
+
+      // Get active overflow tag checkboxes (admin only)
+      function getOverflowTagFilters() {
+        if (!tagFilterMenu) return [];
+        return Array.from(tagFilterMenu.querySelectorAll("input[type=checkbox]:checked")).map(function(c) { return c.value; });
+      }
+
+      // Wire up status toggle clicks
+      if (statusTogglesEl) {
+        statusTogglesEl.addEventListener("click", function(evt) {
+          var btn = evt.target.closest(".status-toggle[data-status], .status-toggle[data-tag]");
+          if (!btn || btn === tagOverflowBtn) return;
+          btn.classList.toggle("active");
+          render(lastSites);
+        });
+      }
+
+      // MAX_VISIBLE_TAGS: how many tag pills to show inline before "..."
+      var MAX_VISIBLE_TAGS = 6;
+
+      function buildTagPills(sites) {
+        if (!isFullAccess || !dynamicTagPills) return;
+        // Count tag frequency
+        var freq = {};
+        for (var i = 0; i < sites.length; i++) {
+          var tgs = Array.isArray(sites[i].tags) ? sites[i].tags : [];
+          for (var j = 0; j < tgs.length; j++) {
+            var t = tgs[j];
+            if (t) freq[t] = (freq[t] || 0) + 1;
+          }
+        }
+        var allTags = Object.keys(freq).sort(function(a, b) { return freq[b] - freq[a]; });
+        if (!allTags.length) return;
+
+        var visible = allTags.slice(0, MAX_VISIBLE_TAGS);
+        var overflow = allTags.slice(MAX_VISIBLE_TAGS);
+
+        // Show separator
+        if (tagSeparator) tagSeparator.style.display = "";
+
+        // Build visible tag pills (all inactive by default = no tag filter)
+        dynamicTagPills.innerHTML = visible.map(function(tag) {
+          return '<button type="button" class="status-toggle tag-pill" data-tag="' + tag + '">' + tag + '</button>';
+        }).join("");
+
+        // Build overflow menu
+        if (overflow.length && tagOverflowWrap && tagFilterMenu) {
+          tagOverflowWrap.style.display = "";
+          tagFilterMenu.innerHTML = overflow.map(function(tag) {
+            return '<label><input type="checkbox" value="' + tag + '"/> <span>' + tag + ' (' + freq[tag] + ')</span></label>';
+          }).join("");
+          tagFilterMenu.addEventListener("change", function() { render(lastSites); });
+        }
+      }
+
+      var lastSites = [];
+      var filteredSites = [];
+
+      function classifyStatus(tags) {
+        tags = tags || [];
+        var lower = tags.map(function(t) { return t.toString().toLowerCase(); });
+        if (lower.some(function(t) { return t.includes("down") || t.includes("disabled"); })) {
+          return { label: "Down", css: "down" };
+        }
+        if (lower.some(function(t) { return t.includes("limited") || t.includes("beta") || t.includes("degraded"); })) {
+          return { label: "Limited", css: "limited" };
+        }
+        if (lower.some(function(t) { return t.includes("unrestricted") || t === "prod"; })) {
+          return { label: "Up", css: "up" };
+        }
+        return { label: "Unknown", css: "unknown" };
+      }
+
+      // updateTagOptions removed — replaced by buildTagPills for inline pill UI
+
+      function render(sites) {
+        sites = sites || [];
+        lastSites = Array.isArray(sites) ? sites : [];
+        csvBtn.disabled = !lastSites.length;
+        if (pdfBtn) pdfBtn.disabled = !lastSites.length;
+        if (!sites.length) {
+          tbody.innerHTML = '<tr><td colspan="5">No merchant sites returned.</td></tr>';
+          meta.textContent = "No sites found.";
+          return;
+        }
+
+        // Step 1: Filter by status pills (everyone)
+        var activeStatuses = getActiveStatuses();
+        var filtered = sites;
+        var hasStatusFilter = false;
+        if (activeStatuses !== null && activeStatuses.length < 4) {
+          filtered = sites.filter(function(s) {
+            var st = classifyStatus(s.tags).css;
+            return activeStatuses.indexOf(st) !== -1;
+          });
+          hasStatusFilter = true;
+        }
+
+        // Step 2: Filter by tag pills + overflow checkboxes (admin only)
+        var activeTagPills = getActiveTagFilters();
+        var overflowTags = getOverflowTagFilters();
+        var allActiveTags = activeTagPills.concat(overflowTags);
+        var hasTagFilter = allActiveTags.length > 0;
+        if (hasTagFilter) {
+          filtered = filtered.filter(function(s) {
+            var tgs = Array.isArray(s.tags) ? s.tags : [];
+            // OR logic: site has ANY of the active tags
+            return allActiveTags.some(function(t) { return tgs.indexOf(t) !== -1; });
+          });
+        }
+
+        var hasFilter = hasStatusFilter || hasTagFilter;
+        filteredSites = filtered;
+
+        var compare = function(col, dir, a, b) {
+          var direction = dir === "desc" ? -1 : 1;
+          switch (col) {
+            case "name":
+              return direction * (a.name || "").localeCompare(b.name || "");
+            case "host":
+              return direction * (a.host || "").localeCompare(b.host || "");
+            case "tier":
+              return direction * ((Number(a.tier) || 0) - (Number(b.tier) || 0));
+            case "tags": {
+              var aTags = Array.isArray(a.tags) ? a.tags.join(", ") : "";
+              var bTags = Array.isArray(b.tags) ? b.tags.join(", ") : "";
+              return direction * aTags.localeCompare(bTags);
+            }
+            case "status":
+            default: {
+              var aStatus = classifyStatus(a.tags).css;
+              var bStatus = classifyStatus(b.tags).css;
+              if (aStatus !== bStatus) {
+                return direction * ((statusOrder[aStatus] || 99) - (statusOrder[bStatus] || 99));
+              }
+              return 0;
+            }
+          }
+        };
+
+        var sorted = filtered.slice().sort(function(a, b) {
+          var primaryResult = compare(sortState.primary.column, sortState.primary.direction, a, b);
+          if (primaryResult !== 0) return primaryResult;
+          return compare(sortState.secondary.column, sortState.secondary.direction, a, b);
+        });
+
+        tbody.innerHTML = sorted.map(function(site) {
+          var status = classifyStatus(site.tags);
+          var tags = Array.isArray(site.tags) ? site.tags.join(", ") : "";
+          var tier = site.tier === null || site.tier === undefined ? "\u2014" : site.tier;
+          return '<tr>' +
+            '<td>' + (site.name || "\u2014") + '</td>' +
+            '<td><code>' + (site.host || "\u2014") + '</code></td>' +
+            '<td><span class="status-pill ' + status.css + '">' + status.label + '</span></td>' +
+            '<td>' + (tags || "\u2014") + '</td>' +
+            '<td>' + tier + '</td>' +
+            '</tr>';
+        }).join("");
+
+        var filteredLabel = hasFilter
+          ? "Showing " + filtered.length + " of " + sites.length + " site(s)."
+          : "Showing " + sites.length + " site(s).";
+        meta.textContent = filteredLabel;
+        updateSortButtons();
+      }
+
+      function loadSites() {
+        meta.textContent = "Loading merchant sites\u2026";
+        tbody.innerHTML = '<tr><td colspan="5">Loading\u2026</td></tr>';
+        var url = apiBase ? apiBase + "/merchant-sites" : "/merchant-sites";
+        fetch(url, { cache: "no-store" })
+          .then(function(res) {
+            return res.text().then(function(text) {
+              if (!res.ok) throw new Error("HTTP " + res.status + ": " + text.slice(0, 120));
+              try {
+                return JSON.parse(text);
+              } catch (e) {
+                throw new Error("Non-JSON response: " + text.slice(0, 120));
+              }
+            });
+          })
+          .then(function(data) {
+            var sites = filterByAccess(Array.isArray(data && data.sites) ? data.sites : []);
+            buildTagPills(sites);
+            render(sites);
+          })
+          .catch(function(err) {
+            console.error("merchant sites load failed", err);
+            meta.textContent = err.message || "Failed to load merchant sites.";
+            tbody.innerHTML = '<tr><td colspan="5">Failed to load merchant sites.</td></tr>';
+          });
+      }
+
+      function setPrimary(column) {
+        var normalized = column || "status";
+        if (sortState.primary.column === normalized) {
+          sortState = {
+            primary: { column: normalized, direction: sortState.primary.direction === "asc" ? "desc" : "asc" },
+            secondary: sortState.secondary,
+          };
+          return;
+        }
+        if (sortState.secondary.column === normalized) {
+          sortState = { primary: { column: sortState.secondary.column, direction: sortState.secondary.direction }, secondary: { column: sortState.primary.column, direction: sortState.primary.direction } };
+          return;
+        }
+        sortState = { primary: { column: normalized, direction: "asc" }, secondary: { column: sortState.primary.column, direction: sortState.primary.direction } };
+      }
+
+      function setSecondary(column) {
+        var normalized = column || "status";
+        if (sortState.secondary.column === normalized) {
+          sortState = {
+            primary: sortState.primary,
+            secondary: { column: normalized, direction: sortState.secondary.direction === "asc" ? "desc" : "asc" },
+          };
+          return;
+        }
+        if (sortState.primary.column === normalized) {
+          sortState = { primary: { column: sortState.secondary.column, direction: sortState.secondary.direction }, secondary: { column: sortState.primary.column, direction: sortState.primary.direction } };
+          return;
+        }
+        sortState = { primary: sortState.primary, secondary: { column: normalized, direction: "asc" } };
+      }
+
+      var headers = document.querySelectorAll("#merchantSitesCard thead th");
+      headers.forEach(function(th) {
+        th.addEventListener("click", function(evt) {
+          if (evt.target.closest(".sort-segment")) return;
+          var col = th.dataset.column;
+          if (!col) return;
+          setPrimary(col);
+          render(lastSites);
+        });
+      });
+
+      var dirLabel = function(dir) { return dir === "desc" ? "\u25BC" : "\u25B2"; };
+      function updateSortButtons() {
+        sortButtons.forEach(function(btn) {
+          var role = btn.dataset.sortRole;
+          var col = btn.dataset.column;
+          var isPrimary = role === "primary";
+          var active =
+            (isPrimary && sortState.primary.column === col) ||
+            (!isPrimary && sortState.secondary.column === col);
+          btn.classList.toggle("active", active);
+          var dir =
+            isPrimary && sortState.primary.column === col ? sortState.primary.direction
+            : !isPrimary && sortState.secondary.column === col ? sortState.secondary.direction
+            : null;
+          btn.textContent = dir ? dirLabel(dir) : "\u21C5";
+          btn.setAttribute("aria-pressed", active ? "true" : "false");
+        });
+      }
+      sortButtons.forEach(function(btn) {
+        btn.addEventListener("click", function(evt) {
+          evt.stopPropagation();
+          var role = btn.dataset.sortRole;
+          var col = btn.dataset.column;
+          if (!role || !col) return;
+          if (role === "primary") { setPrimary(col); } else { setSecondary(col); }
+          render(lastSites);
+        });
+      });
+      document.addEventListener("click", function(evt) {
+        if (tagOverflowBtn && (evt.target === tagOverflowBtn || tagOverflowBtn.contains(evt.target))) {
+          if (tagFilterMenu) tagFilterMenu.hidden = !tagFilterMenu.hidden;
+          return;
+        }
+        if (tagFilterMenu && !tagFilterMenu.hidden) {
+          if (!tagFilterMenu.contains(evt.target)) tagFilterMenu.hidden = true;
+        }
+      });
+      updateSortButtons();
+
+      // CSV export
+      function escapeCsv(value) {
+        var str = value == null ? "" : String(value);
+        return /[",\n]/.test(str) ? '"' + str.replace(/"/g, '""') + '"' : str;
+      }
+      function buildCsv() {
+        var rows = [["Name", "Host", "Status", "Tags", "Tier"]];
+        for (var i = 0; i < filteredSites.length; i++) {
+          var site = filteredSites[i];
+          var status = classifyStatus(site.tags);
+          var tags = Array.isArray(site.tags) ? site.tags.join("|") : "";
+          rows.push([
+            escapeCsv(site.name || ""),
+            escapeCsv(site.host || ""),
+            escapeCsv(status.label),
+            escapeCsv(tags),
+            escapeCsv(site.tier == null ? "" : site.tier),
+          ]);
+        }
+        return rows.map(function(r) { return r.join(","); }).join("\n");
+      }
+      csvBtn.addEventListener("click", function() {
+        if (!lastSites.length) return;
+        var csv = buildCsv();
+        var blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement("a");
+        a.href = url;
+        a.download = "merchant-sites-ss01.csv";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+      });
+
+      // PDF export
+      if (pdfBtn) {
+        pdfBtn.addEventListener("click", function() {
+          if (!lastSites.length) return;
+          pdfBtn.style.minWidth = pdfBtn.offsetWidth + "px";
+          pdfBtn.disabled = true;
+          pdfBtn.classList.add("generating");
+          pdfBtn.textContent = "Generating\u2026";
+          var token = (window.sisAuth && window.sisAuth.getToken && window.sisAuth.getToken()) || localStorage.getItem("sis_session_token") || "";
+          fetch("/api/export-pdf-supported-sites", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              ...(token ? { Authorization: "Bearer " + token } : {}),
+            },
+            body: JSON.stringify({}),
+          })
+            .then(function(resp) {
+              if (!resp.ok) throw new Error("Server returned " + resp.status);
+              return resp.blob();
+            })
+            .then(function(blob) {
+              var url = URL.createObjectURL(blob);
+              var a = document.createElement("a");
+              a.href = url;
+              a.download = "supported-sites-status-report.pdf";
+              document.body.appendChild(a);
+              a.click();
+              a.remove();
+              URL.revokeObjectURL(url);
+            })
+            .catch(function(err) {
+              console.error("PDF download failed:", err);
+              alert("Failed to generate PDF. " + err.message);
+            })
+            .finally(function() {
+              pdfBtn.disabled = false;
+              pdfBtn.style.minWidth = "";
+              pdfBtn.classList.remove("generating");
+              pdfBtn.textContent = "Download Status Report PDF";
+            });
+        });
+      }
+
+      loadSites();
+    })();
+
+    // ── Share Link ──
+    (function() {
+      var shareBtn = document.getElementById("shareLinkBtn");
+      if (!shareBtn || window.__sisViewMode) return;
+
+      shareBtn.addEventListener("click", function() {
+        var params = new URLSearchParams();
+        params.set("view", "1");
+
+        var sidBytes = new Uint8Array(4);
+        crypto.getRandomValues(sidBytes);
+        var sid = Array.from(sidBytes).map(function(b) { return b.toString(16).padStart(2, "0"); }).join("");
+        params.set("sid", sid);
+
+        var shareUrl = window.location.origin + "/supported-sites?" + params.toString();
+
+        navigator.clipboard.writeText(shareUrl).then(function() {
+          shareBtn.textContent = "Copied!";
+          setTimeout(function() { shareBtn.textContent = "Share"; }, 2000);
+        }).catch(function() {
+          prompt("Copy this link:", shareUrl);
+        });
+
+        // Log creation
+        var token = (window.sisAuth && window.sisAuth.getToken && window.sisAuth.getToken()) || localStorage.getItem("sis_session_token") || "";
+        try {
+          fetch("/api/share-log", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", ...(token ? { Authorization: "Bearer " + token } : {}) },
+            body: JSON.stringify({ sid: sid, url: shareUrl })
+          }).catch(function() {});
+        } catch (e) {}
+      });
+    })();
+  </script>
+
+</body>
+</html>

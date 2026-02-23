@@ -26,6 +26,7 @@ import { fetchGaRowsForDay, resolveFiFromHost } from "../src/ga.mjs";
 import puppeteer from "puppeteer";
 import { buildReportHtml } from "../templates/funnel-report-template.mjs";
 import { buildCustomerReportHtml } from "../templates/funnel-customer-report-template.mjs";
+import { buildSupportedSitesReportHtml } from "../templates/supported-sites-report-template.mjs";
 const { URLSearchParams } = url;
 
 const __filename = fileURLToPath(import.meta.url);
@@ -2844,6 +2845,99 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // ========== Supported Sites PDF ==========
+
+  if (pathname === "/api/export-pdf-supported-sites" && req.method === "POST") {
+    const auth = await validateSession(req, queryParams);
+    if (!auth) return send(res, 401, { error: "Authentication required" });
+
+    try {
+      const sites = await fetchMerchantSitesFromSs01();
+
+      // Classify status (mirrors maintenance.html client-side logic)
+      const classifyStatus = (tags = []) => {
+        const lower = tags.map((t) => t.toString().toLowerCase());
+        if (lower.some((t) => t.includes("down") || t.includes("disabled")))
+          return "down";
+        if (lower.some((t) => t.includes("limited") || t.includes("beta") || t.includes("degraded")))
+          return "limited";
+        if (lower.some((t) => t.includes("unrestricted") || t === "prod"))
+          return "up";
+        return "unknown";
+      };
+
+      // Filter: exclude demo, synthetic, tier >= 4
+      const filtered = sites.filter((s) => {
+        const lower = (s.tags || []).map((t) => t.toString().toLowerCase());
+        if (lower.some((t) => t.includes("demo"))) return false;
+        if (lower.some((t) => t.includes("synthetic"))) return false;
+        if (s.tier != null && s.tier >= 4) return false;
+        return true;
+      });
+
+      const active = [];
+      const limited = [];
+      const maintenance = [];
+
+      for (const site of filtered) {
+        const status = classifyStatus(site.tags);
+        if (status === "up") {
+          active.push(site);
+        } else if (status === "limited") {
+          limited.push(site);
+        } else if (status === "down") {
+          // Only Tier 1 and Tier 2 down sites
+          if (site.tier != null && site.tier <= 2) {
+            maintenance.push(site);
+          }
+        }
+        // "unknown" status sites are omitted
+      }
+
+      const now = new Date();
+      const generated = now.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
+
+      const html = buildSupportedSitesReportHtml({
+        active,
+        limited,
+        maintenance,
+        generated,
+      });
+
+      const browser = await getPdfBrowser();
+      const page = await browser.newPage();
+      try {
+        await page.setContent(html, {
+          waitUntil: "networkidle0",
+          timeout: 15000,
+        });
+        const pdfBuffer = await page.pdf({
+          format: "Letter",
+          printBackground: true,
+          margin: { top: "0", right: "0", bottom: "0", left: "0" },
+        });
+
+        setCors(res);
+        res.writeHead(200, {
+          "Content-Type": "application/pdf",
+          "Content-Disposition": `attachment; filename="supported-sites-status-report-${now.toISOString().slice(0, 10)}.pdf"`,
+          "Content-Length": pdfBuffer.length,
+        });
+        res.end(pdfBuffer);
+      } finally {
+        await page.close();
+      }
+    } catch (err) {
+      console.error("[pdf] Supported sites export error:", err);
+      return send(res, 500, { error: "PDF generation failed: " + err.message });
+    }
+    return;
+  }
+
   // ========== Shared Link Tracking ==========
 
   // POST /api/share-log — authenticated user creates a shared link
@@ -2920,6 +3014,54 @@ const server = http.createServer(async (req, res) => {
     } catch (err) {
       console.error("[share-log] read error:", err);
       return send(res, 500, { error: "Failed to read shared views log" });
+    }
+  }
+
+  // GET /api/share-validate?sid=xxx — unauthenticated, server-side expiration check
+  if (pathname === "/api/share-validate" && req.method === "GET") {
+    try {
+      const sid = (queryParams.get("sid") || "").slice(0, 16);
+      if (!sid) return send(res, 400, { valid: false, reason: "missing_sid" });
+
+      // Read share log to find creation timestamp for this sid
+      const content = await fs.readFile(SHARED_VIEWS_LOG_FILE, "utf8").catch(() => "");
+      const lines = content.split("\n").filter(Boolean);
+      let createdAt = null;
+      for (const line of lines) {
+        try {
+          const entry = JSON.parse(line);
+          if (entry.type === "create" && entry.sid === sid) {
+            createdAt = new Date(entry.ts).getTime();
+          }
+        } catch (_) {}
+      }
+
+      if (!createdAt) return send(res, 200, { valid: false, reason: "unknown_sid" });
+
+      // Read TTL from settings
+      const SHARE_SETTINGS_FILE = path.join(DATA_DIR, "share-settings.json");
+      const raw = await fs.readFile(SHARE_SETTINGS_FILE, "utf8").catch(() => "{}");
+      const settings = JSON.parse(raw);
+      const ttlHours = settings.ttlHours ?? 72;
+      const expiresAt = createdAt + ttlHours * 60 * 60 * 1000;
+      const now = Date.now();
+
+      if (now > expiresAt) {
+        return send(res, 200, { valid: false, reason: "expired" });
+      }
+
+      // Compute remaining time text
+      const remainMs = expiresAt - now;
+      const remainHrs = Math.ceil(remainMs / (60 * 60 * 1000));
+      let expiresIn = "";
+      if (remainHrs < 1) expiresIn = "less than an hour";
+      else if (remainHrs < 24) expiresIn = remainHrs + " hour" + (remainHrs === 1 ? "" : "s");
+      else { const d = Math.ceil(remainHrs / 24); expiresIn = d + " day" + (d === 1 ? "" : "s"); }
+
+      return send(res, 200, { valid: true, expiresIn });
+    } catch (err) {
+      console.error("[share-validate] error:", err);
+      return send(res, 200, { valid: false, reason: "error" });
     }
   }
 
@@ -6175,6 +6317,11 @@ const server = http.createServer(async (req, res) => {
 
   if (pathname === "/campaign-builder" || pathname === "/campaign-builder.html") {
     const fp = path.join(PUBLIC_DIR, "campaign-builder.html");
+    if (await fileExists(fp)) return serveFile(res, fp);
+  }
+
+  if (pathname === "/supported-sites" || pathname === "/supported-sites.html") {
+    const fp = path.join(PUBLIC_DIR, "supported-sites.html");
     if (await fileExists(fp)) return serveFile(res, fp);
   }
 

@@ -80,6 +80,7 @@ var GROUPS = [
 { id:"funnel-customer", label:"Cardholder Engagement", href:NAV_PREFIX+"funnel-customer.html" },
 { id:"portfolio", label:"CS Portfolio", href:NAV_PREFIX+"dashboards/portfolio.html" },
 { id:"engagement-playbook", label:"Engagement Playbook", href:NAV_PREFIX+"resources/engagement-playbook.html" },
+{ id:"supported-sites", label:"Supported Sites", href:NAV_PREFIX+"supported-sites.html" },
 { id:"campaign-builder", label:"Campaign URL Builder", href:NAV_PREFIX+"campaign-builder.html" }
 ]},
 { label: "Monitoring", items: [
@@ -155,7 +156,8 @@ function getGroupsForAccess() {
     return [
       { label: "Dashboards", items: [
         { id:"executive", label:"Executive Summary", href:NAV_PREFIX+"dashboards/executive.html" },
-        { id:"funnel-customer", label:"Cardholder Engagement", href:NAV_PREFIX+"funnel-customer.html" }
+        { id:"funnel-customer", label:"Cardholder Engagement", href:NAV_PREFIX+"funnel-customer.html" },
+        { id:"supported-sites", label:"Supported Sites", href:NAV_PREFIX+"supported-sites.html" }
       ]}
     ];
   }
@@ -165,6 +167,7 @@ function getGroupsForAccess() {
     return [
       { label: "Dashboards", items: [
         { id:"funnel-customer", label:"Cardholder Engagement", href:NAV_PREFIX+"funnel-customer.html" },
+        { id:"supported-sites", label:"Supported Sites", href:NAV_PREFIX+"supported-sites.html" },
         { id:"campaign-builder", label:"Campaign URL Builder", href:NAV_PREFIX+"campaign-builder.html" }
       ]}
     ];

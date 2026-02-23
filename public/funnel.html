@@ -2266,10 +2266,12 @@ function applyColumnTitles(root = document) {
 
       // ─── Share link expiration (IIFE for Safari compat — no top-level return) ───
       var __linkExpired = __isViewMode && (function() {
-        var __expiresTs = parseInt(__viewParams.get("expires"), 10);
-        var __createdTs = parseInt(__viewParams.get("created"), 10);
+        var __expiresRaw = __viewParams.get("expires");
+        var __createdRaw = __viewParams.get("created");
+        var __expiresTs = __expiresRaw ? parseInt(__expiresRaw, 10) : 0;
+        var __createdTs = __createdRaw ? parseInt(__createdRaw, 10) : 0;
         var __effectiveExpires = __expiresTs || (__createdTs ? __createdTs + 3 * 24 * 60 * 60 * 1000 : 0);
-        if (__effectiveExpires && Date.now() > __effectiveExpires) {
+        if (!__effectiveExpires || Date.now() > __effectiveExpires) {
           var sisContent = document.querySelector(".sis-content") || document.querySelector(".sis-panel") || document.body;
           sisContent.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;min-height:60vh;"><div style="text-align:center;max-width:480px;padding:40px;"><div style="font-size:48px;margin-bottom:16px;">&#128279;</div><h2 style="color:#1e293b;margin:0 0 12px;">This shared link has expired</h2><p style="color:#64748b;font-size:15px;line-height:1.6;">Shared dashboard links expire for security. Please ask the sender to generate a new link.</p><p style="color:#94a3b8;font-size:13px;margin-top:20px;">Strivve CardUpdatr\u2122</p></div></div>';
           var __expSid = __viewParams.get("sid");
