@@ -136,6 +136,12 @@ All partner-facing content follows engagement-positive tone:
 
 ## Feb 23, 2026
 
+### Shared Links Admin — Open Button + Page Column
+- **Open button**: Each shared link row now has an "Open" button that opens the exact report in a new tab with the original filters, date range, and FI scope — as an authenticated admin view (strips `view`, `sid`, `expires` params)
+- **Page column**: Color-coded pill showing which page was shared (Customer = green, Funnel = blue, Sites = purple, Other = gray)
+- **Use case**: When someone comments on a shared report, admins can instantly load the same view to see exactly what the recipient saw
+- **File**: `public/shared-views.html`
+
 ### Supported Sites Page — New Partner-Facing Page
 - **New page**: `public/supported-sites.html` — Living Ecosystem narrative + merchant sites table with status classification, sorting, filtering, CSV/PDF export, share links
 - **New PDF template**: `templates/supported-sites-report-template.mjs` — Puppeteer-rendered, branded header, summary bar, narrative section, tier-grouped site tables
