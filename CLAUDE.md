@@ -525,9 +525,6 @@ Full audit in `narrative-rules-audit.md` in project root. 50 narrative templates
 
 # What's Pending / Queued
 
-### Post-results POST failure (mitigated)
-- Runner logs occasionally show `[SIS] Post results failed (attempt 1/3): fetch failed` — Node.js `fetch()` intermittently fails, retries usually recover. Mitigated by View Sessions correlation feature: raw session data can be verified independently of POST-back success.
-
 ### Card Replacement Reach Math (Discussed, Not Yet Built)
 - ~25% annual portfolio turnover from expirations, ~3-5% lost/stolen = ~28-30% annual (2.3-2.5% monthly)
 - These are Tier 1 motivation cardholders at peak urgency
