@@ -235,6 +235,38 @@
     .sv-row.expanded .sv-expand-icon {
       transform: rotate(90deg);
     }
+    .sv-open-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--panel-border);
+      background: var(--panel-bg);
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.15s;
+      white-space: nowrap;
+    }
+    .sv-open-btn:hover {
+      background: rgba(59, 130, 246, 0.1);
+      transform: translateY(-1px);
+    }
+    .sv-page-pill {
+      display: inline-block;
+      padding: 1px 6px;
+      border-radius: 6px;
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .sv-page-pill.page-funnel { background: rgba(59,130,246,0.12); color: #3b82f6; }
+    .sv-page-pill.page-customer { background: rgba(34,197,94,0.12); color: #22c55e; }
+    .sv-page-pill.page-sites { background: rgba(168,85,247,0.12); color: #a855f7; }
+    .sv-page-pill.page-other { background: rgba(148,163,184,0.12); color: var(--muted); }
   </style>
 </head>
 <body>
@@ -272,14 +304,16 @@
                   <th style="width:24px;"></th>
                   <th>Created</th>
                   <th>Created By</th>
+                  <th>Page</th>
                   <th>Filters</th>
                   <th>SID</th>
                   <th>Views</th>
                   <th>Last Viewed</th>
+                  <th></th>
                 </tr>
               </thead>
               <tbody id="svBody">
-                <tr><td colspan="7" class="sv-empty">Loading...</td></tr>
+                <tr><td colspan="9" class="sv-empty">Loading...</td></tr>
               </tbody>
             </table>
           </div>
@@ -335,6 +369,14 @@
         var diffDays = Math.floor(diffHrs / 24);
         if (diffDays < 30) return diffDays + "d ago";
         return d.toLocaleDateString();
+      }
+
+      function parsePageFromUrl(url) {
+        if (!url) return { label: "Unknown", cls: "page-other" };
+        if (url.indexOf("funnel-customer") !== -1) return { label: "Customer", cls: "page-customer" };
+        if (url.indexOf("supported-sites") !== -1) return { label: "Sites", cls: "page-sites" };
+        if (url.indexOf("funnel") !== -1) return { label: "Funnel", cls: "page-funnel" };
+        return { label: "Other", cls: "page-other" };
       }
 
       function parseFiltersFromUrl(url) {
@@ -421,7 +463,7 @@
         });
 
         if (filtered.length === 0) {
-          svBody.innerHTML = '<tr><td colspan="7" class="sv-empty">No shared links found.</td></tr>';
+          svBody.innerHTML = '<tr><td colspan="9" class="sv-empty">No shared links found.</td></tr>';
           setStatus("0 shared links");
           return;
         }
@@ -436,21 +478,27 @@
           var viewCount = link.views.length;
           var lastView = viewCount > 0 ? link.views[link.views.length - 1].ts : "";
           var viewsBadgeClass = viewCount > 0 ? "has-views" : "no-views";
+          var page = parsePageFromUrl(link.url);
+          var openBtnHtml = link.url
+            ? '<button class="sv-open-btn" data-url="' + escapeHtml(link.url) + '" title="Open this exact report">Open &#8599;</button>'
+            : '<span style="color:var(--muted);font-size:11px;">—</span>';
 
           html += '<tr class="sv-row" data-idx="' + i + '">' +
             '<td><span class="sv-expand-icon">' + (viewCount > 0 ? "&#9654;" : "") + '</span></td>' +
             '<td>' + escapeHtml(timeAgo(link.created)) + '<br><span style="font-size:10px;color:var(--muted);">' + escapeHtml(formatTimestamp(link.created)) + '</span></td>' +
             '<td><span class="user-pill">' + escapeHtml(link.email || "unknown") + '</span></td>' +
+            '<td><span class="sv-page-pill ' + page.cls + '">' + page.label + '</span></td>' +
             '<td class="sv-filters-cell">' + filterHtml + '</td>' +
             '<td><span class="sid-pill">' + escapeHtml(link.sid) + '</span></td>' +
             '<td><span class="views-badge ' + viewsBadgeClass + '">' + viewCount + '</span></td>' +
             '<td>' + (lastView ? escapeHtml(timeAgo(lastView)) + '<br><span style="font-size:10px;color:var(--muted);">' + escapeHtml(formatTimestamp(lastView)) + '</span>' : '-') + '</td>' +
+            '<td>' + openBtnHtml + '</td>' +
             '</tr>';
 
           // Detail row (hidden by default)
           if (viewCount > 0) {
             html += '<tr class="sv-detail-row" hidden data-detail-idx="' + i + '">' +
-              '<td colspan="7">' +
+              '<td colspan="9">' +
               '<table class="sv-detail-table">' +
               '<thead><tr><th>Viewed At</th><th>IP</th><th>Referrer</th></tr></thead>' +
               '<tbody>';
@@ -468,6 +516,25 @@
         });
 
         svBody.innerHTML = html;
+
+        // Click handlers for Open buttons (open as admin with same filters, not as view-mode)
+        svBody.querySelectorAll(".sv-open-btn").forEach(function(btn) {
+          btn.addEventListener("click", function(e) {
+            e.stopPropagation(); // Don't toggle the detail row
+            var url = btn.getAttribute("data-url");
+            if (!url) return;
+            // Strip view-mode params (view, sid, expires) so it opens as an authenticated page
+            try {
+              var u = new URL(url);
+              u.searchParams.delete("view");
+              u.searchParams.delete("sid");
+              u.searchParams.delete("expires");
+              window.open(u.toString(), "_blank");
+            } catch (err) {
+              window.open(url, "_blank");
+            }
+          });
+        });
 
         // Click handlers to expand/collapse detail rows
         svBody.querySelectorAll(".sv-row").forEach(function(row) {
@@ -507,7 +574,7 @@
           .catch(function(err) {
             console.error("Failed to load shared views", err);
             setStatus("Failed to load shared links data", "error");
-            svBody.innerHTML = '<tr><td colspan="7" class="sv-empty">Failed to load data.</td></tr>';
+            svBody.innerHTML = '<tr><td colspan="9" class="sv-empty">Failed to load data.</td></tr>';
           });
       }
 
