@@ -2559,7 +2559,7 @@
           filter: (c) => c.sessions >= minVisits,
           compare: (c, b) => { if (c.successRatio !== b.successRatio) return c.successRatio - b.successRatio; return c.sessions - b.sessions; } },
         { label: "Most Successful Placements",
-          filter: () => true,
+          filter: (c) => c.sessions >= minVisits,
           compare: (c, b) => { if (c.placements !== b.placements) return c.placements - b.placements; return c.successRatio - b.successRatio; } },
         { label: "Highest Credential Entry Rate",
           filter: (c) => c.sessions >= minVisits && c.sel >= minVisits,
@@ -3512,33 +3512,41 @@
 
         if (i > 0 && stages[i - 1].value > 0) {
           const ratio = stage.value / stages[i - 1].value;
+          const prevVal = stages[i - 1].value;
           const transKey = `${stages[i - 1].label}→${stage.label}`;
           const scrollTarget = transitionTargets[transKey] !== undefined ? transitionTargets[transKey] : null;
+          // Suppress qualitative labels when either side of the transition has <10 observations
+          const tooSmall = prevVal < 10 || stage.value < 10;
           let badge = '';
           if (ratio > 1.05) {
             const multiplier = ratio.toFixed(1);
             badge = `<div class="funnel-expansion">${multiplier}× cards per cardholder</div>`;
-          } else if (ratio >= 0.95) {
+          } else if (!tooSmall && ratio >= 0.95) {
             badge = `<div class="funnel-neutral">Strong follow-through</div>`;
-          } else {
+          } else if (ratio < 0.95) {
             const dropPct = (1 - ratio) * 100;
-            let dropClass = 'dropoff-green';
-            if (dropPct > 80) dropClass = 'dropoff-red';
-            else if (dropPct > 50) dropClass = 'dropoff-yellow';
-            // Contextual label based on transition
-            let dropLabel;
-            if (stage.label === 'Sessions') {
-              dropLabel = `${dropPct.toFixed(0)}% didn't complete the form`;
-            } else if (stage.label === 'Credential Entry') {
-              dropLabel = `${dropPct.toFixed(0)}% browse but don't start`;
-            } else if (stage.label === 'Successful') {
-              dropLabel = `${dropPct.toFixed(0)}% start but don't finish`;
+            if (tooSmall) {
+              // Small sample: show raw percentage without severity color or qualitative label
+              badge = `<div class="funnel-dropoff dropoff-green" style="opacity:0.7;">${dropPct.toFixed(0)}% drop-off</div>`;
             } else {
-              dropLabel = `${dropPct.toFixed(0)}% conversion opportunity`;
+              let dropClass = 'dropoff-green';
+              if (dropPct > 80) dropClass = 'dropoff-red';
+              else if (dropPct > 50) dropClass = 'dropoff-yellow';
+              // Contextual label based on transition
+              let dropLabel;
+              if (stage.label === 'Sessions') {
+                dropLabel = `${dropPct.toFixed(0)}% didn't complete the form`;
+              } else if (stage.label === 'Credential Entry') {
+                dropLabel = `${dropPct.toFixed(0)}% browse but don't start`;
+              } else if (stage.label === 'Successful') {
+                dropLabel = `${dropPct.toFixed(0)}% start but don't finish`;
+              } else {
+                dropLabel = `${dropPct.toFixed(0)}% conversion opportunity`;
+              }
+              badge = `<div class="funnel-dropoff ${dropClass}">${dropLabel}</div>`;
             }
-            badge = `<div class="funnel-dropoff ${dropClass}">${dropLabel}</div>`;
           }
-          const insightLink = scrollTarget
+          const insightLink = (!tooSmall && scrollTarget)
             ? `<a class="funnel-insight-link" onclick="scrollToInsight('${scrollTarget}')">See insights →</a>`
             : '';
           html += `<div class="funnel-arrow">
@@ -3705,6 +3713,18 @@
       const section = document.getElementById('spectrumSection');
       if (!gauge || !section) return;
 
+      // Low-volume: show diagnosis text without the gauge visualization
+      const diag = ctx.integrationContext === 'nonsso' ? EI.buildNonSSOSpectrumDiagnosis(ctx) : EI.buildSpectrumDiagnosis(ctx);
+      if (diag.isLowVolume) {
+        gauge.innerHTML = '';
+        if (diagEl) diagEl.innerHTML = diag.html;
+        // Hide the spectrum labels row when gauge is empty
+        const labelsEl = gauge.parentElement ? gauge.parentElement.querySelector('.spectrum-labels') : null;
+        if (labelsEl) labelsEl.style.display = 'none';
+        section.style.display = '';
+        return;
+      }
+
       const effectiveRate = ctx.launchSuccessPct != null ? ctx.launchSuccessPct : ctx.sessionSuccessPct;
       if (effectiveRate === null) { section.style.display = 'none'; return; }
 
@@ -3736,8 +3756,10 @@
 
       gauge.innerHTML = gaugeHtml;
 
-      // Diagnosis paragraph — use non-SSO diagnosis when appropriate
-      const diag = ctx.integrationContext === 'nonsso' ? EI.buildNonSSOSpectrumDiagnosis(ctx) : EI.buildSpectrumDiagnosis(ctx);
+      // Restore spectrum labels if previously hidden
+      const labelsEl = gauge.parentElement ? gauge.parentElement.querySelector('.spectrum-labels') : null;
+      if (labelsEl) labelsEl.style.display = '';
+
       if (diagEl) diagEl.innerHTML = diag.html;
 
       section.style.display = '';
@@ -4064,6 +4086,17 @@
       var diagEl = document.getElementById(diagId);
       if (!gauge) return;
 
+      // Low-volume: show diagnosis text without the gauge visualization
+      var isNonSSOType = (type === 'nonsso');
+      var breakdownDiag = isNonSSOType ? EI.buildNonSSOSpectrumDiagnosis(ctx) : EI.buildSpectrumDiagnosis(ctx);
+      if (breakdownDiag.isLowVolume) {
+        gauge.innerHTML = '';
+        if (diagEl) diagEl.innerHTML = breakdownDiag.html;
+        var labelsEl0 = gauge.parentElement ? gauge.parentElement.querySelector('.spectrum-labels') : null;
+        if (labelsEl0) labelsEl0.style.display = 'none';
+        return;
+      }
+
       if (ctx.sessionSuccessPct === null) {
         gauge.innerHTML = '';
         if (diagEl) diagEl.innerHTML = '';
@@ -4124,10 +4157,13 @@
 
       gauge.innerHTML = gaugeHtml;
 
-      // Diagnosis
+      // Restore spectrum labels if previously hidden
+      var labelsEl1 = gauge.parentElement ? gauge.parentElement.querySelector('.spectrum-labels') : null;
+      if (labelsEl1) labelsEl1.style.display = '';
+
+      // Diagnosis (reuse already-computed diagnosis from top of function)
       if (diagEl) {
-        var diag = isNonSSO ? EI.buildNonSSOSpectrumDiagnosis(ctx) : EI.buildSpectrumDiagnosis(ctx);
-        diagEl.innerHTML = diag.html;
+        diagEl.innerHTML = breakdownDiag.html;
       }
     }
 

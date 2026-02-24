@@ -10,6 +10,11 @@
 (function() {
 'use strict';
 
+// ─── Low-Volume Threshold ─────────────────────────────────────────────────────
+// Below this session count, suppress conversion-quality analysis and replace
+// with traffic-growth messaging. At n=30, a 10% rate has 95% CI ~2–26%.
+const LOW_VOLUME_THRESHOLD = 30;
+
 // ─── Tier Boundaries ────────────────────────────────────────────────────────
 
 const TIER_BOUNDARIES = {
@@ -164,7 +169,7 @@ const NARRATIVE_RULES = [
     id: 'avgCards_low',
     metric: 'avgCardsPerSession',
     section: 'outcomes',
-    condition: (m) => m.avgCardsPerSession !== null && m.avgCardsPerSession > 0 && m.avgCardsPerSession < 1.5,
+    condition: (m) => m.avgCardsPerSession !== null && m.avgCardsPerSession > 0 && m.avgCardsPerSession < 1.5 && m.sessionsWithSuccess >= 10,
     narrative: (m) => `Your successful cardholders are averaging <strong>${fmt(m.avgCardsPerSession)}</strong> card updates per visit. Partners who surface a curated list of popular, relevant merchants see cardholders update more accounts per visit — deepening each visit's impact and multiplying the value of every successful engagement.`,
     benchmarks: [],
   },
@@ -172,7 +177,7 @@ const NARRATIVE_RULES = [
     id: 'avgCards_good',
     metric: 'avgCardsPerSession',
     section: 'outcomes',
-    condition: (m) => m.avgCardsPerSession !== null && m.avgCardsPerSession >= 1.5,
+    condition: (m) => m.avgCardsPerSession !== null && m.avgCardsPerSession >= 1.5 && m.sessionsWithSuccess >= 10,
     narrative: (m) => `Your successful cardholders are updating <strong>${fmt(m.avgCardsPerSession)}</strong> merchants on average — strong depth. Once they commit, they're engaging across multiple merchants, which means every successful visit delivers compounding value.`,
     benchmarks: [],
   },
@@ -210,7 +215,7 @@ const NARRATIVE_RULES = [
     id: 'credCompletion_low',
     metric: 'credCompletionPct',
     section: 'completion',
-    condition: (m) => m.credCompletionPct !== null && m.credCompletionPct > 0 && m.credCompletionPct < 25,
+    condition: (m) => m.credCompletionPct !== null && m.credCompletionPct > 0 && m.credCompletionPct < 25 && m.credSessions >= 10,
     narrative: (m) => `<strong>${fmt(m.credCompletionPct)}%</strong> of cardholders who enter credentials are completing placements — and each improvement in this rate directly multiplies your placement count. Partners who optimize the merchant experience and streamline authentication see meaningful gains here, turning more committed cardholders into completed placements.`,
     benchmarks: [],
   },
@@ -218,7 +223,7 @@ const NARRATIVE_RULES = [
     id: 'credCompletion_good',
     metric: 'credCompletionPct',
     section: 'completion',
-    condition: (m) => m.credCompletionPct !== null && m.credCompletionPct >= 25,
+    condition: (m) => m.credCompletionPct !== null && m.credCompletionPct >= 25 && m.credSessions >= 10,
     narrative: (m) => `Once cardholders commit to entering credentials, <strong>${fmt(m.credCompletionPct)}%</strong> complete a placement — a healthy completion rate that shows the process is working well. The biggest growth lever now is getting more cardholders to that commitment point through stronger positioning and motivated touchpoints.`,
     benchmarks: [],
   },
@@ -229,7 +234,7 @@ const NARRATIVE_RULES = [
     id: 'bestWeek_gap',
     metric: 'bestWeekGap',
     section: 'potential',
-    condition: (m) => m.bestWeekRate !== null && m.sessionSuccessPct !== null && m.sessionSuccessPct > 0 && (m.bestWeekRate / m.sessionSuccessPct) > 2,
+    condition: (m) => m.bestWeekRate !== null && m.sessionSuccessPct !== null && m.sessionSuccessPct > 0 && (m.bestWeekRate / m.sessionSuccessPct) > 2 && (m.bestWeekSessions || 0) >= 10,
     narrative: (m) => {
       const multiplier = fmt(m.bestWeekRate / m.sessionSuccessPct);
       return `Your best 7-day window hit <strong>${fmt(m.bestWeekRate)}%</strong> — that's <strong>${multiplier}×</strong> your current average, achieved with <em>your</em> cardholders on <em>your</em> integration. The demand is proven. The question isn't whether your members will respond — it's how to make that peak performance the norm rather than the exception.`;
@@ -239,6 +244,29 @@ const NARRATIVE_RULES = [
       text: `Filter to ${m.bestWeekStart} – ${m.bestWeekEnd} to examine your best-performing window`,
       action: 'filter', filters: { dateFrom: m.bestWeekStart, dateTo: m.bestWeekEnd },
     } : null,
+  },
+];
+
+// ─── Low-Volume Narratives ──────────────────────────────────────────────────
+// When total sessions < LOW_VOLUME_THRESHOLD, replace all standard narratives
+// with traffic-growth messaging. Same shape as evaluateNarratives() output.
+const LOW_VOLUME_NARRATIVES = [
+  {
+    id: 'lowvol_headline',
+    metric: 'lowVolume',
+    section: 'headline',
+    narrative: (m) => {
+      const swingPp = m.totalSessions > 0 ? Math.round(100 / m.totalSessions) : 100;
+      return `With <strong>${fmtN(m.totalSessions)}</strong> CardUpdatr visits over <strong>${m.daySpan}</strong> days, conversion metrics can swing significantly — a single successful cardholder changes the rate by <strong>${swingPp}</strong> percentage points. Building a consistent traffic base is the essential first step toward meaningful performance insights.`;
+    },
+    benchmarks: [],
+  },
+  {
+    id: 'lowvol_reach',
+    metric: 'lowVolume',
+    section: 'reach',
+    narrative: () => `The fastest path to both volume and conversion quality is reaching cardholders at moments of peak motivation. Two proven approaches: <strong>(1)</strong> embed CardUpdatr in card activation and reissuance flows, where cardholders have an immediate, natural need to update their merchants, and <strong>(2)</strong> launch targeted SMS or email campaigns that connect with cardholders at the right moment. Partners who combine these channels consistently reach 8–12% success rates with meaningful traffic volume.`,
+    benchmarks: ['campaignWeeksSustained'],
   },
 ];
 
@@ -316,7 +344,7 @@ const NONSSO_NARRATIVE_OVERRIDES = {
   bestWeek_gap: {
     condition: (m) => {
       const effectiveRate = m.launchSuccessPct != null ? m.launchSuccessPct : m.sessionSuccessPct;
-      return m.bestWeekRate !== null && effectiveRate !== null && effectiveRate > 0 && (m.bestWeekRate / effectiveRate) > 2;
+      return m.bestWeekRate !== null && effectiveRate !== null && effectiveRate > 0 && (m.bestWeekRate / effectiveRate) > 2 && (m.bestWeekSessions || 0) >= 10;
     },
     narrative: (m) => {
       const effectiveRate = m.launchSuccessPct != null ? m.launchSuccessPct : m.sessionSuccessPct;
@@ -351,6 +379,36 @@ const NONSSO_ACTION_RULES = [
         impact: 'medium',
       },
     ],
+  },
+];
+
+// ─── Low-Volume Actions ─────────────────────────────────────────────────────
+// Replaces tier-based actions when total sessions < LOW_VOLUME_THRESHOLD.
+// Focus: drive traffic volume first, conversion quality analysis comes later.
+const LOW_VOLUME_ACTIONS = [
+  {
+    headline: 'Increase cardholder encounters with CardUpdatr',
+    detail: 'Expanding visibility in digital banking, card lifecycle touchpoints, and marketing channels is the highest-leverage move when traffic volume is the primary growth constraint.',
+    impact: 'high',
+    ruleId: 'low_volume',
+  },
+  {
+    headline: 'Embed CardUpdatr in card activation and reissuance flows',
+    detail: 'Cardholders receiving a new or replacement card have an immediate, natural need to update their merchants — this is peak motivation. Partners who connect CardUpdatr to these moments see 21–27% cardholder success rates, the highest tier across the network.',
+    impact: 'high',
+    ruleId: 'activation_reissuance',
+  },
+  {
+    headline: 'Launch a targeted SMS or email campaign',
+    detail: 'A focused campaign drives motivated cardholders to CardUpdatr when they\'re ready to act. Campaign weeks consistently deliver 8–12% success rates across the network — a transformative step up from organic discovery.',
+    impact: 'high',
+    ruleId: 'tier3_incidental',
+  },
+  {
+    headline: 'Enable Source Path Tracking to measure channel effectiveness',
+    detail: 'Once traffic grows, source tracking lets you measure which channels drive the best results — giving you the data to invest confidently in what\'s working.',
+    impact: 'medium',
+    ruleId: 'tier3_incidental',
   },
 ];
 
@@ -662,6 +720,7 @@ function buildMetricsContext(renderCtx, opts = {}) {
   const bestWeekStart = bestWeekEntry ? bestWeekEntry.start : null;
   const bestWeekEnd = bestWeekEntry ? bestWeekEntry.end : null;
   const bestWeekLabel = bestWeekStart && bestWeekEnd ? `${bestWeekStart} – ${bestWeekEnd}` : null;
+  const bestWeekSessions = bestWeekEntry ? (bestWeekEntry.sessions || 0) : 0;
 
   // Integration info
   const integrationTypes = new Set(visibleRows.map(r => (r.integration_type || r.integration || '').toUpperCase()));
@@ -701,8 +760,10 @@ function buildMetricsContext(renderCtx, opts = {}) {
     bestWeekStart,
     bestWeekEnd,
     bestWeekLabel,
+    bestWeekSessions,
 
     // Context flags
+    isLowVolume: totalSessions < LOW_VOLUME_THRESHOLD,
     hasSSO,
     hasMultipleIntegrations,
     hasMultipleFIs,
@@ -769,6 +830,18 @@ function classifyNonSSOTier(rate) {
  * @returns {{ id, section, html, benchmarkKeys[], filterHint? }[]}
  */
 function evaluateNarratives(metricsCtx) {
+  // Low-volume early exit: replace all conversion narratives with traffic-growth messaging
+  if (metricsCtx.isLowVolume) {
+    return LOW_VOLUME_NARRATIVES.map(n => ({
+      id: n.id,
+      metric: n.metric,
+      section: n.section,
+      html: n.narrative(metricsCtx),
+      benchmarkKeys: n.benchmarks || [],
+      filterHint: null,
+    }));
+  }
+
   const isNonSSO = metricsCtx.integrationContext === 'nonsso';
   const isSplitView = metricsCtx.integrationContext === 'sso' || isNonSSO;
   const results = [];
@@ -819,6 +892,27 @@ function evaluateNarratives(metricsCtx) {
  * @returns {{ diagnosis: Object, actions: { headline, detail, impact }[] }}
  */
 function evaluateActions(metricsCtx) {
+  // Low-volume early exit: replace tier-based diagnosis with traffic-growth actions
+  if (metricsCtx.isLowVolume) {
+    const diagnosis = {
+      tier: null,
+      tierInfo: null,
+      isLowVolume: true,
+      metrics: metricsCtx,
+      integrationContext: metricsCtx.integrationContext || 'combined',
+    };
+    return {
+      diagnosis,
+      actions: LOW_VOLUME_ACTIONS.map((a, i) => ({
+        headline: a.headline,
+        detail: typeof a.detail === 'function' ? a.detail(diagnosis) : a.detail,
+        impact: a.impact,
+        ruleId: a.ruleId || 'low_volume',
+        actionIndex: i,
+      })),
+    };
+  }
+
   const isNonSSO = metricsCtx.integrationContext === 'nonsso';
   const hasCalibration = isNonSSO && metricsCtx.launchSuccessPct !== null && metricsCtx.launchSuccessPct !== undefined;
   // When calibration data is available for non-SSO, use launch-based conversion with SSO thresholds
@@ -873,6 +967,20 @@ function evaluateActions(metricsCtx) {
  * @returns {{ current: Object, scenarios: Object[] }}
  */
 function computeProjections(metricsCtx, opts = {}) {
+  // Low-volume early exit: no projection scenarios (section won't render)
+  if (metricsCtx.isLowVolume) {
+    return {
+      current: {
+        sessions: metricsCtx.totalSessions,
+        successRate: metricsCtx.sessionSuccessPct,
+        placements: metricsCtx.successfulPlacements,
+        days: metricsCtx.daySpan,
+        isLowVolume: true,
+      },
+      scenarios: [],
+    };
+  }
+
   const { totalSessions, sessionSuccessPct, successfulPlacements, avgCardsPerSession, daySpan, bestWeekRate } = metricsCtx;
   const cardsPerSession = avgCardsPerSession || 1;
   const isNonSSO = metricsCtx.integrationContext === 'nonsso';
@@ -1001,6 +1109,17 @@ function getAdminInsights(metricsCtx) {
  * @returns {{ currentTier: Object, bestTier: Object|null, html: string }}
  */
 function buildSpectrumDiagnosis(metricsCtx) {
+  if (metricsCtx.isLowVolume) {
+    const sessions = metricsCtx.totalSessions;
+    const swingPp = sessions > 0 ? Math.round(100 / sessions) : 100;
+    return {
+      currentTier: null,
+      bestTier: null,
+      isLowVolume: true,
+      html: `<p>With <strong>${fmtN(sessions)}</strong> visits, there isn't enough data to reliably classify your traffic tier — each individual outcome shifts the measured rate by ~${swingPp} percentage points. As traffic volume builds past ${LOW_VOLUME_THRESHOLD} visits, the motivation spectrum will provide a meaningful diagnosis of your cardholder engagement pattern.</p>`,
+    };
+  }
+
   const rate = metricsCtx.sessionSuccessPct;
   const currentTier = classifyTier(rate);
   const bestTier = metricsCtx.bestWeekRate ? classifyTier(metricsCtx.bestWeekRate) : null;
@@ -1034,6 +1153,17 @@ function buildSpectrumDiagnosis(metricsCtx) {
  * @returns {{ currentTier: Object, bestTier: Object|null, html: string }}
  */
 function buildNonSSOSpectrumDiagnosis(metricsCtx) {
+  if (metricsCtx.isLowVolume) {
+    const sessions = metricsCtx.totalSessions;
+    const swingPp = sessions > 0 ? Math.round(100 / sessions) : 100;
+    return {
+      currentTier: null,
+      bestTier: null,
+      isLowVolume: true,
+      html: `<p>With <strong>${fmtN(sessions)}</strong> visits, there isn't enough data to reliably classify your traffic tier — each individual outcome shifts the measured rate by ~${swingPp} percentage points. As traffic volume builds past ${LOW_VOLUME_THRESHOLD} visits, the motivation spectrum will provide a meaningful diagnosis of your cardholder engagement pattern.</p>`,
+    };
+  }
+
   const hasCalibration = metricsCtx.launchSuccessPct !== null && metricsCtx.launchSuccessPct !== undefined;
 
   if (hasCalibration) {
@@ -1561,6 +1691,7 @@ function buildMonthlyNarrative(quarterLabel, bestMonth) {
 const AL = window.ActionLibrary || {};
 
 window.EngagementInsights = {
+  LOW_VOLUME_THRESHOLD,
   TIER_BOUNDARIES,
   NONSSO_TIER_BOUNDARIES,
   BENCHMARKS,
