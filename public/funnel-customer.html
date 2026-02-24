@@ -5629,6 +5629,14 @@
             const arr = Array.from(fs.partnerSet);
             if (arr.length === 1) params.set("partner", arr[0]);
           }
+          if (fs.__instanceSetTouched && fs.instanceSet && fs.instanceSet.size > 0) {
+            const arr = Array.from(fs.instanceSet);
+            if (arr.length === 1) params.set("instance", arr[0]);
+          }
+          if (fs.__integrationSetTouched && fs.integrationSet && fs.integrationSet.size > 0) {
+            const arr = Array.from(fs.integrationSet);
+            if (arr.length === 1) params.set("integration", arr[0]);
+          }
           // Preserve QBR mode in share link
           if (document.body.classList.contains("qbr-mode")) {
             params.set("mode", "qbr");

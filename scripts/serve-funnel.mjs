@@ -4461,6 +4461,12 @@ const server = http.createServer(async (req, res) => {
         }
         return true;
       });
+      // Sort newest-first (matches realtime page behavior)
+      filteredSessions.sort((a, b) => {
+        const aTime = a.created_on || a.closed_on || '';
+        const bTime = b.created_on || b.closed_on || '';
+        return bTime.localeCompare(aTime);
+      });
       const totals = summarizeTroubleshootSessions(filteredSessions);
       return send(res, 200, {
         date: payload.date,

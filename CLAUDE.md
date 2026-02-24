@@ -7,6 +7,29 @@
 - **PM2 Process**: `sis-api` (NOT sis-metrics)
 - **Deploy command**: `scp -i ~/.ssh/LightsailDefaultKey-us-west-2.pem <local-file> ubuntu@34.220.57.7:/home/ubuntu/strivve-metrics/<path> && ssh -i ~/.ssh/LightsailDefaultKey-us-west-2.pem ubuntu@34.220.57.7 "pm2 restart sis-api"`
 
+## End-of-Session Protocol ("lock it down")
+When the user says "lock it down", "end the session", or similar — run this checklist before signing off:
+1. **Commit all changes**: `git status`, stage relevant files, commit with a clear message summarizing the session's work
+2. **Verify deployment**: Confirm all changed files that were deployed during the session are committed locally (no drift between server and repo)
+3. **Update build history**: Add a dated entry to the `# Build History` section of this file documenting what was built/changed
+4. **Testing checklist review**: Run through the Pre-Deployment Testing Checklist below for any deployed changes, and discuss whether new checks should be added
+5. **Update MEMORY.md**: If any new patterns, gotchas, or conventions were discovered during the session, record them
+
+## Pre-Deployment Testing Checklist
+**Run through these checks before deploying any changes. This is a living checklist — review and update after each working session.**
+
+### Share Link Verification
+After any change to filters, data fetching, share link generation, or view-mode rendering:
+1. **Filter preservation**: Generate a share link with specific filters (partner, instance, FI, integration type, date range). Open the link in a new incognito/private window. Verify all filters are reflected in the URL params and applied on load.
+2. **FI data isolation**: With a single FI or partner selected, generate a share link. Open it and confirm ONLY that FI/partner's data appears — no cross-FI or cross-partner leakage in tables, charts, or insights.
+3. **View-mode lockdown**: Shared links should be read-only. Confirm filter controls are hidden/disabled, no edit capabilities exposed, and the expiration notice displays correctly.
+4. **Page coverage**: If the change touches shared infrastructure (filters.js, passcode-gate.js, serve-funnel.mjs), test share links on ALL pages that support them: `funnel-customer.html`, `funnel.html`, `supported-sites.html`.
+
+### Session Checklist Review
+At the end of each working session, briefly discuss:
+- Did today's changes introduce any new testable surfaces?
+- Should any new checks be added to this list?
+
 ## Key Files
 - `scripts/serve-funnel.mjs` - Main server (very large, ~6100+ lines)
 - `public/assets/js/passcode-gate.js` - Auth, session, activity logging
@@ -135,6 +158,18 @@ All partner-facing content follows engagement-positive tone:
 # Build History
 
 ## Feb 24, 2026
+
+### Troubleshoot Page — Newest-First Sort + UTC Tooltips
+- **Sort fix**: Troubleshoot endpoint (`/troubleshoot/day`) now sorts sessions newest-first, matching realtime page behavior. Previously returned sessions in file-chronological order (oldest-first).
+- **UTC tooltips**: Hovering over Opened, Closed, Created, or Completed timestamps on `troubleshoot.html` now shows the raw UTC value (e.g. `UTC: 2026-02-23T11:18:45.657Z`) — useful when cross-referencing server logs or API responses.
+- **Files**: `scripts/serve-funnel.mjs` (server-side sort), `public/troubleshoot.html` (title attributes)
+
+### Share Link Filter Preservation
+- **Instance + integration filters**: Share link generation on `funnel-customer.html` now includes `instance` and `integration` URL params when those filters are active (previously only `partner` was captured)
+
+### Process: Pre-Deployment Testing Checklist + End-of-Session Protocol
+- Added `## Pre-Deployment Testing Checklist` to CLAUDE.md — share link verification steps (filter preservation, FI data isolation, view-mode lockdown, page coverage)
+- Added `## End-of-Session Protocol` — "lock it down" checklist: commit, verify deployment, update build history, testing review, update memory
 
 ### Low-Volume Guardrails for Insights Engine
 - **Threshold**: `LOW_VOLUME_THRESHOLD = 30` sessions — below this, suppress conversion-quality analysis and replace with traffic-growth messaging
