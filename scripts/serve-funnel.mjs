@@ -758,24 +758,37 @@ async function sendTrafficAlertEmail(recipients, subject, htmlBody) {
   }
 }
 
-function formatAlertEmailHtml(alerts) {
-  const rows = alerts.map(a => {
-    const statusColor = a.status === "dark" ? "#ef4444" : "#f59e0b";
-    const statusLabel = a.status === "dark" ? "DARK" : "LOW";
-    const hoursText = a.hours_since_last != null ? `${a.hours_since_last}h ago` : "unknown";
+function formatAlertEmailHtml(alerts, allFis) {
+  const thStyle = 'padding:8px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:#64748b;';
+  const tdStyle = 'padding:8px 12px;border-bottom:1px solid #e5e7eb;';
+
+  function fiRow(a) {
+    const colors = { dark: "#ef4444", low: "#f59e0b", normal: "#22c55e" };
+    const labels = { dark: "DARK", low: "LOW", normal: "OK" };
+    const statusColor = colors[a.status] || "#94a3b8";
+    const statusLabel = labels[a.status] || a.status;
+    const pct = a.pct_of_baseline != null ? `${Math.round(a.pct_of_baseline)}%` : "-";
     return `
       <tr>
-        <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;">
+        <td style="${tdStyle}">
           <span style="background:${statusColor};color:#fff;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:700;">${statusLabel}</span>
         </td>
-        <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;font-weight:600;">${a.fi_name}</td>
-        <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;">${a.partner}</td>
-        <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;">${a.today_sessions} today</td>
-        <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;">${a.baseline_median}/day baseline</td>
-        <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;">Last session: ${hoursText}</td>
+        <td style="${tdStyle}font-weight:600;">${a.fi_name}</td>
+        <td style="${tdStyle}">${a.partner}</td>
+        <td style="${tdStyle}">${a.today_sessions}</td>
+        <td style="${tdStyle}">${a.baseline_median}/day</td>
+        <td style="${tdStyle}">${pct}</td>
       </tr>
     `;
-  }).join("");
+  }
+
+  const alertRows = alerts.map(fiRow).join("");
+
+  // All monitored FIs sorted: dark first, then low, then normal
+  const normalFis = allFis.filter(f => f.status === "normal");
+  const normalRows = normalFis.length > 0
+    ? normalFis.map(fiRow).join("")
+    : `<tr><td colspan="6" style="${tdStyle}color:#94a3b8;font-style:italic;">No normal FIs</td></tr>`;
 
   return `
     <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:700px;margin:0 auto;">
@@ -783,24 +796,40 @@ function formatAlertEmailHtml(alerts) {
         <h2 style="margin:0;font-size:18px;">Traffic Health Alert</h2>
         <p style="margin:4px 0 0;font-size:13px;opacity:0.7;">${new Date().toUTCString()}</p>
       </div>
-      <div style="background:#ffffff;padding:20px 24px;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 12px 12px;">
-        <p style="margin:0 0 16px;font-size:14px;color:#334155;">${alerts.length} FI${alerts.length === 1 ? "" : "s"} triggered a traffic health alert:</p>
+      <div style="background:#ffffff;padding:20px 24px;border:1px solid #e5e7eb;border-top:none;">
+        <p style="margin:0 0 12px;font-size:14px;color:#334155;font-weight:600;">${alerts.length} FI${alerts.length === 1 ? "" : "s"} need${alerts.length === 1 ? "s" : ""} attention</p>
         <table style="width:100%;border-collapse:collapse;font-size:13px;color:#334155;">
           <thead>
-            <tr style="background:#f8fafc;">
-              <th style="padding:8px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:#64748b;">Status</th>
-              <th style="padding:8px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:#64748b;">FI</th>
-              <th style="padding:8px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:#64748b;">Partner</th>
-              <th style="padding:8px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:#64748b;">Today</th>
-              <th style="padding:8px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:#64748b;">Baseline</th>
-              <th style="padding:8px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:#64748b;">Last Session</th>
+            <tr style="background:#fef2f2;">
+              <th style="${thStyle}">Status</th>
+              <th style="${thStyle}">FI</th>
+              <th style="${thStyle}">Partner</th>
+              <th style="${thStyle}">Today</th>
+              <th style="${thStyle}">Baseline</th>
+              <th style="${thStyle}">% of Baseline</th>
             </tr>
           </thead>
-          <tbody>${rows}</tbody>
+          <tbody>${alertRows}</tbody>
         </table>
-        <p style="margin:16px 0 0;font-size:12px;color:#94a3b8;">
-          <a href="https://sis.strivve.com/dashboards/operations" style="color:#2563eb;">View Operations Dashboard</a> &middot;
-          <a href="https://sis.strivve.com/maintenance.html#trafficHealthSettingsCard" style="color:#2563eb;">Alert Settings</a>
+      </div>
+      <div style="background:#f8fafc;padding:16px 24px;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 12px 12px;">
+        <p style="margin:0 0 8px;font-size:12px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;">All ${allFis.length} Monitored FIs</p>
+        <table style="width:100%;border-collapse:collapse;font-size:12px;color:#64748b;">
+          <thead>
+            <tr>
+              <th style="${thStyle}font-size:10px;">Status</th>
+              <th style="${thStyle}font-size:10px;">FI</th>
+              <th style="${thStyle}font-size:10px;">Partner</th>
+              <th style="${thStyle}font-size:10px;">Today</th>
+              <th style="${thStyle}font-size:10px;">Baseline</th>
+              <th style="${thStyle}font-size:10px;">% of Baseline</th>
+            </tr>
+          </thead>
+          <tbody>${normalRows}</tbody>
+        </table>
+        <p style="margin:12px 0 0;font-size:12px;color:#94a3b8;">
+          <a href="https://34-220-57-7.sslip.io/dashboards/operations" style="color:#2563eb;">View Operations Dashboard</a> &middot;
+          <a href="https://34-220-57-7.sslip.io/maintenance.html#trafficHealthSettingsCard" style="color:#2563eb;">Alert Settings</a>
         </p>
       </div>
     </div>
@@ -868,7 +897,7 @@ async function checkTrafficHealthAlerts() {
       if (darkCount) parts.push(`${darkCount} dark`);
       if (lowCount) parts.push(`${lowCount} low`);
       const subject = `[SIS Alert] Traffic Health: ${parts.join(", ")} — ${newAlerts.map(a => a.fi_name).join(", ")}`;
-      const html = formatAlertEmailHtml(newAlerts);
+      const html = formatAlertEmailHtml(newAlerts, healthData.fis);
       await sendTrafficAlertEmail(recipients, subject, html);
     }
 

@@ -146,6 +146,11 @@
   }
 
   function redirectToLogin() {
+    // Save current page so login can redirect back after auth
+    try {
+      var currentPath = window.location.pathname + window.location.search + window.location.hash;
+      sessionStorage.setItem("sis_login_redirect", currentPath);
+    } catch (e) {}
     // Compute relative path to login based on current location
     var path = window.location.pathname || "";
     var prefix = path.indexOf("/dashboards/") !== -1 ? "../" : "./";
