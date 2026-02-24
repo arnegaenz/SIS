@@ -683,6 +683,212 @@ setInterval(async () => {
 // End Magic Link Authentication
 // ============================================================================
 
+// ============================================================================
+// Traffic Health — module-level cache (shared by endpoint + background monitor)
+// ============================================================================
+let _trafficHealthCache = null;
+let _trafficHealthCacheTime = 0;
+const TRAFFIC_HEALTH_CACHE_TTL = 120000; // 2 minutes (live API calls are heavier)
+
+// ============================================================================
+// Traffic Health Alert Monitor (background)
+// ============================================================================
+
+const TRAFFIC_ALERT_STATE_FILE = path.join(DATA_DIR, "traffic-alert-state.json");
+const TRAFFIC_HEALTH_SETTINGS_FILE_BG = path.join(DATA_DIR, "traffic-health-settings.json");
+const TRAFFIC_ALERT_CHECK_INTERVAL = 15 * 60 * 1000; // 15 minutes
+
+async function loadTrafficAlertSettings() {
+  try {
+    const raw = await fs.readFile(TRAFFIC_HEALTH_SETTINGS_FILE_BG, "utf8");
+    return JSON.parse(raw);
+  } catch {
+    return {};
+  }
+}
+
+async function loadTrafficAlertState() {
+  try {
+    const raw = await fs.readFile(TRAFFIC_ALERT_STATE_FILE, "utf8");
+    return JSON.parse(raw);
+  } catch {
+    return {};
+  }
+}
+
+async function saveTrafficAlertState(state) {
+  await fs.writeFile(TRAFFIC_ALERT_STATE_FILE, JSON.stringify(state, null, 2));
+}
+
+async function sendTrafficAlertEmail(recipients, subject, htmlBody) {
+  if (!SENDGRID_API_KEY) {
+    console.log("[traffic-alert] No SENDGRID_API_KEY — skipping email. Subject:", subject);
+    return;
+  }
+  if (!recipients.length) {
+    console.log("[traffic-alert] No recipients configured — skipping email.");
+    return;
+  }
+
+  const personalizations = recipients.map(email => ({ to: [{ email }] }));
+
+  try {
+    const res = await fetch("https://api.sendgrid.com/v3/mail/send", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${SENDGRID_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        personalizations,
+        from: { email: SENDGRID_FROM_EMAIL, name: "SIS Traffic Alert" },
+        subject,
+        content: [{ type: "text/html", value: htmlBody }],
+      }),
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      console.error("[traffic-alert] SendGrid error:", res.status, text);
+    } else {
+      console.log(`[traffic-alert] Email sent to ${recipients.length} recipient(s): ${subject}`);
+    }
+  } catch (err) {
+    console.error("[traffic-alert] Email send failed:", err.message);
+  }
+}
+
+function formatAlertEmailHtml(alerts) {
+  const rows = alerts.map(a => {
+    const statusColor = a.status === "dark" ? "#ef4444" : "#f59e0b";
+    const statusLabel = a.status === "dark" ? "DARK" : "LOW";
+    const hoursText = a.hours_since_last != null ? `${a.hours_since_last}h ago` : "unknown";
+    return `
+      <tr>
+        <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;">
+          <span style="background:${statusColor};color:#fff;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:700;">${statusLabel}</span>
+        </td>
+        <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;font-weight:600;">${a.fi_name}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;">${a.partner}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;">${a.today_sessions} today</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;">${a.baseline_median}/day baseline</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;">Last session: ${hoursText}</td>
+      </tr>
+    `;
+  }).join("");
+
+  return `
+    <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:700px;margin:0 auto;">
+      <div style="background:#1e293b;color:#f8fafc;padding:16px 24px;border-radius:12px 12px 0 0;">
+        <h2 style="margin:0;font-size:18px;">Traffic Health Alert</h2>
+        <p style="margin:4px 0 0;font-size:13px;opacity:0.7;">${new Date().toUTCString()}</p>
+      </div>
+      <div style="background:#ffffff;padding:20px 24px;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 12px 12px;">
+        <p style="margin:0 0 16px;font-size:14px;color:#334155;">${alerts.length} FI${alerts.length === 1 ? "" : "s"} triggered a traffic health alert:</p>
+        <table style="width:100%;border-collapse:collapse;font-size:13px;color:#334155;">
+          <thead>
+            <tr style="background:#f8fafc;">
+              <th style="padding:8px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:#64748b;">Status</th>
+              <th style="padding:8px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:#64748b;">FI</th>
+              <th style="padding:8px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:#64748b;">Partner</th>
+              <th style="padding:8px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:#64748b;">Today</th>
+              <th style="padding:8px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:#64748b;">Baseline</th>
+              <th style="padding:8px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:#64748b;">Last Session</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+        <p style="margin:16px 0 0;font-size:12px;color:#94a3b8;">
+          <a href="https://sis.strivve.com/dashboards/operations" style="color:#2563eb;">View Operations Dashboard</a> &middot;
+          <a href="https://sis.strivve.com/maintenance.html#trafficHealthSettingsCard" style="color:#2563eb;">Alert Settings</a>
+        </p>
+      </div>
+    </div>
+  `;
+}
+
+async function checkTrafficHealthAlerts() {
+  try {
+    const settings = await loadTrafficAlertSettings();
+    if (!settings.alertEnabled) return;
+
+    const recipients = Array.isArray(settings.alertRecipients) ? settings.alertRecipients.filter(Boolean) : [];
+    if (!recipients.length) return;
+
+    const darkThresholdHours = settings.darkThresholdHours ?? 4;
+    const lowThresholdHours = settings.lowThresholdHours ?? 8;
+    const cooldownHours = settings.cooldownHours ?? 12;
+
+    // Use cached traffic health data if fresh, otherwise skip (don't trigger expensive API calls from background)
+    if (!_trafficHealthCache || (Date.now() - _trafficHealthCacheTime) > 5 * 60 * 1000) {
+      console.log("[traffic-alert] No fresh traffic health data — skipping alert check");
+      return;
+    }
+
+    const healthData = _trafficHealthCache;
+    const alertState = await loadTrafficAlertState();
+    const nowMs = Date.now();
+    const newAlerts = [];
+
+    for (const fi of healthData.fis) {
+      if (fi.status === "normal") {
+        // Clear alert state if FI recovered
+        if (alertState[fi.fi_lookup_key]) {
+          delete alertState[fi.fi_lookup_key];
+        }
+        continue;
+      }
+
+      const thresholdHours = fi.status === "dark" ? darkThresholdHours : lowThresholdHours;
+
+      // Check if FI has been in this state long enough to alert
+      if (fi.hours_since_last != null && fi.hours_since_last < thresholdHours) continue;
+      // For dark FIs where hours_since_last is unknown, use hours_elapsed_today
+      if (fi.hours_since_last == null && healthData.hours_elapsed_today < thresholdHours) continue;
+
+      // Check cooldown
+      const priorAlert = alertState[fi.fi_lookup_key];
+      if (priorAlert) {
+        const hoursSinceAlert = (nowMs - new Date(priorAlert.alertedAt).getTime()) / 3600000;
+        if (hoursSinceAlert < cooldownHours) continue;
+      }
+
+      newAlerts.push(fi);
+      alertState[fi.fi_lookup_key] = {
+        status: fi.status,
+        alertedAt: new Date().toISOString(),
+        hours_since_last: fi.hours_since_last,
+      };
+    }
+
+    if (newAlerts.length > 0) {
+      const darkCount = newAlerts.filter(a => a.status === "dark").length;
+      const lowCount = newAlerts.filter(a => a.status === "low").length;
+      const parts = [];
+      if (darkCount) parts.push(`${darkCount} dark`);
+      if (lowCount) parts.push(`${lowCount} low`);
+      const subject = `[SIS Alert] Traffic Health: ${parts.join(", ")} — ${newAlerts.map(a => a.fi_name).join(", ")}`;
+      const html = formatAlertEmailHtml(newAlerts);
+      await sendTrafficAlertEmail(recipients, subject, html);
+    }
+
+    await saveTrafficAlertState(alertState);
+  } catch (err) {
+    console.error("[traffic-alert] check failed:", err.message);
+  }
+}
+
+// Run alert check every 15 minutes
+setInterval(checkTrafficHealthAlerts, TRAFFIC_ALERT_CHECK_INTERVAL);
+// Also run once 2 minutes after startup (let traffic health cache populate first)
+setTimeout(checkTrafficHealthAlerts, 2 * 60 * 1000);
+
+console.log("[traffic-alert] Background monitor started (checks every 15 min)");
+
+// ============================================================================
+// End Traffic Health Alert Monitor
+// ============================================================================
+
 let synthState = {
   loaded: false,
   jobs: [],
@@ -3103,6 +3309,78 @@ const server = http.createServer(async (req, res) => {
   }
   // ========== End Share Link Settings ==========
 
+  // ========== Traffic Health Settings ==========
+  const TRAFFIC_HEALTH_SETTINGS_FILE = path.join(DATA_DIR, "traffic-health-settings.json");
+
+  if (pathname === "/api/traffic-health-settings" && req.method === "GET") {
+    try {
+      const raw = await fs.readFile(TRAFFIC_HEALTH_SETTINGS_FILE, "utf8").catch(() => "{}");
+      const settings = JSON.parse(raw);
+      if (!settings.minDailySessions) settings.minDailySessions = 5;
+      return send(res, 200, settings);
+    } catch (err) {
+      console.error("[traffic-health-settings] read error:", err);
+      return send(res, 200, { minDailySessions: 5 });
+    }
+  }
+
+  if (pathname === "/api/traffic-health-settings" && req.method === "POST") {
+    const auth = await validateSession(req, queryParams);
+    if (!auth) return send(res, 401, { ok: false });
+    if (auth.user.access_level !== "admin" && auth.user.access_level !== "full") {
+      return send(res, 403, { ok: false, error: "Admin access required" });
+    }
+    try {
+      const body = await readRequestBody(req);
+      const payload = JSON.parse(body || "{}");
+
+      // Load existing settings and merge
+      let existing = {};
+      try {
+        existing = JSON.parse(await fs.readFile(TRAFFIC_HEALTH_SETTINGS_FILE, "utf8"));
+      } catch { /* first save */ }
+
+      // Validate and merge each known field
+      if (payload.minDailySessions !== undefined) {
+        const v = Number(payload.minDailySessions);
+        if (!Number.isFinite(v) || v < 1 || v > 1000) {
+          return send(res, 400, { ok: false, error: "minDailySessions must be between 1 and 1000" });
+        }
+        existing.minDailySessions = v;
+      }
+      if (payload.alertEnabled !== undefined) {
+        existing.alertEnabled = !!payload.alertEnabled;
+      }
+      if (payload.alertRecipients !== undefined) {
+        existing.alertRecipients = Array.isArray(payload.alertRecipients)
+          ? payload.alertRecipients.filter(e => typeof e === "string" && e.includes("@"))
+          : [];
+      }
+      if (payload.darkThresholdHours !== undefined) {
+        const v = Number(payload.darkThresholdHours);
+        if (Number.isFinite(v) && v >= 0.5 && v <= 168) existing.darkThresholdHours = v;
+      }
+      if (payload.lowThresholdHours !== undefined) {
+        const v = Number(payload.lowThresholdHours);
+        if (Number.isFinite(v) && v >= 0.5 && v <= 168) existing.lowThresholdHours = v;
+      }
+      if (payload.cooldownHours !== undefined) {
+        const v = Number(payload.cooldownHours);
+        if (Number.isFinite(v) && v >= 1 && v <= 168) existing.cooldownHours = v;
+      }
+
+      await fs.writeFile(TRAFFIC_HEALTH_SETTINGS_FILE, JSON.stringify(existing, null, 2));
+      // Invalidate cache so next request uses new threshold
+      _trafficHealthCache = null;
+      _trafficHealthCacheTime = 0;
+      return send(res, 200, { ok: true, ...existing });
+    } catch (err) {
+      console.error("[traffic-health-settings] save error:", err);
+      return send(res, 500, { ok: false, error: "Failed to save settings" });
+    }
+  }
+  // ========== End Traffic Health Settings ==========
+
   // ========== End Activity Logging ==========
 
   if (pathname === "/run-update/status") {
@@ -5435,6 +5713,305 @@ const server = http.createServer(async (req, res) => {
       return send(res, 200, { events });
     } catch (err) {
       return send(res, 500, { error: err?.message || "Unable to build ops feed" });
+    }
+  }
+
+  // ── Traffic Health — per-FI daily baseline + LIVE today anomaly detection ──
+  if (pathname === "/api/traffic-health" && req.method === "GET") {
+    const session = await validateSession(req, queryParams);
+    if (!session) {
+      return send(res, 401, { error: "Authentication required" });
+    }
+    try {
+      const now = Date.now();
+      if (_trafficHealthCache && (now - _trafficHealthCacheTime) < TRAFFIC_HEALTH_CACHE_TTL) {
+        return send(res, 200, _trafficHealthCache);
+      }
+
+      const [fiRegistry, instancesFile] = await Promise.all([
+        loadFiRegistrySafe(),
+        readInstancesFile(),
+      ]);
+      const fiMeta = buildFiMetaMap(fiRegistry);
+      const instances = instancesFile.entries || [];
+
+      // Build instance name → FI registry entries lookup
+      const instanceFiMap = new Map(); // instance_name_lower → [registry entries]
+      for (const entry of Object.values(fiRegistry)) {
+        if (!entry || !entry.instance) continue;
+        const instKey = entry.instance.toString().trim().toLowerCase();
+        if (!instanceFiMap.has(instKey)) instanceFiMap.set(instKey, []);
+        instanceFiMap.get(instKey).push({
+          fi_name: entry.fi_name || entry.fi_lookup_key || "",
+          fi_lookup_key: normalizeFiKey(entry.fi_lookup_key || entry.fi_name || ""),
+          partner: entry.partner || "Unknown",
+          instance: entry.instance || "",
+          integration_type: normalizeIntegration(entry.integration_type),
+        });
+      }
+
+      const todayDate = new Date();
+      const todayStr = todayDate.toISOString().slice(0, 10);
+      const baselineEnd = new Date(todayDate);
+      baselineEnd.setUTCDate(baselineEnd.getUTCDate() - 1);
+      const baselineStart = new Date(baselineEnd);
+      baselineStart.setUTCDate(baselineEnd.getUTCDate() - 13); // 14 days back
+      const baselineStartStr = baselineStart.toISOString().slice(0, 10);
+      const baselineEndStr = baselineEnd.toISOString().slice(0, 10);
+
+      const baselineDays = daysBetween(baselineStartStr, baselineEndStr); // 14 days
+
+      // ── Step 1: Load baseline from daily files (yesterday and back) ──
+      const fiDayCounts = new Map(); // fi_key → Map<day, count>
+      const fiDayLatest = new Map(); // fi_key → Map<day, ISO timestamp>
+
+      for (const day of baselineDays) {
+        const dayData = await readSessionDay(day);
+        if (!dayData || !Array.isArray(dayData.sessions)) continue;
+        for (const sess of dayData.sessions) {
+          const instanceRaw = sess._instance || sess.instance || sess.instance_name || sess.org_name || "";
+          const instanceDisplay = formatInstanceDisplay(instanceRaw || "unknown");
+          if (isTestInstanceName(instanceDisplay)) continue;
+
+          const fiKey = normalizeFiKey(
+            sess.financial_institution_lookup_key || sess.fi_lookup_key || sess.fi_name || ""
+          );
+          if (!fiKey) continue;
+
+          if (!fiDayCounts.has(fiKey)) fiDayCounts.set(fiKey, new Map());
+          const dayCounts = fiDayCounts.get(fiKey);
+          dayCounts.set(day, (dayCounts.get(day) || 0) + 1);
+
+          // Track latest created_on for hours_since_last
+          const createdOn = sess.created_on || "";
+          if (createdOn) {
+            if (!fiDayLatest.has(fiKey)) fiDayLatest.set(fiKey, new Map());
+            const dayLatest = fiDayLatest.get(fiKey);
+            const prev = dayLatest.get(day) || "";
+            if (createdOn > prev) dayLatest.set(day, createdOn);
+          }
+        }
+      }
+
+      // ── Step 2: Fetch TODAY's sessions live from CardSavr API (all instances) ──
+      const todayStartIso = `${todayStr}T00:00:00Z`;
+      const nowIso = todayDate.toISOString();
+      const liveCounts = new Map();  // fi_key → count
+      const liveLatest = new Map();  // fi_key → latest ISO timestamp
+      const instanceErrors = [];
+
+      console.log(`[traffic-health] Querying ${instances.length} instances for live sessions...`);
+
+      const liveResults = await Promise.allSettled(
+        instances.map(async (instConfig) => {
+          const instName = instConfig.name || "";
+          try {
+            const { session: sdkSession } = await loginWithSdk(instConfig);
+            const resp = await sdkSession.get("cardholder_sessions", {
+              created_on_min: todayStartIso,
+              created_on_max: nowIso,
+            }, {});
+
+            const sessions = Array.isArray(resp?.body) ? resp.body :
+                             Array.isArray(resp) ? resp : [];
+
+            // Page through if needed — read total from paging header
+            let allSessions = [...sessions];
+            let rawHeader = resp?.headers?.get
+              ? resp.headers.get("x-cardsavr-paging")
+              : resp?.headers?.["x-cardsavr-paging"];
+
+            while (rawHeader) {
+              let paging;
+              try { paging = JSON.parse(rawHeader); } catch { break; }
+              const page = Number(paging.page) || 1;
+              const pageLength = Number(paging.page_length) || 0;
+              const totalResults = Number(paging.total_results) || 0;
+              if (pageLength === 0 || page * pageLength >= totalResults) break;
+
+              const nextResp = await sdkSession.get("cardholder_sessions", {
+                created_on_min: todayStartIso,
+                created_on_max: nowIso,
+              }, { "x-cardsavr-paging": JSON.stringify({ ...paging, page: page + 1 }) });
+
+              const nextRows = Array.isArray(nextResp?.body) ? nextResp.body :
+                               Array.isArray(nextResp) ? nextResp : [];
+              allSessions.push(...nextRows);
+
+              rawHeader = nextResp?.headers?.get
+                ? nextResp.headers.get("x-cardsavr-paging")
+                : nextResp?.headers?.["x-cardsavr-paging"];
+            }
+
+            // Count per FI key
+            for (const sess of allSessions) {
+              const instanceRaw = sess._instance || sess.instance || sess.instance_name || sess.org_name || instName;
+              const instanceDisplay = formatInstanceDisplay(instanceRaw || "unknown");
+              if (isTestInstanceName(instanceDisplay)) continue;
+
+              const fiKey = normalizeFiKey(
+                sess.financial_institution_lookup_key || sess.fi_lookup_key || sess.fi_name || ""
+              );
+              if (!fiKey) continue;
+
+              liveCounts.set(fiKey, (liveCounts.get(fiKey) || 0) + 1);
+
+              const createdOn = sess.created_on || "";
+              if (createdOn) {
+                const prev = liveLatest.get(fiKey) || "";
+                if (createdOn > prev) liveLatest.set(fiKey, createdOn);
+              }
+            }
+
+            console.log(`[traffic-health]   ${instName}: ${allSessions.length} sessions today`);
+            return { instance: instName, count: allSessions.length };
+          } catch (err) {
+            console.warn(`[traffic-health]   ${instName}: FAILED - ${err.message}`);
+            instanceErrors.push(instName);
+            return { instance: instName, count: 0, error: err.message };
+          }
+        })
+      );
+
+      // Merge live today counts into fiDayCounts
+      for (const [fiKey, count] of liveCounts.entries()) {
+        if (!fiDayCounts.has(fiKey)) fiDayCounts.set(fiKey, new Map());
+        fiDayCounts.get(fiKey).set(todayStr, count);
+      }
+      for (const [fiKey, ts] of liveLatest.entries()) {
+        if (!fiDayLatest.has(fiKey)) fiDayLatest.set(fiKey, new Map());
+        fiDayLatest.get(fiKey).set(todayStr, ts);
+      }
+
+      // ── Step 3: Compute baselines and classify ──
+      // Read configurable threshold from settings
+      let MIN_AVG_SESSIONS = 5;
+      try {
+        const threshRaw = await fs.readFile(TRAFFIC_HEALTH_SETTINGS_FILE, "utf8").catch(() => "{}");
+        const threshSettings = JSON.parse(threshRaw);
+        if (Number.isFinite(threshSettings.minDailySessions) && threshSettings.minDailySessions >= 1) {
+          MIN_AVG_SESSIONS = threshSettings.minDailySessions;
+        }
+      } catch { /* use default */ }
+      const nowMs = Date.now();
+      const todayStartMs = new Date(`${todayStr}T00:00:00Z`).getTime();
+      const hoursElapsed = Math.max(0, (nowMs - todayStartMs) / 3600000);
+
+      const allDays = [...baselineDays, todayStr]; // 14 baseline + today = 15
+
+      const fis = [];
+      for (const [fiKey, dayCounts] of fiDayCounts.entries()) {
+        const baselineCounts = baselineDays.map(d => dayCounts.get(d) || 0);
+        const baselineSum = baselineCounts.reduce((a, b) => a + b, 0);
+        const baselineAvg = baselineSum / baselineDays.length;
+
+        if (baselineAvg < MIN_AVG_SESSIONS) continue;
+
+        const sortedBaseline = [...baselineCounts].sort((a, b) => a - b);
+        const mid = Math.floor(sortedBaseline.length / 2);
+        const baselineMedian = sortedBaseline.length % 2 === 0
+          ? (sortedBaseline[mid - 1] + sortedBaseline[mid]) / 2
+          : sortedBaseline[mid];
+
+        const todaySessions = dayCounts.get(todayStr) || 0;
+        const yesterdaySessions = dayCounts.get(baselineEndStr) || 0;
+
+        let todayProjected = todaySessions;
+        if (hoursElapsed >= 1) {
+          todayProjected = (todaySessions / hoursElapsed) * 24;
+        }
+
+        // Status classification
+        let status = "normal";
+        if (todaySessions === 0 && yesterdaySessions === 0) {
+          status = "dark";
+        } else if (todaySessions === 0 && hoursElapsed >= 6) {
+          status = "dark";
+        } else if (hoursElapsed >= 6 && baselineMedian > 0 && todayProjected < baselineMedian * 0.5) {
+          status = "low";
+        }
+
+        // hours_since_last: for dark/low, scan latest timestamps
+        let hoursSinceLast = null;
+        if (status !== "normal") {
+          const latestMap = fiDayLatest.get(fiKey);
+          if (latestMap) {
+            let lastTs = null;
+            for (let i = allDays.length - 1; i >= 0; i--) {
+              const ts = latestMap.get(allDays[i]);
+              if (ts) { lastTs = ts; break; }
+            }
+            if (lastTs) {
+              hoursSinceLast = Math.round(((nowMs - new Date(lastTs).getTime()) / 3600000) * 10) / 10;
+            }
+          }
+        }
+
+        const pctOfBaseline = baselineMedian > 0
+          ? Math.round((todayProjected / baselineMedian) * 100)
+          : (todaySessions > 0 ? 999 : 0);
+
+        const fiEntry = fiMeta.get(fiKey);
+        // Find instance from registry
+        let instEntry = null;
+        for (const [, entries] of instanceFiMap.entries()) {
+          const match = entries.find(e => normalizeFiKey(e.fi_lookup_key) === fiKey);
+          if (match) { instEntry = match; break; }
+        }
+
+        const dailyCounts = allDays.map(d => dayCounts.get(d) || 0);
+
+        fis.push({
+          fi_name: fiEntry?.fi || instEntry?.fi_name || fiKey,
+          fi_lookup_key: fiKey,
+          partner: fiEntry?.partner || instEntry?.partner || "Unknown",
+          instance: instEntry?.instance || "",
+          integration_type: fiEntry?.integration || instEntry?.integration_type || "UNKNOWN",
+          status,
+          today_sessions: todaySessions,
+          today_projected: Math.round(todayProjected),
+          yesterday_sessions: yesterdaySessions,
+          baseline_median: Math.round(baselineMedian * 10) / 10,
+          baseline_avg: Math.round(baselineAvg * 10) / 10,
+          hours_since_last: hoursSinceLast,
+          pct_of_baseline: pctOfBaseline,
+          daily_counts: dailyCounts,
+        });
+      }
+
+      // Sort: dark first → low → normal; within status, by pct_of_baseline asc
+      const statusOrder = { dark: 0, low: 1, normal: 2 };
+      fis.sort((a, b) => {
+        const so = (statusOrder[a.status] ?? 9) - (statusOrder[b.status] ?? 9);
+        if (so !== 0) return so;
+        return a.pct_of_baseline - b.pct_of_baseline;
+      });
+
+      const summary = {
+        dark: fis.filter(f => f.status === "dark").length,
+        low: fis.filter(f => f.status === "low").length,
+        normal: fis.filter(f => f.status === "normal").length,
+        total_monitored: fis.length,
+      };
+
+      const result = {
+        generated_at: new Date().toISOString(),
+        baseline_days: 14,
+        min_volume_threshold: MIN_AVG_SESSIONS,
+        hours_elapsed_today: Math.round(hoursElapsed * 10) / 10,
+        data_source: "live",
+        instances_queried: instances.length,
+        instances_failed: instanceErrors,
+        summary,
+        fis,
+      };
+
+      _trafficHealthCache = result;
+      _trafficHealthCacheTime = Date.now();
+      return send(res, 200, result);
+    } catch (err) {
+      console.error("[traffic-health] error:", err);
+      return send(res, 500, { error: err?.message || "Unable to compute traffic health" });
     }
   }
 

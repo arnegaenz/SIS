@@ -12,6 +12,7 @@ import {
   startAutoRefresh,
   formatRelativeTime,
   opsHealthColor,
+  trafficHealthColor,
 } from "./dashboard-utils.js";
 
 const TIME_WINDOWS = [3, 30, 90, 180];
@@ -41,6 +42,22 @@ const els = {
   fiInstanceTableMeta: document.getElementById("fiInstanceTableMeta"),
 };
 
+const trafficEls = {
+  section: document.getElementById("trafficHealthSection"),
+  banner: document.getElementById("trafficHealthBanner"),
+  grid: document.getElementById("trafficHealthGrid"),
+  kioskWrap: document.getElementById("kioskTrafficHealth"),
+  kioskBanner: document.getElementById("kioskTrafficBanner"),
+  kioskGrid: document.getElementById("kioskTrafficGrid"),
+  detailOverlay: document.getElementById("trafficDetailOverlay"),
+  detailModal: document.getElementById("trafficDetailModal"),
+  detailName: document.getElementById("trafficDetailName"),
+  detailSubtitle: document.getElementById("trafficDetailSubtitle"),
+  detailStats: document.getElementById("trafficDetailStats"),
+  detailChart: document.getElementById("trafficDetailChart"),
+  detailClose: document.getElementById("trafficDetailClose"),
+};
+
 const state = {
   windowDays: 30,
   fiScope: "all",
@@ -48,12 +65,14 @@ const state = {
   instanceList: [],
   merchantList: [],
   data: null,
+  trafficHealth: null,
   loading: false,
   merchantSortKey: "Jobs_Failed",
   merchantSortDir: "desc",
   fiSortKey: "Jobs_Failed",
   fiSortDir: "desc",
   includeTests: false,
+  trafficShowNormal: false,
 };
 
 const fiSelect = createMultiSelect(document.getElementById("fiSelect"), {
@@ -644,13 +663,14 @@ async function fetchEventFeed() {
 function initKioskLayout() {
   // Hide normal dashboard sections
   const normalSections = document.querySelectorAll(
-    ".dashboard-grid, .dashboard-grid.two, .section-title, .table-wrap"
+    ".dashboard-grid, .dashboard-grid.two, .section-title, .table-wrap, #trafficHealthSection"
   );
   normalSections.forEach((el) => (el.style.display = "none"));
 
   // Show kiosk containers
   if (kioskEls.kpiRow) kioskEls.kpiRow.style.display = "";
   if (kioskEls.split) kioskEls.split.style.display = "";
+  if (trafficEls.kioskWrap) trafficEls.kioskWrap.style.display = "";
 
   // Add "Include test data" checkbox to kiosk header
   const headerStatus = document.querySelector(".kiosk-header__status");
@@ -679,9 +699,274 @@ function renderKioskView() {
 
 async function kioskRefresh() {
   await fetchOpsTrends();
-  await fetchMetrics();
+  await Promise.all([fetchMetrics(), fetchTrafficHealth()]);
   await fetchEventFeed();
 }
+
+/* ── Traffic Health ── */
+
+async function fetchTrafficHealth() {
+  try {
+    const res = await fetch("/api/traffic-health");
+    if (!res.ok) return;
+    const data = await res.json();
+    state.trafficHealth = data;
+    if (isKioskMode()) {
+      renderKioskTrafficHealth(data);
+    } else {
+      renderTrafficHealth(data);
+    }
+  } catch (err) {
+    console.warn("[operations] traffic health fetch failed", err);
+  }
+}
+
+function buildTrafficSparkline(dailyCounts, baseline, status) {
+  const count = dailyCounts.length;
+  if (!count) return "";
+  const maxVal = Math.max(...dailyCounts, baseline, 1);
+  const w = 120;
+  const h = 32;
+  const barW = Math.max(2, (w - (count - 1) * 2) / count);
+  const bars = dailyCounts
+    .map((val, i) => {
+      const barH = Math.max(1, (val / maxVal) * (h - 2));
+      const x = i * (barW + 2);
+      const y = h - barH;
+      const isToday = i === count - 1;
+      let fill;
+      if (isToday) {
+        fill = status === "dark" ? "#ef4444" : status === "low" ? "#f59e0b" : "#22c55e";
+      } else {
+        fill = "var(--muted)";
+      }
+      return `<rect x="${x}" y="${y}" width="${barW}" height="${barH}" rx="1" fill="${fill}" opacity="${isToday ? 1 : 0.35}" />`;
+    })
+    .join("");
+
+  // Dashed baseline line
+  const baselineY = h - Math.max(1, (baseline / maxVal) * (h - 2));
+  const lineW = count * (barW + 2) - 2;
+  const baselineLine = baseline > 0
+    ? `<line x1="0" y1="${baselineY}" x2="${lineW}" y2="${baselineY}" stroke="var(--muted)" stroke-width="1" stroke-dasharray="3,2" opacity="0.5" />`
+    : "";
+
+  return `<svg class="traffic-tile__sparkline" width="${lineW}" height="${h}" viewBox="0 0 ${lineW} ${h}">${bars}${baselineLine}</svg>`;
+}
+
+function renderTrafficHealthBanner(data, bannerEl) {
+  if (!bannerEl) return;
+  const { dark, low } = data.summary;
+  const threshold = data.min_volume_threshold || 5;
+  const isAdmin = window.sisAuth && ["admin", "full", "internal"].includes(window.sisAuth.getAccessLevel?.());
+  const thresholdText = isAdmin
+    ? `<a href="../maintenance.html#trafficHealthSettingsCard" style="color:inherit;text-decoration:underline;text-decoration-style:dotted;">${threshold}+ sessions/day</a>`
+    : `${threshold}+ sessions/day`;
+  const monitorNote = `<span style="font-weight:400;font-size:0.75rem;opacity:0.8;margin-left:6px;">(${data.summary.total_monitored} FIs averaging ${thresholdText})</span>`;
+
+  if (dark === 0 && low === 0) {
+    bannerEl.innerHTML = `<div class="traffic-health-banner all-clear">All clear — ${data.summary.total_monitored} FIs reporting normal traffic ${monitorNote}</div>`;
+  } else if (dark > 0) {
+    const parts = [];
+    if (dark > 0) parts.push(`${dark} dark`);
+    if (low > 0) parts.push(`${low} low`);
+    bannerEl.innerHTML = `<div class="traffic-health-banner has-issues">${parts.join(", ")} ${monitorNote}</div>`;
+  } else {
+    bannerEl.innerHTML = `<div class="traffic-health-banner has-warnings">${low} low volume ${monitorNote}</div>`;
+  }
+}
+
+function renderTrafficTile(fi) {
+  const sparkline = buildTrafficSparkline(fi.daily_counts, fi.baseline_median, fi.status);
+  let statsHtml;
+  if (fi.status === "dark") {
+    const hoursAgo = fi.hours_since_last != null ? `${fi.hours_since_last}h ago` : "unknown";
+    statsHtml = `DARK &mdash; last session <strong>${hoursAgo}</strong>`;
+  } else if (fi.status === "low") {
+    statsHtml = `Today: <strong>${fi.today_sessions}</strong> sessions (<strong>${fi.pct_of_baseline}%</strong> of baseline)`;
+  } else {
+    statsHtml = `Today: <strong>${fi.today_sessions}</strong> sessions (<strong>${fi.pct_of_baseline}%</strong> of baseline)`;
+  }
+
+  return `
+    <div class="traffic-tile status-${fi.status}" data-fi-key="${fi.fi_lookup_key}">
+      <div class="traffic-tile__header">
+        <span class="traffic-tile__name" title="${fi.fi_name}">${fi.fi_name}</span>
+        <span class="traffic-tile__status-badge ${fi.status}">${fi.status.toUpperCase()}</span>
+      </div>
+      <div class="traffic-tile__partner">${fi.partner}</div>
+      <div class="traffic-tile__stats">${statsHtml}</div>
+      ${sparkline}
+    </div>
+  `;
+}
+
+function renderTrafficHealth(data) {
+  if (!data || !data.fis) return;
+  renderTrafficHealthBanner(data, trafficEls.banner);
+
+  const anomalies = data.fis.filter(f => f.status !== "normal");
+  const normals = data.fis.filter(f => f.status === "normal");
+
+  let html = anomalies.map(renderTrafficTile).join("");
+
+  if (normals.length > 0) {
+    if (state.trafficShowNormal) {
+      html += normals.map(renderTrafficTile).join("");
+      html += `<div class="traffic-health-expand" id="trafficToggleNormal">Hide ${normals.length} normal FIs</div>`;
+    } else {
+      html += `<div class="traffic-health-expand" id="trafficToggleNormal">Show ${normals.length} normal FIs</div>`;
+    }
+  }
+
+  if (trafficEls.grid) {
+    trafficEls.grid.innerHTML = html;
+
+    // Bind toggle
+    const toggle = document.getElementById("trafficToggleNormal");
+    if (toggle) {
+      toggle.addEventListener("click", () => {
+        state.trafficShowNormal = !state.trafficShowNormal;
+        renderTrafficHealth(state.trafficHealth);
+      });
+    }
+
+    // Bind tile clicks → detail modal
+    trafficEls.grid.querySelectorAll(".traffic-tile").forEach(tile => {
+      tile.addEventListener("click", () => {
+        const fiKey = tile.dataset.fiKey;
+        const fi = data.fis.find(f => f.fi_lookup_key === fiKey);
+        if (fi) renderTrafficDetailModal(fi, data);
+      });
+    });
+  }
+}
+
+function renderKioskTrafficHealth(data) {
+  if (!data || !data.fis) return;
+  if (trafficEls.kioskWrap) trafficEls.kioskWrap.style.display = "";
+  renderTrafficHealthBanner(data, trafficEls.kioskBanner);
+
+  if (trafficEls.kioskGrid) {
+    trafficEls.kioskGrid.innerHTML = data.fis.map(renderTrafficTile).join("");
+
+    trafficEls.kioskGrid.querySelectorAll(".traffic-tile").forEach(tile => {
+      tile.addEventListener("click", () => {
+        const fiKey = tile.dataset.fiKey;
+        const fi = data.fis.find(f => f.fi_lookup_key === fiKey);
+        if (fi) renderTrafficDetailModal(fi, data);
+      });
+    });
+  }
+}
+
+function renderTrafficDetailModal(fi, data) {
+  if (!trafficEls.detailOverlay) return;
+
+  trafficEls.detailName.textContent = fi.fi_name;
+  trafficEls.detailSubtitle.textContent = `${fi.partner} · ${fi.instance || fi.integration_type}`;
+
+  // Stats grid
+  const statItems = [
+    { label: "Status", value: fi.status.toUpperCase(), color: trafficHealthColor(fi.status) },
+    { label: "Today", value: `${fi.today_sessions} sessions` },
+    { label: "Projected", value: `${fi.today_projected} sessions` },
+    { label: "Baseline (median)", value: `${fi.baseline_median}/day` },
+    { label: "Baseline (avg)", value: `${fi.baseline_avg}/day` },
+    { label: "Yesterday", value: `${fi.yesterday_sessions} sessions` },
+    { label: "% of Baseline", value: `${fi.pct_of_baseline}%` },
+    { label: "Hours Since Last", value: fi.hours_since_last != null ? `${fi.hours_since_last}h` : "N/A" },
+  ];
+
+  trafficEls.detailStats.innerHTML = statItems
+    .map(s => {
+      const colorStyle = s.color ? ` style="color:${s.color === 'red' ? '#ef4444' : s.color === 'amber' ? '#f59e0b' : '#22c55e'}"` : "";
+      return `
+        <div class="partner-detail-panel__stat">
+          <div class="partner-detail-panel__stat-value"${colorStyle}>${s.value}</div>
+          <div class="partner-detail-panel__stat-label">${s.label}</div>
+        </div>
+      `;
+    })
+    .join("");
+
+  // Bar chart: 15 daily counts with baseline line
+  const counts = fi.daily_counts;
+  const baseline = fi.baseline_median;
+  const maxVal = Math.max(...counts, baseline, 1);
+  const chartW = 560;
+  const chartH = 160;
+  const padding = 30;
+  const barCount = counts.length;
+  const barW = Math.max(8, (chartW - padding * 2 - (barCount - 1) * 4) / barCount);
+  const usableH = chartH - padding - 10;
+
+  let bars = "";
+  counts.forEach((val, i) => {
+    const barH = Math.max(1, (val / maxVal) * usableH);
+    const x = padding + i * (barW + 4);
+    const y = chartH - padding - barH;
+    const isToday = i === barCount - 1;
+    let fill;
+    if (isToday) {
+      fill = fi.status === "dark" ? "#ef4444" : fi.status === "low" ? "#f59e0b" : "#22c55e";
+    } else {
+      fill = "var(--accent)";
+    }
+    bars += `<rect x="${x}" y="${y}" width="${barW}" height="${barH}" rx="3" fill="${fill}" opacity="${isToday ? 1 : 0.4}" />`;
+    // Value label on top
+    if (val > 0) {
+      bars += `<text x="${x + barW / 2}" y="${y - 4}" text-anchor="middle" fill="var(--muted)" font-size="9">${val}</text>`;
+    }
+  });
+
+  // Baseline dashed line
+  const baselineY = chartH - padding - Math.max(1, (baseline / maxVal) * usableH);
+  const lineX2 = padding + (barCount - 1) * (barW + 4) + barW;
+  const baselineLine = `<line x1="${padding}" y1="${baselineY}" x2="${lineX2}" y2="${baselineY}" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="6,3" />`;
+  const baselineLabel = `<text x="${lineX2 + 4}" y="${baselineY + 3}" fill="#f59e0b" font-size="9">median</text>`;
+
+  // Day labels (first, middle, last)
+  const hoursInfo = data.hours_elapsed_today != null ? `${data.hours_elapsed_today}h elapsed today` : "";
+  const dayLabels = [0, Math.floor(barCount / 2), barCount - 1].map(i => {
+    const x = padding + i * (barW + 4) + barW / 2;
+    const label = i === barCount - 1 ? "Today" : `-${barCount - 1 - i}d`;
+    return `<text x="${x}" y="${chartH - 6}" text-anchor="middle" fill="var(--muted)" font-size="9">${label}</text>`;
+  }).join("");
+
+  trafficEls.detailChart.innerHTML = `
+    <svg width="100%" height="${chartH}" viewBox="0 0 ${chartW + 40} ${chartH}">
+      ${bars}
+      ${baselineLine}
+      ${baselineLabel}
+      ${dayLabels}
+    </svg>
+    ${hoursInfo ? `<div style="text-align:right;font-size:0.72rem;color:var(--muted);margin-top:4px;">${hoursInfo}</div>` : ""}
+  `;
+
+  // Show modal
+  trafficEls.detailOverlay.style.display = "";
+  requestAnimationFrame(() => trafficEls.detailOverlay.classList.add("open"));
+}
+
+function closeTrafficDetail() {
+  if (!trafficEls.detailOverlay) return;
+  trafficEls.detailOverlay.classList.remove("open");
+  setTimeout(() => { trafficEls.detailOverlay.style.display = "none"; }, 200);
+}
+
+// Bind modal close handlers
+if (trafficEls.detailClose) {
+  trafficEls.detailClose.addEventListener("click", closeTrafficDetail);
+}
+if (trafficEls.detailOverlay) {
+  trafficEls.detailOverlay.addEventListener("click", (e) => {
+    if (e.target === trafficEls.detailOverlay) closeTrafficDetail();
+  });
+}
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") closeTrafficDetail();
+});
 
 /* ── Init ── */
 
@@ -722,6 +1007,7 @@ function init() {
       });
     }
     fetchMetrics();
+    fetchTrafficHealth();
   }
 }
 

@@ -736,6 +736,21 @@
         grid-column: auto;
       }
     }
+    /* Toggle switch */
+    .alert-toggle-row { display: flex; align-items: center; gap: 10px; }
+    .alert-toggle { position: relative; width: 44px; height: 24px; flex-shrink: 0; }
+    .alert-toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
+    .alert-toggle-slider {
+      position: absolute; cursor: pointer; inset: 0;
+      background: rgba(148, 163, 184, 0.25); border-radius: 24px; transition: background 0.2s;
+    }
+    .alert-toggle-slider::before {
+      content: ""; position: absolute; left: 3px; top: 3px;
+      width: 18px; height: 18px; background: #fff; border-radius: 50%; transition: transform 0.2s;
+    }
+    .alert-toggle input:checked + .alert-toggle-slider { background: #22c55e; }
+    .alert-toggle input:checked + .alert-toggle-slider::before { transform: translateX(20px); }
+    .alert-toggle-label { font-size: 14px; font-weight: 600; color: var(--panel-title); user-select: none; cursor: pointer; }
   </style>
   <script defer src="./assets/js/card-tooltips.js"></script>
 </head>
@@ -1194,6 +1209,74 @@
           <div class="refresh-status">
             <p>Status</p>
             <div class="status-line" id="shareTtlStatus">Loading…</div>
+          </div>
+        </article>
+
+        <article class="maint-card" id="trafficHealthSettingsCard">
+          <div>
+            <h2>Traffic Health Monitoring</h2>
+            <p class="description">FIs averaging fewer than this many sessions per day (over a 14-day baseline) are excluded from traffic health monitoring on the Operations Dashboard. Lower values monitor more FIs but may produce noise from naturally low-volume partners.</p>
+          </div>
+          <div class="instances-controls">
+            <label>
+              Minimum daily sessions
+              <input type="number" id="trafficMinSessionsInput" min="1" max="1000" step="1" value="5" style="width:140px;" />
+            </label>
+            <div class="instance-actions">
+              <button class="btn" id="trafficMinSessionsSaveBtn" type="button">Save</button>
+            </div>
+          </div>
+          <div class="refresh-status">
+            <p>Status</p>
+            <div class="status-line" id="trafficMinSessionsStatus">Loading…</div>
+          </div>
+        </article>
+
+        <article class="maint-card" id="trafficHealthAlertsCard">
+          <div>
+            <h2>Traffic Health Alerts</h2>
+            <p class="description">Send email alerts when FIs go dark or show abnormally low traffic. The background monitor checks every 15 minutes and uses cached traffic health data from the Operations Dashboard.</p>
+          </div>
+          <div class="instances-controls" style="flex-direction:column;gap:12px;align-items:stretch;">
+            <div class="alert-toggle-row">
+              <label class="alert-toggle">
+                <input type="checkbox" id="alertEnabledCheckbox" />
+                <span class="alert-toggle-slider"></span>
+              </label>
+              <span class="alert-toggle-label" onclick="document.getElementById('alertEnabledCheckbox').click()">Email alerts</span>
+            </div>
+            <div>
+              <label style="font-size:13px;font-weight:600;">Alert recipients</label>
+              <div id="alertRecipientsList" style="margin:6px 0;display:flex;flex-wrap:wrap;gap:6px;"></div>
+              <div style="display:flex;gap:6px;align-items:center;">
+                <input type="email" id="alertAddEmailInput" placeholder="email@example.com" style="width:220px;padding:6px 10px;border:1px solid var(--border-color,#d1d5db);border-radius:6px;font-size:13px;background:var(--panel-bg,#fff);color:var(--text-primary,#1e293b);" />
+                <button class="btn" id="alertAddEmailBtn" type="button" style="padding:6px 12px;font-size:13px;">Add</button>
+              </div>
+            </div>
+            <div style="display:flex;gap:16px;flex-wrap:wrap;">
+              <label style="font-size:13px;">
+                Dark alert after
+                <input type="number" id="alertDarkThresholdInput" min="0.5" max="168" step="0.5" value="4" style="width:70px;" />
+                hours
+              </label>
+              <label style="font-size:13px;">
+                Low alert after
+                <input type="number" id="alertLowThresholdInput" min="0.5" max="168" step="0.5" value="8" style="width:70px;" />
+                hours
+              </label>
+              <label style="font-size:13px;">
+                Cooldown
+                <input type="number" id="alertCooldownInput" min="1" max="168" step="1" value="12" style="width:70px;" />
+                hours
+              </label>
+            </div>
+            <div class="instance-actions">
+              <button class="btn" id="alertSettingsSaveBtn" type="button">Save Alert Settings</button>
+            </div>
+          </div>
+          <div class="refresh-status">
+            <p>Status</p>
+            <div class="status-line" id="alertSettingsStatus">Loading…</div>
           </div>
         </article>
       </div>
@@ -3466,6 +3549,164 @@
       });
 
       loadShareSettings();
+    })();
+
+    // ── Traffic Health Settings ──
+    (function() {
+      const input = document.getElementById("trafficMinSessionsInput");
+      const saveBtn = document.getElementById("trafficMinSessionsSaveBtn");
+      const statusEl = document.getElementById("trafficMinSessionsStatus");
+      if (!input || !saveBtn || !statusEl) return;
+
+      async function loadTrafficHealthSettings() {
+        try {
+          const res = await fetch(apiBase + "/api/traffic-health-settings", { cache: "no-store" });
+          const data = await res.json();
+          const val = data.minDailySessions ?? 5;
+          input.value = val;
+          statusEl.textContent = "Current: " + val + " session" + (val === 1 ? "" : "s") + "/day minimum";
+        } catch (e) {
+          statusEl.textContent = "Failed to load settings";
+        }
+      }
+
+      saveBtn.addEventListener("click", async function() {
+        const val = parseInt(input.value);
+        if (!Number.isFinite(val) || val < 1 || val > 1000) {
+          statusEl.textContent = "Invalid value. Must be between 1 and 1000.";
+          return;
+        }
+        saveBtn.disabled = true;
+        statusEl.textContent = "Saving…";
+        try {
+          const token = getSessionToken();
+          const res = await fetch(apiBase + "/api/traffic-health-settings", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+            body: JSON.stringify({ minDailySessions: val })
+          });
+          const data = await res.json();
+          if (data.ok) {
+            statusEl.textContent = "Saved: " + data.minDailySessions + " session" + (data.minDailySessions === 1 ? "" : "s") + "/day minimum";
+          } else {
+            statusEl.textContent = "Error: " + (data.error || "Failed to save");
+          }
+        } catch (e) {
+          statusEl.textContent = "Error: " + e.message;
+        }
+        saveBtn.disabled = false;
+      });
+
+      loadTrafficHealthSettings();
+    })();
+
+    // ── Traffic Health Alerts ──
+    (function() {
+      const enabledCb = document.getElementById("alertEnabledCheckbox");
+      const recipientsList = document.getElementById("alertRecipientsList");
+      const addEmailInput = document.getElementById("alertAddEmailInput");
+      const addEmailBtn = document.getElementById("alertAddEmailBtn");
+      const darkInput = document.getElementById("alertDarkThresholdInput");
+      const lowInput = document.getElementById("alertLowThresholdInput");
+      const cooldownInput = document.getElementById("alertCooldownInput");
+      const saveBtn = document.getElementById("alertSettingsSaveBtn");
+      const statusEl = document.getElementById("alertSettingsStatus");
+      if (!enabledCb || !saveBtn || !statusEl) return;
+
+      let recipients = [];
+
+      function renderRecipients() {
+        recipientsList.innerHTML = "";
+        if (recipients.length === 0) {
+          recipientsList.innerHTML = '<span style="font-size:12px;color:var(--text-muted,#94a3b8);">No recipients added</span>';
+          return;
+        }
+        recipients.forEach(function(email, i) {
+          const pill = document.createElement("span");
+          pill.style.cssText = "display:inline-flex;align-items:center;gap:4px;padding:3px 10px;background:var(--hover-bg,#f1f5f9);border:1px solid var(--border-color,#d1d5db);border-radius:20px;font-size:12px;color:var(--text-primary,#334155);";
+          pill.textContent = email;
+          const removeBtn = document.createElement("button");
+          removeBtn.textContent = "\u00d7";
+          removeBtn.style.cssText = "border:none;background:none;cursor:pointer;font-size:16px;line-height:1;color:var(--text-muted,#94a3b8);padding:0 2px;";
+          removeBtn.title = "Remove " + email;
+          removeBtn.addEventListener("click", function() {
+            recipients.splice(i, 1);
+            renderRecipients();
+          });
+          pill.appendChild(removeBtn);
+          recipientsList.appendChild(pill);
+        });
+      }
+
+      addEmailBtn.addEventListener("click", function() {
+        const email = addEmailInput.value.trim().toLowerCase();
+        if (!email || !email.includes("@") || !email.includes(".")) {
+          addEmailInput.style.borderColor = "#ef4444";
+          setTimeout(function() { addEmailInput.style.borderColor = ""; }, 1500);
+          return;
+        }
+        if (recipients.includes(email)) return;
+        recipients.push(email);
+        addEmailInput.value = "";
+        renderRecipients();
+      });
+
+      addEmailInput.addEventListener("keydown", function(e) {
+        if (e.key === "Enter") { e.preventDefault(); addEmailBtn.click(); }
+      });
+
+      async function loadAlertSettings() {
+        try {
+          const res = await fetch(apiBase + "/api/traffic-health-settings", { cache: "no-store" });
+          const data = await res.json();
+          enabledCb.checked = !!data.alertEnabled;
+          recipients = Array.isArray(data.alertRecipients) ? data.alertRecipients : [];
+          darkInput.value = data.darkThresholdHours ?? 4;
+          lowInput.value = data.lowThresholdHours ?? 8;
+          cooldownInput.value = data.cooldownHours ?? 12;
+          renderRecipients();
+          var parts = [];
+          parts.push(data.alertEnabled ? "Enabled" : "Disabled");
+          parts.push(recipients.length + " recipient" + (recipients.length === 1 ? "" : "s"));
+          statusEl.textContent = parts.join(" \u00b7 ");
+        } catch (e) {
+          statusEl.textContent = "Failed to load alert settings";
+        }
+      }
+
+      saveBtn.addEventListener("click", async function() {
+        saveBtn.disabled = true;
+        statusEl.textContent = "Saving\u2026";
+        try {
+          var token = getSessionToken();
+          var res = await fetch(apiBase + "/api/traffic-health-settings", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+            body: JSON.stringify({
+              alertEnabled: enabledCb.checked,
+              alertRecipients: recipients,
+              darkThresholdHours: parseFloat(darkInput.value),
+              lowThresholdHours: parseFloat(lowInput.value),
+              cooldownHours: parseFloat(cooldownInput.value)
+            })
+          });
+          var data = await res.json();
+          if (data.ok) {
+            var parts = [];
+            parts.push(data.alertEnabled ? "Enabled" : "Disabled");
+            var r = Array.isArray(data.alertRecipients) ? data.alertRecipients : [];
+            parts.push(r.length + " recipient" + (r.length === 1 ? "" : "s"));
+            statusEl.textContent = "Saved \u00b7 " + parts.join(" \u00b7 ");
+          } else {
+            statusEl.textContent = "Error: " + (data.error || "Failed to save");
+          }
+        } catch (e) {
+          statusEl.textContent = "Error: " + e.message;
+        }
+        saveBtn.disabled = false;
+      });
+
+      loadAlertSettings();
     })();
   </script>
 </body>
