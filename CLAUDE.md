@@ -159,6 +159,16 @@ All partner-facing content follows engagement-positive tone:
 
 ## Feb 24, 2026
 
+### Traffic Health Monitoring — Live FI Outage Detection + Email Alerts
+- **Problem**: A major partner went dark for 36+ hours with zero visibility. Weekly batch data was too slow to detect outages.
+- **New endpoint**: `GET /api/traffic-health` — hybrid approach: 14-day baseline from daily session files + live CardSavr API queries across all 8 instances for today's counts. 2-minute cache TTL.
+- **Status classification**: Per-FI status: **dark** (zero sessions + 6h elapsed), **low** (projected <50% baseline + 6h elapsed), **normal**. Volume filter (configurable min sessions/day) excludes naturally low-volume FIs.
+- **Operations Dashboard integration**: Traffic Health section with clickable FI tiles (status badges, inline SVG sparklines, partner name). Detail modal with 15-day bar chart + stats. Kiosk mode with pulsing red borders on dark FIs. Summary banner shows monitored count + threshold (admin hyperlink).
+- **Email alerts**: Background monitor runs every 15 minutes, checks cached traffic health data, sends styled HTML emails via SendGrid when FIs exceed dark/low thresholds. Per-FI cooldown tracking prevents alert spam. Clears alerts when FIs recover.
+- **Admin settings** (`maintenance.html`): Two cards — (1) min daily sessions threshold for monitoring scope, (2) alert configuration with toggle switch, recipient email pill management, dark/low/cooldown hour thresholds.
+- **Bug fixes**: Hoisted `_trafficHealthCache` from request handler closure to module level (caused `ReferenceError` on settings save + invisible to background monitor). Fixed GET endpoint to return all settings fields (was only returning `minDailySessions`).
+- **Files**: `scripts/serve-funnel.mjs` (endpoint + background monitor + settings API), `public/dashboards/operations.html` (DOM containers), `public/assets/js/operations-dashboard.js` (fetch/render/modal/kiosk), `public/assets/css/dashboards.css` (tile grid + animations), `public/assets/js/dashboard-utils.js` (`trafficHealthColor`), `public/maintenance.html` (admin settings cards)
+
 ### Troubleshoot Page — Newest-First Sort + UTC Tooltips
 - **Sort fix**: Troubleshoot endpoint (`/troubleshoot/day`) now sorts sessions newest-first, matching realtime page behavior. Previously returned sessions in file-chronological order (oldest-first).
 - **UTC tooltips**: Hovering over Opened, Closed, Created, or Completed timestamps on `troubleshoot.html` now shows the raw UTC value (e.g. `UTC: 2026-02-23T11:18:45.657Z`) — useful when cross-referencing server logs or API responses.
