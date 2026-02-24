@@ -134,6 +134,30 @@ All partner-facing content follows engagement-positive tone:
 
 # Build History
 
+## Feb 24, 2026
+
+### Low-Volume Guardrails for Insights Engine
+- **Threshold**: `LOW_VOLUME_THRESHOLD = 30` sessions — below this, suppress conversion-quality analysis and replace with traffic-growth messaging
+- **Low-volume narratives**: 2 replacement narratives (headline explaining statistical noise + reach narrative focusing on activation flows and campaigns) replace all 50+ standard narrative rules
+- **Low-volume actions**: 4 traffic-growth priorities (increase encounters, activation flows, campaigns, source tracking) replace tier-based diagnosis
+- **Spectrum diagnosis**: Returns `isLowVolume: true` with "insufficient data" message instead of tier classification; gauge SVG hidden, diagnosis text shown
+- **Projections**: Returns empty scenarios at low volume (section hidden)
+- **bestWeek_gap guard**: Requires `bestWeekSessions >= 10` before making "demand is proven" claims (both standard and non-SSO override)
+- **avgCards narratives**: Require `sessionsWithSuccess >= 10` before claiming placement depth patterns
+- **credCompletion narratives**: Require `credSessions >= 10` before making completion rate claims
+- **Funnel interstitials**: Suppress qualitative labels ("Strong follow-through", severity colors, "See insights →" links) when either side of a transition has <10 observations — show neutral "X% drop-off" instead
+- **Best windows fix**: "Most Successful Placements" filter now requires `minVisits` (was `() => true`)
+- **Metrics context**: `isLowVolume`, `bestWeekSessions` added; `LOW_VOLUME_THRESHOLD` exported from `window.EngagementInsights`
+- **Files**: `engagement-insights.js` (engine), `funnel-customer.html` (rendering gates)
+
+### PRE-RELEASE Watermark
+- **Stock-photo-style diagonal watermark** across all pages via `body::before` in `sis-shared.css`
+- **Style**: Blurred outline block letters (SVG `feGaussianBlur` + `stroke`, no `fill`), 140px font, -30° rotation, `letter-spacing: 20`
+- **Opacity**: 12% light / 14% dark — barely visible, doesn't compete with content
+- **Tiling**: Two text rows per 1800×1100 SVG tile, `background-repeat: repeat`, `pointer-events: none`
+- **Dark mode**: White stroke variant at slightly higher opacity
+- **Removal**: Delete the `Pre-Release Watermark` CSS block from `sis-shared.css` when the product exits pre-release
+
 ## Feb 23, 2026
 
 ### Shared Links Admin — Open Button + Page Column
