@@ -836,6 +836,206 @@ function formatAlertEmailHtml(alerts, allFis) {
   `;
 }
 
+async function computeTrafficHealthDirect() {
+  // Standalone computation — same logic as the /api/traffic-health endpoint
+  // Called by the background alert monitor when no fresh cache exists
+  const [fiRegistry, instancesFile] = await Promise.all([
+    loadFiRegistrySafe(),
+    readInstancesFile(),
+  ]);
+  const fiMeta = buildFiMetaMap(fiRegistry);
+  const instances = instancesFile.entries || [];
+
+  const instanceFiMap = new Map();
+  for (const entry of Object.values(fiRegistry)) {
+    if (!entry || !entry.instance) continue;
+    const instKey = entry.instance.toString().trim().toLowerCase();
+    if (!instanceFiMap.has(instKey)) instanceFiMap.set(instKey, []);
+    instanceFiMap.get(instKey).push({
+      fi_name: entry.fi_name || entry.fi_lookup_key || "",
+      fi_lookup_key: normalizeFiKey(entry.fi_lookup_key || entry.fi_name || ""),
+      partner: entry.partner || "Unknown",
+      instance: entry.instance || "",
+      integration_type: normalizeIntegration(entry.integration_type),
+    });
+  }
+
+  const todayDate = new Date();
+  const todayStr = todayDate.toISOString().slice(0, 10);
+  const baselineEnd = new Date(todayDate);
+  baselineEnd.setUTCDate(baselineEnd.getUTCDate() - 1);
+  const baselineStart = new Date(baselineEnd);
+  baselineStart.setUTCDate(baselineEnd.getUTCDate() - 13);
+  const baselineStartStr = baselineStart.toISOString().slice(0, 10);
+  const baselineEndStr = baselineEnd.toISOString().slice(0, 10);
+  const baselineDaysList = daysBetween(baselineStartStr, baselineEndStr);
+
+  const fiDayCounts = new Map();
+  const fiDayLatest = new Map();
+
+  for (const day of baselineDaysList) {
+    const dayData = await readSessionDay(day);
+    if (!dayData || !Array.isArray(dayData.sessions)) continue;
+    for (const sess of dayData.sessions) {
+      const instanceRaw = sess._instance || sess.instance || sess.instance_name || sess.org_name || "";
+      const instanceDisplay = formatInstanceDisplay(instanceRaw || "unknown");
+      if (isTestInstanceName(instanceDisplay)) continue;
+      const fiKey = normalizeFiKey(sess.financial_institution_lookup_key || sess.fi_lookup_key || sess.fi_name || "");
+      if (!fiKey) continue;
+      if (!fiDayCounts.has(fiKey)) fiDayCounts.set(fiKey, new Map());
+      fiDayCounts.get(fiKey).set(day, (fiDayCounts.get(fiKey).get(day) || 0) + 1);
+      const createdOn = sess.created_on || "";
+      if (createdOn) {
+        if (!fiDayLatest.has(fiKey)) fiDayLatest.set(fiKey, new Map());
+        const prev = fiDayLatest.get(fiKey).get(day) || "";
+        if (createdOn > prev) fiDayLatest.get(fiKey).set(day, createdOn);
+      }
+    }
+  }
+
+  // Live today from CardSavr API
+  const todayStartIso = `${todayStr}T00:00:00Z`;
+  const nowIso = todayDate.toISOString();
+  const liveCounts = new Map();
+  const liveLatest = new Map();
+
+  console.log(`[traffic-health-bg] Querying ${instances.length} instances for live sessions...`);
+  await Promise.allSettled(
+    instances.map(async (instConfig) => {
+      const instName = instConfig.name || "";
+      try {
+        const { session: sdkSession } = await loginWithSdk(instConfig);
+        const resp = await sdkSession.get("cardholder_sessions", {
+          created_on_min: todayStartIso, created_on_max: nowIso,
+        }, {});
+        const sessions = Array.isArray(resp?.body) ? resp.body : Array.isArray(resp) ? resp : [];
+        for (const sess of sessions) {
+          const instanceRaw = sess._instance || sess.instance || sess.instance_name || sess.org_name || instName;
+          if (isTestInstanceName(formatInstanceDisplay(instanceRaw || "unknown"))) continue;
+          const fiKey = normalizeFiKey(sess.financial_institution_lookup_key || sess.fi_lookup_key || sess.fi_name || "");
+          if (!fiKey) continue;
+          liveCounts.set(fiKey, (liveCounts.get(fiKey) || 0) + 1);
+          const createdOn = sess.created_on || "";
+          if (createdOn) {
+            const prev = liveLatest.get(fiKey) || "";
+            if (createdOn > prev) liveLatest.set(fiKey, createdOn);
+          }
+        }
+      } catch (err) {
+        console.warn(`[traffic-health-bg]   ${instName}: FAILED - ${err.message}`);
+      }
+    })
+  );
+
+  for (const [fiKey, count] of liveCounts.entries()) {
+    if (!fiDayCounts.has(fiKey)) fiDayCounts.set(fiKey, new Map());
+    fiDayCounts.get(fiKey).set(todayStr, count);
+  }
+  for (const [fiKey, ts] of liveLatest.entries()) {
+    if (!fiDayLatest.has(fiKey)) fiDayLatest.set(fiKey, new Map());
+    fiDayLatest.get(fiKey).set(todayStr, ts);
+  }
+
+  let MIN_AVG_SESSIONS = 5;
+  try {
+    const threshRaw = await fs.readFile(TRAFFIC_HEALTH_SETTINGS_FILE_BG, "utf8").catch(() => "{}");
+    const threshSettings = JSON.parse(threshRaw);
+    if (Number.isFinite(threshSettings.minDailySessions) && threshSettings.minDailySessions >= 1) {
+      MIN_AVG_SESSIONS = threshSettings.minDailySessions;
+    }
+  } catch { /* use default */ }
+
+  const nowMs = Date.now();
+  const todayStartMs = new Date(`${todayStr}T00:00:00Z`).getTime();
+  const hoursElapsed = Math.max(0, (nowMs - todayStartMs) / 3600000);
+  const allDays = [...baselineDaysList, todayStr];
+  const fis = [];
+
+  for (const [fiKey, dayCounts] of fiDayCounts.entries()) {
+    const baselineCounts = baselineDaysList.map(d => dayCounts.get(d) || 0);
+    const baselineSum = baselineCounts.reduce((a, b) => a + b, 0);
+    const baselineAvg = baselineSum / baselineDaysList.length;
+    if (baselineAvg < MIN_AVG_SESSIONS) continue;
+
+    const sortedBaseline = [...baselineCounts].sort((a, b) => a - b);
+    const mid = Math.floor(sortedBaseline.length / 2);
+    const baselineMedian = sortedBaseline.length % 2 === 0
+      ? (sortedBaseline[mid - 1] + sortedBaseline[mid]) / 2 : sortedBaseline[mid];
+
+    const todaySessions = dayCounts.get(todayStr) || 0;
+    const yesterdaySessions = dayCounts.get(baselineEndStr) || 0;
+    let todayProjected = todaySessions;
+    if (hoursElapsed >= 1) todayProjected = (todaySessions / hoursElapsed) * 24;
+
+    let status = "normal";
+    if (todaySessions === 0 && yesterdaySessions === 0) status = "dark";
+    else if (todaySessions === 0 && hoursElapsed >= 6) status = "dark";
+    else if (hoursElapsed >= 6 && baselineMedian > 0 && todayProjected < baselineMedian * 0.5) status = "low";
+
+    let hoursSinceLast = null;
+    if (status !== "normal") {
+      const latestMap = fiDayLatest.get(fiKey);
+      if (latestMap) {
+        let lastTs = null;
+        for (let i = allDays.length - 1; i >= 0; i--) {
+          const ts = latestMap.get(allDays[i]);
+          if (ts) { lastTs = ts; break; }
+        }
+        if (lastTs) hoursSinceLast = Math.round(((nowMs - new Date(lastTs).getTime()) / 3600000) * 10) / 10;
+      }
+    }
+
+    const pctOfBaseline = baselineMedian > 0
+      ? Math.round((todayProjected / baselineMedian) * 100)
+      : (todaySessions > 0 ? 999 : 0);
+
+    const fiEntry = fiMeta.get(fiKey);
+    let instEntry = null;
+    for (const [, entries] of instanceFiMap.entries()) {
+      const match = entries.find(e => normalizeFiKey(e.fi_lookup_key) === fiKey);
+      if (match) { instEntry = match; break; }
+    }
+
+    fis.push({
+      fi_name: fiEntry?.fi || instEntry?.fi_name || fiKey,
+      fi_lookup_key: fiKey,
+      partner: fiEntry?.partner || instEntry?.partner || "Unknown",
+      instance: instEntry?.instance || "",
+      integration_type: fiEntry?.integration || instEntry?.integration_type || "UNKNOWN",
+      status, today_sessions: todaySessions,
+      today_projected: Math.round(todayProjected),
+      yesterday_sessions: yesterdaySessions,
+      baseline_median: Math.round(baselineMedian * 10) / 10,
+      baseline_avg: Math.round(baselineAvg * 10) / 10,
+      hours_since_last: hoursSinceLast,
+      pct_of_baseline: pctOfBaseline,
+      daily_counts: allDays.map(d => dayCounts.get(d) || 0),
+    });
+  }
+
+  const statusOrder = { dark: 0, low: 1, normal: 2 };
+  fis.sort((a, b) => {
+    const so = (statusOrder[a.status] ?? 9) - (statusOrder[b.status] ?? 9);
+    return so !== 0 ? so : a.pct_of_baseline - b.pct_of_baseline;
+  });
+
+  return {
+    generated_at: new Date().toISOString(),
+    baseline_days: 14,
+    min_volume_threshold: MIN_AVG_SESSIONS,
+    hours_elapsed_today: Math.round(hoursElapsed * 10) / 10,
+    data_source: "live",
+    instances_queried: instances.length,
+    summary: {
+      dark: fis.filter(f => f.status === "dark").length,
+      low: fis.filter(f => f.status === "low").length,
+      normal: fis.filter(f => f.status === "normal").length,
+      total_monitored: fis.length,
+    },
+    fis,
+  };
+}
+
 async function checkTrafficHealthAlerts() {
   try {
     const settings = await loadTrafficAlertSettings();
@@ -848,13 +1048,20 @@ async function checkTrafficHealthAlerts() {
     const lowThresholdHours = settings.lowThresholdHours ?? 8;
     const cooldownHours = settings.cooldownHours ?? 12;
 
-    // Use cached traffic health data if fresh, otherwise skip (don't trigger expensive API calls from background)
-    if (!_trafficHealthCache || (Date.now() - _trafficHealthCacheTime) > 5 * 60 * 1000) {
-      console.log("[traffic-alert] No fresh traffic health data — skipping alert check");
-      return;
+    // Use cached data if fresh, otherwise fetch directly
+    let healthData;
+    if (_trafficHealthCache && (Date.now() - _trafficHealthCacheTime) < 5 * 60 * 1000) {
+      healthData = _trafficHealthCache;
+      console.log("[traffic-alert] Using cached traffic health data");
+    } else {
+      console.log("[traffic-alert] No fresh cache — fetching live data directly...");
+      healthData = await computeTrafficHealthDirect();
+      // Update the cache so the dashboard benefits too
+      _trafficHealthCache = healthData;
+      _trafficHealthCacheTime = Date.now();
+      console.log("[traffic-alert] Live fetch complete — " + healthData.fis.length + " FIs monitored");
     }
 
-    const healthData = _trafficHealthCache;
     const alertState = await loadTrafficAlertState();
     const nowMs = Date.now();
     const newAlerts = [];
