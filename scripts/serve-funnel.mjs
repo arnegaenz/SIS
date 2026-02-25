@@ -688,7 +688,7 @@ setInterval(async () => {
 // ============================================================================
 let _trafficHealthCache = null;
 let _trafficHealthCacheTime = 0;
-const TRAFFIC_HEALTH_CACHE_TTL = 120000; // 2 minutes (live API calls are heavier)
+const TRAFFIC_HEALTH_CACHE_TTL = 15 * 60 * 1000; // 15 minutes — background monitor refreshes on this cycle
 
 
 // ============================================================================
@@ -764,8 +764,8 @@ function formatAlertEmailHtml(alerts, allFis) {
   const tdStyle = 'padding:8px 12px;border-bottom:1px solid #e5e7eb;';
 
   function fiRow(a) {
-    const colors = { dark: "#ef4444", low: "#f59e0b", normal: "#22c55e" };
-    const labels = { dark: "DARK", low: "LOW", normal: "OK" };
+    const colors = { dark: "#ef4444", low: "#f59e0b", sleeping: "#818cf8", normal: "#22c55e" };
+    const labels = { dark: "DARK", low: "LOW", sleeping: "ZZZ", normal: "OK" };
     const statusColor = colors[a.status] || "#94a3b8";
     const statusLabel = labels[a.status] || a.status;
     const pct = a.pct_of_baseline != null ? `${Math.round(a.pct_of_baseline)}%` : "-";
@@ -873,6 +873,7 @@ async function computeTrafficHealthDirect() {
 
   const fiDayCounts = new Map();
   const fiDayLatest = new Map();
+  const fiHourlyCounts = new Map(); // fi_key → Map<hour(0-23), totalCount>
 
   for (const day of baselineDaysList) {
     const dayData = await readSessionDay(day);
@@ -887,6 +888,9 @@ async function computeTrafficHealthDirect() {
       fiDayCounts.get(fiKey).set(day, (fiDayCounts.get(fiKey).get(day) || 0) + 1);
       const createdOn = sess.created_on || "";
       if (createdOn) {
+        const hour = new Date(createdOn).getUTCHours();
+        if (!fiHourlyCounts.has(fiKey)) fiHourlyCounts.set(fiKey, new Map());
+        fiHourlyCounts.get(fiKey).set(hour, (fiHourlyCounts.get(fiKey).get(hour) || 0) + 1);
         if (!fiDayLatest.has(fiKey)) fiDayLatest.set(fiKey, new Map());
         const prev = fiDayLatest.get(fiKey).get(day) || "";
         if (createdOn > prev) fiDayLatest.get(fiKey).set(day, createdOn);
@@ -950,6 +954,34 @@ async function computeTrafficHealthDirect() {
   const todayStartMs = new Date(`${todayStr}T00:00:00Z`).getTime();
   const hoursElapsed = Math.max(0, (nowMs - todayStartMs) / 3600000);
   const allDays = [...baselineDaysList, todayStr];
+
+  // Build per-FI traffic fingerprints (same logic as endpoint)
+  const fiFingerprints = new Map();
+  for (const [fiKey, dayCounts] of fiDayCounts.entries()) {
+    const baselineCounts = baselineDaysList.map(d => dayCounts.get(d) || 0);
+    const baselineSum = baselineCounts.reduce((a, b) => a + b, 0);
+    const avgPerDay = baselineSum / baselineDaysList.length;
+    const hourMap = fiHourlyCounts.get(fiKey);
+    if (avgPerDay >= 10 && hourMap) {
+      const raw = new Array(24).fill(0);
+      const totalHourly = [...hourMap.values()].reduce((a, b) => a + b, 0);
+      if (totalHourly > 0) for (let h = 0; h < 24; h++) raw[h] = (hourMap.get(h) || 0) / totalHourly;
+      const smoothed = new Array(24).fill(0);
+      for (let h = 0; h < 24; h++) {
+        smoothed[h] = (raw[(h + 23) % 24] + raw[h] + raw[(h + 1) % 24]) / 3;
+      }
+      const smoothSum = smoothed.reduce((a, b) => a + b, 0);
+      if (smoothSum > 0) for (let h = 0; h < 24; h++) smoothed[h] /= smoothSum;
+      fiFingerprints.set(fiKey, { fingerprint: smoothed, quietHours: null, tier: 1 });
+    } else if (avgPerDay >= 5 && hourMap) {
+      const quietHours = new Set();
+      for (let h = 0; h < 24; h++) if ((hourMap.get(h) || 0) <= 1) quietHours.add(h);
+      fiFingerprints.set(fiKey, { fingerprint: null, quietHours, tier: 2 });
+    } else {
+      fiFingerprints.set(fiKey, { fingerprint: null, quietHours: null, tier: 3 });
+    }
+  }
+
   const fis = [];
 
   for (const [fiKey, dayCounts] of fiDayCounts.entries()) {
@@ -964,7 +996,6 @@ async function computeTrafficHealthDirect() {
       ? (sortedBaseline[mid - 1] + sortedBaseline[mid]) / 2 : sortedBaseline[mid];
 
     const todaySessions = dayCounts.get(todayStr) || 0;
-    // Use the most recent baseline day with data (yesterday's file may not exist yet)
     let lastBaselineSessions = 0;
     for (let i = baselineDaysList.length - 1; i >= 0; i--) {
       const cnt = dayCounts.get(baselineDaysList[i]);
@@ -973,13 +1004,39 @@ async function computeTrafficHealthDirect() {
     let todayProjected = todaySessions;
     if (hoursElapsed >= 1) todayProjected = (todaySessions / hoursElapsed) * 24;
 
+    // Fingerprint-aware status classification
+    const fp = fiFingerprints.get(fiKey);
+    const currentHour = new Date().getUTCHours();
     let status = "normal";
-    if (todaySessions === 0 && lastBaselineSessions === 0) status = "dark";
-    else if (todaySessions === 0 && hoursElapsed >= 6) status = "dark";
-    else if (hoursElapsed >= 6 && baselineMedian > 0 && todayProjected < baselineMedian * 0.5) status = "low";
+    let expectedCumulative = null;
+    let pctOfExpected = null;
+
+    if (fp && fp.fingerprint) {
+      let cumFrac = 0;
+      for (let h = 0; h <= currentHour; h++) cumFrac += fp.fingerprint[h];
+      expectedCumulative = baselineAvg * cumFrac;
+      if (expectedCumulative < 2) status = "sleeping";
+      else if (todaySessions === 0 && expectedCumulative > 2) status = "dark";
+      else if (todaySessions < expectedCumulative * 0.4 && expectedCumulative > 3) status = "low";
+      pctOfExpected = expectedCumulative > 0
+        ? Math.round((todaySessions / expectedCumulative) * 100)
+        : (todaySessions > 0 ? 999 : 0);
+    } else if (fp && fp.quietHours) {
+      if (fp.quietHours.has(currentHour)) {
+        status = "sleeping";
+      } else {
+        if (todaySessions === 0 && lastBaselineSessions === 0) status = "dark";
+        else if (todaySessions === 0 && hoursElapsed >= 6) status = "dark";
+        else if (hoursElapsed >= 6 && baselineMedian > 0 && todayProjected < baselineMedian * 0.5) status = "low";
+      }
+    } else {
+      if (todaySessions === 0 && lastBaselineSessions === 0) status = "dark";
+      else if (todaySessions === 0 && hoursElapsed >= 6) status = "dark";
+      else if (hoursElapsed >= 6 && baselineMedian > 0 && todayProjected < baselineMedian * 0.5) status = "low";
+    }
 
     let hoursSinceLast = null;
-    if (status !== "normal") {
+    if (status === "dark" || status === "low") {
       const latestMap = fiDayLatest.get(fiKey);
       if (latestMap) {
         let lastTs = null;
@@ -1002,7 +1059,7 @@ async function computeTrafficHealthDirect() {
       if (match) { instEntry = match; break; }
     }
 
-    fis.push({
+    const fiObj = {
       fi_name: fiEntry?.fi || instEntry?.fi_name || fiKey,
       fi_lookup_key: fiKey,
       partner: fiEntry?.partner || instEntry?.partner || "Unknown",
@@ -1016,10 +1073,16 @@ async function computeTrafficHealthDirect() {
       hours_since_last: hoursSinceLast,
       pct_of_baseline: pctOfBaseline,
       daily_counts: allDays.map(d => dayCounts.get(d) || 0),
-    });
+      fingerprint_tier: fp ? fp.tier : 3,
+    };
+    if (expectedCumulative != null) fiObj.expected_cumulative = Math.round(expectedCumulative * 10) / 10;
+    if (pctOfExpected != null) fiObj.pct_of_expected = pctOfExpected;
+    if (fp && fp.quietHours) fiObj.quiet_hours = [...fp.quietHours].sort((a, b) => a - b);
+
+    fis.push(fiObj);
   }
 
-  const statusOrder = { dark: 0, low: 1, normal: 2 };
+  const statusOrder = { dark: 0, low: 1, sleeping: 2, normal: 3 };
   fis.sort((a, b) => {
     const so = (statusOrder[a.status] ?? 9) - (statusOrder[b.status] ?? 9);
     return so !== 0 ? so : a.pct_of_baseline - b.pct_of_baseline;
@@ -1035,6 +1098,7 @@ async function computeTrafficHealthDirect() {
     summary: {
       dark: fis.filter(f => f.status === "dark").length,
       low: fis.filter(f => f.status === "low").length,
+      sleeping: fis.filter(f => f.status === "sleeping").length,
       normal: fis.filter(f => f.status === "normal").length,
       total_monitored: fis.length,
     },
@@ -1073,8 +1137,8 @@ async function checkTrafficHealthAlerts() {
     const newAlerts = [];
 
     for (const fi of healthData.fis) {
-      if (fi.status === "normal") {
-        // Clear alert state if FI recovered
+      if (fi.status === "normal" || fi.status === "sleeping") {
+        // Clear alert state if FI recovered or is in expected quiet period
         if (alertState[fi.fi_lookup_key]) {
           delete alertState[fi.fi_lookup_key];
         }
@@ -6111,6 +6175,7 @@ const server = http.createServer(async (req, res) => {
       // ── Step 1: Load baseline from daily files (yesterday and back) ──
       const fiDayCounts = new Map(); // fi_key → Map<day, count>
       const fiDayLatest = new Map(); // fi_key → Map<day, ISO timestamp>
+      const fiHourlyCounts = new Map(); // fi_key → Map<hour(0-23), totalCount across all baseline days>
 
       for (const day of baselineDays) {
         const dayData = await readSessionDay(day);
@@ -6129,9 +6194,15 @@ const server = http.createServer(async (req, res) => {
           const dayCounts = fiDayCounts.get(fiKey);
           dayCounts.set(day, (dayCounts.get(day) || 0) + 1);
 
-          // Track latest created_on for hours_since_last
+          // Bucket by hour for fingerprint building
           const createdOn = sess.created_on || "";
           if (createdOn) {
+            const hour = new Date(createdOn).getUTCHours();
+            if (!fiHourlyCounts.has(fiKey)) fiHourlyCounts.set(fiKey, new Map());
+            const hourMap = fiHourlyCounts.get(fiKey);
+            hourMap.set(hour, (hourMap.get(hour) || 0) + 1);
+
+            // Track latest created_on for hours_since_last
             if (!fiDayLatest.has(fiKey)) fiDayLatest.set(fiKey, new Map());
             const dayLatest = fiDayLatest.get(fiKey);
             const prev = dayLatest.get(day) || "";
@@ -6230,6 +6301,46 @@ const server = http.createServer(async (req, res) => {
         fiDayLatest.get(fiKey).set(todayStr, ts);
       }
 
+      // ── Step 2b: Build per-FI traffic fingerprints ──
+      // fiFingerprints: fi_key → { fingerprint: number[24] | null, quietHours: Set<number> | null, tier: 1|2|3 }
+      const fiFingerprints = new Map();
+      for (const [fiKey, dayCounts] of fiDayCounts.entries()) {
+        const baselineCounts = baselineDays.map(d => dayCounts.get(d) || 0);
+        const baselineSum = baselineCounts.reduce((a, b) => a + b, 0);
+        const avgPerDay = baselineSum / baselineDays.length;
+
+        const hourMap = fiHourlyCounts.get(fiKey);
+        if (avgPerDay >= 10 && hourMap) {
+          // Tier 1: Full cumulative fingerprint
+          const raw = new Array(24).fill(0);
+          const totalHourly = [...hourMap.values()].reduce((a, b) => a + b, 0);
+          if (totalHourly > 0) {
+            for (let h = 0; h < 24; h++) raw[h] = (hourMap.get(h) || 0) / totalHourly;
+          }
+          // Apply 3-hour rolling average to smooth jitter
+          const smoothed = new Array(24).fill(0);
+          for (let h = 0; h < 24; h++) {
+            const prev = raw[(h + 23) % 24];
+            const curr = raw[h];
+            const next = raw[(h + 1) % 24];
+            smoothed[h] = (prev + curr + next) / 3;
+          }
+          // Renormalize to sum to 1.0
+          const smoothSum = smoothed.reduce((a, b) => a + b, 0);
+          if (smoothSum > 0) for (let h = 0; h < 24; h++) smoothed[h] /= smoothSum;
+          fiFingerprints.set(fiKey, { fingerprint: smoothed, quietHours: null, tier: 1 });
+        } else if (avgPerDay >= 5 && hourMap) {
+          // Tier 2: Quiet-hours mask
+          const quietHours = new Set();
+          for (let h = 0; h < 24; h++) {
+            if ((hourMap.get(h) || 0) <= 1) quietHours.add(h);
+          }
+          fiFingerprints.set(fiKey, { fingerprint: null, quietHours, tier: 2 });
+        } else {
+          fiFingerprints.set(fiKey, { fingerprint: null, quietHours: null, tier: 3 });
+        }
+      }
+
       // ── Step 3: Compute baselines and classify ──
       // Read configurable threshold from settings
       let MIN_AVG_SESSIONS = 5;
@@ -6273,19 +6384,57 @@ const server = http.createServer(async (req, res) => {
           todayProjected = (todaySessions / hoursElapsed) * 24;
         }
 
-        // Status classification
+        // Status classification — fingerprint-aware
+        const fp = fiFingerprints.get(fiKey);
+        const currentHour = new Date().getUTCHours();
         let status = "normal";
-        if (todaySessions === 0 && lastBaselineSessions === 0) {
-          status = "dark";
-        } else if (todaySessions === 0 && hoursElapsed >= 6) {
-          status = "dark";
-        } else if (hoursElapsed >= 6 && baselineMedian > 0 && todayProjected < baselineMedian * 0.5) {
-          status = "low";
+        let expectedCumulative = null;
+        let pctOfExpected = null;
+
+        if (fp && fp.fingerprint) {
+          // Tier 1: cumulative fingerprint comparison
+          let cumFrac = 0;
+          for (let h = 0; h <= currentHour; h++) cumFrac += fp.fingerprint[h];
+          expectedCumulative = baselineAvg * cumFrac;
+
+          if (expectedCumulative < 2) {
+            status = "sleeping";
+          } else if (todaySessions === 0 && expectedCumulative > 2) {
+            status = "dark";
+          } else if (todaySessions < expectedCumulative * 0.4 && expectedCumulative > 3) {
+            status = "low";
+          }
+          pctOfExpected = expectedCumulative > 0
+            ? Math.round((todaySessions / expectedCumulative) * 100)
+            : (todaySessions > 0 ? 999 : 0);
+        } else if (fp && fp.quietHours) {
+          // Tier 2: quiet-hours suppression
+          if (fp.quietHours.has(currentHour)) {
+            status = "sleeping";
+          } else {
+            // Fall back to existing flat baseline logic during active hours
+            if (todaySessions === 0 && lastBaselineSessions === 0) {
+              status = "dark";
+            } else if (todaySessions === 0 && hoursElapsed >= 6) {
+              status = "dark";
+            } else if (hoursElapsed >= 6 && baselineMedian > 0 && todayProjected < baselineMedian * 0.5) {
+              status = "low";
+            }
+          }
+        } else {
+          // Tier 3: existing behavior unchanged
+          if (todaySessions === 0 && lastBaselineSessions === 0) {
+            status = "dark";
+          } else if (todaySessions === 0 && hoursElapsed >= 6) {
+            status = "dark";
+          } else if (hoursElapsed >= 6 && baselineMedian > 0 && todayProjected < baselineMedian * 0.5) {
+            status = "low";
+          }
         }
 
         // hours_since_last: for dark/low, scan latest timestamps
         let hoursSinceLast = null;
-        if (status !== "normal") {
+        if (status === "dark" || status === "low") {
           const latestMap = fiDayLatest.get(fiKey);
           if (latestMap) {
             let lastTs = null;
@@ -6313,7 +6462,7 @@ const server = http.createServer(async (req, res) => {
 
         const dailyCounts = allDays.map(d => dayCounts.get(d) || 0);
 
-        fis.push({
+        const fiObj = {
           fi_name: fiEntry?.fi || instEntry?.fi_name || fiKey,
           fi_lookup_key: fiKey,
           partner: fiEntry?.partner || instEntry?.partner || "Unknown",
@@ -6328,11 +6477,17 @@ const server = http.createServer(async (req, res) => {
           hours_since_last: hoursSinceLast,
           pct_of_baseline: pctOfBaseline,
           daily_counts: dailyCounts,
-        });
+          fingerprint_tier: fp ? fp.tier : 3,
+        };
+        if (expectedCumulative != null) fiObj.expected_cumulative = Math.round(expectedCumulative * 10) / 10;
+        if (pctOfExpected != null) fiObj.pct_of_expected = pctOfExpected;
+        if (fp && fp.quietHours) fiObj.quiet_hours = [...fp.quietHours].sort((a, b) => a - b);
+
+        fis.push(fiObj);
       }
 
-      // Sort: dark first → low → normal; within status, by pct_of_baseline asc
-      const statusOrder = { dark: 0, low: 1, normal: 2 };
+      // Sort: dark first → low → sleeping → normal; within status, by pct_of_baseline asc
+      const statusOrder = { dark: 0, low: 1, sleeping: 2, normal: 3 };
       fis.sort((a, b) => {
         const so = (statusOrder[a.status] ?? 9) - (statusOrder[b.status] ?? 9);
         if (so !== 0) return so;
@@ -6342,6 +6497,7 @@ const server = http.createServer(async (req, res) => {
       const summary = {
         dark: fis.filter(f => f.status === "dark").length,
         low: fis.filter(f => f.status === "low").length,
+        sleeping: fis.filter(f => f.status === "sleeping").length,
         normal: fis.filter(f => f.status === "normal").length,
         total_monitored: fis.length,
       };

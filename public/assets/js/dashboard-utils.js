@@ -319,5 +319,6 @@ export function opsHealthColor(successRate) {
 export function trafficHealthColor(status) {
   if (status === "dark") return "red";
   if (status === "low") return "amber";
+  if (status === "sleeping") return "indigo";
   return "green";
 }

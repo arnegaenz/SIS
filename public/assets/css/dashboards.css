@@ -1816,6 +1816,11 @@ body.kiosk-mode .table-scroll th {
   background: rgba(245, 158, 11, 0.03);
 }
 
+.traffic-tile.status-sleeping {
+  border-color: rgba(99, 102, 241, 0.3);
+  background: rgba(99, 102, 241, 0.08);
+}
+
 .traffic-tile__header {
   display: flex;
   align-items: center;
@@ -1864,6 +1869,11 @@ body.kiosk-mode .table-scroll th {
 .traffic-tile__status-badge.normal {
   background: rgba(34, 197, 94, 0.15);
   color: #22c55e;
+}
+
+.traffic-tile__status-badge.sleeping {
+  background: rgba(99, 102, 241, 0.15);
+  color: #818cf8;
 }
 
 .traffic-tile__stats {
@@ -1939,6 +1949,20 @@ body.kiosk-mode .table-scroll th {
   border-color: var(--accent);
 }
 
+/* Sleeping tile zzz indicator */
+.zzz-indicator {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #818cf8;
+  letter-spacing: 0.04em;
+  animation: zzz-float 2s ease-in-out infinite;
+}
+
+@keyframes zzz-float {
+  0%, 100% { opacity: 0.5; transform: translateY(0); }
+  50% { opacity: 1; transform: translateY(-2px); }
+}
+
 /* Dark tile pulse animation for kiosk */
 @keyframes traffic-dark-pulse {
   0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
@@ -1958,6 +1982,11 @@ body.kiosk-mode .traffic-tile.status-dark {
 [data-theme="dark"] .traffic-tile.status-low {
   border-color: rgba(245, 158, 11, 0.3);
   background: rgba(245, 158, 11, 0.04);
+}
+
+[data-theme="dark"] .traffic-tile.status-sleeping {
+  border-color: rgba(129, 140, 248, 0.25);
+  background: rgba(129, 140, 248, 0.12);
 }
 
 [data-theme="dark"] .traffic-health-banner.all-clear {

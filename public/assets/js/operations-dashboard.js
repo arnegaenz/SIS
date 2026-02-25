@@ -73,6 +73,7 @@ const state = {
   fiSortDir: "desc",
   includeTests: false,
   trafficShowNormal: false,
+  trafficShowSleeping: false,
 };
 
 const fiSelect = createMultiSelect(document.getElementById("fiSelect"), {
@@ -1134,7 +1135,7 @@ function buildTrafficSparkline(dailyCounts, baseline, status) {
       const isToday = i === count - 1;
       let fill;
       if (isToday) {
-        fill = status === "dark" ? "#ef4444" : status === "low" ? "#f59e0b" : "#22c55e";
+        fill = status === "dark" ? "#ef4444" : status === "low" ? "#f59e0b" : status === "sleeping" ? "#818cf8" : "#22c55e";
       } else {
         fill = "var(--muted)";
       }
@@ -1154,13 +1155,14 @@ function buildTrafficSparkline(dailyCounts, baseline, status) {
 
 function renderTrafficHealthBanner(data, bannerEl) {
   if (!bannerEl) return;
-  const { dark, low } = data.summary;
+  const { dark, low, sleeping } = data.summary;
   const threshold = data.min_volume_threshold || 5;
   const isAdmin = window.sisAuth && ["admin", "full", "internal"].includes(window.sisAuth.getAccessLevel?.());
   const thresholdText = isAdmin
     ? `<a href="../maintenance.html#trafficHealthSettingsCard" style="color:inherit;text-decoration:underline;text-decoration-style:dotted;">${threshold}+ sessions/day</a>`
     : `${threshold}+ sessions/day`;
-  const monitorNote = `<span style="font-weight:400;font-size:0.75rem;opacity:0.8;margin-left:6px;">(${data.summary.total_monitored} FIs averaging ${thresholdText})</span>`;
+  const sleepingNote = sleeping > 0 ? `, ${sleeping} sleeping` : "";
+  const monitorNote = `<span style="font-weight:400;font-size:0.75rem;opacity:0.8;margin-left:6px;">(${data.summary.total_monitored} FIs averaging ${thresholdText}${sleepingNote})</span>`;
 
   if (dark === 0 && low === 0) {
     bannerEl.innerHTML = `<div class="traffic-health-banner all-clear">All clear — ${data.summary.total_monitored} FIs reporting normal traffic ${monitorNote}</div>`;
@@ -1177,11 +1179,18 @@ function renderTrafficHealthBanner(data, bannerEl) {
 function renderTrafficTile(fi) {
   const sparkline = buildTrafficSparkline(fi.daily_counts, fi.baseline_median, fi.status);
   let statsHtml;
+  let zzzIndicator = "";
   if (fi.status === "dark") {
     const hoursAgo = fi.hours_since_last != null ? `${fi.hours_since_last}h ago` : "unknown";
     statsHtml = `DARK &mdash; last session <strong>${hoursAgo}</strong>`;
   } else if (fi.status === "low") {
     statsHtml = `Today: <strong>${fi.today_sessions}</strong> sessions (<strong>${fi.pct_of_baseline}%</strong> of baseline)`;
+  } else if (fi.status === "sleeping") {
+    const tierNote = fi.fingerprint_tier === 1 && fi.expected_cumulative != null
+      ? ` (expect ~${fi.expected_cumulative} by now)`
+      : "";
+    statsHtml = `Quiet period${tierNote}`;
+    zzzIndicator = `<span class="zzz-indicator">zzz</span>`;
   } else {
     statsHtml = `Today: <strong>${fi.today_sessions}</strong> sessions (<strong>${fi.pct_of_baseline}%</strong> of baseline)`;
   }
@@ -1191,6 +1200,8 @@ function renderTrafficTile(fi) {
     ? "DARK: Zero sessions detected. This FI may have an outage, integration issue, or has gone offline."
     : fi.status === "low"
     ? "LOW: Session volume is significantly below the 14-day baseline. Could indicate reduced traffic, partial outage, or campaign ending."
+    : fi.status === "sleeping"
+    ? "SLEEPING: Expected quiet period — historically near-zero traffic at this hour. No action needed."
     : "NORMAL: Session volume is within expected range based on the 14-day rolling baseline.";
   const lastSessionStr = fi.hours_since_last != null ? `${fi.hours_since_last} hours ago` : "Unknown";
   const dailyCounts = fi.daily_counts || [];
@@ -1221,11 +1232,15 @@ function renderTrafficTile(fi) {
     `Click to open detail modal with full 15-day chart.`,
   ].join("\n");
 
+  const badgeLabel = fi.status === "sleeping" ? "Sleeping" : fi.status.toUpperCase();
   return `
     <div class="traffic-tile status-${fi.status}" data-fi-key="${fi.fi_lookup_key}" title="${tipFi.replace(/"/g, '&quot;')}">
       <div class="traffic-tile__header">
         <span class="traffic-tile__name">${fi.fi_name}</span>
-        <span class="traffic-tile__status-badge ${fi.status}">${fi.status.toUpperCase()}</span>
+        <span style="display:flex;align-items:center;gap:4px;">
+          ${zzzIndicator}
+          <span class="traffic-tile__status-badge ${fi.status}">${badgeLabel}</span>
+        </span>
       </div>
       <div class="traffic-tile__partner">${fi.partner}</div>
       <div class="traffic-tile__stats">${statsHtml}</div>
@@ -1242,10 +1257,21 @@ function renderTrafficHealth(data) {
   if (!data || !data.fis) return;
   renderTrafficHealthBanner(data, trafficEls.banner);
 
-  const anomalies = sortFisByAvgSessions(data.fis.filter(f => f.status !== "normal"));
+  const anomalies = sortFisByAvgSessions(data.fis.filter(f => f.status === "dark" || f.status === "low"));
+  const sleeping = sortFisByAvgSessions(data.fis.filter(f => f.status === "sleeping"));
   const normals = sortFisByAvgSessions(data.fis.filter(f => f.status === "normal"));
 
   let html = anomalies.map(renderTrafficTile).join("");
+
+  // Show sleeping tiles collapsed by default (not actionable)
+  if (sleeping.length > 0) {
+    if (state.trafficShowSleeping) {
+      html += sleeping.map(renderTrafficTile).join("");
+      html += `<div class="traffic-health-expand" id="trafficToggleSleeping">Hide ${sleeping.length} sleeping FIs</div>`;
+    } else {
+      html += `<div class="traffic-health-expand" id="trafficToggleSleeping">Show ${sleeping.length} sleeping FIs</div>`;
+    }
+  }
 
   if (normals.length > 0) {
     if (state.trafficShowNormal) {
@@ -1259,7 +1285,14 @@ function renderTrafficHealth(data) {
   if (trafficEls.grid) {
     trafficEls.grid.innerHTML = html;
 
-    // Bind toggle
+    // Bind toggles
+    const sleepingToggle = document.getElementById("trafficToggleSleeping");
+    if (sleepingToggle) {
+      sleepingToggle.addEventListener("click", () => {
+        state.trafficShowSleeping = !state.trafficShowSleeping;
+        renderTrafficHealth(state.trafficHealth);
+      });
+    }
     const toggle = document.getElementById("trafficToggleNormal");
     if (toggle) {
       toggle.addEventListener("click", () => {
@@ -1284,7 +1317,13 @@ function renderKioskTrafficHealth(data) {
   renderTrafficHealthBanner(data, trafficEls.kioskBanner);
 
   if (trafficEls.kioskGrid) {
-    const sorted = sortFisByAvgSessions(data.fis);
+    // In kiosk mode, sort: dark → low → normal → sleeping (sleeping last, not actionable)
+    const kioskStatusOrder = { dark: 0, low: 1, normal: 2, sleeping: 3 };
+    const sorted = data.fis.slice().sort((a, b) => {
+      const so = (kioskStatusOrder[a.status] ?? 9) - (kioskStatusOrder[b.status] ?? 9);
+      if (so !== 0) return so;
+      return (b.baseline_avg || 0) - (a.baseline_avg || 0);
+    });
     trafficEls.kioskGrid.innerHTML = sorted.map(renderTrafficTile).join("");
 
     trafficEls.kioskGrid.querySelectorAll(".traffic-tile").forEach(tile => {
@@ -1317,7 +1356,7 @@ function renderTrafficDetailModal(fi, data) {
 
   trafficEls.detailStats.innerHTML = statItems
     .map(s => {
-      const colorStyle = s.color ? ` style="color:${s.color === 'red' ? '#ef4444' : s.color === 'amber' ? '#f59e0b' : '#22c55e'}"` : "";
+      const colorStyle = s.color ? ` style="color:${s.color === 'red' ? '#ef4444' : s.color === 'amber' ? '#f59e0b' : s.color === 'indigo' ? '#818cf8' : '#22c55e'}"` : "";
       return `
         <div class="partner-detail-panel__stat">
           <div class="partner-detail-panel__stat-value"${colorStyle}>${s.value}</div>
@@ -1346,7 +1385,7 @@ function renderTrafficDetailModal(fi, data) {
     const isToday = i === barCount - 1;
     let fill;
     if (isToday) {
-      fill = fi.status === "dark" ? "#ef4444" : fi.status === "low" ? "#f59e0b" : "#22c55e";
+      fill = fi.status === "dark" ? "#ef4444" : fi.status === "low" ? "#f59e0b" : fi.status === "sleeping" ? "#818cf8" : "#22c55e";
     } else {
       fill = "var(--accent)";
     }
