@@ -56,6 +56,8 @@ let currentController = null;
 let weeklyTrends = new Map();
 let fiRegistryMap = new Map();
 let alertsExpanded = false;
+let lowVolumeExpanded = false;
+const LOW_VOLUME_THRESHOLD = 25;
 
 /* ── Multi-selects ── */
 const partnerSelect = createMultiSelect(document.getElementById("partnerSelect"), {
@@ -770,6 +772,58 @@ function integrationBadge(fi) {
 }
 
 /* ── FI Card Grid ── */
+function buildFiCard(fi) {
+  const card = document.createElement("div");
+  card.className = "partner-card";
+
+  const sm = fi.SM_Sessions || 0;
+  const success = fi.Success_Sessions || 0;
+  const rate = fi.successRate;
+  const color = healthColor(rate);
+  const sparkline = fi.trendData ? buildSparklineSvg(fi.trendData.weeks) : "";
+  const sColor = scoreColor(fi.score);
+
+  let systemFlag = "";
+  if (fi.jobFailRate > 0.15) {
+    systemFlag = `<span class="system-flag">${(fi.jobFailRate * 100).toFixed(0)}% fail</span>`;
+  }
+
+  card.title = `Click to view detailed breakdown for ${fi.fi_name}: weekly trends, system health, tier diagnosis, and recommended engagement actions.`;
+  card.innerHTML = `
+    <div class="partner-card__header">
+      <span class="partner-card__name" title="${fi.fi_name} (${fi.fi_lookup_key})${fi.partner ? ' — Partner: ' + fi.partner : ''}${fi.cardholder_total ? ' — ' + formatNumber(fi.cardholder_total) + ' cardholders on file' : ''}">${fi.fi_name}</span>
+      <span class="partner-card__badges">
+        ${tierBadgeHtml(fi.tierInfo)}
+        ${integrationBadge(fi)}
+        ${trendArrow(fi.trend)}
+        <span class="health-dot ${color}" title="${healthDotTooltip(rate)}"></span>
+      </span>
+    </div>
+    <div class="partner-card__metrics">
+      <div class="partner-card__metric" title="${scoreTooltip(fi)}">
+        <span class="score-circle score-circle--small ${sColor}">${fi.score}</span>
+        <span class="partner-card__metric-label">Score</span>
+      </div>
+      <div class="partner-card__metric" title="Select Merchant (SM) sessions: ${formatNumber(sm)} cardholders opened CardUpdatr at ${fi.fi_name} in this time window. Each session = one cardholder reaching the merchant selection page.">
+        <span class="partner-card__metric-value">${formatNumber(sm)}</span>
+        <span class="partner-card__metric-label">Sessions</span>
+      </div>
+      <div class="partner-card__metric" title="Session Success Rate: ${formatRate(success, sm)} — ${formatNumber(success)} out of ${formatNumber(sm)} sessions resulted in at least one successful card placement at a merchant.">
+        <span class="partner-card__metric-value">${formatRate(success, sm)}</span>
+        <span class="partner-card__metric-label">Success</span>
+      </div>
+      <div class="partner-card__metric" style="margin-left:auto;" title="${sparklineTooltip(fi)}">
+        ${sparkline}
+        <span class="partner-card__metric-label">4-wk vol</span>
+      </div>
+    </div>
+    ${systemFlag ? `<div style="margin-top:2px;" title="${systemFlagTooltip(fi)}">${systemFlag}</div>` : ""}
+  `;
+
+  card.addEventListener("click", () => renderDetailModal(fi));
+  return card;
+}
+
 function renderFiGrid(fis) {
   const container = els.fiCardGrid;
   if (!container) return;
@@ -777,60 +831,31 @@ function renderFiGrid(fis) {
 
   const sorted = [...fis].sort((a, b) => b.score - a.score);
 
-  sorted.forEach((fi) => {
-    const card = document.createElement("div");
-    card.className = "partner-card";
-
-    const sm = fi.SM_Sessions || 0;
-    const success = fi.Success_Sessions || 0;
-    const rate = fi.successRate;
-    const color = healthColor(rate);
-    const sparkline = fi.trendData ? buildSparklineSvg(fi.trendData.weeks) : "";
-    const sColor = scoreColor(fi.score);
-
-    let systemFlag = "";
-    if (fi.jobFailRate > 0.15) {
-      systemFlag = `<span class="system-flag">${(fi.jobFailRate * 100).toFixed(0)}% fail</span>`;
-    }
-
-    card.title = `Click to view detailed breakdown for ${fi.fi_name}: weekly trends, system health, tier diagnosis, and recommended engagement actions.`;
-    card.innerHTML = `
-      <div class="partner-card__header">
-        <span class="partner-card__name" title="${fi.fi_name} (${fi.fi_lookup_key})${fi.partner ? ' — Partner: ' + fi.partner : ''}${fi.cardholder_total ? ' — ' + formatNumber(fi.cardholder_total) + ' cardholders on file' : ''}">${fi.fi_name}</span>
-        <span class="partner-card__badges">
-          ${tierBadgeHtml(fi.tierInfo)}
-          ${integrationBadge(fi)}
-          ${trendArrow(fi.trend)}
-          <span class="health-dot ${color}" title="${healthDotTooltip(rate)}"></span>
-        </span>
-      </div>
-      <div class="partner-card__metrics">
-        <div class="partner-card__metric" title="${scoreTooltip(fi)}">
-          <span class="score-circle score-circle--small ${sColor}">${fi.score}</span>
-          <span class="partner-card__metric-label">Score</span>
-        </div>
-        <div class="partner-card__metric" title="Select Merchant (SM) sessions: ${formatNumber(sm)} cardholders opened CardUpdatr at ${fi.fi_name} in this time window. Each session = one cardholder reaching the merchant selection page.">
-          <span class="partner-card__metric-value">${formatNumber(sm)}</span>
-          <span class="partner-card__metric-label">Sessions</span>
-        </div>
-        <div class="partner-card__metric" title="Session Success Rate: ${formatRate(success, sm)} — ${formatNumber(success)} out of ${formatNumber(sm)} sessions resulted in at least one successful card placement at a merchant.">
-          <span class="partner-card__metric-value">${formatRate(success, sm)}</span>
-          <span class="partner-card__metric-label">Success</span>
-        </div>
-        <div class="partner-card__metric" style="margin-left:auto;" title="${sparklineTooltip(fi)}">
-          ${sparkline}
-          <span class="partner-card__metric-label">4-wk vol</span>
-        </div>
-      </div>
-      ${systemFlag ? `<div style="margin-top:2px;" title="${systemFlagTooltip(fi)}">${systemFlag}</div>` : ""}
-    `;
-
-    card.addEventListener("click", () => renderDetailModal(fi));
-    container.appendChild(card);
-  });
-
   if (!sorted.length) {
     container.innerHTML = '<div class="empty-state">No FIs match current filters.</div>';
+    return;
+  }
+
+  const active = sorted.filter((fi) => (fi.SM_Sessions || 0) >= LOW_VOLUME_THRESHOLD);
+  const lowVol = sorted.filter((fi) => (fi.SM_Sessions || 0) < LOW_VOLUME_THRESHOLD);
+
+  active.forEach((fi) => container.appendChild(buildFiCard(fi)));
+
+  if (lowVol.length) {
+    const toggle = document.createElement("div");
+    toggle.className = "partner-grid__expand";
+    toggle.innerHTML = lowVolumeExpanded
+      ? '<span class="partner-grid__expand-arrow">&#9650;</span> Hide low volume'
+      : `<span class="partner-grid__expand-arrow">&#9660;</span> Low Volume (${lowVol.length} FIs)`;
+    toggle.addEventListener("click", () => {
+      lowVolumeExpanded = !lowVolumeExpanded;
+      renderFiGrid(fis);
+    });
+    container.appendChild(toggle);
+
+    if (lowVolumeExpanded) {
+      lowVol.forEach((fi) => container.appendChild(buildFiCard(fi)));
+    }
   }
 }
 
@@ -1154,50 +1179,72 @@ function renderKioskView(fis) {
   if (kioskGrid) {
     kioskGrid.innerHTML = "";
     const sorted = [...fis].sort((a, b) => b.score - a.score);
-    sorted.forEach((fi) => {
-      const card = document.createElement("div");
-      card.className = "partner-card";
+    const active = sorted.filter((fi) => (fi.SM_Sessions || 0) >= LOW_VOLUME_THRESHOLD);
+    const lowVol = sorted.filter((fi) => (fi.SM_Sessions || 0) < LOW_VOLUME_THRESHOLD);
 
-      const sm = fi.SM_Sessions || 0;
-      const success = fi.Success_Sessions || 0;
-      const color = healthColor(fi.successRate);
-      const sparkline = fi.trendData ? buildSparklineSvg(fi.trendData.weeks) : "";
-      const sColor = scoreColor(fi.score);
+    active.forEach((fi) => kioskGrid.appendChild(buildKioskCard(fi)));
 
-      card.title = `Click to view detailed breakdown for ${fi.fi_name}: weekly trends, system health, tier diagnosis, and recommended engagement actions.`;
-      card.innerHTML = `
-        <div class="partner-card__header">
-          <span class="partner-card__name" title="${fi.fi_name} (${fi.fi_lookup_key})${fi.partner ? ' — Partner: ' + fi.partner : ''}">${fi.fi_name}</span>
-          <span class="partner-card__badges">
-            ${tierBadgeHtml(fi.tierInfo)}
-            ${trendArrow(fi.trend)}
-            <span class="health-dot ${color}" title="${healthDotTooltip(fi.successRate)}"></span>
-          </span>
-        </div>
-        <div class="partner-card__metrics">
-          <div class="partner-card__metric" title="${scoreTooltip(fi)}">
-            <span class="score-circle score-circle--small ${sColor}">${fi.score}</span>
-            <span class="partner-card__metric-label">Score</span>
-          </div>
-          <div class="partner-card__metric" title="${formatNumber(sm)} Select Merchant sessions at ${fi.fi_name}.">
-            <span class="partner-card__metric-value">${formatNumber(sm)}</span>
-            <span class="partner-card__metric-label">Sessions</span>
-          </div>
-          <div class="partner-card__metric" title="Session Success Rate: ${formatRate(success, sm)} — ${formatNumber(success)} of ${formatNumber(sm)} sessions.">
-            <span class="partner-card__metric-value">${formatRate(success, sm)}</span>
-            <span class="partner-card__metric-label">Success</span>
-          </div>
-          <div class="partner-card__metric" style="margin-left:auto;" title="${sparklineTooltip(fi)}">
-            ${sparkline}
-            <span class="partner-card__metric-label">4-wk vol</span>
-          </div>
-        </div>
-      `;
+    if (lowVol.length) {
+      const toggle = document.createElement("div");
+      toggle.className = "partner-grid__expand";
+      toggle.innerHTML = lowVolumeExpanded
+        ? '<span class="partner-grid__expand-arrow">&#9650;</span> Hide low volume'
+        : `<span class="partner-grid__expand-arrow">&#9660;</span> Low Volume (${lowVol.length} FIs)`;
+      toggle.addEventListener("click", () => {
+        lowVolumeExpanded = !lowVolumeExpanded;
+        renderKioskView(fis);
+      });
+      kioskGrid.appendChild(toggle);
 
-      card.addEventListener("click", () => renderDetailModal(fi));
-      kioskGrid.appendChild(card);
-    });
+      if (lowVolumeExpanded) {
+        lowVol.forEach((fi) => kioskGrid.appendChild(buildKioskCard(fi)));
+      }
+    }
   }
+}
+
+function buildKioskCard(fi) {
+  const card = document.createElement("div");
+  card.className = "partner-card";
+
+  const sm = fi.SM_Sessions || 0;
+  const success = fi.Success_Sessions || 0;
+  const color = healthColor(fi.successRate);
+  const sparkline = fi.trendData ? buildSparklineSvg(fi.trendData.weeks) : "";
+  const sColor = scoreColor(fi.score);
+
+  card.title = `Click to view detailed breakdown for ${fi.fi_name}: weekly trends, system health, tier diagnosis, and recommended engagement actions.`;
+  card.innerHTML = `
+    <div class="partner-card__header">
+      <span class="partner-card__name" title="${fi.fi_name} (${fi.fi_lookup_key})${fi.partner ? ' — Partner: ' + fi.partner : ''}">${fi.fi_name}</span>
+      <span class="partner-card__badges">
+        ${tierBadgeHtml(fi.tierInfo)}
+        ${trendArrow(fi.trend)}
+        <span class="health-dot ${color}" title="${healthDotTooltip(fi.successRate)}"></span>
+      </span>
+    </div>
+    <div class="partner-card__metrics">
+      <div class="partner-card__metric" title="${scoreTooltip(fi)}">
+        <span class="score-circle score-circle--small ${sColor}">${fi.score}</span>
+        <span class="partner-card__metric-label">Score</span>
+      </div>
+      <div class="partner-card__metric" title="${formatNumber(sm)} Select Merchant sessions at ${fi.fi_name}.">
+        <span class="partner-card__metric-value">${formatNumber(sm)}</span>
+        <span class="partner-card__metric-label">Sessions</span>
+      </div>
+      <div class="partner-card__metric" title="Session Success Rate: ${formatRate(success, sm)} — ${formatNumber(success)} of ${formatNumber(sm)} sessions.">
+        <span class="partner-card__metric-value">${formatRate(success, sm)}</span>
+        <span class="partner-card__metric-label">Success</span>
+      </div>
+      <div class="partner-card__metric" style="margin-left:auto;" title="${sparklineTooltip(fi)}">
+        ${sparkline}
+        <span class="partner-card__metric-label">4-wk vol</span>
+      </div>
+    </div>
+  `;
+
+  card.addEventListener("click", () => renderDetailModal(fi));
+  return card;
 }
 
 let kioskKpiRow = null;

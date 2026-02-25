@@ -963,12 +963,17 @@ async function computeTrafficHealthDirect() {
       ? (sortedBaseline[mid - 1] + sortedBaseline[mid]) / 2 : sortedBaseline[mid];
 
     const todaySessions = dayCounts.get(todayStr) || 0;
-    const yesterdaySessions = dayCounts.get(baselineEndStr) || 0;
+    // Use the most recent baseline day with data (yesterday's file may not exist yet)
+    let lastBaselineSessions = 0;
+    for (let i = baselineDaysList.length - 1; i >= 0; i--) {
+      const cnt = dayCounts.get(baselineDaysList[i]);
+      if (cnt > 0) { lastBaselineSessions = cnt; break; }
+    }
     let todayProjected = todaySessions;
     if (hoursElapsed >= 1) todayProjected = (todaySessions / hoursElapsed) * 24;
 
     let status = "normal";
-    if (todaySessions === 0 && yesterdaySessions === 0) status = "dark";
+    if (todaySessions === 0 && lastBaselineSessions === 0) status = "dark";
     else if (todaySessions === 0 && hoursElapsed >= 6) status = "dark";
     else if (hoursElapsed >= 6 && baselineMedian > 0 && todayProjected < baselineMedian * 0.5) status = "low";
 
@@ -1004,7 +1009,7 @@ async function computeTrafficHealthDirect() {
       integration_type: fiEntry?.integration || instEntry?.integration_type || "UNKNOWN",
       status, today_sessions: todaySessions,
       today_projected: Math.round(todayProjected),
-      yesterday_sessions: yesterdaySessions,
+      yesterday_sessions: lastBaselineSessions,
       baseline_median: Math.round(baselineMedian * 10) / 10,
       baseline_avg: Math.round(baselineAvg * 10) / 10,
       hours_since_last: hoursSinceLast,
@@ -6150,7 +6155,12 @@ const server = http.createServer(async (req, res) => {
           : sortedBaseline[mid];
 
         const todaySessions = dayCounts.get(todayStr) || 0;
-        const yesterdaySessions = dayCounts.get(baselineEndStr) || 0;
+        // Use the most recent baseline day with data (yesterday's file may not exist yet)
+        let lastBaselineSessions = 0;
+        for (let i = baselineDays.length - 1; i >= 0; i--) {
+          const cnt = dayCounts.get(baselineDays[i]);
+          if (cnt > 0) { lastBaselineSessions = cnt; break; }
+        }
 
         let todayProjected = todaySessions;
         if (hoursElapsed >= 1) {
@@ -6159,7 +6169,7 @@ const server = http.createServer(async (req, res) => {
 
         // Status classification
         let status = "normal";
-        if (todaySessions === 0 && yesterdaySessions === 0) {
+        if (todaySessions === 0 && lastBaselineSessions === 0) {
           status = "dark";
         } else if (todaySessions === 0 && hoursElapsed >= 6) {
           status = "dark";
@@ -6206,7 +6216,7 @@ const server = http.createServer(async (req, res) => {
           status,
           today_sessions: todaySessions,
           today_projected: Math.round(todayProjected),
-          yesterday_sessions: yesterdaySessions,
+          yesterday_sessions: lastBaselineSessions,
           baseline_median: Math.round(baselineMedian * 10) / 10,
           baseline_avg: Math.round(baselineAvg * 10) / 10,
           hours_since_last: hoursSinceLast,

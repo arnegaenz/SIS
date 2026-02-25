@@ -559,8 +559,10 @@ function renderMerchantHealthGrid(rows) {
       // For merchants, trending arrow on failure rate — up is bad
       const trend = prior ? opsTrendArrow(failRate, prior.priorFailRate, true) : "";
 
+      const severity = failRate >= 0.4 ? 'merchant-tile--danger' : failRate > 0.15 ? 'merchant-tile--warn' : '';
+
       return `
-        <div class="merchant-tile">
+        <div class="merchant-tile ${severity}">
           <div class="merchant-tile__header">
             <span class="merchant-tile__name">${name}</span>
             <span style="display:flex;align-items:center;gap:4px;">${trend} <span class="health-dot ${color}"></span></span>

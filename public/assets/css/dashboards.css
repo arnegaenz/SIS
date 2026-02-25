@@ -864,6 +864,25 @@ body.kiosk-mode .dashboard-shell {
   font-variant-numeric: tabular-nums;
 }
 
+.merchant-tile--warn {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+.merchant-tile--danger {
+  background: rgba(239, 68, 68, 0.18);
+  border-color: rgba(239, 68, 68, 0.35);
+}
+
+.merchant-tile--danger .merchant-tile__name,
+.merchant-tile--danger .merchant-tile__stat-value {
+  color: #fff;
+}
+
+.merchant-tile--danger .merchant-tile__stats {
+  color: rgba(255, 255, 255, 0.7);
+}
+
 /* Event feed (Ops) */
 .event-feed {
   background: var(--panel);
@@ -951,7 +970,7 @@ body.kiosk-mode .dashboard-shell {
 /* Kiosk layout helpers */
 .kiosk-split {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 2fr 1fr;
   gap: 18px;
   margin-bottom: 18px;
 }
