@@ -157,7 +157,30 @@ All partner-facing content follows engagement-positive tone:
 
 # Build History
 
-## Feb 25, 2026
+## Feb 25, 2026 (Session 2)
+
+### Live Placement Event Feed
+- **Problem**: Ops event feed read from batch placement files generated once/day by cron — today's file didn't exist, so the feed showed no recent data despite active traffic
+- **Solution**: Background fetch every 15 minutes pulls today's placements live from CardSavr API across all 8 instances, cached in module-level `_livePlacementsCache`. Ops-feed endpoint reads from cache for today, batch file for yesterday. Piggybacks on existing 15-min traffic alert cycle (offset 30s to avoid API storms)
+- **Fallback**: If cache not yet populated, falls back to batch file
+- **Files**: `scripts/serve-funnel.mjs` (background fetch + endpoint change)
+
+### Ops Kiosk Layout Overhaul
+- **Layout restructured**: Single `kiosk-main-split` with left column (FI tiles + merchant tiles) and right column (volume chart + event feed). Grid split `5fr 2fr`
+- **FI tiles**: Horizontal scroll (`.kiosk-fi-scroll`, flex row, `overflow-x: auto`), sorted by highest avg sessions/day
+- **Merchant tiles**: 6-column vertical scroll (`.kiosk-merchant-scroll`, 4 rows visible, JS `capRightColumnHeight()` aligns bottom with right column)
+- **Merchant detail modals**: Click-to-open with health bar, stats grid (jobs/success/failed/fail rate), week-over-week comparison, top error code, recent activity (24h) filtered by merchant
+- **Merchant tile 2x2 metrics**: Jobs, Success, Failed, Fail Rate in grid layout with severity coloring
+- **Event feed enhancements**: 24h window (reads today + yesterday files), column headers (Time/Merchant/FI/Status), merchant column 20ch fixed width, Vercel data filtered server-side
+- **Volume chart**: Responsive SVG with viewBox, Y-axis labels with dashed gridlines, 8-day window
+- **Files**: `public/assets/css/dashboards.css`, `public/assets/js/operations-dashboard.js`, `public/dashboards/operations.html`, `scripts/serve-funnel.mjs`
+
+### Portfolio FI Card Fix
+- **Problem**: FI card text (Sessions, Success %, Score) clipped in kiosk mode at 240px card width
+- **Fix**: Changed `.partner-card__metrics` from flex row to 2x2 CSS grid. Reordered metrics: Score + Sessions (left), 4-wk vol + Success (right)
+- **Files**: `public/assets/js/portfolio-dashboard.js`, `public/assets/css/dashboards.css`
+
+## Feb 25, 2026 (Session 1)
 
 ### Portfolio Dashboard — Low-Volume FI Group
 - **Problem**: FIs with very few sessions produce noisy/meaningless engagement scores, cluttering the card grid
