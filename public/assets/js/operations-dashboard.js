@@ -548,33 +548,198 @@ function renderMerchantHealthGrid(rows) {
     .filter((r) => (r.Jobs_Total || 0) > 0)
     .sort((a, b) => (b.Jobs_Total || 0) - (a.Jobs_Total || 0));
 
-  kioskEls.merchantGrid.innerHTML = sorted
-    .slice(0, 30)
-    .map((row) => {
-      const successRate = row.Jobs_Total > 0 ? (row.Jobs_Success || 0) / row.Jobs_Total : 1;
-      const failRate = row.failure_rate || 0;
-      const color = opsHealthColor(successRate);
-      const name = row.merchant_name || "Unknown";
-      const prior = merchantTrends.get(name);
-      // For merchants, trending arrow on failure rate — up is bad
-      const trend = prior ? opsTrendArrow(failRate, prior.priorFailRate, true) : "";
+  kioskEls.merchantGrid.innerHTML = "";
+  sorted.slice(0, 30).forEach((row) => {
+    const successRate = row.Jobs_Total > 0 ? (row.Jobs_Success || 0) / row.Jobs_Total : 1;
+    const failRate = row.failure_rate || 0;
+    const color = opsHealthColor(successRate);
+    const name = row.merchant_name || "Unknown";
+    const prior = merchantTrends.get(name);
+    const trend = prior ? opsTrendArrow(failRate, prior.priorFailRate, true) : "";
 
-      const severity = failRate >= 0.4 ? 'merchant-tile--danger' : failRate > 0.15 ? 'merchant-tile--warn' : '';
+    const severity = failRate >= 0.4 ? 'merchant-tile--danger' : failRate > 0.15 ? 'merchant-tile--warn' : '';
 
+    const tile = document.createElement("div");
+    tile.className = `merchant-tile ${severity}`;
+    tile.innerHTML = `
+      <div class="merchant-tile__header">
+        <span class="merchant-tile__name">${name}</span>
+        <span style="display:flex;align-items:center;gap:4px;">${trend} <span class="health-dot ${color}"></span></span>
+      </div>
+      <div class="merchant-tile__metrics">
+        <div class="merchant-tile__metric">
+          <span class="merchant-tile__metric-value">${formatNumber(row.Jobs_Total || 0)}</span>
+          <span class="merchant-tile__metric-label">Jobs</span>
+        </div>
+        <div class="merchant-tile__metric">
+          <span class="merchant-tile__metric-value">${formatPercent(successRate)}</span>
+          <span class="merchant-tile__metric-label">Success</span>
+        </div>
+        <div class="merchant-tile__metric">
+          <span class="merchant-tile__metric-value">${formatNumber(row.Jobs_Failed || 0)}</span>
+          <span class="merchant-tile__metric-label">Failed</span>
+        </div>
+        <div class="merchant-tile__metric">
+          <span class="merchant-tile__metric-value">${formatPercent(failRate)}</span>
+          <span class="merchant-tile__metric-label">Fail Rate</span>
+        </div>
+      </div>
+    `;
+    tile.addEventListener("click", () => renderMerchantDetailModal(row, prior));
+    kioskEls.merchantGrid.appendChild(tile);
+  });
+}
+
+function renderMerchantDetailModal(row, prior) {
+  const existing = document.getElementById("merchantDetailModal");
+  if (existing) existing.remove();
+
+  const name = row.merchant_name || "Unknown";
+  const total = row.Jobs_Total || 0;
+  const success = row.Jobs_Success || 0;
+  const failed = row.Jobs_Failed || 0;
+  const other = Math.max(0, total - success - failed);
+  const failRate = row.failure_rate || 0;
+  const successRate = total > 0 ? success / total : 1;
+  const color = opsHealthColor(successRate);
+  const topError = row.top_error_code || "None";
+
+  // Bar widths
+  const successPct = total > 0 ? (success / total) * 100 : 100;
+  const failPct = total > 0 ? (failed / total) * 100 : 0;
+  const otherPct = total > 0 ? (other / total) * 100 : 0;
+
+  // Week-over-week comparison
+  let wowHtml = "";
+  if (prior) {
+    const priorFailRate = prior.priorFailRate || 0;
+    const priorTotal = prior.priorTotal || 0;
+    const delta = failRate - priorFailRate;
+    const deltaSign = delta >= 0 ? "+" : "";
+    const deltaColor = Math.abs(delta) < 0.02 ? "#64748b" : delta > 0 ? "#ef4444" : "#22c55e";
+    const deltaLabel = Math.abs(delta) < 0.02 ? "Stable" : delta > 0 ? "Worsening" : "Improving";
+    wowHtml = `
+      <div class="detail-modal__section-title">Week-over-Week</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px;">
+        <div>
+          <div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);margin-bottom:2px;">Prior Week</div>
+          <div style="font-weight:700;color:var(--text);font-variant-numeric:tabular-nums;">${formatPercent(priorFailRate)} fail</div>
+          <div style="font-size:0.75rem;color:var(--muted);">${formatNumber(priorTotal)} jobs</div>
+        </div>
+        <div>
+          <div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);margin-bottom:2px;">This Week</div>
+          <div style="font-weight:700;color:var(--text);font-variant-numeric:tabular-nums;">${formatPercent(failRate)} fail</div>
+          <div style="font-size:0.75rem;color:var(--muted);">${formatNumber(total)} jobs</div>
+        </div>
+        <div>
+          <div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);margin-bottom:2px;">Trend</div>
+          <div style="font-weight:700;color:${deltaColor};font-variant-numeric:tabular-nums;">${deltaSign}${(delta * 100).toFixed(1)}pp</div>
+          <div style="font-size:0.75rem;color:${deltaColor};">${deltaLabel}</div>
+        </div>
+      </div>
+    `;
+  }
+
+  // Top error section
+  const errorHtml = topError !== "None" ? `
+    <div class="detail-modal__section-title">Top Error Code</div>
+    <div style="font-family:monospace;font-size:0.85rem;color:var(--text);padding:8px 12px;background:var(--bg);border-radius:8px;margin-bottom:16px;">${topError}</div>
+  ` : "";
+
+  // Recent events for this merchant from today's feed
+  const feedEvents = (state.feedEvents || []).filter(
+    (evt) => (evt.merchant || "").toLowerCase() === name.toLowerCase()
+  );
+  const recentEvents = feedEvents.slice(0, 10);
+  let eventsHtml = "";
+  if (recentEvents.length) {
+    const eventRows = recentEvents.map((evt) => {
+      const statusCls = evt.status === "success" ? "color:#22c55e" : evt.status === "pending" ? "color:#f59e0b" : "color:#ef4444";
+      const time = evt.timestamp ? new Date(evt.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "";
+      const termLabel = evt.termination_type && evt.status !== "success" ? `<span style="font-family:monospace;font-size:0.72rem;color:var(--muted);margin-left:6px;">${evt.termination_type}</span>` : "";
       return `
-        <div class="merchant-tile ${severity}">
-          <div class="merchant-tile__header">
-            <span class="merchant-tile__name">${name}</span>
-            <span style="display:flex;align-items:center;gap:4px;">${trend} <span class="health-dot ${color}"></span></span>
-          </div>
-          <div class="merchant-tile__stats">
-            <span><span class="merchant-tile__stat-value">${formatNumber(row.Jobs_Total || 0)}</span> jobs</span>
-            <span><span class="merchant-tile__stat-value">${formatPercent(failRate)}</span> fail</span>
-          </div>
+        <div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--border);">
+          <span style="font-size:0.75rem;color:var(--muted);min-width:48px;font-variant-numeric:tabular-nums;">${time}</span>
+          <span style="font-size:0.78rem;color:var(--text);flex:1;">${evt.fi_name || ""}</span>
+          <span style="font-size:0.75rem;font-weight:600;${statusCls};text-transform:uppercase;">${evt.status || ""}</span>
+          ${termLabel}
         </div>
       `;
-    })
-    .join("");
+    }).join("");
+    const countNote = feedEvents.length > 10 ? ` <span style="color:var(--muted);font-weight:400;">(showing 10 of ${feedEvents.length})</span>` : "";
+    eventsHtml = `
+      <div class="detail-modal__section-title">Recent Activity (24h)${countNote}</div>
+      <div style="margin-bottom:16px;">${eventRows}</div>
+    `;
+  } else {
+    eventsHtml = `
+      <div class="detail-modal__section-title">Recent Activity (24h)</div>
+      <div style="font-size:0.78rem;color:var(--muted);margin-bottom:16px;">No events for this merchant in the last 24 hours.</div>
+    `;
+  }
+
+  const overlay = document.createElement("div");
+  overlay.id = "merchantDetailModal";
+  overlay.className = "detail-modal-overlay";
+  overlay.innerHTML = `
+    <div class="detail-modal">
+      <div class="detail-modal__header">
+        <div>
+          <span class="detail-modal__name">${name}</span>
+          <span class="health-dot ${color}" style="margin-left:8px;"></span>
+          ${failRate >= 0.4 ? '<span style="margin-left:8px;background:#ef4444;color:#fff;padding:2px 8px;border-radius:6px;font-size:0.7rem;font-weight:600;">CRITICAL</span>' : failRate > 0.15 ? '<span style="margin-left:8px;background:#f59e0b;color:#fff;padding:2px 8px;border-radius:6px;font-size:0.7rem;font-weight:600;">ELEVATED</span>' : ''}
+        </div>
+        <button class="detail-modal__close" type="button">&times;</button>
+      </div>
+      <div class="merchant-modal__bar">
+        <div class="merchant-modal__bar-success" style="width:${successPct}%;" title="Success: ${formatNumber(success)} (${formatPercent(successRate)})"></div>
+        <div class="merchant-modal__bar-other" style="width:${otherPct}%;" title="Other: ${formatNumber(other)}"></div>
+        <div class="merchant-modal__bar-fail" style="width:${failPct}%;" title="Failed: ${formatNumber(failed)} (${formatPercent(failRate)})"></div>
+      </div>
+      <div style="display:flex;gap:16px;font-size:0.75rem;color:var(--muted);margin-bottom:20px;">
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:#22c55e;margin-right:4px;vertical-align:middle;"></span>Success ${formatPercent(successRate)}</span>
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:#ef4444;margin-right:4px;vertical-align:middle;"></span>Failed ${formatPercent(failRate)}</span>
+        ${other > 0 ? `<span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:#64748b;margin-right:4px;vertical-align:middle;"></span>Other ${formatPercent(other / total)}</span>` : ""}
+      </div>
+      <div class="detail-modal__stats">
+        <div class="partner-detail-panel__stat">
+          <span class="partner-detail-panel__stat-value">${formatNumber(total)}</span>
+          <span class="partner-detail-panel__stat-label">Total Jobs</span>
+        </div>
+        <div class="partner-detail-panel__stat">
+          <span class="partner-detail-panel__stat-value">${formatNumber(success)}</span>
+          <span class="partner-detail-panel__stat-label">Successful</span>
+        </div>
+        <div class="partner-detail-panel__stat">
+          <span class="partner-detail-panel__stat-value">${formatNumber(failed)}</span>
+          <span class="partner-detail-panel__stat-label">Failed</span>
+        </div>
+        <div class="partner-detail-panel__stat">
+          <span class="partner-detail-panel__stat-value">${formatPercent(successRate)}</span>
+          <span class="partner-detail-panel__stat-label">Success Rate</span>
+        </div>
+      </div>
+      ${wowHtml}
+      ${errorHtml}
+      ${eventsHtml}
+    </div>
+  `;
+
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) closeMerchantModal();
+  });
+  overlay.querySelector(".detail-modal__close").addEventListener("click", closeMerchantModal);
+
+  document.body.appendChild(overlay);
+  requestAnimationFrame(() => overlay.classList.add("open"));
+}
+
+function closeMerchantModal() {
+  const modal = document.getElementById("merchantDetailModal");
+  if (modal) {
+    modal.classList.remove("open");
+    setTimeout(() => modal.remove(), 200);
+  }
 }
 
 function renderVolumeSparkline(byDay) {
@@ -584,49 +749,64 @@ function renderVolumeSparkline(byDay) {
     return;
   }
 
-  const width = kioskEls.volumeChart.clientWidth || 500;
-  const height = 180;
-  const padding = 36;
+  const vw = 500;
+  const vh = 180;
+  const padL = 44; // left padding for Y-axis labels
+  const padR = 12;
+  const padT = 12;
+  const padB = 24; // bottom for date labels
   const maxVal = Math.max(...byDay.map((d) => d.Jobs_Total || 0), 1);
-  const stepX = byDay.length > 1 ? (width - padding * 2) / (byDay.length - 1) : 0;
+  const plotW = vw - padL - padR;
+  const plotH = vh - padT - padB;
+  const stepX = byDay.length > 1 ? plotW / (byDay.length - 1) : 0;
 
   // Success area
   const successPoints = byDay.map((d, i) => {
-    const x = padding + i * stepX;
-    const y = height - padding - ((d.Jobs_Success || 0) / maxVal) * (height - padding * 2);
+    const x = padL + i * stepX;
+    const y = padT + plotH - ((d.Jobs_Success || 0) / maxVal) * plotH;
     return `${x.toFixed(1)},${y.toFixed(1)}`;
   });
   // Total area
   const totalPoints = byDay.map((d, i) => {
-    const x = padding + i * stepX;
-    const y = height - padding - ((d.Jobs_Total || 0) / maxVal) * (height - padding * 2);
+    const x = padL + i * stepX;
+    const y = padT + plotH - ((d.Jobs_Total || 0) / maxVal) * plotH;
     return `${x.toFixed(1)},${y.toFixed(1)}`;
   });
 
   const totalPath = `M${totalPoints.join(" L")}`;
   const successPath = `M${successPoints.join(" L")}`;
-  const totalArea = `${totalPath} L${(padding + (byDay.length - 1) * stepX).toFixed(1)},${height - padding} L${padding},${height - padding} Z`;
-  const successArea = `${successPath} L${(padding + (byDay.length - 1) * stepX).toFixed(1)},${height - padding} L${padding},${height - padding} Z`;
+  const baselineY = padT + plotH;
+  const rightX = padL + (byDay.length - 1) * stepX;
+  const totalArea = `${totalPath} L${rightX.toFixed(1)},${baselineY} L${padL},${baselineY} Z`;
+  const successArea = `${successPath} L${rightX.toFixed(1)},${baselineY} L${padL},${baselineY} Z`;
+
+  // Y-axis ticks (0, mid, max)
+  const yTicks = [0, Math.round(maxVal / 2), maxVal];
+  const yTickSvg = yTicks.map((val) => {
+    const y = padT + plotH - (val / maxVal) * plotH;
+    return `
+      <line x1="${padL}" y1="${y.toFixed(1)}" x2="${vw - padR}" y2="${y.toFixed(1)}" stroke="var(--border)" stroke-width="0.5" stroke-dasharray="3,3" />
+      <text x="${padL - 6}" y="${(y + 3).toFixed(1)}" text-anchor="end" fill="#64748b" font-size="9" font-variant="tabular-nums">${formatNumber(val)}</text>
+    `;
+  }).join("");
 
   // Date labels
-  const labels = byDay
-    .filter((_, i) => i === 0 || i === byDay.length - 1 || i === Math.floor(byDay.length / 2))
-    .map((d, idx, arr) => {
-      const i = idx === 0 ? 0 : idx === arr.length - 1 ? byDay.length - 1 : Math.floor(byDay.length / 2);
-      const x = padding + i * stepX;
-      return `<text x="${x}" y="${height - 8}" text-anchor="middle" fill="#64748b" font-size="10">${(d.date || "").slice(5)}</text>`;
-    })
-    .join("");
+  const dateIndices = [0, Math.floor(byDay.length / 2), byDay.length - 1];
+  const dateLabelSvg = dateIndices.map((i) => {
+    const x = padL + i * stepX;
+    return `<text x="${x.toFixed(1)}" y="${vh - 4}" text-anchor="middle" fill="#64748b" font-size="9">${(byDay[i].date || "").slice(5)}</text>`;
+  }).join("");
 
   kioskEls.volumeChart.innerHTML = `
-    <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+    <svg width="100%" viewBox="0 0 ${vw} ${vh}" preserveAspectRatio="xMidYMid meet" style="display:block;">
+      ${yTickSvg}
       <path d="${totalArea}" fill="rgba(122,162,255,0.12)" />
       <path d="${totalPath}" fill="none" stroke="#7aa2ff" stroke-width="2" />
       <path d="${successArea}" fill="rgba(34,197,94,0.12)" />
       <path d="${successPath}" fill="none" stroke="#22c55e" stroke-width="2" />
-      ${labels}
+      ${dateLabelSvg}
     </svg>
-    <div class="legend" style="margin-top:6px;">
+    <div class="legend" style="margin-top:4px;">
       <span><i style="background:#7aa2ff"></i>Total Jobs</span>
       <span><i style="background:#22c55e"></i>Successful</span>
     </div>
@@ -640,11 +820,18 @@ async function fetchEventFeed() {
     if (!res.ok) return;
     const data = await res.json();
     const events = data.events || [];
+    state.feedEvents = events;
+    const colHeader = `<div class="event-feed__item event-feed__item--header">
+      <span class="event-feed__time">Time</span>
+      <span class="event-feed__merchant">Merchant</span>
+      <span class="event-feed__fi">FI</span>
+      <span class="event-feed__status">Status</span>
+    </div>`;
     if (!events.length) {
-      kioskEls.eventList.innerHTML = `<div class="empty-state">No recent events.</div>`;
+      kioskEls.eventList.innerHTML = colHeader + `<div class="empty-state">No recent events.</div>`;
       return;
     }
-    kioskEls.eventList.innerHTML = events
+    kioskEls.eventList.innerHTML = colHeader + events
       .map((evt) => {
         const statusClass = evt.status === "success" ? "success" : evt.status === "pending" ? "pending" : "failed";
         return `
@@ -672,7 +859,6 @@ function initKioskLayout() {
   // Show kiosk containers
   if (kioskEls.kpiRow) kioskEls.kpiRow.style.display = "";
   if (kioskEls.split) kioskEls.split.style.display = "";
-  if (trafficEls.kioskWrap) trafficEls.kioskWrap.style.display = "";
 
   // Add "Include test data" checkbox to kiosk header
   const headerStatus = document.querySelector(".kiosk-header__status");
@@ -697,6 +883,28 @@ function renderKioskView() {
   renderKioskKpis(overall, byMerchant);
   renderMerchantHealthGrid(byMerchant);
   renderVolumeSparkline(byDay);
+  requestAnimationFrame(capRightColumnHeight);
+}
+
+function capRightColumnHeight() {
+  const rightCol = document.querySelector(".kiosk-main-split__right");
+  const merchantGrid = document.getElementById("kioskMerchantGrid");
+  if (!rightCol || !merchantGrid) return;
+  const tiles = merchantGrid.querySelectorAll(".merchant-tile");
+  if (!tiles.length) return;
+
+  // Measure one tile height + gap to compute 4-row cap for merchant grid
+  const firstRect = tiles[0].getBoundingClientRect();
+  const tileH = firstRect.height;
+  const gap = 10;
+  const fourRowHeight = tileH * 4 + gap * 3;
+  merchantGrid.style.maxHeight = fourRowHeight + "px";
+
+  // Cap right column: measure from split top to merchant grid bottom (after cap)
+  const splitRect = document.querySelector(".kiosk-main-split").getBoundingClientRect();
+  const gridRect = merchantGrid.getBoundingClientRect();
+  const targetHeight = gridRect.top - splitRect.top + fourRowHeight;
+  rightCol.style.maxHeight = targetHeight + "px";
 }
 
 async function kioskRefresh() {
@@ -803,12 +1011,16 @@ function renderTrafficTile(fi) {
   `;
 }
 
+function sortFisByAvgSessions(fis) {
+  return fis.slice().sort((a, b) => (b.baseline_avg || 0) - (a.baseline_avg || 0));
+}
+
 function renderTrafficHealth(data) {
   if (!data || !data.fis) return;
   renderTrafficHealthBanner(data, trafficEls.banner);
 
-  const anomalies = data.fis.filter(f => f.status !== "normal");
-  const normals = data.fis.filter(f => f.status === "normal");
+  const anomalies = sortFisByAvgSessions(data.fis.filter(f => f.status !== "normal"));
+  const normals = sortFisByAvgSessions(data.fis.filter(f => f.status === "normal"));
 
   let html = anomalies.map(renderTrafficTile).join("");
 
@@ -846,11 +1058,11 @@ function renderTrafficHealth(data) {
 
 function renderKioskTrafficHealth(data) {
   if (!data || !data.fis) return;
-  if (trafficEls.kioskWrap) trafficEls.kioskWrap.style.display = "";
   renderTrafficHealthBanner(data, trafficEls.kioskBanner);
 
   if (trafficEls.kioskGrid) {
-    trafficEls.kioskGrid.innerHTML = data.fis.map(renderTrafficTile).join("");
+    const sorted = sortFisByAvgSessions(data.fis);
+    trafficEls.kioskGrid.innerHTML = sorted.map(renderTrafficTile).join("");
 
     trafficEls.kioskGrid.querySelectorAll(".traffic-tile").forEach(tile => {
       tile.addEventListener("click", () => {
@@ -978,7 +1190,7 @@ function init() {
   if (kiosk) {
     initKioskMode("Operations Command Center", 30);
     initKioskLayout();
-    state.windowDays = 7;
+    state.windowDays = 8;
     loadFiRegistry();
     startAutoRefresh(kioskRefresh, 30000); // 30 seconds
   } else {

@@ -646,8 +646,9 @@ body.kiosk-mode .dashboard-shell {
 }
 
 .partner-card__metrics {
-  display: flex;
-  gap: 16px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 12px;
   font-size: 0.78rem;
   color: var(--muted);
 }
@@ -663,6 +664,7 @@ body.kiosk-mode .dashboard-shell {
   font-size: 0.95rem;
   color: var(--text);
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .partner-card__metric-label {
@@ -670,6 +672,7 @@ body.kiosk-mode .dashboard-shell {
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--muted);
+  white-space: nowrap;
 }
 
 /* Partner detail panel (CS Portfolio) */
@@ -828,11 +831,18 @@ body.kiosk-mode .dashboard-shell {
 .merchant-tile {
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 12px 14px;
+  border-radius: 14px;
+  padding: 14px 16px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.merchant-tile:hover {
+  border-color: var(--accent);
+  background: var(--panel-light);
 }
 
 .merchant-tile__header {
@@ -844,11 +854,41 @@ body.kiosk-mode .dashboard-shell {
 
 .merchant-tile__name {
   font-weight: 600;
-  font-size: 0.82rem;
+  font-size: 0.88rem;
   color: var(--text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.merchant-tile__metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 12px;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.merchant-tile__metric {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.merchant-tile__metric-value {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.merchant-tile__metric-label {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  white-space: nowrap;
 }
 
 .merchant-tile__stats {
@@ -875,12 +915,39 @@ body.kiosk-mode .dashboard-shell {
 }
 
 .merchant-tile--danger .merchant-tile__name,
-.merchant-tile--danger .merchant-tile__stat-value {
+.merchant-tile--danger .merchant-tile__stat-value,
+.merchant-tile--danger .merchant-tile__metric-value {
   color: #fff;
 }
 
-.merchant-tile--danger .merchant-tile__stats {
+.merchant-tile--danger .merchant-tile__stats,
+.merchant-tile--danger .merchant-tile__metrics {
   color: rgba(255, 255, 255, 0.7);
+}
+
+.merchant-tile--danger .merchant-tile__metric-label {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* Merchant detail modal — success/fail bar */
+.merchant-modal__bar {
+  display: flex;
+  height: 18px;
+  border-radius: 9px;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+
+.merchant-modal__bar-success {
+  background: #22c55e;
+}
+
+.merchant-modal__bar-fail {
+  background: #ef4444;
+}
+
+.merchant-modal__bar-other {
+  background: #64748b;
 }
 
 /* Event feed (Ops) */
@@ -892,13 +959,37 @@ body.kiosk-mode .dashboard-shell {
 }
 
 .event-feed__header {
-  padding: 10px 14px;
-  font-size: 0.78rem;
+  padding: 6px 14px;
+  font-size: 0.72rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--muted);
   border-bottom: 1px solid var(--border);
   font-weight: 600;
+}
+
+.event-feed__item--header {
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.5;
+  position: sticky;
+  top: 0;
+  background: var(--panel);
+  z-index: 1;
+}
+
+.event-feed__item--header .event-feed__status {
+  background: none;
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.event-feed__item--header .event-feed__merchant {
+  font-weight: 400;
+}
+
+.event-feed__item--header .event-feed__time {
+  color: var(--muted);
 }
 
 .event-feed__list {
@@ -910,7 +1001,7 @@ body.kiosk-mode .dashboard-shell {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 14px;
+  padding: 7px 14px;
   font-size: 0.78rem;
   border-bottom: 1px solid var(--border);
 }
@@ -927,7 +1018,8 @@ body.kiosk-mode .dashboard-shell {
 }
 
 .event-feed__merchant {
-  flex: 1;
+  flex: 0 0 20ch;
+  width: 20ch;
   font-weight: 600;
   color: var(--text);
   white-space: nowrap;
@@ -941,6 +1033,7 @@ body.kiosk-mode .dashboard-shell {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  text-align: left;
 }
 
 .event-feed__status {
@@ -968,11 +1061,109 @@ body.kiosk-mode .dashboard-shell {
 }
 
 /* Kiosk layout helpers */
-.kiosk-split {
+.kiosk-main-split {
   display: grid;
-  grid-template-columns: 2fr 1fr;
+  grid-template-columns: 5fr 2fr;
   gap: 18px;
   margin-bottom: 18px;
+}
+
+.kiosk-main-split__left {
+  min-width: 0;
+}
+
+.kiosk-main-split__right {
+  min-width: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-self: start;
+}
+
+.kiosk-main-split__right .event-feed {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.kiosk-main-split__right .event-feed__list {
+  flex: 1;
+  min-height: 0;
+  max-height: none;
+  overflow-y: auto;
+}
+
+.kiosk-volume-chart {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 10px 10px 6px;
+}
+
+.kiosk-volume-chart svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.kiosk-volume-chart .legend {
+  display: flex;
+  gap: 14px;
+  font-size: 0.72rem;
+  color: var(--muted);
+  padding: 2px 4px 0;
+}
+
+/* FI traffic health: single row, horizontal scroll */
+.kiosk-fi-scroll {
+  display: flex !important;
+  gap: 10px !important;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 6px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+.kiosk-fi-scroll > * {
+  flex: 0 0 auto;
+  width: calc((100% - 50px) / 6);
+  min-width: 180px;
+  box-sizing: border-box;
+}
+
+.kiosk-fi-scroll::-webkit-scrollbar {
+  height: 4px;
+}
+
+.kiosk-fi-scroll::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+/* Merchant health: 6 cols, vertical scroll capped at 4 rows */
+.kiosk-merchant-scroll {
+  grid-template-columns: repeat(6, 1fr) !important;
+  gap: 10px !important;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+.kiosk-merchant-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+
+.kiosk-merchant-scroll::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+.kiosk-merchant-scroll > * {
+  box-sizing: border-box;
 }
 
 .kiosk-section-title {
@@ -1550,13 +1741,15 @@ body.kiosk-mode .table-scroll th {
 .traffic-tile {
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 12px 14px;
+  border-radius: 14px;
+  padding: 14px 16px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
   cursor: pointer;
   transition: border-color 0.15s, background 0.15s;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .traffic-tile:hover {
@@ -1628,6 +1821,9 @@ body.kiosk-mode .table-scroll th {
   font-size: 0.75rem;
   color: var(--muted);
   line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .traffic-tile__stats strong {
@@ -1637,6 +1833,13 @@ body.kiosk-mode .table-scroll th {
 
 .traffic-tile__sparkline {
   margin-top: 2px;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.traffic-tile__sparkline svg {
+  max-width: 100%;
+  height: auto;
 }
 
 .traffic-health-banner {

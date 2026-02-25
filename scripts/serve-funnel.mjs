@@ -690,6 +690,7 @@ let _trafficHealthCache = null;
 let _trafficHealthCacheTime = 0;
 const TRAFFIC_HEALTH_CACHE_TTL = 120000; // 2 minutes (live API calls are heavier)
 
+
 // ============================================================================
 // Traffic Health Alert Monitor (background)
 // ============================================================================
@@ -1127,7 +1128,94 @@ setTimeout(checkTrafficHealthAlerts, 2 * 60 * 1000);
 console.log("[traffic-alert] Background monitor started (checks every 15 min)");
 
 // ============================================================================
-// End Traffic Health Alert Monitor
+// Live Placements Background Fetch (piggybacks on 15-min cycle)
+// ============================================================================
+let _livePlacementsCache = null;   // array of placement objects for today
+let _livePlacementsCacheTime = 0;
+
+async function fetchLivePlacementsForToday() {
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    const instancesFile = await readInstancesFile();
+    const instances = instancesFile.entries || [];
+    const seenIds = new Set();
+    const placements = [];
+
+    console.log(`[live-placements] Fetching today's placements from ${instances.length} instances...`);
+    await Promise.allSettled(
+      instances.map(async (instConfig) => {
+        const instName = instConfig.name || "";
+        try {
+          const { session: sdkSession } = await loginWithSdk(instConfig);
+          const resp = await getCardPlacementPage(sdkSession, today, today, { page: 1 });
+          const rows = Array.isArray(resp?.body) ? resp.body
+            : Array.isArray(resp?.card_placement_results) ? resp.card_placement_results
+            : Array.isArray(resp?.results) ? resp.results
+            : Array.isArray(resp) ? resp : [];
+          for (const r of rows) {
+            const baseId = r.id || r.result_id || r.place_card_on_single_site_job_id || "";
+            const dedupeKey = `${instName}:${baseId}`;
+            if (baseId && seenIds.has(dedupeKey)) continue;
+            if (baseId) seenIds.add(dedupeKey);
+            placements.push({ ...r, _instance: instName });
+          }
+          // Follow pagination
+          const rawPagingHeader = resp?.headers?.get
+            ? resp.headers.get("x-cardsavr-paging")
+            : resp?.headers?.["x-cardsavr-paging"];
+          if (rawPagingHeader) {
+            let pagingMeta = JSON.parse(rawPagingHeader);
+            const pageLength = Number(pagingMeta.page_length) || rows.length || 25;
+            const totalResults = Number(pagingMeta.total_results) || rows.length;
+            const totalPages = pageLength > 0 ? Math.ceil(totalResults / pageLength) : 1;
+            let currentPage = Number(pagingMeta.page) || 1;
+            while (currentPage < totalPages && currentPage < 50) {
+              const nextPage = currentPage + 1;
+              const nextResp = await getCardPlacementPage(sdkSession, today, today, { ...pagingMeta, page: nextPage });
+              const nextRows = Array.isArray(nextResp?.body) ? nextResp.body
+                : Array.isArray(nextResp?.card_placement_results) ? nextResp.card_placement_results
+                : Array.isArray(nextResp?.results) ? nextResp.results
+                : Array.isArray(nextResp) ? nextResp : [];
+              for (const r of nextRows) {
+                const baseId = r.id || r.result_id || r.place_card_on_single_site_job_id || "";
+                const dedupeKey = `${instName}:${baseId}`;
+                if (baseId && seenIds.has(dedupeKey)) continue;
+                if (baseId) seenIds.add(dedupeKey);
+                placements.push({ ...r, _instance: instName });
+              }
+              const nextHeader = nextResp?.headers?.get
+                ? nextResp.headers.get("x-cardsavr-paging")
+                : nextResp?.headers?.["x-cardsavr-paging"];
+              if (!nextHeader) break;
+              try { pagingMeta = JSON.parse(nextHeader); } catch { pagingMeta.page = nextPage; }
+              const reportedPage = Number(pagingMeta.page);
+              if (!Number.isFinite(reportedPage) || reportedPage <= currentPage) break;
+              currentPage = reportedPage;
+            }
+          }
+          console.log(`[live-placements]   ${instName}: ${rows.length}+ placements`);
+        } catch (err) {
+          console.warn(`[live-placements]   ${instName}: FAILED - ${err.message}`);
+        }
+      })
+    );
+
+    _livePlacementsCache = placements;
+    _livePlacementsCacheTime = Date.now();
+    console.log(`[live-placements] Done — ${placements.length} placements cached for ${today}`);
+  } catch (err) {
+    console.error("[live-placements] fetch failed:", err.message);
+  }
+}
+
+// Run on same 15-min interval as traffic alerts, offset by 30s to avoid simultaneous API storms
+setInterval(fetchLivePlacementsForToday, TRAFFIC_ALERT_CHECK_INTERVAL);
+setTimeout(fetchLivePlacementsForToday, 30 * 1000); // first fetch 30s after startup
+
+console.log("[live-placements] Background fetch started (every 15 min)");
+
+// ============================================================================
+// End Traffic Health Alert Monitor + Live Placements
 // ============================================================================
 
 let synthState = {
@@ -5811,6 +5899,7 @@ const server = http.createServer(async (req, res) => {
           if (filters.fi_scope === "non_sso_only" && isSso) continue;
 
           const merchant = (job.merchant || "unknown").toString();
+          if (merchant.toLowerCase().includes("vercel")) continue;
           if (merchantSet && !merchantSet.has(normalizeSourceToken(merchant))) continue;
 
           const status = categorizeJobStatus(job);
@@ -5918,18 +6007,30 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
-  // ── Ops Event Feed (kiosk real-time feed) ──
+  // ── Ops Event Feed (live cache for today + batch file for yesterday) ──
   if (pathname === "/api/metrics/ops-feed" && req.method === "GET") {
     const session = await validateSession(req, queryParams);
     if (!session) {
       return send(res, 401, { error: "Authentication required" });
     }
     try {
-      const today = new Date().toISOString().slice(0, 10);
-      const placementsRaw = await readPlacementDay(today);
-      const placements = (placementsRaw && Array.isArray(placementsRaw.placements))
-        ? placementsRaw.placements
-        : [];
+      const now = new Date();
+      const today = now.toISOString().slice(0, 10);
+      const yesterday = new Date(now.getTime() - 86400000).toISOString().slice(0, 10);
+      const cutoff24h = new Date(now.getTime() - 86400000).toISOString();
+
+      // Today: use live cache (populated every 15 min), fall back to batch file
+      const todayPlacements = (_livePlacementsCache && _livePlacementsCacheTime > 0)
+        ? _livePlacementsCache
+        : await readPlacementDay(today).then(r => (r && Array.isArray(r.placements)) ? r.placements : []);
+
+      // Yesterday: always from batch file (complete data)
+      const yesterdayRaw = await readPlacementDay(yesterday);
+
+      const placements = [
+        ...todayPlacements,
+        ...((yesterdayRaw && Array.isArray(yesterdayRaw.placements)) ? yesterdayRaw.placements : []),
+      ];
       const fiRegistry = await loadFiRegistrySafe();
       const fiMeta = buildFiMetaMap(fiRegistry);
 
@@ -5948,8 +6049,9 @@ const server = http.createServer(async (req, res) => {
             termination_type: (job.termination || "").toString(),
           };
         })
+        .filter((evt) => evt.timestamp >= cutoff24h && !evt.merchant.toLowerCase().includes("vercel"))
         .sort((a, b) => (b.timestamp || "").localeCompare(a.timestamp || ""))
-        .slice(0, 50);
+        .slice(0, 100);
 
       return send(res, 200, { events });
     } catch (err) {

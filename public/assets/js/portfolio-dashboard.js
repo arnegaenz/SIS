@@ -808,13 +808,13 @@ function buildFiCard(fi) {
         <span class="partner-card__metric-value">${formatNumber(sm)}</span>
         <span class="partner-card__metric-label">Sessions</span>
       </div>
+      <div class="partner-card__metric" title="${sparklineTooltip(fi)}">
+        ${sparkline}
+        <span class="partner-card__metric-label">4-wk vol</span>
+      </div>
       <div class="partner-card__metric" title="Session Success Rate: ${formatRate(success, sm)} — ${formatNumber(success)} out of ${formatNumber(sm)} sessions resulted in at least one successful card placement at a merchant.">
         <span class="partner-card__metric-value">${formatRate(success, sm)}</span>
         <span class="partner-card__metric-label">Success</span>
-      </div>
-      <div class="partner-card__metric" style="margin-left:auto;" title="${sparklineTooltip(fi)}">
-        ${sparkline}
-        <span class="partner-card__metric-label">4-wk vol</span>
       </div>
     </div>
     ${systemFlag ? `<div style="margin-top:2px;" title="${systemFlagTooltip(fi)}">${systemFlag}</div>` : ""}
@@ -1232,13 +1232,13 @@ function buildKioskCard(fi) {
         <span class="partner-card__metric-value">${formatNumber(sm)}</span>
         <span class="partner-card__metric-label">Sessions</span>
       </div>
+      <div class="partner-card__metric" title="${sparklineTooltip(fi)}">
+        ${sparkline}
+        <span class="partner-card__metric-label">4-wk vol</span>
+      </div>
       <div class="partner-card__metric" title="Session Success Rate: ${formatRate(success, sm)} — ${formatNumber(success)} of ${formatNumber(sm)} sessions.">
         <span class="partner-card__metric-value">${formatRate(success, sm)}</span>
         <span class="partner-card__metric-label">Success</span>
-      </div>
-      <div class="partner-card__metric" style="margin-left:auto;" title="${sparklineTooltip(fi)}">
-        ${sparkline}
-        <span class="partner-card__metric-label">4-wk vol</span>
       </div>
     </div>
   `;
