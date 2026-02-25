@@ -164,6 +164,15 @@ All partner-facing content follows engagement-positive tone:
 
 # What's Pending / Queued
 
+### AI-Powered Insights Engine (Planned, Awaiting API Key)
+- Replace rule-based insights (50+ hardcoded rules in `engagement-insights.js`) with Claude API-generated insights
+- Server-side only, on-demand with caching, existing auth gates access
+- System prompt includes: motivation spectrum, tone directives, ACTION_LIBRARY, benchmarking philosophy
+- Model: Haiku 4.5, estimated $20-50/mo at normal usage, $0 when idle
+- Business Anthropic API account (console.anthropic.com), key in `secrets/anthropic.json`
+- Full plan: `docs/ai-insights-plan.md`
+- **Blocker**: Need business API key before building prototype
+
 ### Card Replacement Reach Math (Discussed, Not Yet Built)
 - ~25% annual portfolio turnover from expirations, ~3-5% lost/stolen = ~28-30% annual (2.3-2.5% monthly)
 - These are Tier 1 motivation cardholders at peak urgency
