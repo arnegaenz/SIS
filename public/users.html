@@ -110,6 +110,7 @@
     .badge-admin { background: #dcfce7; color: #166534; }
     .badge-full { background: #dcfce7; color: #166534; } /* legacy */
     .badge-internal { background: #dbeafe; color: #1e40af; }
+    .badge-executive { background: #ede9fe; color: #5b21b6; }
     .badge-limited { background: #fef3c7; color: #92400e; }
     .badge-disabled { background: #f3f4f6; color: #6b7280; }
     .btn {
@@ -505,6 +506,7 @@
       .badge-admin { background: #166534; color: #dcfce7; }
       .badge-full { background: #166534; color: #dcfce7; }
       .badge-internal { background: #1e40af; color: #dbeafe; }
+      .badge-executive { background: #5b21b6; color: #ede9fe; }
       .badge-limited { background: #92400e; color: #fef3c7; }
       .badge-disabled { background: #374151; color: #9ca3af; }
       .btn-danger { background: #7f1d1d; color: #fecaca; }
@@ -544,6 +546,7 @@
                 <option value="">All</option>
                 <option value="admin">Admin</option>
                 <option value="internal">Internal</option>
+                <option value="executive">Executive</option>
                 <option value="limited">Limited</option>
               </select>
             </label>
@@ -607,6 +610,11 @@
                 <td>All pages except Admin tools (User Management, Data & Config, Synthetic Traffic). Full data access.</td>
               </tr>
               <tr>
+                <td><span class="badge badge-executive">executive</span></td>
+                <td>Leadership / executive access</td>
+                <td>Executive Summary, Cardholder Engagement. Data filtered by instance/partner/FI access.</td>
+              </tr>
+              <tr>
                 <td><span class="badge badge-limited">limited</span></td>
                 <td>Partner/customer access</td>
                 <td>Funnel, Troubleshoot, Real-Time. Data filtered by instance/partner/FI access.</td>
@@ -637,6 +645,7 @@
           <select id="userAccessLevel" required>
             <option value="admin">Admin (all pages + user management)</option>
             <option value="internal">Internal (all pages, no user management)</option>
+            <option value="executive">Executive (executive summary + cardholder engagement)</option>
             <option value="limited">Limited (funnel + troubleshoot + realtime)</option>
           </select>
         </label>
@@ -864,7 +873,7 @@
 
       // Sort
       const dir = sortDirection === "asc" ? 1 : -1;
-      const accessOrder = { admin: 0, full: 0, internal: 1, limited: 2 };
+      const accessOrder = { admin: 0, full: 0, internal: 1, executive: 2, limited: 3 };
 
       list.sort((a, b) => {
         let cmp = 0;

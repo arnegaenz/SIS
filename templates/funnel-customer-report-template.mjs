@@ -298,16 +298,13 @@ export function buildCustomerReportHtml(data) {
       .map((h) => {
         const dateRange =
           h.start === h.end ? h.start : `${h.start} &rarr; ${h.end}`;
-        const selSuccessPct =
-          typeof h.selSuccessRatio === "number"
-            ? (h.selSuccessRatio * 100).toFixed(1) + "%"
-            : h.sel && h.sess_with_success
-            ? (((h.sess_with_success || 0) / h.sel) * 100).toFixed(1) + "%"
-            : "—";
-        const sessSuccessPct =
-          typeof h.sessionSuccessRatio === "number"
+        const srVal = typeof h.successRatio === "number"
+            ? (h.successRatio * 100).toFixed(1) + "%"
+            : typeof h.sessionSuccessRatio === "number"
             ? (h.sessionSuccessRatio * 100).toFixed(1) + "%"
             : "—";
+        const srDisplay = h.isEstimated ? "~" + srVal : srVal;
+        const srStyle = h.isEstimated ? ' style="font-style:italic"' : "";
         return `
       <tr>
         <td class="hl-label">${h.label || ""}</td>
@@ -317,8 +314,7 @@ export function buildCustomerReportHtml(data) {
         <td class="num">${fmt(h.sel)}</td>
         <td class="num">${fmt(h.sessions)}</td>
         <td class="num">${fmt(h.sess_with_success)}</td>
-        <td class="num">${selSuccessPct}</td>
-        <td class="num">${sessSuccessPct}</td>
+        <td class="num"${srStyle}>${srDisplay}</td>
         <td class="num">${fmt(h.placements)}</td>
       </tr>`;
       })
@@ -335,10 +331,9 @@ export function buildCustomerReportHtml(data) {
           <th>Integration</th>
           <th>Window</th>
           <th class="num">Launches</th>
-          <th class="num">Visits</th>
+          <th class="num">Sessions</th>
           <th class="num">Successful Cardholders</th>
           <th class="num">Success Rate</th>
-          <th class="num">Cardholder Success %</th>
           <th class="num">Placements</th>
         </tr>
       </thead>
@@ -350,31 +345,38 @@ export function buildCustomerReportHtml(data) {
   // ── Partner Integration Mix table ──
   let partnerHtml = "";
   if (partnerSummary && partnerSummary.rows && partnerSummary.rows.length) {
+    const fmtSr = (v, est) => {
+      if (v == null || !Number.isFinite(v)) return "—";
+      const s = v.toFixed(1) + "%";
+      return est ? "~" + s : s;
+    };
     const pRows = partnerSummary.rows
       .map(
-        (r) => `
+        (r) => {
+          const srStyle = r.isEstimated ? ' style="font-style:italic"' : "";
+          return `
       <tr>
         <td>${r.integration || ""}</td>
         <td class="num">${r.fiCount || 0}</td>
         <td class="num">${fmt(r.ga_select)}</td>
-        <td class="num">${r.selSuccessPct != null ? r.selSuccessPct.toFixed(1) + "%" : "—"}</td>
         <td class="num">${fmt(r.sessions)}</td>
         <td class="num">${fmt(r.sess_with_success)}</td>
-        <td class="num">${r.sessionSuccessPct != null ? r.sessionSuccessPct.toFixed(1) + "%" : "—"}</td>
-      </tr>`
+        <td class="num"${srStyle}>${fmtSr(r.successPct, r.isEstimated)}</td>
+      </tr>`;
+        }
       )
       .join("");
 
     const totals = partnerSummary.totals || {};
+    const tSrStyle = totals.isEstimated ? ' style="font-style:italic"' : "";
     const totalRow = `
       <tr class="total-row">
         <td><strong>Total</strong></td>
         <td class="num"><strong>${totals.fiCount || ""}</strong></td>
         <td class="num"><strong>${fmt(totals.ga_select)}</strong></td>
-        <td class="num"><strong>${totals.selSuccessPct != null ? totals.selSuccessPct.toFixed(1) + "%" : ""}</strong></td>
         <td class="num"><strong>${fmt(totals.sessions)}</strong></td>
         <td class="num"><strong>${fmt(totals.sess_with_success)}</strong></td>
-        <td class="num"><strong>${totals.sessionSuccessPct != null ? totals.sessionSuccessPct.toFixed(1) + "%" : ""}</strong></td>
+        <td class="num"${tSrStyle}><strong>${fmtSr(totals.successPct, totals.isEstimated)}</strong></td>
       </tr>`;
 
     partnerHtml = `
@@ -388,10 +390,9 @@ export function buildCustomerReportHtml(data) {
           <th>Integration</th>
           <th class="num">FIs</th>
           <th class="num">Launches</th>
-          <th class="num">Success Rate</th>
-          <th class="num">Visits</th>
+          <th class="num">Sessions</th>
           <th class="num">Successful Cardholders</th>
-          <th class="num">Cardholder Success %</th>
+          <th class="num">Success Rate</th>
         </tr>
       </thead>
       <tbody>${pRows}${totalRow}</tbody>

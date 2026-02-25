@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
+  <script>try{var t=localStorage.getItem('sis-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
   <title>Troubleshooting</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
   <link rel="stylesheet" href="./sis-shared.css?v=navfix" />
@@ -1111,8 +1112,8 @@
                   ${job.status ? `<div class="chip muted">${escapeHtml(job.status)}</div>` : ""}
                 </div>
                 <div class="job-meta">
-                  ${job.created_on ? `<span>Created ${escapeHtml(formatDateTime(job.created_on))}</span>` : ""}
-                  ${job.completed_on ? `<span>Completed ${escapeHtml(formatDateTime(job.completed_on))}</span>` : ""}
+                  ${job.created_on ? `<span title="UTC: ${escapeHtml(job.created_on)}">Created ${escapeHtml(formatDateTime(job.created_on))}</span>` : ""}
+                  ${job.completed_on ? `<span title="UTC: ${escapeHtml(job.completed_on)}">Completed ${escapeHtml(formatDateTime(job.completed_on))}</span>` : ""}
                   ${job.duration_ms ? `<span>Duration ${escapeHtml(formatDuration(job.duration_ms))}</span>` : ""}
                   ${job.instance ? `<span>Instance ${escapeHtml(job.instance)}</span>` : ""}
                 </div>
@@ -1189,8 +1190,8 @@
                   ${session.is_test ? '<div class="chip test">Test instance</div>' : ""}
                 </div>
                 <div class="session-meta">
-                  ${session.created_on ? `<span><strong>Opened</strong> ${escapeHtml(formatDateTime(session.created_on))}</span>` : ""}
-                  ${session.closed_on ? `<span><strong>Closed</strong> ${escapeHtml(formatDateTime(session.closed_on))}</span>` : ""}
+                  ${session.created_on ? `<span title="UTC: ${escapeHtml(session.created_on)}"><strong>Opened</strong> ${escapeHtml(formatDateTime(session.created_on))}</span>` : ""}
+                  ${session.closed_on ? `<span title="UTC: ${escapeHtml(session.closed_on)}"><strong>Closed</strong> ${escapeHtml(formatDateTime(session.closed_on))}</span>` : ""}
                   <span><strong>Jobs</strong> ${jobCount} (success ${jobSuccess} / fail ${jobFailure})</span>
                   ${session.source?.integration ? `<span><strong>Source</strong> ${escapeHtml(session.source.integration)}</span>` : ""}
                   ${getSessionFiKey(session) ? `<span><strong>FI lookup key</strong> ${escapeHtml(getSessionFiKey(session))}</span>` : ""}

@@ -7,12 +7,13 @@
   var jobsBody = document.getElementById("jobsBody");
   var modeSelect = document.getElementById("modeSelect");
   var jobsCount = document.getElementById("jobsCount");
-  var activeOnlyToggle = document.getElementById("activeOnlyToggle");
+  var jobsShowMore = document.getElementById("jobsShowMore");
   var demoPreset = document.getElementById("demoPreset");
   var sourceSubcategoryInput = document.getElementById("sourceSubcategory");
   var sourceSubcategoryHint = document.getElementById("sourceSubcategoryHint");
   var createJobButton = document.getElementById("createJobButton");
-  var activeOnly = false;
+  var PAGE_SIZE = 10;
+  var visibleLimit = PAGE_SIZE;
   var jobModal = document.getElementById("jobModal");
   var jobModalBody = document.getElementById("jobModalBody");
   var jobModalSubtitle = document.getElementById("jobModalSubtitle");
@@ -24,6 +25,7 @@
   var pendingCancelJobId = null;
   var activeDemoPreset = null;
   var latestJobs = [];
+  var sessionDataCache = {};
 
   var options = {
     fiHostEnv: ["argfcu", "orb_prod"],
@@ -70,23 +72,90 @@
     return (value || "").toString().toLowerCase().indexOf("_sso") !== -1;
   }
 
+  function setRateFieldDisabled(inputId, disabled) {
+    var input = document.getElementById(inputId);
+    if (!input) return;
+    var combo = input.closest(".rate-combo");
+    var toggle = combo ? combo.querySelector(".rate-toggle") : null;
+    var list = combo ? combo.querySelector(".rate-list") : null;
+    input.disabled = disabled;
+    if (toggle) toggle.disabled = disabled;
+    if (disabled && list) list.classList.remove("open");
+  }
+
   function toggleUserDataAbandon() {
     var flow = document.getElementById("integrationFlow");
     var input = document.getElementById("abandonUserData");
-    var toggle = input ? input.closest(".rate-combo")?.querySelector(".rate-toggle") : null;
     if (!flow || !input) return;
     if (isSsoFlow(flow.value)) {
       if (!activeDemoPreset || activeDemoPreset.integration !== "sso") {
         input.value = "0";
       }
-      input.disabled = true;
-      if (toggle) toggle.disabled = true;
-      var list = input.closest(".rate-combo")?.querySelector(".rate-list");
-      if (list) list.classList.remove("open");
+      setRateFieldDisabled("abandonUserData", true);
     } else {
-      input.disabled = false;
-      if (toggle) toggle.disabled = false;
+      setRateFieldDisabled("abandonUserData", false);
     }
+    updateFunnelCascade();
+  }
+
+  /**
+   * Cascading disable: if an upstream abandon rate is 100%, all downstream fields are disabled.
+   * Select Merchant 100% → disables User Data, Cred Entry, Success, Fail
+   * User Data 100% → disables Cred Entry, Success, Fail
+   * Cred Entry 100% → disables Success, Fail (but really just Fail since success is implied 0)
+   */
+  function updateFunnelCascade() {
+    var selectVal = parseFloat(document.getElementById("abandonSelectMerchant")?.value) || 0;
+    var userVal = parseFloat(document.getElementById("abandonUserData")?.value) || 0;
+    var credVal = parseFloat(document.getElementById("abandonCredentialEntry")?.value) || 0;
+    var userDisabledBySSO = document.getElementById("abandonUserData")?.disabled || false;
+
+    // Select Merchant at 100% → everything downstream disabled
+    if (selectVal >= 100) {
+      if (!userDisabledBySSO) setRateFieldDisabled("abandonUserData", true);
+      setRateFieldDisabled("abandonCredentialEntry", true);
+      setRateFieldDisabled("successRate", true);
+      setRateFieldDisabled("failRate", true);
+      updateCredNoInteractionBadge();
+      return;
+    }
+
+    // Re-enable User Data if not SSO-disabled
+    if (!userDisabledBySSO) setRateFieldDisabled("abandonUserData", false);
+
+    // User Data at 100% → cred entry, success, fail disabled
+    if (userVal >= 100) {
+      setRateFieldDisabled("abandonCredentialEntry", true);
+      setRateFieldDisabled("successRate", true);
+      setRateFieldDisabled("failRate", true);
+      updateCredNoInteractionBadge();
+      return;
+    }
+
+    // Re-enable Cred Entry
+    setRateFieldDisabled("abandonCredentialEntry", false);
+
+    // Cred Entry at 100% → success, fail disabled
+    if (credVal >= 100) {
+      setRateFieldDisabled("successRate", true);
+      setRateFieldDisabled("failRate", true);
+      updateCredNoInteractionBadge();
+      return;
+    }
+
+    // Re-enable success and fail
+    setRateFieldDisabled("successRate", false);
+    setRateFieldDisabled("failRate", false);
+
+    updateCredNoInteractionBadge();
+  }
+
+  function updateCredNoInteractionBadge() {
+    var badge = document.getElementById("credNoInteractionBadge");
+    var input = document.getElementById("abandonCredentialEntry");
+    if (!badge || !input) return;
+    var show = parseFloat(input.value) >= 100 && !input.disabled;
+    badge.style.display = show ? "" : "none";
   }
 
   function setSubcategoryHint(message) {
@@ -205,6 +274,17 @@
         )
       );
     }
+    if ((job.attempted || 0) > 0) {
+      var eyeCls = sessionDataCache[id] === true ? "icon-btn eye-has-data"
+        : sessionDataCache[id] === false ? "icon-btn eye-no-data"
+        : "icon-btn eye-pending";
+      actions.push(
+        '<button class="' + eyeCls + '" type="button" data-action="viewSessions" data-id="' + escapeHtml(id) + '"' +
+        ' aria-label="View Sessions" title="View Sessions">' +
+        '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>' +
+        "</button>"
+      );
+    }
     var actionHtml = actions.length
       ? actions.join("")
       : '<span class="pill muted">—</span>';
@@ -235,28 +315,56 @@
     if (!jobsBody) return;
     latestJobs = list || [];
     var total = latestJobs.length;
-    var filtered = activeOnly ? latestJobs.filter(isActiveJob) : latestJobs.slice();
-    var filteredTotal = filtered.length;
-    var visible = filtered;
-    if (!visible.length) {
-      var emptyLabel = activeOnly && total ? "No active jobs." : "No jobs yet.";
-      jobsBody.innerHTML = '<tr><td colspan="10">' + emptyLabel + "</td></tr>";
-      if (jobsCount) {
-        jobsCount.textContent = activeOnly && total
-          ? "Showing 0 active jobs (" + total + " total)."
-          : "Showing 0 jobs.";
-      }
+    if (!total) {
+      jobsBody.innerHTML = '<tr><td colspan="10">No jobs yet.</td></tr>';
+      if (jobsCount) jobsCount.textContent = "Showing 0 jobs.";
+      if (jobsShowMore) jobsShowMore.style.display = "none";
       return;
     }
+    // Active jobs always shown; fill remaining slots with most recent inactive
+    var active = latestJobs.filter(isActiveJob);
+    var inactive = latestJobs.filter(function (j) { return !isActiveJob(j); });
+    var fillSlots = Math.max(0, visibleLimit - active.length);
+    var visible = active.concat(inactive.slice(0, fillSlots));
+    var remaining = total - visible.length;
     jobsBody.innerHTML = visible.map(buildJobRow).join("");
     if (jobsCount) {
-      if (activeOnly) {
-        var suffix = total !== filteredTotal ? " (" + total + " total)." : ".";
-        jobsCount.textContent = "Showing " + visible.length + " of " + filteredTotal + " active jobs" + suffix;
-      } else {
-        jobsCount.textContent = "Showing " + visible.length + " of " + total + " jobs.";
-      }
+      var parts = [];
+      if (active.length) parts.push(active.length + " active");
+      var inactiveShown = visible.length - active.length;
+      if (inactiveShown) parts.push(inactiveShown + " recent");
+      jobsCount.textContent = "Showing " + parts.join(" + ") + " of " + total + " jobs.";
     }
+    if (jobsShowMore) {
+      jobsShowMore.style.display = remaining > 0 ? "" : "none";
+      jobsShowMore.textContent = "Show more (" + remaining + " remaining)";
+    }
+    checkSessionData(visible);
+  }
+
+  function checkSessionData(jobs) {
+    var toCheck = jobs.filter(function (j) {
+      return (j.attempted || 0) > 0 && sessionDataCache[j.id] === undefined;
+    });
+    if (!toCheck.length) return;
+    toCheck.forEach(function (job) {
+      sessionDataCache[job.id] = null; // mark in-flight
+      fetch(JOBS_ENDPOINT + "/" + encodeURIComponent(job.id) + "/sessions?count_only=true&max_days=30")
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (data) {
+          if (!data) return;
+          sessionDataCache[job.id] = !!data.has_data;
+          updateEyeIcon(job.id, data.has_data);
+        })
+        .catch(function () {});
+    });
+  }
+
+  function updateEyeIcon(jobId, hasData) {
+    var btn = document.querySelector('[data-action="viewSessions"][data-id="' + jobId + '"]');
+    if (!btn) return;
+    btn.classList.remove("eye-pending", "eye-has-data", "eye-no-data");
+    btn.classList.add(hasData ? "eye-has-data" : "eye-no-data");
   }
 
   function getJobById(jobId) {
@@ -409,19 +517,12 @@
   }
 
   function setSuccessBounds(targetSuccess) {
+    // No longer enforces min/max bounds on the input — success + fail <= 100 is the only constraint
     var input = document.getElementById("successRate");
     if (!input) return;
-    if (typeof targetSuccess !== "number") {
-      input.removeAttribute("min");
-      input.removeAttribute("max");
-      input.removeAttribute("title");
-      return;
-    }
-    var min = Math.max(0, Math.round((targetSuccess - 5) * 10) / 10);
-    var max = Math.min(100, Math.round((targetSuccess + 5) * 10) / 10);
-    input.min = String(min);
-    input.max = String(max);
-    input.title = "Allowed range: " + min + "% to " + max + "%";
+    input.removeAttribute("min");
+    input.max = "100";
+    input.removeAttribute("title");
   }
 
   function clampSuccessRate() {
@@ -429,12 +530,9 @@
     var input = document.getElementById("successRate");
     var fail = document.getElementById("failRate");
     if (!input) return;
-    var min = Number(input.min);
-    var max = Number(input.max);
     var value = Number(input.value);
-    if (Number.isFinite(min) && value < min) value = min;
-    if (Number.isFinite(max) && value > max) value = max;
-    if (Number.isFinite(value)) input.value = String(value);
+    if (value > 100) { value = 100; input.value = "100"; }
+    if (value < 0) { value = 0; input.value = "0"; }
     if (fail) {
       var nextFail = Math.max(0, Math.round((100 - value) * 10) / 10);
       fail.value = String(nextFail);
@@ -540,6 +638,20 @@
         abandonCredential: 65,
         success: 38,
         fail: 62
+      },
+      test: {
+        integration: "sso",
+        sourceType: "test",
+        sourceCategory: "other",
+        sourceSubcategoryHint: "test",
+        mode: "campaign",
+        runsPerDay: 25,
+        durationDays: 2,
+        abandonSelect: 0,
+        abandonUser: 0,
+        abandonCredential: 0,
+        success: 50,
+        fail: 50
       }
     };
 
@@ -593,8 +705,26 @@
     validateSourceSubcategory();
   }
 
-  function buildRateOptions(listEl, inputEl) {
+  function buildRateOptions(listEl, inputEl, extras) {
     listEl.innerHTML = "";
+    if (extras) {
+      extras.forEach(function (ex) {
+        var option = document.createElement("div");
+        option.className = "rate-option";
+        option.textContent = ex.label;
+        option.dataset.value = String(ex.value);
+        option.style.fontStyle = "italic";
+        option.style.borderBottom = "1px solid rgba(255,255,255,0.1)";
+        option.addEventListener("click", function (evt) {
+          var next = evt.currentTarget.dataset.value;
+          inputEl.value = next;
+          closeRateList(listEl);
+          updateRateValidation();
+          updateFunnelCascade();
+        });
+        listEl.appendChild(option);
+      });
+    }
     for (var val = 0; val <= 100; val += 5) {
       var option = document.createElement("div");
       option.className = "rate-option";
@@ -605,6 +735,7 @@
         inputEl.value = next;
         closeRateList(listEl);
         updateRateValidation();
+        updateFunnelCascade();
       });
       listEl.appendChild(option);
     }
@@ -625,7 +756,11 @@
       var toggle = combo.querySelector("[data-rate-combo-toggle]");
       var list = combo.querySelector("[data-rate-combo-list]");
       if (!input || !toggle || !list) return;
-      buildRateOptions(list, input);
+      var extras = null;
+      if (input.id === "abandonCredentialEntry") {
+        extras = [{ label: "No interaction", value: 100 }];
+      }
+      buildRateOptions(list, input, extras);
       toggle.addEventListener("click", function (evt) {
         evt.preventDefault();
         evt.stopPropagation();
@@ -638,7 +773,10 @@
           closeRateList(list);
         }, 120);
       });
-      input.addEventListener("input", updateRateValidation);
+      input.addEventListener("input", function () {
+        updateRateValidation();
+        updateFunnelCascade();
+      });
       combo.addEventListener("click", function (evt) {
         evt.stopPropagation();
       });
@@ -769,10 +907,296 @@
       continueJob(jobId);
       return;
     }
+    if (action === "viewSessions") {
+      var sjob = getJobById(jobId);
+      if (sjob) openSessionsModal(sjob);
+      return;
+    }
     if (action === "detail") {
       var job = getJobById(jobId);
       if (job) openJobModal(job);
     }
+  }
+
+  // ── Sessions modal ────────────────────────────────────────
+  var sessionsModal = document.getElementById("sessionsModal");
+  var sessionsModalBody = document.getElementById("sessionsModalBody");
+  var sessionsModalSubtitle = document.getElementById("sessionsModalSubtitle");
+
+  function openSessionsModal(job) {
+    if (!sessionsModal || !sessionsModalBody) return;
+    var name = job.job_name || job.source_subcategory || job.id || "";
+    var parts = [escapeHtml(name)];
+    if (job.source_type) parts.push(escapeHtml(job.source_type));
+    if (job.source_category) parts.push(escapeHtml(job.source_category));
+    if (job.source_subcategory) parts.push(escapeHtml(job.source_subcategory));
+    if (sessionsModalSubtitle) sessionsModalSubtitle.innerHTML = parts.join(" &middot; ");
+    sessionsModalBody.innerHTML = '<div class="sessions-loading"><div class="sessions-spinner"></div> Loading sessions&hellip;</div>';
+    sessionsModal.classList.add("open");
+    sessionsModal.setAttribute("aria-hidden", "false");
+    fetchJobSessions(job.id, 30);
+  }
+
+  function closeSessionsModal() {
+    if (!sessionsModal) return;
+    sessionsModal.classList.remove("open");
+    sessionsModal.setAttribute("aria-hidden", "true");
+  }
+
+  function fetchJobSessions(jobId, maxDays) {
+    var url = JOBS_ENDPOINT + "/" + encodeURIComponent(jobId) + "/sessions";
+    if (maxDays) url += "?max_days=" + maxDays;
+    fetch(url)
+      .then(function (r) {
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        return r.json();
+      })
+      .then(function (data) {
+        renderSessionsResult(data, jobId);
+      })
+      .catch(function (err) {
+        renderSessionsError(err);
+      });
+  }
+
+  function renderSessionsError(err) {
+    if (!sessionsModalBody) return;
+    sessionsModalBody.innerHTML =
+      '<div class="sessions-empty">Failed to load sessions: ' + escapeHtml(err.message || "Unknown error") + "</div>";
+  }
+
+  function renderSessionsResult(data, jobId) {
+    if (!sessionsModalBody) return;
+    var html = [];
+
+    // Source filter badges
+    var sf = data.source_filter || {};
+    var filterParts = [];
+    if (sf.type) filterParts.push('<span class="source-badge">type: ' + escapeHtml(sf.type) + "</span>");
+    if (sf.category) filterParts.push('<span class="source-badge">cat: ' + escapeHtml(sf.category) + "</span>");
+    if (sf.sub_category) filterParts.push('<span class="source-badge">sub: ' + escapeHtml(sf.sub_category) + "</span>");
+    var dr = data.date_range || {};
+    filterParts.push('<span class="source-badge muted">' + escapeHtml(dr.start || "?") + " \u2192 " + escapeHtml(dr.end || "?") + "</span>");
+    if (data.truncated) filterParts.push('<span class="source-badge muted">showing last ' + data.days_scanned + " of " + data.total_days + " days</span>");
+    html.push('<div class="source-filter-bar">' + filterParts.join("") + "</div>");
+
+    // Summary
+    var sm = data.summary || {};
+    html.push(
+      '<div class="sessions-summary">' +
+        renderSummaryItem(sm.sessions, "Sessions") +
+        renderSummaryItem(sm.sessions_with_success, "w/ Success") +
+        renderSummaryItem(sm.jobs, "Total Jobs") +
+        renderSummaryItem(sm.jobs_success, "Successful") +
+        renderSummaryItem(sm.jobs_failure, "Failed") +
+      "</div>"
+    );
+
+    // Counter comparison (job counters vs raw data)
+    var jc = data.job_counters || {};
+    html.push(
+      '<div class="sessions-compare">' +
+        renderCompareItem("Attempted", jc.attempted, sm.sessions) +
+        renderCompareItem("Success", jc.success, sm.jobs_success) +
+        renderCompareItem("Failed", jc.failed, sm.jobs_failure) +
+      "</div>"
+    );
+
+    // Session cards
+    var sessions = data.sessions || [];
+    if (sessions.length === 0) {
+      html.push('<div class="sessions-empty">No matching sessions found in raw data.</div>');
+    } else {
+      for (var i = 0; i < sessions.length; i++) {
+        html.push(renderSessionCard(sessions[i]));
+      }
+    }
+
+    // Load more
+    if (data.truncated) {
+      html.push(
+        '<div class="sessions-load-more">' +
+          '<button type="button" onclick="(function(b){b.disabled=true;b.textContent=\'Loading...\';})(this)" ' +
+          'data-load-more="' + escapeHtml(jobId) + '" data-max-days="' + (data.total_days || 90) + '">' +
+          "Load all " + data.total_days + " days" +
+        "</button></div>"
+      );
+    }
+
+    sessionsModalBody.innerHTML = html.join("");
+
+    // Bind load-more
+    var loadMoreBtn = sessionsModalBody.querySelector("[data-load-more]");
+    if (loadMoreBtn) {
+      loadMoreBtn.addEventListener("click", function () {
+        var jid = loadMoreBtn.getAttribute("data-load-more");
+        var md = parseInt(loadMoreBtn.getAttribute("data-max-days") || "90", 10);
+        fetchJobSessions(jid, md);
+      });
+    }
+  }
+
+  function renderSummaryItem(value, label) {
+    return (
+      '<div class="summary-stat">' +
+        '<div class="stat-value">' + escapeHtml(value != null ? value : 0) + "</div>" +
+        '<div class="stat-label">' + escapeHtml(label) + "</div>" +
+      "</div>"
+    );
+  }
+
+  function renderCompareItem(label, jobVal, rawVal) {
+    var match = jobVal === rawVal;
+    var cls = match ? "compare-match" : "compare-mismatch";
+    var icon = match ? "\u2713" : "\u2717";
+    return (
+      '<div class="compare-item">' +
+        '<span class="' + cls + '">' + icon + "</span> " +
+        escapeHtml(label) + ": job=" + escapeHtml(jobVal != null ? jobVal : "?") +
+        " raw=" + escapeHtml(rawVal != null ? rawVal : "?") +
+      "</div>"
+    );
+  }
+
+  function jobBadgeClass(job) {
+    if (job.is_success) return "success";
+    if (job.severity === "ux") return "warn";
+    if (job.severity === "site-failure") return "failure";
+    return "neutral";
+  }
+
+  function formatDurationMs(ms) {
+    if (!ms || isNaN(ms)) return null;
+    var secs = Math.round(ms / 1000);
+    if (secs < 60) return secs + "s";
+    var mins = Math.floor(secs / 60);
+    return mins + "m " + (secs % 60) + "s";
+  }
+
+  function renderSessionCard(s) {
+    // Toggle header: FI name + pills + job outcome badge
+    var headerPills = [];
+    if (s.instance) headerPills.push('<span class="session-pill">' + escapeHtml(s.instance) + "</span>");
+    if (s.integration_display) headerPills.push('<span class="session-pill">' + escapeHtml(s.integration_display) + "</span>");
+    if (s.partner) headerPills.push('<span class="session-pill">' + escapeHtml(s.partner) + "</span>");
+    if (s.is_test) headerPills.push('<span class="session-pill" style="color:#eab308">TEST</span>');
+    var jobsSummary = (s.total_jobs || 0) + " jobs (" + (s.successful_jobs || 0) + " ok, " + (s.failed_jobs || 0) + " fail)";
+    var outcomeCls = (s.successful_jobs || 0) > 0 ? "success" : ((s.total_jobs || 0) > 0 ? "failure" : "pending");
+    headerPills.push('<span class="synth-badge ' + outcomeCls + '">' + escapeHtml(jobsSummary) + "</span>");
+
+    var toggleHtml =
+      '<button type="button" class="session-toggle" onclick="this.closest(\'.synth-session-card\').classList.toggle(\'open\')">' +
+        '<span class="session-toggle__chevron">&#9654;</span>' +
+        '<span class="session-toggle__summary">' +
+          '<span class="session-fi">' + escapeHtml(s.fi_name || "Unknown FI") + "</span>" +
+          headerPills.join("") +
+        "</span>" +
+      "</button>";
+
+    // Collapsible details
+    var details = [];
+
+    // Meta (matching troubleshoot detail level)
+    var meta = [];
+    if (s.created_on) meta.push("<strong>Opened</strong> " + escapeHtml(formatDateTime(s.created_on)));
+    if (s.closed_on) meta.push("<strong>Closed</strong> " + escapeHtml(formatDateTime(s.closed_on)));
+    if (s.created_on && s.closed_on) meta.push("<strong>Duration</strong> " + formatDuration(s.created_on, s.closed_on));
+    meta.push("<strong>Jobs</strong> " + (s.total_jobs || 0) + " (success " + (s.successful_jobs || 0) + " / fail " + (s.failed_jobs || 0) + ")");
+    if (s.source && s.source.integration) meta.push("<strong>Source</strong> " + escapeHtml(s.source.integration));
+    if (s.source && s.source.device) meta.push("<strong>Device</strong> " + escapeHtml(s.source.device));
+    if (s.fi_lookup_key) meta.push("<strong>FI key</strong> " + escapeHtml(s.fi_lookup_key));
+    if (s.cuid) meta.push("<strong>CUID</strong> " + escapeHtml(s.cuid));
+    if (s.agent_session_id) meta.push("<strong>Session ID</strong> " + escapeHtml(s.agent_session_id.substring(0, 16)) + "\u2026");
+    details.push('<div class="session-meta">' + meta.map(function (m) { return "<span>" + m + "</span>"; }).join("") + "</div>");
+
+    // Source verification
+    if (s.source_match) {
+      var sv = [];
+      sv.push(sourceVerifyItem("type", s.source_match.type, s.source_match.match_type));
+      sv.push(sourceVerifyItem("cat", s.source_match.category, s.source_match.match_category));
+      if (s.source_match.match_sub !== null) {
+        sv.push(sourceVerifyItem("sub", s.source_match.sub_category, s.source_match.match_sub));
+      }
+      details.push('<div class="source-verify">' + sv.join("") + "</div>");
+    }
+
+    // Clickstream
+    if (s.clickstream && s.clickstream.length > 0) {
+      var clicks = [];
+      for (var i = 0; i < s.clickstream.length; i++) {
+        var step = s.clickstream[i];
+        var label = step.page_title || step.url || "?";
+        var time = step.at ? new Date(step.at).toLocaleTimeString() : "";
+        if (i > 0) clicks.push('<span class="synth-click-arrow">\u2192</span>');
+        clicks.push('<span class="synth-click-pill">' + escapeHtml(label) + (time ? " <small>" + escapeHtml(time) + "</small>" : "") + "</span>");
+      }
+      details.push('<div class="synth-clickstream">' + clicks.join("") + "</div>");
+    }
+
+    // Placements / jobs (full troubleshoot-level detail)
+    if (s.jobs && s.jobs.length > 0) {
+      var jobCards = [];
+      for (var j = 0; j < s.jobs.length; j++) {
+        var jb = s.jobs[j];
+        var badgeCls = jobBadgeClass(jb);
+        var badgeLabel = jb.termination_label || jb.termination || (jb.is_success ? "Success" : "Failed");
+        var merchant = jb.merchant || jb.merchant_site || jb.site_name || "Unknown";
+        var jobMeta = [];
+        if (jb.created_on) jobMeta.push("Created " + escapeHtml(formatDateTime(jb.created_on)));
+        if (jb.completed_on) jobMeta.push("Completed " + escapeHtml(formatDateTime(jb.completed_on)));
+        var dur = formatDurationMs(jb.duration_ms);
+        if (dur) jobMeta.push("Duration " + dur);
+        if (jb.instance) jobMeta.push("Instance " + escapeHtml(jb.instance));
+
+        jobCards.push(
+          '<div class="synth-placement">' +
+            '<div class="synth-job-header">' +
+              '<span class="synth-badge ' + badgeCls + '">' + escapeHtml(badgeLabel) + "</span>" +
+              '<span class="synth-job-merchant">' + escapeHtml(merchant) + "</span>" +
+              (jb.status ? '<span class="session-pill">' + escapeHtml(jb.status) + "</span>" : "") +
+            "</div>" +
+            (jobMeta.length ? '<div class="synth-job-meta">' + jobMeta.map(function(m) { return "<span>" + m + "</span>"; }).join("") + "</div>" : "") +
+            (jb.status_message ? '<div class="synth-job-message">' + escapeHtml(jb.status_message) + "</div>" : "") +
+          "</div>"
+        );
+      }
+      details.push(jobCards.join(""));
+    } else {
+      details.push('<div class="synth-placement" style="color:var(--muted)">No placements/jobs recorded in this session.</div>');
+    }
+
+    // Raw JSON
+    details.push(
+      '<details class="synth-raw-details">' +
+        "<summary>Raw session data</summary>" +
+        "<pre>" + escapeHtml(JSON.stringify(s, null, 2)) + "</pre>" +
+      "</details>"
+    );
+
+    return '<div class="synth-session-card">' + toggleHtml + '<div class="session-details">' + details.join("") + "</div></div>";
+  }
+
+  function sourceVerifyItem(label, value, matched) {
+    var cls = matched ? "" : " fail";
+    var icon = matched ? "\u2713" : "\u2717";
+    return (
+      '<span class="source-verify-item' + cls + '">' +
+        icon + " " + escapeHtml(label) + ": " + escapeHtml(value || "(empty)") +
+      "</span>"
+    );
+  }
+
+  function formatDuration(start, end) {
+    var ms = new Date(end).getTime() - new Date(start).getTime();
+    if (isNaN(ms) || ms < 0) return "—";
+    var secs = Math.round(ms / 1000);
+    if (secs < 60) return secs + "s";
+    var mins = Math.floor(secs / 60);
+    var remSecs = secs % 60;
+    if (mins < 60) return mins + "m " + remSecs + "s";
+    var hrs = Math.floor(mins / 60);
+    var remMins = mins % 60;
+    return hrs + "h " + remMins + "m";
   }
 
   function init() {
@@ -804,19 +1228,24 @@
         }
       });
     }
+    if (sessionsModal) {
+      sessionsModal.addEventListener("click", function (evt) {
+        if (evt.target && evt.target.hasAttribute("data-modal-close")) {
+          closeSessionsModal();
+        }
+      });
+    }
     document.addEventListener("keydown", function (evt) {
       if (evt.key === "Escape") {
         closeJobModal();
         closeCancelModal();
+        closeSessionsModal();
       }
     });
-    if (activeOnlyToggle) {
-      activeOnly = activeOnlyToggle.checked;
-      activeOnlyToggle.addEventListener("change", function () {
-        activeOnly = activeOnlyToggle.checked;
-        renderJobs(latestJobs);
-      });
-    }
+    window.__synthShowMore = function () {
+      visibleLimit += PAGE_SIZE;
+      renderJobs(latestJobs);
+    };
     if (cancelConfirmInput) {
       cancelConfirmInput.addEventListener("input", updateCancelState);
       cancelConfirmInput.addEventListener("keydown", function (evt) {

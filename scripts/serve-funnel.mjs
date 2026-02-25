@@ -26,6 +26,7 @@ import { fetchGaRowsForDay, resolveFiFromHost } from "../src/ga.mjs";
 import puppeteer from "puppeteer";
 import { buildReportHtml } from "../templates/funnel-report-template.mjs";
 import { buildCustomerReportHtml } from "../templates/funnel-customer-report-template.mjs";
+import { buildSupportedSitesReportHtml } from "../templates/supported-sites-report-template.mjs";
 const { URLSearchParams } = url;
 
 const __filename = fileURLToPath(import.meta.url);
@@ -680,6 +681,605 @@ setInterval(async () => {
 
 // ============================================================================
 // End Magic Link Authentication
+// ============================================================================
+
+// ============================================================================
+// Traffic Health — module-level cache (shared by endpoint + background monitor)
+// ============================================================================
+let _trafficHealthCache = null;
+let _trafficHealthCacheTime = 0;
+const TRAFFIC_HEALTH_CACHE_TTL = 15 * 60 * 1000; // 15 minutes — background monitor refreshes on this cycle
+
+
+// ============================================================================
+// Traffic Health Alert Monitor (background)
+// ============================================================================
+
+const TRAFFIC_ALERT_STATE_FILE = path.join(DATA_DIR, "traffic-alert-state.json");
+const TRAFFIC_HEALTH_SETTINGS_FILE_BG = path.join(DATA_DIR, "traffic-health-settings.json");
+const TRAFFIC_ALERT_CHECK_INTERVAL = 15 * 60 * 1000; // 15 minutes
+
+async function loadTrafficAlertSettings() {
+  try {
+    const raw = await fs.readFile(TRAFFIC_HEALTH_SETTINGS_FILE_BG, "utf8");
+    return JSON.parse(raw);
+  } catch {
+    return {};
+  }
+}
+
+async function loadTrafficAlertState() {
+  try {
+    const raw = await fs.readFile(TRAFFIC_ALERT_STATE_FILE, "utf8");
+    return JSON.parse(raw);
+  } catch {
+    return {};
+  }
+}
+
+async function saveTrafficAlertState(state) {
+  await fs.writeFile(TRAFFIC_ALERT_STATE_FILE, JSON.stringify(state, null, 2));
+}
+
+async function sendTrafficAlertEmail(recipients, subject, htmlBody) {
+  if (!SENDGRID_API_KEY) {
+    console.log("[traffic-alert] No SENDGRID_API_KEY — skipping email. Subject:", subject);
+    return;
+  }
+  if (!recipients.length) {
+    console.log("[traffic-alert] No recipients configured — skipping email.");
+    return;
+  }
+
+  const personalizations = recipients.map(email => ({ to: [{ email }] }));
+
+  try {
+    const res = await fetch("https://api.sendgrid.com/v3/mail/send", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${SENDGRID_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        personalizations,
+        from: { email: SENDGRID_FROM_EMAIL, name: "SIS Traffic Alert" },
+        subject,
+        content: [{ type: "text/html", value: htmlBody }],
+      }),
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      console.error("[traffic-alert] SendGrid error:", res.status, text);
+    } else {
+      console.log(`[traffic-alert] Email sent to ${recipients.length} recipient(s): ${subject}`);
+    }
+  } catch (err) {
+    console.error("[traffic-alert] Email send failed:", err.message);
+  }
+}
+
+function formatAlertEmailHtml(alerts, allFis) {
+  const thStyle = 'padding:8px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:#64748b;';
+  const tdStyle = 'padding:8px 12px;border-bottom:1px solid #e5e7eb;';
+
+  function fiRow(a) {
+    const colors = { dark: "#ef4444", low: "#f59e0b", sleeping: "#818cf8", normal: "#22c55e" };
+    const labels = { dark: "DARK", low: "LOW", sleeping: "ZZZ", normal: "OK" };
+    const statusColor = colors[a.status] || "#94a3b8";
+    const statusLabel = labels[a.status] || a.status;
+    const pct = a.pct_of_baseline != null ? `${Math.round(a.pct_of_baseline)}%` : "-";
+    return `
+      <tr>
+        <td style="${tdStyle}">
+          <span style="background:${statusColor};color:#fff;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:700;">${statusLabel}</span>
+        </td>
+        <td style="${tdStyle}font-weight:600;">${a.fi_name}</td>
+        <td style="${tdStyle}">${a.partner}</td>
+        <td style="${tdStyle}">${a.today_sessions}</td>
+        <td style="${tdStyle}">${a.baseline_median}/day</td>
+        <td style="${tdStyle}">${pct}</td>
+      </tr>
+    `;
+  }
+
+  const alertRows = alerts.map(fiRow).join("");
+
+  // All monitored FIs sorted: dark first, then low, then normal
+  const normalFis = allFis.filter(f => f.status === "normal");
+  const normalRows = normalFis.length > 0
+    ? normalFis.map(fiRow).join("")
+    : `<tr><td colspan="6" style="${tdStyle}color:#94a3b8;font-style:italic;">No normal FIs</td></tr>`;
+
+  return `
+    <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:700px;margin:0 auto;">
+      <div style="background:#1e293b;color:#f8fafc;padding:16px 24px;border-radius:12px 12px 0 0;">
+        <h2 style="margin:0;font-size:18px;">Traffic Health Alert</h2>
+        <p style="margin:4px 0 0;font-size:13px;opacity:0.7;">${new Date().toUTCString()}</p>
+      </div>
+      <div style="background:#ffffff;padding:20px 24px;border:1px solid #e5e7eb;border-top:none;">
+        <p style="margin:0 0 12px;font-size:14px;color:#334155;font-weight:600;">${alerts.length} FI${alerts.length === 1 ? "" : "s"} need${alerts.length === 1 ? "s" : ""} attention</p>
+        <table style="width:100%;border-collapse:collapse;font-size:13px;color:#334155;">
+          <thead>
+            <tr style="background:#fef2f2;">
+              <th style="${thStyle}">Status</th>
+              <th style="${thStyle}">FI</th>
+              <th style="${thStyle}">Partner</th>
+              <th style="${thStyle}">Today</th>
+              <th style="${thStyle}">Baseline</th>
+              <th style="${thStyle}">% of Baseline</th>
+            </tr>
+          </thead>
+          <tbody>${alertRows}</tbody>
+        </table>
+      </div>
+      <div style="background:#f8fafc;padding:16px 24px;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 12px 12px;">
+        <p style="margin:0 0 8px;font-size:12px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;">All ${allFis.length} Monitored FIs</p>
+        <table style="width:100%;border-collapse:collapse;font-size:12px;color:#64748b;">
+          <thead>
+            <tr>
+              <th style="${thStyle}font-size:10px;">Status</th>
+              <th style="${thStyle}font-size:10px;">FI</th>
+              <th style="${thStyle}font-size:10px;">Partner</th>
+              <th style="${thStyle}font-size:10px;">Today</th>
+              <th style="${thStyle}font-size:10px;">Baseline</th>
+              <th style="${thStyle}font-size:10px;">% of Baseline</th>
+            </tr>
+          </thead>
+          <tbody>${normalRows}</tbody>
+        </table>
+        <p style="margin:12px 0 0;font-size:12px;color:#94a3b8;">
+          <a href="https://34-220-57-7.sslip.io/dashboards/operations" style="color:#2563eb;">View Operations Dashboard</a> &middot;
+          <a href="https://34-220-57-7.sslip.io/maintenance.html#trafficHealthSettingsCard" style="color:#2563eb;">Alert Settings</a>
+        </p>
+      </div>
+    </div>
+  `;
+}
+
+async function computeTrafficHealthDirect() {
+  // Standalone computation — same logic as the /api/traffic-health endpoint
+  // Called by the background alert monitor when no fresh cache exists
+  const [fiRegistry, instancesFile] = await Promise.all([
+    loadFiRegistrySafe(),
+    readInstancesFile(),
+  ]);
+  const fiMeta = buildFiMetaMap(fiRegistry);
+  const instances = instancesFile.entries || [];
+
+  const instanceFiMap = new Map();
+  for (const entry of Object.values(fiRegistry)) {
+    if (!entry || !entry.instance) continue;
+    const instKey = entry.instance.toString().trim().toLowerCase();
+    if (!instanceFiMap.has(instKey)) instanceFiMap.set(instKey, []);
+    instanceFiMap.get(instKey).push({
+      fi_name: entry.fi_name || entry.fi_lookup_key || "",
+      fi_lookup_key: normalizeFiKey(entry.fi_lookup_key || entry.fi_name || ""),
+      partner: entry.partner || "Unknown",
+      instance: entry.instance || "",
+      integration_type: normalizeIntegration(entry.integration_type),
+    });
+  }
+
+  const todayDate = new Date();
+  const todayStr = todayDate.toISOString().slice(0, 10);
+  const baselineEnd = new Date(todayDate);
+  baselineEnd.setUTCDate(baselineEnd.getUTCDate() - 1);
+  const baselineStart = new Date(baselineEnd);
+  baselineStart.setUTCDate(baselineEnd.getUTCDate() - 13);
+  const baselineStartStr = baselineStart.toISOString().slice(0, 10);
+  const baselineEndStr = baselineEnd.toISOString().slice(0, 10);
+  const baselineDaysList = daysBetween(baselineStartStr, baselineEndStr);
+
+  const fiDayCounts = new Map();
+  const fiDayLatest = new Map();
+  const fiHourlyCounts = new Map(); // fi_key → Map<hour(0-23), totalCount>
+
+  for (const day of baselineDaysList) {
+    const dayData = await readSessionDay(day);
+    if (!dayData || !Array.isArray(dayData.sessions)) continue;
+    for (const sess of dayData.sessions) {
+      const instanceRaw = sess._instance || sess.instance || sess.instance_name || sess.org_name || "";
+      const instanceDisplay = formatInstanceDisplay(instanceRaw || "unknown");
+      if (isTestInstanceName(instanceDisplay)) continue;
+      const fiKey = normalizeFiKey(sess.financial_institution_lookup_key || sess.fi_lookup_key || sess.fi_name || "");
+      if (!fiKey) continue;
+      if (!fiDayCounts.has(fiKey)) fiDayCounts.set(fiKey, new Map());
+      fiDayCounts.get(fiKey).set(day, (fiDayCounts.get(fiKey).get(day) || 0) + 1);
+      const createdOn = sess.created_on || "";
+      if (createdOn) {
+        const hour = new Date(createdOn).getUTCHours();
+        if (!fiHourlyCounts.has(fiKey)) fiHourlyCounts.set(fiKey, new Map());
+        fiHourlyCounts.get(fiKey).set(hour, (fiHourlyCounts.get(fiKey).get(hour) || 0) + 1);
+        if (!fiDayLatest.has(fiKey)) fiDayLatest.set(fiKey, new Map());
+        const prev = fiDayLatest.get(fiKey).get(day) || "";
+        if (createdOn > prev) fiDayLatest.get(fiKey).set(day, createdOn);
+      }
+    }
+  }
+
+  // Live today from CardSavr API
+  const todayStartIso = `${todayStr}T00:00:00Z`;
+  const nowIso = todayDate.toISOString();
+  const liveCounts = new Map();
+  const liveLatest = new Map();
+
+  console.log(`[traffic-health-bg] Querying ${instances.length} instances for live sessions...`);
+  await Promise.allSettled(
+    instances.map(async (instConfig) => {
+      const instName = instConfig.name || "";
+      try {
+        const { session: sdkSession } = await loginWithSdk(instConfig);
+        const resp = await sdkSession.get("cardholder_sessions", {
+          created_on_min: todayStartIso, created_on_max: nowIso,
+        }, {});
+        const sessions = Array.isArray(resp?.body) ? resp.body : Array.isArray(resp) ? resp : [];
+        for (const sess of sessions) {
+          const instanceRaw = sess._instance || sess.instance || sess.instance_name || sess.org_name || instName;
+          if (isTestInstanceName(formatInstanceDisplay(instanceRaw || "unknown"))) continue;
+          const fiKey = normalizeFiKey(sess.financial_institution_lookup_key || sess.fi_lookup_key || sess.fi_name || "");
+          if (!fiKey) continue;
+          liveCounts.set(fiKey, (liveCounts.get(fiKey) || 0) + 1);
+          const createdOn = sess.created_on || "";
+          if (createdOn) {
+            const prev = liveLatest.get(fiKey) || "";
+            if (createdOn > prev) liveLatest.set(fiKey, createdOn);
+          }
+        }
+      } catch (err) {
+        console.warn(`[traffic-health-bg]   ${instName}: FAILED - ${err.message}`);
+      }
+    })
+  );
+
+  for (const [fiKey, count] of liveCounts.entries()) {
+    if (!fiDayCounts.has(fiKey)) fiDayCounts.set(fiKey, new Map());
+    fiDayCounts.get(fiKey).set(todayStr, count);
+  }
+  for (const [fiKey, ts] of liveLatest.entries()) {
+    if (!fiDayLatest.has(fiKey)) fiDayLatest.set(fiKey, new Map());
+    fiDayLatest.get(fiKey).set(todayStr, ts);
+  }
+
+  let MIN_AVG_SESSIONS = 5;
+  try {
+    const threshRaw = await fs.readFile(TRAFFIC_HEALTH_SETTINGS_FILE_BG, "utf8").catch(() => "{}");
+    const threshSettings = JSON.parse(threshRaw);
+    if (Number.isFinite(threshSettings.minDailySessions) && threshSettings.minDailySessions >= 1) {
+      MIN_AVG_SESSIONS = threshSettings.minDailySessions;
+    }
+  } catch { /* use default */ }
+
+  const nowMs = Date.now();
+  const todayStartMs = new Date(`${todayStr}T00:00:00Z`).getTime();
+  const hoursElapsed = Math.max(0, (nowMs - todayStartMs) / 3600000);
+  const allDays = [...baselineDaysList, todayStr];
+
+  // Build per-FI traffic fingerprints (same logic as endpoint)
+  const fiFingerprints = new Map();
+  for (const [fiKey, dayCounts] of fiDayCounts.entries()) {
+    const baselineCounts = baselineDaysList.map(d => dayCounts.get(d) || 0);
+    const baselineSum = baselineCounts.reduce((a, b) => a + b, 0);
+    const avgPerDay = baselineSum / baselineDaysList.length;
+    const hourMap = fiHourlyCounts.get(fiKey);
+    if (avgPerDay >= 10 && hourMap) {
+      const raw = new Array(24).fill(0);
+      const totalHourly = [...hourMap.values()].reduce((a, b) => a + b, 0);
+      if (totalHourly > 0) for (let h = 0; h < 24; h++) raw[h] = (hourMap.get(h) || 0) / totalHourly;
+      const smoothed = new Array(24).fill(0);
+      for (let h = 0; h < 24; h++) {
+        smoothed[h] = (raw[(h + 23) % 24] + raw[h] + raw[(h + 1) % 24]) / 3;
+      }
+      const smoothSum = smoothed.reduce((a, b) => a + b, 0);
+      if (smoothSum > 0) for (let h = 0; h < 24; h++) smoothed[h] /= smoothSum;
+      fiFingerprints.set(fiKey, { fingerprint: smoothed, quietHours: null, tier: 1 });
+    } else if (avgPerDay >= 5 && hourMap) {
+      const quietHours = new Set();
+      for (let h = 0; h < 24; h++) if ((hourMap.get(h) || 0) <= 1) quietHours.add(h);
+      fiFingerprints.set(fiKey, { fingerprint: null, quietHours, tier: 2 });
+    } else {
+      fiFingerprints.set(fiKey, { fingerprint: null, quietHours: null, tier: 3 });
+    }
+  }
+
+  const fis = [];
+
+  for (const [fiKey, dayCounts] of fiDayCounts.entries()) {
+    const baselineCounts = baselineDaysList.map(d => dayCounts.get(d) || 0);
+    const baselineSum = baselineCounts.reduce((a, b) => a + b, 0);
+    const baselineAvg = baselineSum / baselineDaysList.length;
+    if (baselineAvg < MIN_AVG_SESSIONS) continue;
+
+    const sortedBaseline = [...baselineCounts].sort((a, b) => a - b);
+    const mid = Math.floor(sortedBaseline.length / 2);
+    const baselineMedian = sortedBaseline.length % 2 === 0
+      ? (sortedBaseline[mid - 1] + sortedBaseline[mid]) / 2 : sortedBaseline[mid];
+
+    const todaySessions = dayCounts.get(todayStr) || 0;
+    let lastBaselineSessions = 0;
+    for (let i = baselineDaysList.length - 1; i >= 0; i--) {
+      const cnt = dayCounts.get(baselineDaysList[i]);
+      if (cnt > 0) { lastBaselineSessions = cnt; break; }
+    }
+    let todayProjected = todaySessions;
+    if (hoursElapsed >= 1) todayProjected = (todaySessions / hoursElapsed) * 24;
+
+    // Fingerprint-aware status classification
+    const fp = fiFingerprints.get(fiKey);
+    const currentHour = new Date().getUTCHours();
+    let status = "normal";
+    let expectedCumulative = null;
+    let pctOfExpected = null;
+
+    if (fp && fp.fingerprint) {
+      let cumFrac = 0;
+      for (let h = 0; h <= currentHour; h++) cumFrac += fp.fingerprint[h];
+      expectedCumulative = baselineAvg * cumFrac;
+      if (expectedCumulative < 2) status = "sleeping";
+      else if (todaySessions === 0 && expectedCumulative > 2) status = "dark";
+      else if (todaySessions < expectedCumulative * 0.4 && expectedCumulative > 3) status = "low";
+      pctOfExpected = expectedCumulative > 0
+        ? Math.round((todaySessions / expectedCumulative) * 100)
+        : (todaySessions > 0 ? 999 : 0);
+    } else if (fp && fp.quietHours) {
+      if (fp.quietHours.has(currentHour)) {
+        status = "sleeping";
+      } else {
+        if (todaySessions === 0 && lastBaselineSessions === 0) status = "dark";
+        else if (todaySessions === 0 && hoursElapsed >= 6) status = "dark";
+        else if (hoursElapsed >= 6 && baselineMedian > 0 && todayProjected < baselineMedian * 0.5) status = "low";
+      }
+    } else {
+      if (todaySessions === 0 && lastBaselineSessions === 0) status = "dark";
+      else if (todaySessions === 0 && hoursElapsed >= 6) status = "dark";
+      else if (hoursElapsed >= 6 && baselineMedian > 0 && todayProjected < baselineMedian * 0.5) status = "low";
+    }
+
+    let hoursSinceLast = null;
+    if (status === "dark" || status === "low") {
+      const latestMap = fiDayLatest.get(fiKey);
+      if (latestMap) {
+        let lastTs = null;
+        for (let i = allDays.length - 1; i >= 0; i--) {
+          const ts = latestMap.get(allDays[i]);
+          if (ts) { lastTs = ts; break; }
+        }
+        if (lastTs) hoursSinceLast = Math.round(((nowMs - new Date(lastTs).getTime()) / 3600000) * 10) / 10;
+      }
+    }
+
+    const pctOfBaseline = baselineMedian > 0
+      ? Math.round((todayProjected / baselineMedian) * 100)
+      : (todaySessions > 0 ? 999 : 0);
+
+    const fiEntry = fiMeta.get(fiKey);
+    let instEntry = null;
+    for (const [, entries] of instanceFiMap.entries()) {
+      const match = entries.find(e => normalizeFiKey(e.fi_lookup_key) === fiKey);
+      if (match) { instEntry = match; break; }
+    }
+
+    const fiObj = {
+      fi_name: fiEntry?.fi || instEntry?.fi_name || fiKey,
+      fi_lookup_key: fiKey,
+      partner: fiEntry?.partner || instEntry?.partner || "Unknown",
+      instance: instEntry?.instance || "",
+      integration_type: fiEntry?.integration || instEntry?.integration_type || "UNKNOWN",
+      status, today_sessions: todaySessions,
+      today_projected: Math.round(todayProjected),
+      yesterday_sessions: lastBaselineSessions,
+      baseline_median: Math.round(baselineMedian * 10) / 10,
+      baseline_avg: Math.round(baselineAvg * 10) / 10,
+      hours_since_last: hoursSinceLast,
+      pct_of_baseline: pctOfBaseline,
+      daily_counts: allDays.map(d => dayCounts.get(d) || 0),
+      fingerprint_tier: fp ? fp.tier : 3,
+    };
+    if (expectedCumulative != null) fiObj.expected_cumulative = Math.round(expectedCumulative * 10) / 10;
+    if (pctOfExpected != null) fiObj.pct_of_expected = pctOfExpected;
+    if (fp && fp.quietHours) fiObj.quiet_hours = [...fp.quietHours].sort((a, b) => a - b);
+
+    fis.push(fiObj);
+  }
+
+  const statusOrder = { dark: 0, low: 1, sleeping: 2, normal: 3 };
+  fis.sort((a, b) => {
+    const so = (statusOrder[a.status] ?? 9) - (statusOrder[b.status] ?? 9);
+    return so !== 0 ? so : a.pct_of_baseline - b.pct_of_baseline;
+  });
+
+  return {
+    generated_at: new Date().toISOString(),
+    baseline_days: 14,
+    min_volume_threshold: MIN_AVG_SESSIONS,
+    hours_elapsed_today: Math.round(hoursElapsed * 10) / 10,
+    data_source: "live",
+    instances_queried: instances.length,
+    summary: {
+      dark: fis.filter(f => f.status === "dark").length,
+      low: fis.filter(f => f.status === "low").length,
+      sleeping: fis.filter(f => f.status === "sleeping").length,
+      normal: fis.filter(f => f.status === "normal").length,
+      total_monitored: fis.length,
+    },
+    fis,
+  };
+}
+
+async function checkTrafficHealthAlerts() {
+  try {
+    const settings = await loadTrafficAlertSettings();
+    if (!settings.alertEnabled) return;
+
+    const recipients = Array.isArray(settings.alertRecipients) ? settings.alertRecipients.filter(Boolean) : [];
+    if (!recipients.length) return;
+
+    const darkThresholdHours = settings.darkThresholdHours ?? 4;
+    const lowThresholdHours = settings.lowThresholdHours ?? 8;
+    const cooldownHours = settings.cooldownHours ?? 12;
+
+    // Use cached data if fresh, otherwise fetch directly
+    let healthData;
+    if (_trafficHealthCache && (Date.now() - _trafficHealthCacheTime) < 5 * 60 * 1000) {
+      healthData = _trafficHealthCache;
+      console.log("[traffic-alert] Using cached traffic health data");
+    } else {
+      console.log("[traffic-alert] No fresh cache — fetching live data directly...");
+      healthData = await computeTrafficHealthDirect();
+      // Update the cache so the dashboard benefits too
+      _trafficHealthCache = healthData;
+      _trafficHealthCacheTime = Date.now();
+      console.log("[traffic-alert] Live fetch complete — " + healthData.fis.length + " FIs monitored");
+    }
+
+    const alertState = await loadTrafficAlertState();
+    const nowMs = Date.now();
+    const newAlerts = [];
+
+    for (const fi of healthData.fis) {
+      if (fi.status === "normal" || fi.status === "sleeping") {
+        // Clear alert state if FI recovered or is in expected quiet period
+        if (alertState[fi.fi_lookup_key]) {
+          delete alertState[fi.fi_lookup_key];
+        }
+        continue;
+      }
+
+      const thresholdHours = fi.status === "dark" ? darkThresholdHours : lowThresholdHours;
+
+      // Check if FI has been in this state long enough to alert
+      if (fi.hours_since_last != null && fi.hours_since_last < thresholdHours) continue;
+      // For dark FIs where hours_since_last is unknown, use hours_elapsed_today
+      if (fi.hours_since_last == null && healthData.hours_elapsed_today < thresholdHours) continue;
+
+      // Check cooldown
+      const priorAlert = alertState[fi.fi_lookup_key];
+      if (priorAlert) {
+        const hoursSinceAlert = (nowMs - new Date(priorAlert.alertedAt).getTime()) / 3600000;
+        if (hoursSinceAlert < cooldownHours) continue;
+      }
+
+      newAlerts.push(fi);
+      alertState[fi.fi_lookup_key] = {
+        status: fi.status,
+        alertedAt: new Date().toISOString(),
+        hours_since_last: fi.hours_since_last,
+      };
+    }
+
+    if (newAlerts.length > 0) {
+      const darkCount = newAlerts.filter(a => a.status === "dark").length;
+      const lowCount = newAlerts.filter(a => a.status === "low").length;
+      const parts = [];
+      if (darkCount) parts.push(`${darkCount} dark`);
+      if (lowCount) parts.push(`${lowCount} low`);
+      const subject = `[SIS Alert] Traffic Health: ${parts.join(", ")} — ${newAlerts.map(a => a.fi_name).join(", ")}`;
+      const html = formatAlertEmailHtml(newAlerts, healthData.fis);
+      await sendTrafficAlertEmail(recipients, subject, html);
+    }
+
+    await saveTrafficAlertState(alertState);
+  } catch (err) {
+    console.error("[traffic-alert] check failed:", err.message);
+  }
+}
+
+// Run alert check every 15 minutes
+setInterval(checkTrafficHealthAlerts, TRAFFIC_ALERT_CHECK_INTERVAL);
+// Also run once 2 minutes after startup (let traffic health cache populate first)
+setTimeout(checkTrafficHealthAlerts, 2 * 60 * 1000);
+
+console.log("[traffic-alert] Background monitor started (checks every 15 min)");
+
+// ============================================================================
+// Live Placements Background Fetch (piggybacks on 15-min cycle)
+// ============================================================================
+let _livePlacementsCache = null;   // array of placement objects for today
+let _livePlacementsCacheTime = 0;
+
+async function fetchLivePlacementsForToday() {
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    const instancesFile = await readInstancesFile();
+    const instances = instancesFile.entries || [];
+    const seenIds = new Set();
+    const placements = [];
+
+    console.log(`[live-placements] Fetching today's placements from ${instances.length} instances...`);
+    await Promise.allSettled(
+      instances.map(async (instConfig) => {
+        const instName = instConfig.name || "";
+        try {
+          const { session: sdkSession } = await loginWithSdk(instConfig);
+          const resp = await getCardPlacementPage(sdkSession, today, today, { page: 1 });
+          const rows = Array.isArray(resp?.body) ? resp.body
+            : Array.isArray(resp?.card_placement_results) ? resp.card_placement_results
+            : Array.isArray(resp?.results) ? resp.results
+            : Array.isArray(resp) ? resp : [];
+          for (const r of rows) {
+            const baseId = r.id || r.result_id || r.place_card_on_single_site_job_id || "";
+            const dedupeKey = `${instName}:${baseId}`;
+            if (baseId && seenIds.has(dedupeKey)) continue;
+            if (baseId) seenIds.add(dedupeKey);
+            placements.push({ ...r, _instance: instName });
+          }
+          // Follow pagination
+          const rawPagingHeader = resp?.headers?.get
+            ? resp.headers.get("x-cardsavr-paging")
+            : resp?.headers?.["x-cardsavr-paging"];
+          if (rawPagingHeader) {
+            let pagingMeta = JSON.parse(rawPagingHeader);
+            const pageLength = Number(pagingMeta.page_length) || rows.length || 25;
+            const totalResults = Number(pagingMeta.total_results) || rows.length;
+            const totalPages = pageLength > 0 ? Math.ceil(totalResults / pageLength) : 1;
+            let currentPage = Number(pagingMeta.page) || 1;
+            while (currentPage < totalPages && currentPage < 50) {
+              const nextPage = currentPage + 1;
+              const nextResp = await getCardPlacementPage(sdkSession, today, today, { ...pagingMeta, page: nextPage });
+              const nextRows = Array.isArray(nextResp?.body) ? nextResp.body
+                : Array.isArray(nextResp?.card_placement_results) ? nextResp.card_placement_results
+                : Array.isArray(nextResp?.results) ? nextResp.results
+                : Array.isArray(nextResp) ? nextResp : [];
+              for (const r of nextRows) {
+                const baseId = r.id || r.result_id || r.place_card_on_single_site_job_id || "";
+                const dedupeKey = `${instName}:${baseId}`;
+                if (baseId && seenIds.has(dedupeKey)) continue;
+                if (baseId) seenIds.add(dedupeKey);
+                placements.push({ ...r, _instance: instName });
+              }
+              const nextHeader = nextResp?.headers?.get
+                ? nextResp.headers.get("x-cardsavr-paging")
+                : nextResp?.headers?.["x-cardsavr-paging"];
+              if (!nextHeader) break;
+              try { pagingMeta = JSON.parse(nextHeader); } catch { pagingMeta.page = nextPage; }
+              const reportedPage = Number(pagingMeta.page);
+              if (!Number.isFinite(reportedPage) || reportedPage <= currentPage) break;
+              currentPage = reportedPage;
+            }
+          }
+          console.log(`[live-placements]   ${instName}: ${rows.length}+ placements`);
+        } catch (err) {
+          console.warn(`[live-placements]   ${instName}: FAILED - ${err.message}`);
+        }
+      })
+    );
+
+    _livePlacementsCache = placements;
+    _livePlacementsCacheTime = Date.now();
+    console.log(`[live-placements] Done — ${placements.length} placements cached for ${today}`);
+  } catch (err) {
+    console.error("[live-placements] fetch failed:", err.message);
+  }
+}
+
+// Run on same 15-min interval as traffic alerts, offset by 30s to avoid simultaneous API storms
+setInterval(fetchLivePlacementsForToday, TRAFFIC_ALERT_CHECK_INTERVAL);
+setTimeout(fetchLivePlacementsForToday, 30 * 1000); // first fetch 30s after startup
+
+console.log("[live-placements] Background fetch started (every 15 min)");
+
+// ============================================================================
+// End Traffic Health Alert Monitor + Live Placements
 // ============================================================================
 
 let synthState = {
@@ -2844,6 +3444,99 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // ========== Supported Sites PDF ==========
+
+  if (pathname === "/api/export-pdf-supported-sites" && req.method === "POST") {
+    const auth = await validateSession(req, queryParams);
+    if (!auth) return send(res, 401, { error: "Authentication required" });
+
+    try {
+      const sites = await fetchMerchantSitesFromSs01();
+
+      // Classify status (mirrors maintenance.html client-side logic)
+      const classifyStatus = (tags = []) => {
+        const lower = tags.map((t) => t.toString().toLowerCase());
+        if (lower.some((t) => t.includes("down") || t.includes("disabled")))
+          return "down";
+        if (lower.some((t) => t.includes("limited") || t.includes("beta") || t.includes("degraded")))
+          return "limited";
+        if (lower.some((t) => t.includes("unrestricted") || t === "prod"))
+          return "up";
+        return "unknown";
+      };
+
+      // Filter: exclude demo, synthetic, tier >= 4
+      const filtered = sites.filter((s) => {
+        const lower = (s.tags || []).map((t) => t.toString().toLowerCase());
+        if (lower.some((t) => t.includes("demo"))) return false;
+        if (lower.some((t) => t.includes("synthetic"))) return false;
+        if (s.tier != null && s.tier >= 4) return false;
+        return true;
+      });
+
+      const active = [];
+      const limited = [];
+      const maintenance = [];
+
+      for (const site of filtered) {
+        const status = classifyStatus(site.tags);
+        if (status === "up") {
+          active.push(site);
+        } else if (status === "limited") {
+          limited.push(site);
+        } else if (status === "down") {
+          // Only Tier 1 and Tier 2 down sites
+          if (site.tier != null && site.tier <= 2) {
+            maintenance.push(site);
+          }
+        }
+        // "unknown" status sites are omitted
+      }
+
+      const now = new Date();
+      const generated = now.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
+
+      const html = buildSupportedSitesReportHtml({
+        active,
+        limited,
+        maintenance,
+        generated,
+      });
+
+      const browser = await getPdfBrowser();
+      const page = await browser.newPage();
+      try {
+        await page.setContent(html, {
+          waitUntil: "networkidle0",
+          timeout: 15000,
+        });
+        const pdfBuffer = await page.pdf({
+          format: "Letter",
+          printBackground: true,
+          margin: { top: "0", right: "0", bottom: "0", left: "0" },
+        });
+
+        setCors(res);
+        res.writeHead(200, {
+          "Content-Type": "application/pdf",
+          "Content-Disposition": `attachment; filename="supported-sites-status-report-${now.toISOString().slice(0, 10)}.pdf"`,
+          "Content-Length": pdfBuffer.length,
+        });
+        res.end(pdfBuffer);
+      } finally {
+        await page.close();
+      }
+    } catch (err) {
+      console.error("[pdf] Supported sites export error:", err);
+      return send(res, 500, { error: "PDF generation failed: " + err.message });
+    }
+    return;
+  }
+
   // ========== Shared Link Tracking ==========
 
   // POST /api/share-log — authenticated user creates a shared link
@@ -2923,7 +3616,163 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
+  // GET /api/share-validate?sid=xxx — unauthenticated, server-side expiration check
+  if (pathname === "/api/share-validate" && req.method === "GET") {
+    try {
+      const sid = (queryParams.get("sid") || "").slice(0, 16);
+      if (!sid) return send(res, 400, { valid: false, reason: "missing_sid" });
+
+      // Read share log to find creation timestamp for this sid
+      const content = await fs.readFile(SHARED_VIEWS_LOG_FILE, "utf8").catch(() => "");
+      const lines = content.split("\n").filter(Boolean);
+      let createdAt = null;
+      for (const line of lines) {
+        try {
+          const entry = JSON.parse(line);
+          if (entry.type === "create" && entry.sid === sid) {
+            createdAt = new Date(entry.ts).getTime();
+          }
+        } catch (_) {}
+      }
+
+      if (!createdAt) return send(res, 200, { valid: false, reason: "unknown_sid" });
+
+      // Read TTL from settings
+      const SHARE_SETTINGS_FILE = path.join(DATA_DIR, "share-settings.json");
+      const raw = await fs.readFile(SHARE_SETTINGS_FILE, "utf8").catch(() => "{}");
+      const settings = JSON.parse(raw);
+      const ttlHours = settings.ttlHours ?? 72;
+      const expiresAt = createdAt + ttlHours * 60 * 60 * 1000;
+      const now = Date.now();
+
+      if (now > expiresAt) {
+        return send(res, 200, { valid: false, reason: "expired" });
+      }
+
+      // Compute remaining time text
+      const remainMs = expiresAt - now;
+      const remainHrs = Math.ceil(remainMs / (60 * 60 * 1000));
+      let expiresIn = "";
+      if (remainHrs < 1) expiresIn = "less than an hour";
+      else if (remainHrs < 24) expiresIn = remainHrs + " hour" + (remainHrs === 1 ? "" : "s");
+      else { const d = Math.ceil(remainHrs / 24); expiresIn = d + " day" + (d === 1 ? "" : "s"); }
+
+      return send(res, 200, { valid: true, expiresIn });
+    } catch (err) {
+      console.error("[share-validate] error:", err);
+      return send(res, 200, { valid: false, reason: "error" });
+    }
+  }
+
   // ========== End Shared Link Tracking ==========
+
+  // ========== Share Link Settings ==========
+  const SHARE_SETTINGS_FILE = path.join(DATA_DIR, "share-settings.json");
+
+  if (pathname === "/api/share-settings" && req.method === "GET") {
+    try {
+      const raw = await fs.readFile(SHARE_SETTINGS_FILE, "utf8").catch(() => "{}");
+      const settings = JSON.parse(raw);
+      return send(res, 200, { ttlHours: settings.ttlHours ?? 72 });
+    } catch (err) {
+      console.error("[share-settings] read error:", err);
+      return send(res, 200, { ttlHours: 72 });
+    }
+  }
+
+  if (pathname === "/api/share-settings" && req.method === "POST") {
+    const auth = await validateSession(req, queryParams);
+    if (!auth) return send(res, 401, { ok: false });
+    if (auth.user.access_level !== "admin" && auth.user.access_level !== "full") {
+      return send(res, 403, { ok: false, error: "Admin access required" });
+    }
+    try {
+      const body = await readRequestBody(req);
+      const payload = JSON.parse(body || "{}");
+      const ttlHours = Number(payload.ttlHours);
+      if (!Number.isFinite(ttlHours) || ttlHours < 0.01 || ttlHours > 8760) {
+        return send(res, 400, { ok: false, error: "ttlHours must be between 0.01 and 8760" });
+      }
+      await fs.writeFile(SHARE_SETTINGS_FILE, JSON.stringify({ ttlHours }, null, 2));
+      return send(res, 200, { ok: true, ttlHours });
+    } catch (err) {
+      console.error("[share-settings] save error:", err);
+      return send(res, 500, { ok: false, error: "Failed to save settings" });
+    }
+  }
+  // ========== End Share Link Settings ==========
+
+  // ========== Traffic Health Settings ==========
+  const TRAFFIC_HEALTH_SETTINGS_FILE = path.join(DATA_DIR, "traffic-health-settings.json");
+
+  if (pathname === "/api/traffic-health-settings" && req.method === "GET") {
+    try {
+      const raw = await fs.readFile(TRAFFIC_HEALTH_SETTINGS_FILE, "utf8").catch(() => "{}");
+      const settings = JSON.parse(raw);
+      if (!settings.minDailySessions) settings.minDailySessions = 5;
+      return send(res, 200, settings);
+    } catch (err) {
+      console.error("[traffic-health-settings] read error:", err);
+      return send(res, 200, { minDailySessions: 5 });
+    }
+  }
+
+  if (pathname === "/api/traffic-health-settings" && req.method === "POST") {
+    const auth = await validateSession(req, queryParams);
+    if (!auth) return send(res, 401, { ok: false });
+    if (auth.user.access_level !== "admin" && auth.user.access_level !== "full") {
+      return send(res, 403, { ok: false, error: "Admin access required" });
+    }
+    try {
+      const body = await readRequestBody(req);
+      const payload = JSON.parse(body || "{}");
+
+      // Load existing settings and merge
+      let existing = {};
+      try {
+        existing = JSON.parse(await fs.readFile(TRAFFIC_HEALTH_SETTINGS_FILE, "utf8"));
+      } catch { /* first save */ }
+
+      // Validate and merge each known field
+      if (payload.minDailySessions !== undefined) {
+        const v = Number(payload.minDailySessions);
+        if (!Number.isFinite(v) || v < 1 || v > 1000) {
+          return send(res, 400, { ok: false, error: "minDailySessions must be between 1 and 1000" });
+        }
+        existing.minDailySessions = v;
+      }
+      if (payload.alertEnabled !== undefined) {
+        existing.alertEnabled = !!payload.alertEnabled;
+      }
+      if (payload.alertRecipients !== undefined) {
+        existing.alertRecipients = Array.isArray(payload.alertRecipients)
+          ? payload.alertRecipients.filter(e => typeof e === "string" && e.includes("@"))
+          : [];
+      }
+      if (payload.darkThresholdHours !== undefined) {
+        const v = Number(payload.darkThresholdHours);
+        if (Number.isFinite(v) && v >= 0.5 && v <= 168) existing.darkThresholdHours = v;
+      }
+      if (payload.lowThresholdHours !== undefined) {
+        const v = Number(payload.lowThresholdHours);
+        if (Number.isFinite(v) && v >= 0.5 && v <= 168) existing.lowThresholdHours = v;
+      }
+      if (payload.cooldownHours !== undefined) {
+        const v = Number(payload.cooldownHours);
+        if (Number.isFinite(v) && v >= 1 && v <= 168) existing.cooldownHours = v;
+      }
+
+      await fs.writeFile(TRAFFIC_HEALTH_SETTINGS_FILE, JSON.stringify(existing, null, 2));
+      // Invalidate cache so next request uses new threshold
+      _trafficHealthCache = null;
+      _trafficHealthCacheTime = 0;
+      return send(res, 200, { ok: true, ...existing });
+    } catch (err) {
+      console.error("[traffic-health-settings] save error:", err);
+      return send(res, 500, { ok: false, error: "Failed to save settings" });
+    }
+  }
+  // ========== End Traffic Health Settings ==========
 
   // ========== End Activity Logging ==========
 
@@ -3143,6 +3992,143 @@ const server = http.createServer(async (req, res) => {
 
     await saveSynthJobs();
     return send(res, 200, { job });
+  }
+
+  // ── Synthetic job → correlated sessions ──────────────────────
+  const synthSessionsMatch = pathname.match(/^\/api\/synth\/jobs\/([^/]+)\/sessions$/);
+  if (synthSessionsMatch && req.method === "GET") {
+    const jobId = decodeURIComponent(synthSessionsMatch[1]);
+    const jobs = await loadSynthJobs();
+    const job = jobs.find((j) => j.id === jobId);
+    if (!job) return send(res, 404, { error: "Job not found" });
+
+    const startDate = job.created_at ? job.created_at.split("T")[0] : null;
+    const endDate = job.last_run_at
+      ? job.last_run_at.split("T")[0]
+      : new Date().toISOString().split("T")[0];
+    if (!startDate) return send(res, 400, { error: "Job has no created_at date" });
+
+    const maxDays = Math.min(Math.max(1, parseInt(queryParams.get("max_days") || "30", 10)), 90);
+    const allDays = daysBetween(startDate, endDate);
+    const truncated = allDays.length > maxDays;
+    const days = truncated ? allDays.slice(allDays.length - maxDays) : allDays;
+
+    const fiRegistry = await loadFiRegistrySafe();
+    const fiMeta = buildFiMetaMap(fiRegistry);
+    const instanceMeta = await loadInstanceMetaMap();
+
+    const countOnly = queryParams.get("count_only") === "true";
+
+    const jobType = normalizeSourceToken(job.source_type);
+    const jobCat = normalizeSourceToken(job.source_category);
+    const jobSub = normalizeSourceToken(job.source_subcategory);
+
+    const matched = [];
+    let foundAny = false;
+
+    for (const day of days) {
+      if (countOnly && foundAny) break;
+
+      const readPromises = [readSessionDay(day)];
+      if (!countOnly) readPromises.push(readPlacementDay(day));
+      const [sessionsRaw, placementsRaw] = await Promise.all(readPromises);
+      if (!sessionsRaw || sessionsRaw.error) continue;
+
+      const placements = !countOnly && Array.isArray(placementsRaw?.placements)
+        ? placementsRaw.placements
+        : [];
+      const placementMap = new Map();
+      const placementSourceMap = new Map();
+      for (const pl of placements) {
+        const key =
+          pl.agent_session_id ||
+          pl.session_id ||
+          pl.cardholder_session_id ||
+          pl.cuid ||
+          null;
+        if (!key) continue;
+        const list = placementMap.get(key) || [];
+        list.push(pl);
+        placementMap.set(key, list);
+        if (!placementSourceMap.has(key)) {
+          const sourceInfo = extractSourceFromPlacement(pl);
+          if (sourceInfo) placementSourceMap.set(key, sourceInfo);
+        }
+      }
+
+      const sessions = Array.isArray(sessionsRaw.sessions) ? sessionsRaw.sessions : [];
+      for (const session of sessions) {
+        const agentId =
+          session.agent_session_id ||
+          session.session_id ||
+          session.id ||
+          session.cuid ||
+          null;
+        const fallback = !countOnly && agentId ? placementSourceMap.get(agentId) || null : null;
+        const source = extractSourceFromSession(session, fallback);
+        if (!source) continue;
+
+        const matchType = normalizeSourceToken(source.source_type) === jobType;
+        const matchCat = normalizeSourceToken(source.source_category) === jobCat;
+        if (!matchType || !matchCat) continue;
+
+        const rawSub = normalizeSourceToken(
+          session.source?.sub_category ||
+            session.source?.subCategory ||
+            session.custom_data?.sub_category ||
+            ""
+        );
+        const matchSub = !jobSub || rawSub === jobSub;
+        if (!matchSub) continue;
+
+        if (countOnly) { foundAny = true; break; }
+
+        const entry = mapSessionToTroubleshootEntry(
+          session,
+          placementMap,
+          fiMeta,
+          instanceMeta
+        );
+        entry.source_match = {
+          type: source.source_type,
+          category: source.source_category,
+          sub_category: rawSub,
+          match_type: matchType,
+          match_category: matchCat,
+          match_sub: !jobSub ? null : matchSub,
+        };
+        delete entry.placements_raw;
+        matched.push(entry);
+      }
+    }
+
+    if (countOnly) {
+      return send(res, 200, { job_id: jobId, has_data: foundAny });
+    }
+
+    const summary = summarizeTroubleshootSessions(matched);
+
+    return send(res, 200, {
+      job_id: jobId,
+      job_name: job.job_name || job.source_subcategory || "",
+      source_filter: {
+        type: job.source_type || "",
+        category: job.source_category || "",
+        sub_category: job.source_subcategory || "",
+      },
+      date_range: { start: days[0] || startDate, end: days[days.length - 1] || endDate },
+      days_scanned: days.length,
+      truncated,
+      total_days: allDays.length,
+      summary,
+      job_counters: {
+        attempted: job.attempted || 0,
+        success: job.placements_success || 0,
+        failed: job.placements_failed || 0,
+        abandoned: job.placements_abandoned || 0,
+      },
+      sessions: matched,
+    });
   }
 
   // Check raw data metadata status
@@ -4146,6 +5132,12 @@ const server = http.createServer(async (req, res) => {
         }
         return true;
       });
+      // Sort newest-first (matches realtime page behavior)
+      filteredSessions.sort((a, b) => {
+        const aTime = a.created_on || a.closed_on || '';
+        const bTime = b.created_on || b.closed_on || '';
+        return bTime.localeCompare(aTime);
+      });
       const totals = summarizeTroubleshootSessions(filteredSessions);
       return send(res, 200, {
         date: payload.date,
@@ -4737,6 +5729,9 @@ const server = http.createServer(async (req, res) => {
       const days = daysBetween(start, end);
       const fiMeta = buildFiMetaMap(fiRegistry);
       const instanceMeta = await loadInstanceMetaMap();
+      const includeTests =
+        (payload?.includeTests === true) || (payload?.includeTests === "true") ||
+        queryParams.get("includeTests") === "true";
       const fiList = filters.fi_list.map((fi) => normalizeFiKey(fi)).filter(Boolean);
       const fiSet = fiList.length ? new Set(fiList) : null;
       const sourceTypeSet = new Set(
@@ -4805,6 +5800,7 @@ const server = http.createServer(async (req, res) => {
             session._instance || session.instance || session.instance_name || session.org_name || "";
           const instanceDisplay = formatInstanceDisplay(instanceRaw || "unknown");
           if (instanceSet && !instanceSet.has(normalizeInstanceKey(instanceDisplay))) continue;
+          if (!includeTests && isTestInstanceName(instanceDisplay)) continue;
 
           const instanceLookup = instanceMeta.get(instanceDisplay.toLowerCase());
           const fiLookupRaw =
@@ -4920,6 +5916,9 @@ const server = http.createServer(async (req, res) => {
       const { start, end } = resolveDateRange(filters);
       const days = daysBetween(start, end);
       const fiMeta = buildFiMetaMap(fiRegistry);
+      const includeTests =
+        (payload?.includeTests === true) || (payload?.includeTests === "true") ||
+        queryParams.get("includeTests") === "true";
       const fiList = filters.fi_list.map((fi) => normalizeFiKey(fi)).filter(Boolean);
       const fiSet = fiList.length ? new Set(fiList) : null;
       const instanceSet = filters.instance_list.length
@@ -4955,6 +5954,7 @@ const server = http.createServer(async (req, res) => {
           const job = mapPlacementToJob(placement, placement.fi_lookup_key || placement.fi, placement._instance);
           const instanceDisplay = formatInstanceDisplay(job.instance || placement._instance || "unknown");
           if (instanceSet && !instanceSet.has(normalizeInstanceKey(instanceDisplay))) continue;
+          if (!includeTests && isTestInstanceName(instanceDisplay)) continue;
 
           const fiKey = normalizeFiKey(job.fi_key || placement.fi_lookup_key || placement.fi_name || "");
           if (fiSet && !fiSet.has(fiKey)) continue;
@@ -4963,6 +5963,7 @@ const server = http.createServer(async (req, res) => {
           if (filters.fi_scope === "non_sso_only" && isSso) continue;
 
           const merchant = (job.merchant || "unknown").toString();
+          if (merchant.toLowerCase().includes("vercel")) continue;
           if (merchantSet && !merchantSet.has(normalizeSourceToken(merchant))) continue;
 
           const status = categorizeJobStatus(job);
@@ -4975,9 +5976,11 @@ const server = http.createServer(async (req, res) => {
           if (status === "abandoned") overall.Jobs_Abandoned += 1;
           if (status === "failed") overall.Jobs_Failed += 1;
 
-          const dayEntry = byDay.get(dayKey) || { date: dayKey, Jobs_Total: 0, Jobs_Failed: 0 };
+          const dayEntry = byDay.get(dayKey) || { date: dayKey, Jobs_Total: 0, Jobs_Success: 0, Jobs_Failed: 0, _merchants: new Set() };
           dayEntry.Jobs_Total += 1;
+          if (status === "success") dayEntry.Jobs_Success += 1;
           if (status === "failed") dayEntry.Jobs_Failed += 1;
+          dayEntry._merchants.add(merchant);
           byDay.set(dayKey, dayEntry);
 
           const merchantEntry = byMerchant.get(merchant) || {
@@ -5059,7 +6062,9 @@ const server = http.createServer(async (req, res) => {
           status,
           count,
         })),
-        by_day: Array.from(byDay.values()).sort((a, b) => a.date.localeCompare(b.date)),
+        by_day: Array.from(byDay.values())
+          .map(d => ({ date: d.date, Jobs_Total: d.Jobs_Total, Jobs_Success: d.Jobs_Success, Jobs_Failed: d.Jobs_Failed, merchants_active: d._merchants ? d._merchants.size : 0 }))
+          .sort((a, b) => a.date.localeCompare(b.date)),
         by_merchant: byMerchantRows,
         by_fi_instance: Array.from(byFiInstance.values()),
         top_error_codes: topErrorCodes,
@@ -5070,18 +6075,30 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
-  // ── Ops Event Feed (kiosk real-time feed) ──
+  // ── Ops Event Feed (live cache for today + batch file for yesterday) ──
   if (pathname === "/api/metrics/ops-feed" && req.method === "GET") {
     const session = await validateSession(req, queryParams);
     if (!session) {
       return send(res, 401, { error: "Authentication required" });
     }
     try {
-      const today = new Date().toISOString().slice(0, 10);
-      const placementsRaw = await readPlacementDay(today);
-      const placements = (placementsRaw && Array.isArray(placementsRaw.placements))
-        ? placementsRaw.placements
-        : [];
+      const now = new Date();
+      const today = now.toISOString().slice(0, 10);
+      const yesterday = new Date(now.getTime() - 86400000).toISOString().slice(0, 10);
+      const cutoff24h = new Date(now.getTime() - 86400000).toISOString();
+
+      // Today: use live cache (populated every 15 min), fall back to batch file
+      const todayPlacements = (_livePlacementsCache && _livePlacementsCacheTime > 0)
+        ? _livePlacementsCache
+        : await readPlacementDay(today).then(r => (r && Array.isArray(r.placements)) ? r.placements : []);
+
+      // Yesterday: always from batch file (complete data)
+      const yesterdayRaw = await readPlacementDay(yesterday);
+
+      const placements = [
+        ...todayPlacements,
+        ...((yesterdayRaw && Array.isArray(yesterdayRaw.placements)) ? yesterdayRaw.placements : []),
+      ];
       const fiRegistry = await loadFiRegistrySafe();
       const fiMeta = buildFiMetaMap(fiRegistry);
 
@@ -5100,12 +6117,409 @@ const server = http.createServer(async (req, res) => {
             termination_type: (job.termination || "").toString(),
           };
         })
+        .filter((evt) => evt.timestamp >= cutoff24h && !evt.merchant.toLowerCase().includes("vercel"))
         .sort((a, b) => (b.timestamp || "").localeCompare(a.timestamp || ""))
-        .slice(0, 50);
+        .slice(0, 100);
 
       return send(res, 200, { events });
     } catch (err) {
       return send(res, 500, { error: err?.message || "Unable to build ops feed" });
+    }
+  }
+
+  // ── Traffic Health — per-FI daily baseline + LIVE today anomaly detection ──
+  if (pathname === "/api/traffic-health" && req.method === "GET") {
+    const session = await validateSession(req, queryParams);
+    if (!session) {
+      return send(res, 401, { error: "Authentication required" });
+    }
+    try {
+      const now = Date.now();
+      if (_trafficHealthCache && (now - _trafficHealthCacheTime) < TRAFFIC_HEALTH_CACHE_TTL) {
+        return send(res, 200, _trafficHealthCache);
+      }
+
+      const [fiRegistry, instancesFile] = await Promise.all([
+        loadFiRegistrySafe(),
+        readInstancesFile(),
+      ]);
+      const fiMeta = buildFiMetaMap(fiRegistry);
+      const instances = instancesFile.entries || [];
+
+      // Build instance name → FI registry entries lookup
+      const instanceFiMap = new Map(); // instance_name_lower → [registry entries]
+      for (const entry of Object.values(fiRegistry)) {
+        if (!entry || !entry.instance) continue;
+        const instKey = entry.instance.toString().trim().toLowerCase();
+        if (!instanceFiMap.has(instKey)) instanceFiMap.set(instKey, []);
+        instanceFiMap.get(instKey).push({
+          fi_name: entry.fi_name || entry.fi_lookup_key || "",
+          fi_lookup_key: normalizeFiKey(entry.fi_lookup_key || entry.fi_name || ""),
+          partner: entry.partner || "Unknown",
+          instance: entry.instance || "",
+          integration_type: normalizeIntegration(entry.integration_type),
+        });
+      }
+
+      const todayDate = new Date();
+      const todayStr = todayDate.toISOString().slice(0, 10);
+      const baselineEnd = new Date(todayDate);
+      baselineEnd.setUTCDate(baselineEnd.getUTCDate() - 1);
+      const baselineStart = new Date(baselineEnd);
+      baselineStart.setUTCDate(baselineEnd.getUTCDate() - 13); // 14 days back
+      const baselineStartStr = baselineStart.toISOString().slice(0, 10);
+      const baselineEndStr = baselineEnd.toISOString().slice(0, 10);
+
+      const baselineDays = daysBetween(baselineStartStr, baselineEndStr); // 14 days
+
+      // ── Step 1: Load baseline from daily files (yesterday and back) ──
+      const fiDayCounts = new Map(); // fi_key → Map<day, count>
+      const fiDayLatest = new Map(); // fi_key → Map<day, ISO timestamp>
+      const fiHourlyCounts = new Map(); // fi_key → Map<hour(0-23), totalCount across all baseline days>
+
+      for (const day of baselineDays) {
+        const dayData = await readSessionDay(day);
+        if (!dayData || !Array.isArray(dayData.sessions)) continue;
+        for (const sess of dayData.sessions) {
+          const instanceRaw = sess._instance || sess.instance || sess.instance_name || sess.org_name || "";
+          const instanceDisplay = formatInstanceDisplay(instanceRaw || "unknown");
+          if (isTestInstanceName(instanceDisplay)) continue;
+
+          const fiKey = normalizeFiKey(
+            sess.financial_institution_lookup_key || sess.fi_lookup_key || sess.fi_name || ""
+          );
+          if (!fiKey) continue;
+
+          if (!fiDayCounts.has(fiKey)) fiDayCounts.set(fiKey, new Map());
+          const dayCounts = fiDayCounts.get(fiKey);
+          dayCounts.set(day, (dayCounts.get(day) || 0) + 1);
+
+          // Bucket by hour for fingerprint building
+          const createdOn = sess.created_on || "";
+          if (createdOn) {
+            const hour = new Date(createdOn).getUTCHours();
+            if (!fiHourlyCounts.has(fiKey)) fiHourlyCounts.set(fiKey, new Map());
+            const hourMap = fiHourlyCounts.get(fiKey);
+            hourMap.set(hour, (hourMap.get(hour) || 0) + 1);
+
+            // Track latest created_on for hours_since_last
+            if (!fiDayLatest.has(fiKey)) fiDayLatest.set(fiKey, new Map());
+            const dayLatest = fiDayLatest.get(fiKey);
+            const prev = dayLatest.get(day) || "";
+            if (createdOn > prev) dayLatest.set(day, createdOn);
+          }
+        }
+      }
+
+      // ── Step 2: Fetch TODAY's sessions live from CardSavr API (all instances) ──
+      const todayStartIso = `${todayStr}T00:00:00Z`;
+      const nowIso = todayDate.toISOString();
+      const liveCounts = new Map();  // fi_key → count
+      const liveLatest = new Map();  // fi_key → latest ISO timestamp
+      const instanceErrors = [];
+
+      console.log(`[traffic-health] Querying ${instances.length} instances for live sessions...`);
+
+      const liveResults = await Promise.allSettled(
+        instances.map(async (instConfig) => {
+          const instName = instConfig.name || "";
+          try {
+            const { session: sdkSession } = await loginWithSdk(instConfig);
+            const resp = await sdkSession.get("cardholder_sessions", {
+              created_on_min: todayStartIso,
+              created_on_max: nowIso,
+            }, {});
+
+            const sessions = Array.isArray(resp?.body) ? resp.body :
+                             Array.isArray(resp) ? resp : [];
+
+            // Page through if needed — read total from paging header
+            let allSessions = [...sessions];
+            let rawHeader = resp?.headers?.get
+              ? resp.headers.get("x-cardsavr-paging")
+              : resp?.headers?.["x-cardsavr-paging"];
+
+            while (rawHeader) {
+              let paging;
+              try { paging = JSON.parse(rawHeader); } catch { break; }
+              const page = Number(paging.page) || 1;
+              const pageLength = Number(paging.page_length) || 0;
+              const totalResults = Number(paging.total_results) || 0;
+              if (pageLength === 0 || page * pageLength >= totalResults) break;
+
+              const nextResp = await sdkSession.get("cardholder_sessions", {
+                created_on_min: todayStartIso,
+                created_on_max: nowIso,
+              }, { "x-cardsavr-paging": JSON.stringify({ ...paging, page: page + 1 }) });
+
+              const nextRows = Array.isArray(nextResp?.body) ? nextResp.body :
+                               Array.isArray(nextResp) ? nextResp : [];
+              allSessions.push(...nextRows);
+
+              rawHeader = nextResp?.headers?.get
+                ? nextResp.headers.get("x-cardsavr-paging")
+                : nextResp?.headers?.["x-cardsavr-paging"];
+            }
+
+            // Count per FI key
+            for (const sess of allSessions) {
+              const instanceRaw = sess._instance || sess.instance || sess.instance_name || sess.org_name || instName;
+              const instanceDisplay = formatInstanceDisplay(instanceRaw || "unknown");
+              if (isTestInstanceName(instanceDisplay)) continue;
+
+              const fiKey = normalizeFiKey(
+                sess.financial_institution_lookup_key || sess.fi_lookup_key || sess.fi_name || ""
+              );
+              if (!fiKey) continue;
+
+              liveCounts.set(fiKey, (liveCounts.get(fiKey) || 0) + 1);
+
+              const createdOn = sess.created_on || "";
+              if (createdOn) {
+                const prev = liveLatest.get(fiKey) || "";
+                if (createdOn > prev) liveLatest.set(fiKey, createdOn);
+              }
+            }
+
+            console.log(`[traffic-health]   ${instName}: ${allSessions.length} sessions today`);
+            return { instance: instName, count: allSessions.length };
+          } catch (err) {
+            console.warn(`[traffic-health]   ${instName}: FAILED - ${err.message}`);
+            instanceErrors.push(instName);
+            return { instance: instName, count: 0, error: err.message };
+          }
+        })
+      );
+
+      // Merge live today counts into fiDayCounts
+      for (const [fiKey, count] of liveCounts.entries()) {
+        if (!fiDayCounts.has(fiKey)) fiDayCounts.set(fiKey, new Map());
+        fiDayCounts.get(fiKey).set(todayStr, count);
+      }
+      for (const [fiKey, ts] of liveLatest.entries()) {
+        if (!fiDayLatest.has(fiKey)) fiDayLatest.set(fiKey, new Map());
+        fiDayLatest.get(fiKey).set(todayStr, ts);
+      }
+
+      // ── Step 2b: Build per-FI traffic fingerprints ──
+      // fiFingerprints: fi_key → { fingerprint: number[24] | null, quietHours: Set<number> | null, tier: 1|2|3 }
+      const fiFingerprints = new Map();
+      for (const [fiKey, dayCounts] of fiDayCounts.entries()) {
+        const baselineCounts = baselineDays.map(d => dayCounts.get(d) || 0);
+        const baselineSum = baselineCounts.reduce((a, b) => a + b, 0);
+        const avgPerDay = baselineSum / baselineDays.length;
+
+        const hourMap = fiHourlyCounts.get(fiKey);
+        if (avgPerDay >= 10 && hourMap) {
+          // Tier 1: Full cumulative fingerprint
+          const raw = new Array(24).fill(0);
+          const totalHourly = [...hourMap.values()].reduce((a, b) => a + b, 0);
+          if (totalHourly > 0) {
+            for (let h = 0; h < 24; h++) raw[h] = (hourMap.get(h) || 0) / totalHourly;
+          }
+          // Apply 3-hour rolling average to smooth jitter
+          const smoothed = new Array(24).fill(0);
+          for (let h = 0; h < 24; h++) {
+            const prev = raw[(h + 23) % 24];
+            const curr = raw[h];
+            const next = raw[(h + 1) % 24];
+            smoothed[h] = (prev + curr + next) / 3;
+          }
+          // Renormalize to sum to 1.0
+          const smoothSum = smoothed.reduce((a, b) => a + b, 0);
+          if (smoothSum > 0) for (let h = 0; h < 24; h++) smoothed[h] /= smoothSum;
+          fiFingerprints.set(fiKey, { fingerprint: smoothed, quietHours: null, tier: 1 });
+        } else if (avgPerDay >= 5 && hourMap) {
+          // Tier 2: Quiet-hours mask
+          const quietHours = new Set();
+          for (let h = 0; h < 24; h++) {
+            if ((hourMap.get(h) || 0) <= 1) quietHours.add(h);
+          }
+          fiFingerprints.set(fiKey, { fingerprint: null, quietHours, tier: 2 });
+        } else {
+          fiFingerprints.set(fiKey, { fingerprint: null, quietHours: null, tier: 3 });
+        }
+      }
+
+      // ── Step 3: Compute baselines and classify ──
+      // Read configurable threshold from settings
+      let MIN_AVG_SESSIONS = 5;
+      try {
+        const threshRaw = await fs.readFile(TRAFFIC_HEALTH_SETTINGS_FILE, "utf8").catch(() => "{}");
+        const threshSettings = JSON.parse(threshRaw);
+        if (Number.isFinite(threshSettings.minDailySessions) && threshSettings.minDailySessions >= 1) {
+          MIN_AVG_SESSIONS = threshSettings.minDailySessions;
+        }
+      } catch { /* use default */ }
+      const nowMs = Date.now();
+      const todayStartMs = new Date(`${todayStr}T00:00:00Z`).getTime();
+      const hoursElapsed = Math.max(0, (nowMs - todayStartMs) / 3600000);
+
+      const allDays = [...baselineDays, todayStr]; // 14 baseline + today = 15
+
+      const fis = [];
+      for (const [fiKey, dayCounts] of fiDayCounts.entries()) {
+        const baselineCounts = baselineDays.map(d => dayCounts.get(d) || 0);
+        const baselineSum = baselineCounts.reduce((a, b) => a + b, 0);
+        const baselineAvg = baselineSum / baselineDays.length;
+
+        if (baselineAvg < MIN_AVG_SESSIONS) continue;
+
+        const sortedBaseline = [...baselineCounts].sort((a, b) => a - b);
+        const mid = Math.floor(sortedBaseline.length / 2);
+        const baselineMedian = sortedBaseline.length % 2 === 0
+          ? (sortedBaseline[mid - 1] + sortedBaseline[mid]) / 2
+          : sortedBaseline[mid];
+
+        const todaySessions = dayCounts.get(todayStr) || 0;
+        // Use the most recent baseline day with data (yesterday's file may not exist yet)
+        let lastBaselineSessions = 0;
+        for (let i = baselineDays.length - 1; i >= 0; i--) {
+          const cnt = dayCounts.get(baselineDays[i]);
+          if (cnt > 0) { lastBaselineSessions = cnt; break; }
+        }
+
+        let todayProjected = todaySessions;
+        if (hoursElapsed >= 1) {
+          todayProjected = (todaySessions / hoursElapsed) * 24;
+        }
+
+        // Status classification — fingerprint-aware
+        const fp = fiFingerprints.get(fiKey);
+        const currentHour = new Date().getUTCHours();
+        let status = "normal";
+        let expectedCumulative = null;
+        let pctOfExpected = null;
+
+        if (fp && fp.fingerprint) {
+          // Tier 1: cumulative fingerprint comparison
+          let cumFrac = 0;
+          for (let h = 0; h <= currentHour; h++) cumFrac += fp.fingerprint[h];
+          expectedCumulative = baselineAvg * cumFrac;
+
+          if (expectedCumulative < 2) {
+            status = "sleeping";
+          } else if (todaySessions === 0 && expectedCumulative > 2) {
+            status = "dark";
+          } else if (todaySessions < expectedCumulative * 0.4 && expectedCumulative > 3) {
+            status = "low";
+          }
+          pctOfExpected = expectedCumulative > 0
+            ? Math.round((todaySessions / expectedCumulative) * 100)
+            : (todaySessions > 0 ? 999 : 0);
+        } else if (fp && fp.quietHours) {
+          // Tier 2: quiet-hours suppression
+          if (fp.quietHours.has(currentHour)) {
+            status = "sleeping";
+          } else {
+            // Fall back to existing flat baseline logic during active hours
+            if (todaySessions === 0 && lastBaselineSessions === 0) {
+              status = "dark";
+            } else if (todaySessions === 0 && hoursElapsed >= 6) {
+              status = "dark";
+            } else if (hoursElapsed >= 6 && baselineMedian > 0 && todayProjected < baselineMedian * 0.5) {
+              status = "low";
+            }
+          }
+        } else {
+          // Tier 3: existing behavior unchanged
+          if (todaySessions === 0 && lastBaselineSessions === 0) {
+            status = "dark";
+          } else if (todaySessions === 0 && hoursElapsed >= 6) {
+            status = "dark";
+          } else if (hoursElapsed >= 6 && baselineMedian > 0 && todayProjected < baselineMedian * 0.5) {
+            status = "low";
+          }
+        }
+
+        // hours_since_last: for dark/low, scan latest timestamps
+        let hoursSinceLast = null;
+        if (status === "dark" || status === "low") {
+          const latestMap = fiDayLatest.get(fiKey);
+          if (latestMap) {
+            let lastTs = null;
+            for (let i = allDays.length - 1; i >= 0; i--) {
+              const ts = latestMap.get(allDays[i]);
+              if (ts) { lastTs = ts; break; }
+            }
+            if (lastTs) {
+              hoursSinceLast = Math.round(((nowMs - new Date(lastTs).getTime()) / 3600000) * 10) / 10;
+            }
+          }
+        }
+
+        const pctOfBaseline = baselineMedian > 0
+          ? Math.round((todayProjected / baselineMedian) * 100)
+          : (todaySessions > 0 ? 999 : 0);
+
+        const fiEntry = fiMeta.get(fiKey);
+        // Find instance from registry
+        let instEntry = null;
+        for (const [, entries] of instanceFiMap.entries()) {
+          const match = entries.find(e => normalizeFiKey(e.fi_lookup_key) === fiKey);
+          if (match) { instEntry = match; break; }
+        }
+
+        const dailyCounts = allDays.map(d => dayCounts.get(d) || 0);
+
+        const fiObj = {
+          fi_name: fiEntry?.fi || instEntry?.fi_name || fiKey,
+          fi_lookup_key: fiKey,
+          partner: fiEntry?.partner || instEntry?.partner || "Unknown",
+          instance: instEntry?.instance || "",
+          integration_type: fiEntry?.integration || instEntry?.integration_type || "UNKNOWN",
+          status,
+          today_sessions: todaySessions,
+          today_projected: Math.round(todayProjected),
+          yesterday_sessions: lastBaselineSessions,
+          baseline_median: Math.round(baselineMedian * 10) / 10,
+          baseline_avg: Math.round(baselineAvg * 10) / 10,
+          hours_since_last: hoursSinceLast,
+          pct_of_baseline: pctOfBaseline,
+          daily_counts: dailyCounts,
+          fingerprint_tier: fp ? fp.tier : 3,
+        };
+        if (expectedCumulative != null) fiObj.expected_cumulative = Math.round(expectedCumulative * 10) / 10;
+        if (pctOfExpected != null) fiObj.pct_of_expected = pctOfExpected;
+        if (fp && fp.quietHours) fiObj.quiet_hours = [...fp.quietHours].sort((a, b) => a - b);
+
+        fis.push(fiObj);
+      }
+
+      // Sort: dark first → low → sleeping → normal; within status, by pct_of_baseline asc
+      const statusOrder = { dark: 0, low: 1, sleeping: 2, normal: 3 };
+      fis.sort((a, b) => {
+        const so = (statusOrder[a.status] ?? 9) - (statusOrder[b.status] ?? 9);
+        if (so !== 0) return so;
+        return a.pct_of_baseline - b.pct_of_baseline;
+      });
+
+      const summary = {
+        dark: fis.filter(f => f.status === "dark").length,
+        low: fis.filter(f => f.status === "low").length,
+        sleeping: fis.filter(f => f.status === "sleeping").length,
+        normal: fis.filter(f => f.status === "normal").length,
+        total_monitored: fis.length,
+      };
+
+      const result = {
+        generated_at: new Date().toISOString(),
+        baseline_days: 14,
+        min_volume_threshold: MIN_AVG_SESSIONS,
+        hours_elapsed_today: Math.round(hoursElapsed * 10) / 10,
+        data_source: "live",
+        instances_queried: instances.length,
+        instances_failed: instanceErrors,
+        summary,
+        fis,
+      };
+
+      _trafficHealthCache = result;
+      _trafficHealthCacheTime = Date.now();
+      return send(res, 200, result);
+    } catch (err) {
+      console.error("[traffic-health] error:", err);
+      return send(res, 500, { error: err?.message || "Unable to compute traffic health" });
     }
   }
 
@@ -5977,8 +7391,28 @@ const server = http.createServer(async (req, res) => {
     if (await fileExists(fp)) return serveFile(res, fp);
   }
 
+  if (pathname === "/dashboards/portfolio" || pathname === "/dashboards/portfolio.html") {
+    const fp = path.join(PUBLIC_DIR, "dashboards", "portfolio.html");
+    if (await fileExists(fp)) return serveFile(res, fp);
+  }
+
+  if (pathname === "/dashboards/executive" || pathname === "/dashboards/executive.html") {
+    const fp = path.join(PUBLIC_DIR, "dashboards", "executive.html");
+    if (await fileExists(fp)) return serveFile(res, fp);
+  }
+
   if (pathname === "/resources/engagement-playbook" || pathname === "/resources/engagement-playbook.html") {
     const fp = path.join(PUBLIC_DIR, "resources", "engagement-playbook.html");
+    if (await fileExists(fp)) return serveFile(res, fp);
+  }
+
+  if (pathname === "/campaign-builder" || pathname === "/campaign-builder.html") {
+    const fp = path.join(PUBLIC_DIR, "campaign-builder.html");
+    if (await fileExists(fp)) return serveFile(res, fp);
+  }
+
+  if (pathname === "/supported-sites" || pathname === "/supported-sites.html") {
+    const fp = path.join(PUBLIC_DIR, "supported-sites.html");
     if (await fileExists(fp)) return serveFile(res, fp);
   }
 

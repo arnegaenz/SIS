@@ -2,6 +2,7 @@
 <html lang="en">
   <head>
   <meta charset="utf-8" />
+  <script>try{var t=localStorage.getItem('sis-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
   <title>Cardholder Engagement Dashboard</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
   <link rel="stylesheet" href="./sis-shared.css?v=navfix" />
@@ -99,6 +100,9 @@
     }
     @media (max-width: 1024px) { .perf-grid { grid-template-columns: repeat(2, 1fr); } }
     @media (max-width: 600px) { .perf-grid { grid-template-columns: 1fr; } }
+    .perf-grid-subsection {
+      display: contents;
+    }
     .perf-card {
       background: #fff; border: 1px solid #e2e8f0; border-radius: 12px;
       padding: 14px 16px; text-align: left;
@@ -183,7 +187,7 @@
       width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0;
     }
     .key-swatch.ga { background: #ede9fe; border: 1px solid #c4b5fd; }
-    .key-swatch.cs { background: #fef3c7; border: 1px solid #fcd34d; }
+    .key-swatch.cs { background: rgba(217,119,6,0.15); border: 1px solid rgba(217,119,6,0.50); }
     .key-swatch.stats { background: #e0f2f1; border: 1px solid rgba(74,158,186,0.45); }
     .key-swatch.highlight { background: #dbeafe; border: 1px solid #93c5fd; }
     .key-swatch.success { background: #dcfce7; border: 1px solid #86efac; }
@@ -371,16 +375,15 @@
     .table-scroll { overflow-x: auto; }
     .fi-table {
       width: 100%; border-collapse: collapse; font-size: 12px;
-      white-space: nowrap;
     }
     .fi-table th {
-      text-align: center; padding: 5px 8px; font-size: 10px; font-weight: 700;
+      text-align: center; padding: 5px 8px; font-size: 11px; font-weight: 700;
       text-transform: uppercase; letter-spacing: 0.03em; color: #475569;
       background: #f1f5f9; border-bottom: 2px solid #e2e8f0;
       cursor: pointer; user-select: none;
     }
     .fi-table th:hover { color: #0f172a; }
-    .fi-table td { padding: 5px 8px; border-bottom: 1px solid #f1f5f9; text-align: center; }
+    .fi-table td { padding: 5px 8px; border-bottom: 1px solid #f1f5f9; text-align: center; white-space: nowrap; }
     .fi-table tbody tr:hover { background: #f8fafc; }
     .fi-table .num { text-align: center; font-variant-numeric: tabular-nums; }
     .fi-table .totals-row td {
@@ -389,6 +392,14 @@
     .fi-table .muted { color: #94a3b8; font-size: 10px; }
     .fi-table .reach-good { color: #16a34a; font-weight: 600; }
     .fi-table .reach-low { color: #d97706; }
+    .fi-table .ga-good { color: #16a34a; font-weight: 600; }
+    .fi-table .ga-warn { color: #d97706; }
+    .fi-table .ga-low { color: #dc2626; }
+    .fi-table .launch-high { color: #16a34a; font-weight: 600; }
+    .fi-table .launch-mid { color: #d97706; }
+    .fi-table .launch-low { color: #dc2626; }
+    .fi-table .estimated-val { font-style: italic; }
+    .fi-table-footnote { font-size: 0.8em; color: #6b7280; margin-top: 4px; font-style: italic; }
     .fi-table th:first-child, .fi-table td:first-child { text-align: left; }
 
     /* Tab bar (single-FI time breakdowns) */
@@ -591,7 +602,7 @@
     .qbr-yoy-callout .yoy-title { font-weight: 700; font-size: 12px; color: #0369a1; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px; }
     .qbr-yoy-callout .yoy-row { font-size: 13px; color: #0f172a; margin: 3px 0; }
     .qbr-monthly-table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 12px 0; }
-    .qbr-monthly-table th, .qbr-monthly-table td { padding: 8px 10px; text-align: right; border-bottom: 1px solid #e2e8f0; }
+    .qbr-monthly-table th, .qbr-monthly-table td { padding: 8px 10px; text-align: center; border-bottom: 1px solid #e2e8f0; }
     .qbr-monthly-table th { font-weight: 700; color: #0f172a; text-transform: uppercase; font-size: 11px; }
     .qbr-monthly-table th:first-child, .qbr-monthly-table td:first-child { text-align: left; }
     .qbr-monthly-table tr.totals-row { font-weight: 700; border-top: 2px solid #cbd5e1; }
@@ -624,6 +635,38 @@
       border-radius: 20px; padding: 4px 14px;
     }
     .pres-prepared { margin-top: 6px; font-size: 11px; color: #64748b; }
+
+    .pres-date-controls {
+      display: flex; align-items: flex-end; gap: 10px;
+      margin-top: 14px; flex-wrap: wrap;
+    }
+    .pres-date-controls .pdc-field { display: flex; flex-direction: column; gap: 3px; }
+    .pres-date-controls .pdc-label {
+      font-size: 10px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.06em; color: #64748b;
+    }
+    .pres-date-controls select,
+    .pres-date-controls input[type="date"],
+    .pres-date-controls .pdc-update-btn {
+      height: 40px; box-sizing: border-box;
+      background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.18);
+      color: #e2e8f0; padding: 0 12px; border-radius: 6px; font-size: 14px;
+      outline: none; transition: border-color 0.15s;
+      -webkit-appearance: none; appearance: none;
+    }
+    .pres-date-controls select:focus,
+    .pres-date-controls input[type="date"]:focus {
+      border-color: rgba(14,165,233,0.6);
+    }
+    .pres-date-controls input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.7); }
+    .pres-date-controls .pdc-update-btn {
+      background: #0ea5e9; color: #fff; border-color: transparent;
+      padding: 0 22px; border-radius: 999px; font-weight: 600; cursor: pointer;
+    }
+    .pres-date-controls .pdc-update-btn:hover { background: #0284c7; }
+    .pres-date-controls .pdc-day-count {
+      font-size: 12px; color: #64748b; padding-bottom: 8px;
+    }
 
     .presentation-footer {
       text-align: center; padding: 16px; margin-top: 24px;
@@ -807,6 +850,38 @@
       font-size: 11px; color: #94a3b8; font-style: italic; margin-top: 4px;
     }
 
+    /* ── Integration Breakdown (SSO vs Non-SSO) ── */
+    .integration-breakdown-intro {
+      font-size: 0.85rem; line-height: 1.6; color: #475569;
+      background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px;
+      padding: 12px 16px; margin-bottom: 20px;
+    }
+    .breakdown-block {
+      margin-bottom: 28px; padding: 16px 20px;
+      border: 1px solid #e2e8f0; border-radius: 12px;
+      background: #fafbfc;
+    }
+    .breakdown-badge {
+      display: inline-block; font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.05em;
+      padding: 4px 12px; border-radius: 6px; margin-bottom: 14px;
+    }
+    .breakdown-badge.sso-badge {
+      background: #dbeafe; color: #1e40af;
+    }
+    .breakdown-badge.nonsso-badge {
+      background: #fef3c7; color: #92400e;
+    }
+    .ga-undercount-disclaimer {
+      font-size: 0.8rem; line-height: 1.5; color: #92400e;
+      background: #fffbeb; border: 1px solid #fde68a; border-radius: 6px;
+      padding: 8px 12px; margin-bottom: 14px;
+    }
+    .ga-undercount-disclaimer strong { color: #78350f; }
+    .breakdown-narratives { margin-bottom: 14px; }
+    .breakdown-spectrum { margin-bottom: 14px; }
+    .breakdown-projection { margin-top: 10px; }
+
     /* ── Admin Overlay ── */
     .admin-overlay { display: none; }
     body.show-admin-overlay .admin-overlay { display: block; }
@@ -886,6 +961,344 @@
       font-size: 9px; font-weight: 700; text-transform: uppercase;
       letter-spacing: 0.05em; color: #dc2626; margin-bottom: 4px;
     }
+
+    /* ══════════════════════════════════════════════════════════════════
+       DARK MODE OVERRIDES
+       ══════════════════════════════════════════════════════════════════ */
+    [data-theme="dark"] body { background: var(--bg); color: var(--text); }
+
+    /* Date warning */
+    [data-theme="dark"] .date-warning {
+      background: rgba(254,243,199,0.10); border-color: rgba(252,211,77,0.3);
+      color: #fcd34d;
+    }
+
+    /* Performance section titles */
+    [data-theme="dark"] .perf-section-title {
+      color: var(--text); border-bottom-color: var(--border);
+    }
+
+    /* Metric cards */
+    [data-theme="dark"] .perf-card {
+      background: var(--panel); border-color: var(--border);
+      box-shadow: 0 14px 34px rgba(0,0,0,0.25);
+    }
+    [data-theme="dark"] .perf-card:hover {
+      box-shadow: 0 18px 42px rgba(0,0,0,0.35);
+    }
+    [data-theme="dark"] .perf-card .card-label { color: var(--muted); }
+    [data-theme="dark"] .perf-card .card-value { color: var(--text); }
+    [data-theme="dark"] .perf-card .card-sub { color: #64748b; }
+
+    /* Highlight card (blue accent) */
+    [data-theme="dark"] .perf-card.highlight {
+      background: linear-gradient(135deg, rgba(37,99,235,0.15) 0%, rgba(37,99,235,0.05) 55%, transparent 100%), var(--panel);
+      border-color: rgba(37,99,235,0.35);
+    }
+    [data-theme="dark"] .perf-card.highlight .card-value { color: #7aa2ff; }
+
+    /* Success card (green accent) */
+    [data-theme="dark"] .perf-card.success {
+      background: linear-gradient(135deg, rgba(22,163,74,0.15) 0%, rgba(22,163,74,0.05) 55%, transparent 100%), var(--panel);
+      border-color: rgba(22,163,74,0.35);
+    }
+    [data-theme="dark"] .perf-card.success .card-value { color: #4ade80; }
+
+    /* GA card (purple accent) */
+    [data-theme="dark"] .perf-card.ga-card {
+      background: linear-gradient(135deg, rgba(124,58,237,0.15) 0%, rgba(124,58,237,0.05) 55%, transparent 100%), var(--panel);
+      border-color: rgba(124,58,237,0.30);
+    }
+    [data-theme="dark"] .perf-card.ga-card .card-label { color: #a78bfa; }
+
+    /* CS card (amber accent) */
+    [data-theme="dark"] .perf-card.cs-card,
+    [data-theme="dark"] .perf-card.cs-card.stats-card {
+      background: linear-gradient(135deg, rgba(217,119,6,0.15) 0%, rgba(217,119,6,0.05) 55%, transparent 100%), var(--panel);
+      border-color: rgba(217,119,6,0.30);
+    }
+    [data-theme="dark"] .perf-card.cs-card .card-label,
+    [data-theme="dark"] .perf-card.cs-card.stats-card .card-label { color: #fbbf24; }
+
+    /* Stats card (teal accent) */
+    [data-theme="dark"] .perf-card.stats-card {
+      background: linear-gradient(135deg, rgba(74,158,186,0.15) 0%, rgba(74,158,186,0.05) 55%, transparent 100%), var(--panel);
+      border-color: rgba(74,158,186,0.35);
+    }
+    [data-theme="dark"] .perf-card.stats-card .card-label { color: #67d5ef; }
+
+    /* Stats chips */
+    [data-theme="dark"] .stats-chip {
+      background: var(--panel); border-color: var(--border); color: var(--muted);
+    }
+    [data-theme="dark"] .stats-chip .chip-val { color: var(--text); }
+    [data-theme="dark"] .stats-dist-toggle {
+      border-color: var(--border); background: var(--panel); color: var(--text);
+    }
+    [data-theme="dark"] .stats-dist-panel {
+      background: var(--panel); border-color: var(--border);
+      box-shadow: 0 16px 40px rgba(0,0,0,0.35);
+    }
+    [data-theme="dark"] .stats-dist-panel::before {
+      background: var(--panel); border-left-color: var(--border); border-top-color: var(--border);
+    }
+    [data-theme="dark"] .stats-dist-table th { color: var(--muted); }
+    [data-theme="dark"] .stats-dist-table td { border-bottom-color: var(--border); }
+    [data-theme="dark"] .stats-dist-empty { color: #64748b; }
+
+    /* Merchant detail popover */
+    [data-theme="dark"] .card-merchant-detail {
+      background: var(--panel); border-color: var(--border); color: #cbd5e1;
+      box-shadow: 0 16px 40px rgba(0,0,0,0.35);
+    }
+    [data-theme="dark"] .card-merchant-detail .merchant-pop-title { color: var(--muted); }
+    [data-theme="dark"] .card-merchant-row:nth-child(even) { background: rgba(255,255,255,0.03); }
+
+    /* Metrics color key */
+    [data-theme="dark"] .metrics-key {
+      background: var(--panel); border-color: var(--border); color: var(--muted);
+    }
+    [data-theme="dark"] .key-label { color: #cbd5e1; }
+    [data-theme="dark"] .key-swatch.ga { background: rgba(124,58,237,0.20); border-color: rgba(167,139,250,0.4); }
+    [data-theme="dark"] .key-swatch.cs { background: rgba(217,119,6,0.20); border-color: rgba(217,119,6,0.45); }
+    [data-theme="dark"] .key-swatch.stats { background: rgba(74,158,186,0.15); border-color: rgba(74,158,186,0.35); }
+    [data-theme="dark"] .key-swatch.highlight { background: rgba(37,99,235,0.20); border-color: rgba(147,197,253,0.35); }
+    [data-theme="dark"] .key-swatch.success { background: rgba(34,197,94,0.20); border-color: rgba(134,239,172,0.35); }
+
+    /* GA toggle */
+    [data-theme="dark"] .key-toggle {
+      background: rgba(124,58,237,0.12); border-color: rgba(167,139,250,0.3);
+    }
+    [data-theme="dark"] .hide-ga .key-toggle {
+      background: var(--panel); border-color: var(--border);
+    }
+
+    /* Grid row labels */
+    [data-theme="dark"] .grid-row-label {
+      color: var(--muted); border-bottom-color: var(--border);
+    }
+    [data-theme="dark"] .grid-row-label .muted { color: #64748b; }
+
+    /* Tables (highlights, partner summary, fi-table) */
+    [data-theme="dark"] .highlights-table th,
+    [data-theme="dark"] .partner-summary th,
+    [data-theme="dark"] .fi-table th {
+      color: var(--muted); background: var(--table-header); border-bottom-color: var(--border);
+    }
+    [data-theme="dark"] .highlights-table td,
+    [data-theme="dark"] .partner-summary td,
+    [data-theme="dark"] .fi-table td {
+      border-bottom-color: var(--border);
+    }
+    [data-theme="dark"] .highlights-table tbody tr:nth-child(even),
+    [data-theme="dark"] .fi-table tbody tr:hover {
+      background: var(--table-alt);
+    }
+    [data-theme="dark"] .fi-table th:hover { color: var(--text); }
+    [data-theme="dark"] .fi-table .totals-row td {
+      border-top-color: var(--border-strong); background: var(--table-alt);
+    }
+    [data-theme="dark"] .fi-table .reach-good { color: #4ade80; }
+    [data-theme="dark"] .fi-table .reach-low { color: #fbbf24; }
+    [data-theme="dark"] .fi-table .ga-good { color: #4ade80; }
+    [data-theme="dark"] .fi-table .ga-warn { color: #fbbf24; }
+    [data-theme="dark"] .fi-table .ga-low { color: #f87171; }
+    [data-theme="dark"] .fi-table .launch-high { color: #4ade80; }
+    [data-theme="dark"] .fi-table .launch-mid { color: #fbbf24; }
+    [data-theme="dark"] .fi-table .launch-low { color: #f87171; }
+    [data-theme="dark"] .fi-table-footnote { color: #9ca3af; }
+    [data-theme="dark"] .partner-summary .total-row td {
+      border-top-color: var(--border-strong); background: var(--table-header);
+    }
+
+    /* Group headers */
+    [data-theme="dark"] .group-header {
+      color: var(--text); border-bottom-color: var(--border);
+    }
+
+    /* Totals bar */
+    [data-theme="dark"] .totals-bar { color: var(--muted); }
+
+    /* Date window */
+    [data-theme="dark"] .date-window { color: var(--muted); }
+
+    /* Muted text */
+    [data-theme="dark"] .muted { color: #64748b; }
+
+    /* Loading */
+    [data-theme="dark"] .loading-banner {
+      background: var(--panel); border-color: var(--border);
+    }
+    [data-theme="dark"] .spinner { border-color: var(--border); border-top-color: #7aa2ff; }
+    [data-theme="dark"] .loading-text { color: var(--muted); }
+
+    /* Insights section */
+    [data-theme="dark"] .insights-section-title {
+      color: var(--text); border-bottom-color: var(--border);
+    }
+    [data-theme="dark"] .insights-section-title .section-badge {
+      background: rgba(37,99,235,0.20); color: #93c5fd;
+    }
+
+    /* Insight blocks */
+    [data-theme="dark"] .insight-block {
+      background: var(--panel); border-color: var(--border); color: #cbd5e1;
+    }
+    [data-theme="dark"] .insight-block strong { color: var(--text); }
+    [data-theme="dark"] .insight-block em { color: var(--muted); }
+    [data-theme="dark"] .insight-block .insight-label { color: #64748b; }
+    [data-theme="dark"] .insight-block .benchmark-ref {
+      border-top-color: var(--border); color: var(--muted);
+    }
+    [data-theme="dark"] .insight-block .benchmark-ref strong { color: #cbd5e1; }
+    [data-theme="dark"] .insight-block .filter-hint {
+      background: rgba(37,99,235,0.12); border-color: rgba(37,99,235,0.25); color: #93c5fd;
+    }
+    [data-theme="dark"] .insight-block .filter-hint:hover { background: rgba(37,99,235,0.18); }
+    [data-theme="dark"] .insight-block .filter-hint-secondary { color: #64748b; }
+    [data-theme="dark"] .insight-block .filter-hint-secondary a { color: #64748b; }
+    [data-theme="dark"] .insight-block .filter-hint-secondary a:hover { color: #93c5fd; }
+
+    /* Funnel visualization */
+    [data-theme="dark"] .funnel-stage .stage-label { color: var(--muted); }
+    [data-theme="dark"] .funnel-stage .stage-value { color: var(--text); }
+    [data-theme="dark"] .funnel-arrow { color: #334155; }
+    [data-theme="dark"] .dropoff-green { color: #4ade80; background: rgba(34,197,94,0.12); }
+    [data-theme="dark"] .dropoff-yellow { color: #fbbf24; background: rgba(251,191,36,0.12); }
+    [data-theme="dark"] .dropoff-red { color: #f87171; background: rgba(239,68,68,0.12); }
+    [data-theme="dark"] .funnel-expansion { color: #93c5fd; background: rgba(37,99,235,0.12); }
+    [data-theme="dark"] .funnel-neutral { color: var(--muted); background: rgba(255,255,255,0.04); }
+    [data-theme="dark"] .funnel-insight-link { color: #7aa2ff; }
+    [data-theme="dark"] .funnel-insight-link:hover { color: #93c5fd; }
+
+    /* QBR */
+    [data-theme="dark"] .qbr-badge {
+      background: rgba(254,243,199,0.12); color: #fcd34d;
+    }
+    [data-theme="dark"] .qbr-trend-table th { color: var(--text); }
+    [data-theme="dark"] .qbr-trend-table th,
+    [data-theme="dark"] .qbr-trend-table td { border-bottom-color: var(--border); }
+    [data-theme="dark"] .qbr-trend-table .trend-up { color: #4ade80; }
+    [data-theme="dark"] .qbr-trend-table .trend-down { color: #f87171; }
+    [data-theme="dark"] .qbr-trend-table .trend-flat { color: #64748b; }
+    [data-theme="dark"] .qbr-sparkline-label { color: var(--muted); }
+    [data-theme="dark"] .qbr-summary-block strong { color: var(--text); }
+    [data-theme="dark"] .qbr-yoy-callout {
+      background: rgba(14,165,233,0.08); border-color: rgba(14,165,233,0.25);
+    }
+    [data-theme="dark"] .qbr-yoy-callout .yoy-title { color: #38bdf8; }
+    [data-theme="dark"] .qbr-yoy-callout .yoy-row { color: var(--text); }
+    [data-theme="dark"] .qbr-monthly-table th { color: var(--text); }
+    [data-theme="dark"] .qbr-monthly-table th,
+    [data-theme="dark"] .qbr-monthly-table td { border-bottom-color: var(--border); }
+    [data-theme="dark"] .qbr-monthly-table tr.totals-row { border-top-color: var(--border-strong); }
+    [data-theme="dark"] .qbr-intra-narrative { color: var(--muted); }
+
+    /* Presentation footer */
+    [data-theme="dark"] .presentation-footer {
+      border-top-color: var(--border); color: #64748b;
+    }
+
+    /* Spectrum */
+    [data-theme="dark"] .spectrum-marker { background: #e5edff; }
+    [data-theme="dark"] .spectrum-marker::after {
+      color: var(--text); background: var(--panel); border-color: var(--border);
+    }
+    [data-theme="dark"] .spectrum-marker.best-marker { background: #7aa2ff; }
+    [data-theme="dark"] .spectrum-marker.best-marker::after { color: #7aa2ff; border-color: rgba(122,162,255,0.35); }
+    [data-theme="dark"] .spectrum-labels { color: #64748b; }
+    [data-theme="dark"] .spectrum-diagnosis { color: #cbd5e1; }
+
+    /* Prescriptive actions */
+    [data-theme="dark"] .action-item {
+      background: var(--panel); border-color: var(--border);
+    }
+    [data-theme="dark"] .action-item:hover {
+      border-color: rgba(122,162,255,0.3); box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    [data-theme="dark"] .action-headline { color: var(--text); }
+    [data-theme="dark"] .action-detail { color: var(--muted); }
+
+    /* Action library drawer */
+    [data-theme="dark"] .library-toggle {
+      border-color: var(--border); color: #7aa2ff;
+    }
+    [data-theme="dark"] .library-toggle:hover { background: rgba(255,255,255,0.04); border-color: #7aa2ff; }
+    [data-theme="dark"] .action-library-drawer {
+      background: var(--panel); border-left-color: #7aa2ff;
+    }
+    [data-theme="dark"] .library-channel-header { color: var(--muted); }
+    [data-theme="dark"] .library-example {
+      background: rgba(255,255,255,0.03); border-color: var(--border);
+    }
+    [data-theme="dark"] .library-example-headline { color: var(--text); }
+    [data-theme="dark"] .library-example-body { color: #cbd5e1; }
+    [data-theme="dark"] .library-copy-btn {
+      border-color: var(--border); color: var(--muted);
+    }
+    [data-theme="dark"] .library-copy-btn:hover { background: rgba(255,255,255,0.06); border-color: #64748b; }
+    [data-theme="dark"] .library-copy-btn.copy-success { background: rgba(34,197,94,0.15); border-color: rgba(134,239,172,0.35); color: #4ade80; }
+    [data-theme="dark"] .library-section-intro {
+      background: rgba(14,165,233,0.08); border-color: rgba(14,165,233,0.25); color: var(--muted);
+    }
+    [data-theme="dark"] .library-section-intro strong { color: var(--text); }
+    [data-theme="dark"] .library-shared-note { color: #64748b; }
+    [data-theme="dark"] .library-footer { border-top-color: var(--border); }
+    [data-theme="dark"] .library-playbook-link { color: #7aa2ff; }
+    [data-theme="dark"] .library-version { color: #64748b; }
+    [data-theme="dark"] .admin-library-status { background: rgba(254,243,199,0.10); color: #fcd34d; }
+
+    /* Projection table */
+    [data-theme="dark"] .projection-table th {
+      color: var(--muted); background: var(--table-header); border-bottom-color: var(--border);
+    }
+    [data-theme="dark"] .projection-table td { border-bottom-color: var(--border); }
+    [data-theme="dark"] .projection-table .current-row td { background: var(--table-alt); }
+    [data-theme="dark"] .projection-table .scenario-row td { color: #93c5fd; }
+    [data-theme="dark"] .projection-table .multiplier { color: #4ade80; }
+    [data-theme="dark"] .projection-note { color: #64748b; }
+
+    /* Integration breakdown */
+    [data-theme="dark"] .integration-breakdown-intro {
+      background: rgba(14,165,233,0.08); border-color: rgba(14,165,233,0.25); color: #cbd5e1;
+    }
+    [data-theme="dark"] .breakdown-block {
+      background: var(--panel); border-color: var(--border);
+    }
+    [data-theme="dark"] .breakdown-badge.sso-badge {
+      background: rgba(37,99,235,0.20); color: #93c5fd;
+    }
+    [data-theme="dark"] .breakdown-badge.nonsso-badge {
+      background: rgba(251,191,36,0.15); color: #fcd34d;
+    }
+    [data-theme="dark"] .ga-undercount-disclaimer {
+      background: rgba(251,191,36,0.08); border-color: rgba(251,191,36,0.25); color: #fcd34d;
+    }
+    [data-theme="dark"] .ga-undercount-disclaimer strong { color: #fde68a; }
+
+    /* Admin overlay */
+    [data-theme="dark"] .admin-panel {
+      background: rgba(30,40,75,0.5); border-color: rgba(59,130,246,0.2);
+    }
+    [data-theme="dark"] .admin-panel-header .admin-panel-title { color: #93c5fd; }
+    [data-theme="dark"] .admin-panel-body { color: #cbd5e1; }
+    [data-theme="dark"] .admin-panel-body .talking-point { border-bottom-color: rgba(59,130,246,0.15); }
+    [data-theme="dark"] .admin-panel-body .tp-category { color: #a78bfa; }
+    [data-theme="dark"] .admin-panel-body .copy-btn { border-color: var(--border); color: var(--muted); }
+    [data-theme="dark"] .admin-panel-body .copy-btn:hover { border-color: #7aa2ff; color: #7aa2ff; }
+
+    /* Objection cards */
+    [data-theme="dark"] .objection-card {
+      background: var(--panel); border-color: var(--border);
+    }
+    [data-theme="dark"] .objection-card .objection-q { color: #f87171; }
+    [data-theme="dark"] .objection-card .objection-a { color: #cbd5e1; }
+
+    /* Admin benchmark refs */
+    [data-theme="dark"] .admin-benchmark-refs {
+      background: var(--panel); border-color: var(--border); color: var(--muted);
+    }
+    [data-theme="dark"] .admin-benchmark-refs .ref-title { color: #f87171; }
   </style>
 </head>
 <body>
@@ -946,63 +1359,74 @@
             <input type="checkbox" id="gaToggle" checked>
             <span class="key-swatch ga"></span> Google Analytics
           </label>
-          <span class="key-item"><span class="key-swatch cs"></span> Visit Clickstream</span>
-          <span class="key-item"><span class="key-swatch stats"></span> Visit Stats</span>
+          <span class="key-item"><span class="key-swatch cs"></span> Session Clickstream</span>
+          <span class="key-item"><span class="key-swatch stats"></span> Session Stats</span>
           <span class="key-item"><span class="key-swatch highlight"></span> Success Metrics</span>
-          <span class="key-item"><span class="key-swatch success"></span> Outcomes</span>
         </div>
 
         <div class="perf-grid" id="metricsGrid">
-          <!-- Row 1: Headlines -->
-          <div class="perf-card ga-card" id="cardGaSelect">
-            <div class="card-label">CardUpdatr Launches</div>
-            <div class="card-value" id="valGaSelect">-</div>
-            <div class="card-sub" id="subGaSelect"></div>
-          </div>
-          <div class="perf-card" id="cardSessions">
-            <div class="card-label">CardUpdatr Visits</div>
-            <div class="card-value" id="valSessions">-</div>
-            <div class="card-sub" id="subSessions"></div>
+          <!-- Row 1: Key Metrics -->
+          <div class="grid-row-label">Key Metrics</div>
+          <div class="perf-card" id="cardCardholders">
+            <div class="card-label">Cardholders</div>
+            <div class="card-value" id="valCardholders">-</div>
+            <div class="card-sub" id="subCardholders"></div>
           </div>
           <div class="perf-card highlight" id="cardSuccessRate">
-            <div class="card-label">Success Rate</div>
+            <div class="card-label">Cardholder Success Rate</div>
             <div class="card-value" id="valSuccessRate">-</div>
-            <div class="card-sub" id="subSuccessRate">Successful cardholders ÷ Total visits</div>
+            <div class="card-sub" id="subSuccessRate">Successful ÷ Total cardholders</div>
+          </div>
+          <div class="perf-card highlight" id="cardSuccessCardholders">
+            <div class="card-label">Successful Cardholders</div>
+            <div class="card-value" id="valSuccessCardholders">-</div>
+            <div class="card-sub" id="subSuccessCardholders"></div>
           </div>
           <div class="perf-card success" id="cardSuccessful" style="cursor:pointer;" title="Click to see merchant breakdown">
-            <div class="card-label">Successful Placements</div>
+            <div class="card-label">Cards Updated</div>
             <div class="card-value" id="valSuccessful">-</div>
             <div class="card-sub" id="subSuccessful"></div>
             <div class="card-merchant-detail" id="merchantDetail"></div>
           </div>
 
-          <!-- Row 2: Funnel stages — GA paired with Clickstream -->
-          <div class="grid-row-label">Funnel Stages <span class="muted">— GA traffic vs visit clickstream at each step</span></div>
+          <!-- Row 2a: GA Page Views (hides with GA toggle) -->
+          <div class="grid-row-label ga-row-label">GA Page Views <span class="muted">— Browser-reported funnel progression</span></div>
+          <div class="perf-card ga-card" id="cardGaSelect">
+            <div class="card-label">Select Merchant Views</div>
+            <div class="card-value" id="valGaSelect">-</div>
+            <div class="card-sub" id="subGaSelect"></div>
+          </div>
           <div class="perf-card ga-card" id="cardGaUser">
             <div class="card-label">User Data Page Views</div>
             <div class="card-value" id="valGaUser">-</div>
             <div class="card-sub" id="subGaUser"></div>
-          </div>
-          <div class="perf-card cs-card" id="cardCsSelect">
-            <div class="card-label">Merchant Browsing (Visits)</div>
-            <div class="card-value" id="valCsSelect">-</div>
-            <div class="card-sub" id="subCsSelect"></div>
           </div>
           <div class="perf-card ga-card" id="cardGaCred">
             <div class="card-label">Credential Entry Views</div>
             <div class="card-value" id="valGaCred">-</div>
             <div class="card-sub" id="subGaCred"></div>
           </div>
+          <div class="perf-card ga-card" id="cardGaSelCredPct">
+            <div class="card-label">Sel → Credential %</div>
+            <div class="card-value" id="valGaSelCredPct">-</div>
+            <div class="card-sub" id="subGaSelCredPct">GA select → credential entry</div>
+          </div>
+
+          <!-- Row 2b: Session Milestones (hidden for non-SSO) -->
+          <div id="sessionMilestonesRow" class="perf-grid-subsection">
+          <div class="grid-row-label">Session Milestones <span class="muted">— Server-confirmed cardholder progression</span></div>
+          <div class="perf-card cs-card" id="cardCsSelect">
+            <div class="card-label">Merchant Selection</div>
+            <div class="card-value" id="valCsSelect">-</div>
+            <div class="card-sub" id="subCsSelect"></div>
+          </div>
           <div class="perf-card cs-card" id="cardCsUser">
-            <div class="card-label">User Data (Visits)</div>
+            <div class="card-label">User Data</div>
             <div class="card-value" id="valCsUser">-</div>
             <div class="card-sub" id="subCsUser"></div>
           </div>
-
-          <!-- Row 3: Conversion & Outcomes -->
-          <div class="grid-row-label">Conversion & Outcomes</div>
           <div class="perf-card cs-card" id="cardCsCred">
-            <div class="card-label">Credential Entry (Visits)</div>
+            <div class="card-label">Credential Entry</div>
             <div class="card-value" id="valCsCred">-</div>
             <div class="card-sub" id="subCsCred"></div>
           </div>
@@ -1011,18 +1435,10 @@
             <div class="card-value" id="valLaunchCredPct">-</div>
             <div class="card-sub" id="subLaunchCredPct"></div>
           </div>
-          <div class="perf-card highlight" id="cardSuccessSessions">
-            <div class="card-label">Successful Cardholders</div>
-            <div class="card-value" id="valSuccessSessions">-</div>
-            <div class="card-sub" id="subSuccessSessions"></div>
-          </div>
-          <div class="perf-card" id="cardAvgSuccessPerSession">
-            <div class="card-label">Avg Cards Per Cardholder</div>
-            <div class="card-value" id="valAvgSuccessPerSession">-</div>
-            <div class="card-sub" id="subAvgSuccessPerSession"></div>
           </div>
 
-          <!-- Row 4: Cardholder Engagement Depth -->
+          <!-- Row 3: Cardholder Engagement Depth (hidden for non-SSO) -->
+          <div id="engagementDepthRow" class="perf-grid-subsection">
           <div class="grid-row-label">Cardholder Engagement Depth</div>
           <div class="perf-card stats-card" id="cardMerchantsPerSession" title="How many merchants cardholders attempt per visit (visits with at least one attempt)">
             <div class="card-label">Merchants Per Visit</div>
@@ -1104,6 +1520,7 @@
             </div>
             <div class="card-sub" id="csCredDistSub"></div>
           </div>
+          </div>
         </div>
       </div>
 
@@ -1184,6 +1601,58 @@
         <div id="projectionContent"></div>
       </div>
 
+      <!-- ═══ Performance by Integration Type (SSO vs Non-SSO breakdown) ═══ -->
+      <div id="integrationBreakdownSection" class="insights-section page-section" style="display:none;">
+        <div class="insights-section-title">
+          Performance by Integration Type
+          <span class="section-badge">Breakdown</span>
+        </div>
+        <div id="integrationBreakdownIntro" class="integration-breakdown-intro">
+          Your portfolio includes both SSO and non-SSO integrations — two fundamentally different cardholder journeys. SSO cardholders are pre-authenticated and land directly on the merchant selection page. Non-SSO cardholders enter their card details manually before seeing merchants — every visit represents a committed cardholder. The metrics below separate these flows to show what's really driving performance in each.
+        </div>
+
+        <!-- SSO Breakdown -->
+        <div id="ssoBreakdownBlock" class="breakdown-block" style="display:none;">
+          <div class="breakdown-badge sso-badge">SSO — Pre-Authenticated Traffic</div>
+          <div id="ssoNarrativeBlocks" class="breakdown-narratives"></div>
+          <div class="spectrum-container breakdown-spectrum">
+            <div class="spectrum-gauge" id="ssoSpectrumGauge"></div>
+            <div class="spectrum-labels">
+              <span>0%</span>
+              <span>Incidental</span>
+              <span>Campaigns</span>
+              <span>Activation</span>
+              <span>27%+</span>
+            </div>
+            <div class="spectrum-diagnosis" id="ssoSpectrumDiagnosis"></div>
+          </div>
+          <ul class="actions-list" id="ssoActionsList"></ul>
+          <div id="ssoProjectionContent" class="breakdown-projection"></div>
+        </div>
+
+        <!-- Non-SSO Breakdown -->
+        <div id="nonssoBreakdownBlock" class="breakdown-block" style="display:none;">
+          <div class="breakdown-badge nonsso-badge">Non-SSO — Manual Card Entry Traffic</div>
+          <div class="ga-undercount-disclaimer" id="nonssoCalibrationBanner">
+            <strong>GA measurement note:</strong> Non-SSO traffic is tracked via Google Analytics, which undercounts by approximately 15–30% due to Safari Intelligent Tracking Prevention and ad blockers. Actual cardholder volume is likely higher than reported.
+          </div>
+          <div id="nonssoNarrativeBlocks" class="breakdown-narratives"></div>
+          <div class="spectrum-container breakdown-spectrum">
+            <div class="spectrum-gauge" id="nonssoSpectrumGauge"></div>
+            <div class="spectrum-labels">
+              <span>0%</span>
+              <span>Organic</span>
+              <span>Campaigns</span>
+              <span>Activation</span>
+              <span>50%+</span>
+            </div>
+            <div class="spectrum-diagnosis" id="nonssoSpectrumDiagnosis"></div>
+          </div>
+          <ul class="actions-list" id="nonssoActionsList"></ul>
+          <div id="nonssoProjectionContent" class="breakdown-projection"></div>
+        </div>
+      </div>
+
       <!-- ═══ QBR Sections (visible only in QBR mode) ═══ -->
       <div id="qbrTrendSection" class="insights-section qbr-section page-section" style="display:none;">
         <div class="insights-section-title">
@@ -1259,19 +1728,19 @@
           <div class="table-scroll">
           <table class="fi-table" id="table-SSO">
           <thead><tr>
-            <th data-sort="fi">Financial Institution</th>
-            <th data-sort="instances">Instance</th>
-            <th data-sort="integration">Integration</th>
+            <th data-sort="fi">FI</th>
+            <th data-sort="instances">Inst</th>
+            <th data-sort="integration">Type</th>
             <th data-sort="ga_select" class="num ga-col">Launches</th>
-            <th data-sort="cs_select" class="num">Sess @Select</th>
-            <th data-sort="ga_cred" class="num ga-col">Credential Views</th>
-            <th data-sort="reach" class="num">Monthly Reach %</th>
-            <th data-sort="sel_cred_pct" class="num">Sel→Cred %</th>
-            <th data-sort="sel_success_pct" class="num">Success Rate</th>
-            <th data-sort="sessions" class="num">Visits</th>
-            <th data-sort="sess_with_success" class="num">Successful Cardholders</th>
-            <th data-sort="sess_success_pct" class="num">Success Rate</th>
-            <th data-sort="placements" class="num">Placements</th>
+            <th data-sort="cs_select" class="num">@Select</th>
+            <th data-sort="ga_cred" class="num ga-col">Cred Views</th>
+            <th data-sort="ga_rate" class="num" title="Percentage of server-recorded visits detected by Google Analytics. Lower values indicate tracking gaps (Safari ITP, ad blockers).">GA %</th>
+            <th data-sort="reach" class="num" title="Projected monthly rate based on selected time period">Reach %</th>
+            <th data-sort="sel_cred_pct" class="num">Sel→C %</th>
+            <th data-sort="sessions" class="num">Sessions</th>
+            <th data-sort="sess_with_success" class="num">Successful</th>
+            <th data-sort="sess_success_pct" class="num">Rate</th>
+            <th data-sort="placements" class="num">Placed</th>
           </tr></thead>
           <tbody></tbody>
           </table>
@@ -1283,21 +1752,22 @@
           <div class="table-scroll">
           <table class="fi-table" id="table-NON-SSO">
           <thead><tr>
-            <th data-sort="fi">Financial Institution</th>
-            <th data-sort="instances">Instance</th>
-            <th data-sort="integration">Integration</th>
+            <th data-sort="fi">FI</th>
+            <th data-sort="instances">Inst</th>
+            <th data-sort="integration">Type</th>
             <th data-sort="ga_select" class="num ga-col">Launches</th>
-            <th data-sort="cs_select" class="num">Sess @Select</th>
-            <th data-sort="ga_user" class="num ga-col">User Data Views</th>
-            <th data-sort="ga_cred" class="num ga-col">Credential Views</th>
-            <th data-sort="reach" class="num">Monthly Reach %</th>
-            <th data-sort="sel_user_pct" class="num">Sel→User %</th>
-            <th data-sort="sel_cred_pct" class="num">Sel→Cred %</th>
-            <th data-sort="sel_success_pct" class="num">Success Rate</th>
-            <th data-sort="sessions" class="num">Visits</th>
-            <th data-sort="sess_with_success" class="num">Successful Cardholders</th>
-            <th data-sort="sess_success_pct" class="num">Success Rate</th>
-            <th data-sort="placements" class="num">Placements</th>
+            <th data-sort="cs_select" class="num">@Select</th>
+            <th data-sort="ga_user" class="num ga-col">UD Views</th>
+            <th data-sort="ga_cred" class="num ga-col">Cred Views</th>
+            <th data-sort="ga_rate" class="num" title="Percentage of server-recorded visits detected by Google Analytics. Lower values indicate tracking gaps (Safari ITP, ad blockers).">GA %</th>
+            <th data-sort="est_launches" class="num" title="Estimated true launches: GA Select Merchant count adjusted for GA undercount using per-FI calibration (GA Credential Entry ÷ Server Credential Entry).">Est. Lnch</th>
+            <th data-sort="reach" class="num" title="Projected monthly rate based on selected time period (using calibrated launches when available)">Reach %</th>
+            <th data-sort="sel_user_pct" class="num">Sel→U %</th>
+            <th data-sort="sel_cred_pct" class="num">Sel→C %</th>
+            <th data-sort="sessions" class="num">Sessions</th>
+            <th data-sort="sess_with_success" class="num">Successful</th>
+            <th data-sort="sess_success_pct" class="num" title="Estimated from GA-calibrated launch data. ~ indicates calculated values.">Rate</th>
+            <th data-sort="placements" class="num">Placed</th>
           </tr></thead>
           <tbody></tbody>
           </table>
@@ -1309,21 +1779,21 @@
           <div class="table-scroll">
           <table class="fi-table" id="table-CardSavr">
           <thead><tr>
-            <th data-sort="fi">Financial Institution</th>
-            <th data-sort="instances">Instance</th>
-            <th data-sort="integration">Integration</th>
+            <th data-sort="fi">FI</th>
+            <th data-sort="instances">Inst</th>
+            <th data-sort="integration">Type</th>
             <th data-sort="ga_select" class="num ga-col">Launches</th>
-            <th data-sort="cs_select" class="num">Sess @Select</th>
-            <th data-sort="ga_user" class="num ga-col">User Data Views</th>
-            <th data-sort="ga_cred" class="num ga-col">Credential Views</th>
-            <th data-sort="reach" class="num">Monthly Reach %</th>
-            <th data-sort="sel_user_pct" class="num">Sel→User %</th>
-            <th data-sort="sel_cred_pct" class="num">Sel→Cred %</th>
-            <th data-sort="sel_success_pct" class="num">Success Rate</th>
-            <th data-sort="sessions" class="num">Visits</th>
-            <th data-sort="sess_with_success" class="num">Successful Cardholders</th>
-            <th data-sort="sess_success_pct" class="num">Success Rate</th>
-            <th data-sort="placements" class="num">Placements</th>
+            <th data-sort="cs_select" class="num">@Select</th>
+            <th data-sort="ga_user" class="num ga-col">UD Views</th>
+            <th data-sort="ga_cred" class="num ga-col">Cred Views</th>
+            <th data-sort="ga_rate" class="num" title="Percentage of server-recorded visits detected by Google Analytics. Lower values indicate tracking gaps (Safari ITP, ad blockers).">GA %</th>
+            <th data-sort="reach" class="num" title="Projected monthly rate based on selected time period">Reach %</th>
+            <th data-sort="sel_user_pct" class="num">Sel→U %</th>
+            <th data-sort="sel_cred_pct" class="num">Sel→C %</th>
+            <th data-sort="sessions" class="num">Sessions</th>
+            <th data-sort="sess_with_success" class="num">Successful</th>
+            <th data-sort="sess_success_pct" class="num">Rate</th>
+            <th data-sort="placements" class="num">Placed</th>
           </tr></thead>
           <tbody></tbody>
           </table>
@@ -1335,21 +1805,21 @@
           <div class="table-scroll">
           <table class="fi-table" id="table-UNKNOWN">
           <thead><tr>
-            <th data-sort="fi">Financial Institution</th>
-            <th data-sort="instances">Instance</th>
-            <th data-sort="integration">Integration</th>
+            <th data-sort="fi">FI</th>
+            <th data-sort="instances">Inst</th>
+            <th data-sort="integration">Type</th>
             <th data-sort="ga_select" class="num ga-col">Launches</th>
-            <th data-sort="cs_select" class="num">Sess @Select</th>
-            <th data-sort="ga_user" class="num ga-col">User Data Views</th>
-            <th data-sort="ga_cred" class="num ga-col">Credential Views</th>
-            <th data-sort="reach" class="num">Monthly Reach %</th>
-            <th data-sort="sel_user_pct" class="num">Sel→User %</th>
-            <th data-sort="sel_cred_pct" class="num">Sel→Cred %</th>
-            <th data-sort="sel_success_pct" class="num">Success Rate</th>
-            <th data-sort="sessions" class="num">Visits</th>
-            <th data-sort="sess_with_success" class="num">Successful Cardholders</th>
-            <th data-sort="sess_success_pct" class="num">Success Rate</th>
-            <th data-sort="placements" class="num">Placements</th>
+            <th data-sort="cs_select" class="num">@Select</th>
+            <th data-sort="ga_user" class="num ga-col">UD Views</th>
+            <th data-sort="ga_cred" class="num ga-col">Cred Views</th>
+            <th data-sort="ga_rate" class="num" title="Percentage of server-recorded visits detected by Google Analytics. Lower values indicate tracking gaps (Safari ITP, ad blockers).">GA %</th>
+            <th data-sort="reach" class="num" title="Projected monthly rate based on selected time period">Reach %</th>
+            <th data-sort="sel_user_pct" class="num">Sel→U %</th>
+            <th data-sort="sel_cred_pct" class="num">Sel→C %</th>
+            <th data-sort="sessions" class="num">Sessions</th>
+            <th data-sort="sess_with_success" class="num">Successful</th>
+            <th data-sort="sess_success_pct" class="num">Rate</th>
+            <th data-sort="placements" class="num">Placed</th>
           </tr></thead>
           <tbody></tbody>
           </table>
@@ -1884,7 +2354,7 @@
       let allowedPartners = null;
       try {
         const user = window.sisAuth?.getUser?.();
-        if (user && user.access_level === "limited") {
+        if (user && (user.access_level === "limited" || user.access_level === "executive")) {
           if (Array.isArray(user.instance_keys) && user.instance_keys.length > 0) {
             allowedInstances = new Set(user.instance_keys.map(k => (k || "").toString().trim().toLowerCase()));
           }
@@ -1954,6 +2424,19 @@
         metrics.sessionsWithSuccessfulJobs += row.sess_with_success || 0;
         metrics.totalJobs += row.total_jobs || 0;
       }
+      // Blended top-of-funnel: SSO uses sessions, non-SSO uses calibrated estimated launches
+      let totalCardholders = 0;
+      for (const row of visibleRows) {
+        const isSSO = (row.integration_type || "").toUpperCase() === "SSO";
+        if (isSSO) {
+          totalCardholders += row.sessions || 0;
+        } else {
+          const est = computeEstLaunches(row);
+          totalCardholders += est || row.ga_select || row.sessions || 0;
+        }
+      }
+      metrics.totalCardholders = totalCardholders;
+
       // Count placements from daily data (only successful)
       const dates = Object.keys(dailyData).sort();
       for (const date of dates) {
@@ -2006,6 +2489,7 @@
           fiDaily[comboKey][date] = {
             select: ga.select_merchants || 0, user: ga.user_data_collection || 0,
             cred: ga.credential_entry || 0, cs_select: fiDay.sessions?.cs_select_sessions || 0,
+            cs_cred: fiDay.sessions?.cs_cred_sessions || 0,
             sessions: fiDay.sessions?.total || 0,
             sess_with_jobs: fiDay.sessions?.with_jobs || 0, sess_with_success: fiDay.sessions?.with_success || 0,
             placements: getBillablePlacementCount(fiDay.placements),
@@ -2027,25 +2511,37 @@
       for (const [comboKey, dailyMap] of Object.entries(fiDaily)) {
         if (restrict && !allowedSet.has(comboKey)) continue;
         for (let idx = 0; idx <= dates.length - len; idx += 1) {
-          let sel = 0, user = 0, cred = 0, csSelect = 0, sessions = 0, sessWithJobs = 0, sessWithSuccess = 0, placements = 0;
+          let sel = 0, user = 0, cred = 0, csSelect = 0, csCred = 0, sessions = 0, sessWithJobs = 0, sessWithSuccess = 0, placements = 0;
           for (let offset = 0; offset < len; offset += 1) {
             const stats = dailyMap[dates[idx + offset]];
             if (stats) {
               sel += stats.select || 0; user += stats.user || 0; cred += stats.cred || 0;
-              csSelect += stats.cs_select || 0;
+              csSelect += stats.cs_select || 0; csCred += stats.cs_cred || 0;
               sessions += stats.sessions || 0; sessWithJobs += stats.sess_with_jobs || 0;
               sessWithSuccess += stats.sess_with_success || 0; placements += stats.placements || 0;
             }
           }
           const sessionSuccessRatio = sessions ? sessWithSuccess / sessions : 0;
-          const selSuccessRatio = csSelect ? sessWithSuccess / csSelect : 0;
           const credEntryRatio = sel > 0 ? cred / sel : 0;
+          const rowIntegration = perFiByKey[comboKey]?.integration_type || "";
+          const rowIsSSO = rowIntegration.toUpperCase() === "SSO";
+          // For non-SSO: compute estimated launches using per-window GA calibration
+          // (matches the per-week calibration shown in the time breakdown table)
+          let windowEstLaunches = null;
+          if (!rowIsSSO) {
+            const winGaCalRate = csCred > 0 && cred > 0 ? cred / csCred : null;
+            windowEstLaunches = winGaCalRate && sel > 0 ? Math.round(sel / winGaCalRate) : null;
+          }
+          const topOfFunnel = rowIsSSO ? sessions : (windowEstLaunches || sel || sessions);
+          const successRatio = topOfFunnel > 0 ? sessWithSuccess / topOfFunnel : 0;
+          const isEstimated = !rowIsSSO && windowEstLaunches !== null;
           allCandidates.push({
             key: comboKey,
             fi: perFiByKey[comboKey]?.fi || comboKey,
             instance: perFiByKey[comboKey]?.instance || parseFiInstanceKey(comboKey).instance,
+            integration: rowIntegration,
             start: dates[idx], end: dates[idx + len - 1],
-            sel, user, cred, sessionSuccessRatio, selSuccessRatio, credEntryRatio,
+            sel, user, cred, sessionSuccessRatio, successRatio, isEstimated, credEntryRatio,
             sessions, sess_with_jobs: sessWithJobs, sess_with_success: sessWithSuccess, placements,
           });
         }
@@ -2059,18 +2555,18 @@
       const medianVolume = weeklyVolumes[Math.floor(weeklyVolumes.length / 2)] || 0;
 
       const windows = [
-        { label: "Highest Cardholder Success Rate",
+        { label: "Highest Success Rate",
           filter: (c) => c.sessions >= minVisits,
-          compare: (c, b) => { if (c.sessionSuccessRatio !== b.sessionSuccessRatio) return c.sessionSuccessRatio - b.sessionSuccessRatio; return c.sessions - b.sessions; } },
+          compare: (c, b) => { if (c.successRatio !== b.successRatio) return c.successRatio - b.successRatio; return c.sessions - b.sessions; } },
         { label: "Most Successful Placements",
-          filter: () => true,
-          compare: (c, b) => { if (c.placements !== b.placements) return c.placements - b.placements; return c.sessionSuccessRatio - b.sessionSuccessRatio; } },
+          filter: (c) => c.sessions >= minVisits,
+          compare: (c, b) => { if (c.placements !== b.placements) return c.placements - b.placements; return c.successRatio - b.successRatio; } },
         { label: "Highest Credential Entry Rate",
           filter: (c) => c.sessions >= minVisits && c.sel >= minVisits,
           compare: (c, b) => { if (c.credEntryRatio !== b.credEntryRatio) return c.credEntryRatio - b.credEntryRatio; return c.sel - b.sel; } },
         { label: "Best Success Rate at Scale",
           filter: (c) => c.sessions > medianVolume && c.sessions >= minVisits,
-          compare: (c, b) => { if (c.sessionSuccessRatio !== b.sessionSuccessRatio) return c.sessionSuccessRatio - b.sessionSuccessRatio; return c.sessions - b.sessions; } },
+          compare: (c, b) => { if (c.successRatio !== b.successRatio) return c.successRatio - b.successRatio; return c.sessions - b.sessions; } },
       ];
 
       const results = [];
@@ -2099,7 +2595,7 @@
       if (!rows || !rows.length || !partnerValue || partnerValue === PARTNER_ALL_VALUE) return null;
       const relevant = rows.filter((row) => (row.partner || "Unknown") === partnerValue);
       if (!relevant.length) return null;
-      const makeBucket = () => ({ fiCount: 0, ga_select: 0, cs_select: 0, sessions: 0, sess_with_success: 0, placements: 0, cardholders: 0 });
+      const makeBucket = () => ({ fiCount: 0, ga_select: 0, cs_select: 0, sessions: 0, sess_with_success: 0, placements: 0, cardholders: 0, estLaunches: 0 });
       const buckets = { SSO: makeBucket(), "NON-SSO": makeBucket() };
       relevant.forEach((row) => {
         const key = row.integration_type === "SSO" ? "SSO" : row.integration_type === "NON-SSO" ? "NON-SSO" : null;
@@ -2111,28 +2607,48 @@
         bucket.sess_with_success += row.sess_with_success || 0;
         bucket.placements += row.placements || 0;
         if (typeof row.cardholders === "number" && row.cardholders > 0) bucket.cardholders += row.cardholders;
+        // For non-SSO: accumulate per-row estimated launches
+        if (key !== "SSO") {
+          var est = computeEstLaunches(row);
+          bucket.estLaunches += est || row.ga_select || row.sessions || 0;
+        }
         bucket.fiCount += 1;
       });
       const monthlyFactor = daySpan ? 30 / daySpan : 1;
       const totals = makeBucket();
       const bucketSummaries = Object.entries(buckets).map(([key, bucket]) => {
-        bucket.selSuccessPct = bucket.cs_select > 0 && bucket.sess_with_success > 0 ? (bucket.sess_with_success / bucket.cs_select) * 100 : null;
-        bucket.sessionSuccessPct = bucket.sessions > 0 && bucket.sess_with_success > 0 ? (bucket.sess_with_success / bucket.sessions) * 100 : null;
+        // SSO: use sessions; non-SSO: use estimated launches
+        if (key === "SSO") {
+          bucket.successPct = bucket.sessions > 0 && bucket.sess_with_success > 0 ? (bucket.sess_with_success / bucket.sessions) * 100 : null;
+          bucket.isEstimated = false;
+        } else {
+          if (bucket.estLaunches > 0 && bucket.sess_with_success > 0) {
+            bucket.successPct = (bucket.sess_with_success / bucket.estLaunches) * 100;
+            bucket.isEstimated = true;
+          } else {
+            bucket.successPct = bucket.sessions > 0 && bucket.sess_with_success > 0 ? (bucket.sess_with_success / bucket.sessions) * 100 : null;
+            bucket.isEstimated = false;
+          }
+        }
         totals.ga_select += bucket.ga_select; totals.cs_select += bucket.cs_select; totals.sessions += bucket.sessions;
         totals.sess_with_success += bucket.sess_with_success; totals.placements += bucket.placements;
         totals.cardholders += bucket.cardholders; totals.fiCount += bucket.fiCount;
+        totals.estLaunches += bucket.estLaunches;
         return { key, bucket };
       });
       const rowsOut = bucketSummaries.map(({ key, bucket }) => ({
         integration: key, fiCount: bucket.fiCount, ga_select: bucket.ga_select,
-        selSuccessPct: bucket.selSuccessPct, sessions: bucket.sessions,
-        sess_with_success: bucket.sess_with_success, sessionSuccessPct: bucket.sessionSuccessPct,
+        sessions: bucket.sessions,
+        sess_with_success: bucket.sess_with_success, successPct: bucket.successPct, isEstimated: bucket.isEstimated,
       }));
-      totals.selSuccessPct = totals.cs_select > 0 && totals.sess_with_success > 0 ? (totals.sess_with_success / totals.cs_select) * 100 : null;
-      totals.sessionSuccessPct = totals.sessions > 0 && totals.sess_with_success > 0 ? (totals.sess_with_success / totals.sessions) * 100 : null;
+      // Totals: blended denominator (SSO sessions + non-SSO est launches)
+      var totalDenom = (buckets.SSO.sessions || 0) + (buckets["NON-SSO"].estLaunches || buckets["NON-SSO"].sessions || 0);
+      var totalsIsEstimated = buckets["NON-SSO"].estLaunches > 0 && buckets["NON-SSO"].fiCount > 0;
+      totals.successPct = totalDenom > 0 && totals.sess_with_success > 0 ? (totals.sess_with_success / totalDenom) * 100 : null;
+      totals.isEstimated = totalsIsEstimated;
       return {
         partner: partnerValue, daySpan, rows: rowsOut,
-        totals: { integration: "Total", fiCount: totals.fiCount, ga_select: totals.ga_select, selSuccessPct: totals.selSuccessPct, sessions: totals.sessions, sess_with_success: totals.sess_with_success, sessionSuccessPct: totals.sessionSuccessPct },
+        totals: { integration: "Total", fiCount: totals.fiCount, ga_select: totals.ga_select, sessions: totals.sessions, sess_with_success: totals.sess_with_success, successPct: totals.successPct, isEstimated: totals.isEstimated },
         instanceCount: relevant.length,
       };
     }
@@ -2452,40 +2968,68 @@
         document.body.classList.toggle("hide-ga", allSso);
       }
 
+      // Row 1: Headline cards
+      const hasNonSSO = visibleRows.some(r => (r.integration_type || "").toUpperCase() !== "SSO");
+      const hasSSO = visibleRows.some(r => (r.integration_type || "").toUpperCase() === "SSO");
+
+      // Card 1: Cardholders (blended top-of-funnel)
+      document.getElementById("valCardholders").textContent = fmt(metrics.totalCardholders);
+      let cardholderSub = "Cardholders who launched CardUpdatr";
+      if (hasNonSSO && !hasSSO) cardholderSub = "Estimated from GA-calibrated launch data";
+      else if (hasNonSSO && hasSSO) cardholderSub = "SSO sessions + estimated non-SSO launches";
+      document.getElementById("subCardholders").textContent = cardholderSub;
+
+      // Card 2: Cardholder Success Rate (against true top-of-funnel)
+      const successRate = metrics.totalCardholders > 0
+        ? ((metrics.sessionsWithSuccessfulJobs / metrics.totalCardholders) * 100).toFixed(1) + "%"
+        : "—";
+      document.getElementById("valSuccessRate").textContent = successRate;
+      document.getElementById("subSuccessRate").textContent = "Successful ÷ Total cardholders";
+
+      // Card 3: Successful Cardholders (count)
+      document.getElementById("valSuccessCardholders").textContent = fmt(metrics.sessionsWithSuccessfulJobs);
+      document.getElementById("subSuccessCardholders").textContent =
+        metrics.totalCardholders > 0
+          ? ((metrics.sessionsWithSuccessfulJobs / metrics.totalCardholders) * 100).toFixed(1) + "% of cardholders"
+          : "";
+
+      // Card 4: Cards Updated (with avg per cardholder)
+      document.getElementById("valSuccessful").textContent = fmt(metrics.successful);
+      const avgCardsPerCh = metrics.sessionsWithSuccessfulJobs > 0
+        ? (metrics.successful / metrics.sessionsWithSuccessfulJobs).toFixed(2) + " avg per successful cardholder"
+        : "Cards updated at merchants";
+      document.getElementById("subSuccessful").textContent = avgCardsPerCh;
+
+      // Merchant breakdown on Cards Updated card
+      renderMerchantBreakdown(metrics.successful);
+
+      // Row 2a: GA Page Views
       document.getElementById("valGaSelect").textContent = fmt(metrics.totalGaSelect);
-      document.getElementById("subGaSelect").textContent = "Google Analytics tracked";
+      document.getElementById("subGaSelect").textContent = "Browser-reported page views";
       document.getElementById("valGaUser").textContent = fmt(metrics.totalGaUser);
       document.getElementById("subGaUser").textContent = pct(metrics.totalGaUser, metrics.totalGaSelect) + " of launches";
       document.getElementById("valGaCred").textContent = fmt(metrics.totalGaCred);
       document.getElementById("subGaCred").textContent = pct(metrics.totalGaCred, metrics.totalGaSelect) + " of launches";
-      document.getElementById("valSessions").textContent = fmt(metrics.totalSessions);
-      document.getElementById("subSessions").textContent = allSso ? "CardUpdatr loads via SSO" : pct(metrics.totalSessions, metrics.totalGaSelect) + " of launches";
+      const gaSelCredPct = metrics.totalGaSelect > 0 ? ((metrics.totalGaCred / metrics.totalGaSelect) * 100).toFixed(1) + "%" : "—";
+      document.getElementById("valGaSelCredPct").textContent = gaSelCredPct;
+      document.getElementById("subGaSelCredPct").textContent = "GA select → credential entry";
 
+      // Row 2b: Session Milestones
+      document.getElementById("valCsSelect").textContent = fmt(metrics.totalCsSelect);
+      document.getElementById("subCsSelect").textContent = fmt(metrics.totalCsSelect) + " of " + fmt(metrics.totalSessions) + " visits";
+      document.getElementById("valCsUser").textContent = fmt(metrics.totalCsUser);
+      document.getElementById("subCsUser").textContent = pct(metrics.totalCsUser, metrics.totalCsSelect) + " of visits @select";
+      document.getElementById("valCsCred").textContent = fmt(metrics.totalCsCred);
+      document.getElementById("subCsCred").textContent = pct(metrics.totalCsCred, metrics.totalCsSelect) + " of visits @select";
       const launchCredPct = metrics.totalCsSelect > 0 ? ((metrics.totalCsCred / metrics.totalCsSelect) * 100).toFixed(1) + "%" : "—";
       document.getElementById("valLaunchCredPct").textContent = launchCredPct;
       document.getElementById("subLaunchCredPct").textContent = fmt(metrics.totalCsCred) + " of " + fmt(metrics.totalCsSelect) + " visits @select";
 
-      document.getElementById("valSuccessSessions").textContent = fmt(metrics.sessionsWithSuccessfulJobs);
-      document.getElementById("subSuccessSessions").textContent = pct(metrics.sessionsWithSuccessfulJobs, metrics.totalSessions) + " of visits";
-
-      const successRate = metrics.totalSessions > 0 ? ((metrics.sessionsWithSuccessfulJobs / metrics.totalSessions) * 100).toFixed(1) + "%" : "—";
-      document.getElementById("valSuccessRate").textContent = successRate;
-
-      document.getElementById("valSuccessful").textContent = fmt(metrics.successful);
-      document.getElementById("subSuccessful").textContent = "Cards updated at merchants";
-
-      // Merchant breakdown on Successful Placements card
-      renderMerchantBreakdown(metrics.successful);
-
-      // Avg Successful Cards Per Session
-      const avgSucc = metrics.sessionsWithSuccessfulJobs > 0
-        ? (metrics.successful / metrics.sessionsWithSuccessfulJobs).toFixed(2)
-        : "—";
-      document.getElementById("valAvgSuccessPerSession").textContent = avgSucc;
-      document.getElementById("subAvgSuccessPerSession").textContent =
-        metrics.sessionsWithSuccessfulJobs > 0
-          ? fmt(metrics.successful) + " across " + fmt(metrics.sessionsWithSuccessfulJobs) + " sessions"
-          : "";
+      // Hide Session Milestones + Engagement Depth rows when all non-SSO
+      const milestonesRow = document.getElementById("sessionMilestonesRow");
+      if (milestonesRow) milestonesRow.style.display = hasSSO ? "" : "none";
+      const depthRow = document.getElementById("engagementDepthRow");
+      if (depthRow) depthRow.style.display = hasSSO ? "" : "none";
 
       // Merchants Per Session (async — calls /sessions/jobs-stats)
       document.getElementById("chipMedian").textContent = "…";
@@ -2494,14 +3038,6 @@
       document.getElementById("chipAvg").textContent = "…";
       document.getElementById("subMerchantsPerSession").textContent = "Loading…";
       fetchJobsStats().then(renderJobsStatsCard).catch(() => renderJobsStatsCard(null));
-
-      // Session clickstream metrics
-      document.getElementById("valCsSelect").textContent = fmt(metrics.totalCsSelect);
-      document.getElementById("subCsSelect").textContent = fmt(metrics.totalCsSelect) + " of " + fmt(metrics.totalSessions) + " visits";
-      document.getElementById("valCsUser").textContent = fmt(metrics.totalCsUser);
-      document.getElementById("subCsUser").textContent = pct(metrics.totalCsUser, metrics.totalCsSelect) + " of visits @select";
-      document.getElementById("valCsCred").textContent = fmt(metrics.totalCsCred);
-      document.getElementById("subCsCred").textContent = pct(metrics.totalCsCred, metrics.totalCsSelect) + " of visits @select";
 
       // Hide User Data cards when all-SSO (SSO skips user data collection step)
       const cardCsUser = document.getElementById("cardCsUser");
@@ -2526,11 +3062,10 @@
 
       // Totals bar
       const parts = [];
-      parts.push(`sel ${fmt(metrics.totalGaSelect)}`);
-      parts.push(`user ${fmt(metrics.totalGaUser)}`);
-      parts.push(`cred ${fmt(metrics.totalGaCred)}`);
-      parts.push(`visits ${fmt(metrics.totalSessions)}`);
-      parts.push(`successful cardholders ${fmt(metrics.sessionsWithSuccessfulJobs)}`);
+      parts.push(`cardholders ${fmt(metrics.totalCardholders)}`);
+      parts.push(`sessions ${fmt(metrics.totalSessions)}`);
+      parts.push(`successful ${fmt(metrics.sessionsWithSuccessfulJobs)}`);
+      parts.push(`cards updated ${fmt(metrics.successful)}`);
       totalsBar.innerHTML = `Totals (${fiCount} FIs): ${parts.join(" | ")}`;
       totalsBar.style.display = "";
     }
@@ -2556,7 +3091,16 @@
       const cardholders = row?.cardholders;
       if (!cardholders || cardholders <= 0) return 0;
       const dayCount = row.dayCount || dayCountInclusive(row.periodStart || row.start, row.periodEnd || row.end) || lastRenderContext?.daySpan || 1;
-      const reachBase = row.ga_select > 0 ? row.ga_select : row.sessions;
+      // SSO: use session data (true clickstream); non-SSO: use calibrated estimated launches
+      const isSSO = (row.integration_type || "").toUpperCase() === "SSO";
+      let reachBase;
+      if (isSSO) {
+        reachBase = row.sessions || 0;
+      } else {
+        // Use calibrated estimated launches (consistent with insights engine)
+        const estL = computeEstLaunches(row);
+        reachBase = estL || (row.ga_select > 0 ? row.ga_select : (row.sessions || 0));
+      }
       if (!reachBase || dayCount <= 0) return 0;
       const reachMonthly = reachBase * (30 / dayCount);
       return reachMonthly > 0 ? reachMonthly / cardholders : 0;
@@ -2564,18 +3108,37 @@
 
     function formatMonthlyReachPct(row) {
       const value = getMonthlyReachValue(row);
-      return value > 0 ? (value * 100).toFixed(1) + "%" : "";
+      if (value <= 0) return "";
+      const pctVal = value * 100;
+      return (pctVal < 1 ? pctVal.toFixed(2) : pctVal.toFixed(1)) + "%";
     }
 
-    function formatSessSuccessPct(row) {
-      if (!row.sessions) return "";
-      return (((row.sess_with_success || 0) / row.sessions) * 100).toFixed(1) + "%";
+    function formatSuccessRate(row, integration) {
+      var isSSO = integration === "SSO";
+      var success = row.sess_with_success || 0;
+      if (!success) return { display: "", isEstimated: false };
+      if (isSSO) {
+        if (!row.sessions) return { display: "", isEstimated: false };
+        return { display: ((success / row.sessions) * 100).toFixed(1) + "%", isEstimated: false };
+      }
+      // Non-SSO: use estimated launches as denominator
+      var est = computeEstLaunches(row);
+      if (est && est > 0) {
+        return { display: "~" + ((success / est) * 100).toFixed(1) + "%", isEstimated: true };
+      }
+      // Fallback to sessions if no GA calibration data
+      if (!row.sessions) return { display: "", isEstimated: false };
+      return { display: ((success / row.sessions) * 100).toFixed(1) + "%", isEstimated: false };
     }
 
-    function formatSelSuccessPct(row) {
-      const sel = row.cs_select || 0;
-      if (!sel || !row.sess_with_success) return "";
-      return ((row.sess_with_success / sel) * 100).toFixed(1) + "%";
+    function computeGaRate(row, integration) {
+      var isSso = integration === "SSO";
+      var ga = isSso ? (row.ga_select || 0) : (row.ga_cred || 0);
+      var cs = isSso ? (row.cs_select || 0) : (row.cs_cred || 0);
+      if (!cs) return { value: null, display: "", cls: "" };
+      var rate = ga / cs;
+      var cls = rate >= 0.85 ? "ga-good" : rate >= 0.70 ? "ga-warn" : "ga-low";
+      return { value: rate, display: (rate * 100).toFixed(1) + "%", cls: cls };
     }
 
     function getSortValue(row, key) {
@@ -2587,28 +3150,60 @@
         case "cs_select": return row.cs_select || 0;
         case "ga_user": return row.ga_user || 0;
         case "ga_cred": return row.ga_cred || 0;
+        case "ga_rate":
+          var _isSso = row.integration_type === "SSO";
+          var _ga = _isSso ? (row.ga_select || 0) : (row.ga_cred || 0);
+          var _cs = _isSso ? (row.cs_select || 0) : (row.cs_cred || 0);
+          return _cs ? _ga / _cs : 0;
+        case "est_launches": return computeEstLaunches(row) || 0;
+        case "launch_success_pct":
+          var _lsr = computeLaunchSuccessRate(row);
+          return _lsr.value !== null ? _lsr.value : 0;
         case "reach": return getMonthlyReachValue(row);
         case "sel_user_pct": return row.cs_select ? (row.cs_user || 0) / row.cs_select : 0;
         case "sel_cred_pct": return row.cs_select ? (row.cs_cred || 0) / row.cs_select : 0;
-        case "sel_success_pct": return row.cs_select && row.sess_with_success ? row.sess_with_success / row.cs_select : 0;
         case "sessions": return row.sessions || 0;
         case "sess_with_success": return row.sess_with_success || 0;
-        case "sess_success_pct": return row.sessions ? (row.sess_with_success || 0) / row.sessions : 0;
+        case "sess_success_pct":
+          var _isRowSso = (row.integration_type || "").toUpperCase() === "SSO";
+          if (_isRowSso) return row.sessions ? (row.sess_with_success || 0) / row.sessions : 0;
+          var _estL = computeEstLaunches(row);
+          if (_estL && _estL > 0) return (row.sess_with_success || 0) / _estL;
+          return row.sessions ? (row.sess_with_success || 0) / row.sessions : 0;
         case "placements": return row.placements || 0;
         default: return 0;
       }
     }
 
+    function computeEstLaunches(row) {
+      var gaCred = row.ga_cred || 0;
+      var csCred = row.cs_cred || 0;
+      var gaSelect = row.ga_select || 0;
+      var gaRate = csCred > 0 && gaCred > 0 ? gaCred / csCred : null;
+      var estLaunches = gaRate && gaSelect > 0 ? Math.round(gaSelect / gaRate) : null;
+      return estLaunches;
+    }
+
+    function computeLaunchSuccessRate(row) {
+      var est = computeEstLaunches(row);
+      if (!est || est <= 0) return { value: null, display: "", cls: "" };
+      var rate = (row.sess_with_success || 0) / est * 100;
+      var cls = rate >= 21 ? "launch-high" : rate >= 8 ? "launch-mid" : "launch-low";
+      return { value: rate, display: rate.toFixed(1) + "%", cls: cls };
+    }
+
     function renderFiRow(row, integration) {
       const isSso = integration === "SSO";
+      const isNonSso = !isSso;
       const instancesText = row.instance || (Array.isArray(row.instances) ? row.instances.join(", ") : "");
       const selUserPct = row.cs_select ? ((row.cs_user / row.cs_select) * 100).toFixed(1) + "%" : "";
       const selCredPct = row.cs_select ? ((row.cs_cred / row.cs_select) * 100).toFixed(1) + "%" : "";
-      const selSuccPct = formatSelSuccessPct(row);
       const reachPct = formatMonthlyReachPct(row);
       const reachVal = getMonthlyReachValue(row);
       const reachCls = reachVal >= 0.025 ? " reach-good" : reachVal > 0 ? " reach-low" : "";
-      const sessSuccPct = formatSessSuccessPct(row);
+      const sr = formatSuccessRate(row, integration);
+      const srCls = sr.isEstimated ? " estimated-val" : "";
+      const gaRate = computeGaRate(row, integration);
 
       const tr = document.createElement("tr");
       let cells = `
@@ -2617,17 +3212,22 @@
         <td>${integration}</td>
         <td class="num ga-col">${row.ga_select || 0}</td>
         <td class="num">${row.cs_select || 0}</td>`;
-      if (!isSso) cells += `<td class="num ga-col">${row.ga_user || 0}</td>`;
+      if (isNonSso) cells += `<td class="num ga-col">${row.ga_user || 0}</td>`;
       cells += `
         <td class="num ga-col">${row.ga_cred || 0}</td>
+        <td class="num ${gaRate.cls}">${gaRate.display}</td>`;
+      if (isNonSso) {
+        var estL = computeEstLaunches(row);
+        cells += `<td class="num">${estL !== null ? estL : ""}</td>`;
+      }
+      cells += `
         <td class="num${reachCls}">${reachPct}</td>`;
-      if (!isSso) cells += `<td class="num">${selUserPct}</td>`;
+      if (isNonSso) cells += `<td class="num">${selUserPct}</td>`;
       cells += `
         <td class="num">${selCredPct}</td>
-        <td class="num">${selSuccPct}</td>
         <td class="num">${row.sessions || 0}</td>
         <td class="num">${row.sess_with_success || 0}</td>
-        <td class="num">${sessSuccPct}</td>
+        <td class="num${srCls}">${sr.display}</td>
         <td class="num">${row.placements || 0}</td>`;
       tr.innerHTML = cells;
       return tr;
@@ -2651,8 +3251,27 @@
 
       const selUserPct = t.cs_select ? ((t.cs_user / t.cs_select) * 100).toFixed(1) + "%" : "";
       const selCredPct = t.cs_select ? ((t.cs_cred / t.cs_select) * 100).toFixed(1) + "%" : "";
-      const selSuccPct = t.cs_select && t.sess_with_success ? ((t.sess_with_success / t.cs_select) * 100).toFixed(1) + "%" : "";
-      const sessSuccPct = t.sessions ? ((t.sess_with_success / t.sessions) * 100).toFixed(1) + "%" : "";
+      const gaRate = computeGaRate(t, integration);
+
+      // Success rate: SSO uses sessions, non-SSO sums per-row estimated launches
+      let srDisplay = "";
+      let srEstimated = false;
+      if (isSso) {
+        srDisplay = t.sessions && t.sess_with_success ? ((t.sess_with_success / t.sessions) * 100).toFixed(1) + "%" : "";
+      } else {
+        var totalEst = 0;
+        for (var ri = 0; ri < rows.length; ri++) {
+          var est = computeEstLaunches(rows[ri]);
+          totalEst += est || rows[ri].ga_select || rows[ri].sessions || 0;
+        }
+        if (totalEst > 0 && t.sess_with_success) {
+          srDisplay = "~" + ((t.sess_with_success / totalEst) * 100).toFixed(1) + "%";
+          srEstimated = true;
+        } else if (t.sessions && t.sess_with_success) {
+          srDisplay = ((t.sess_with_success / t.sessions) * 100).toFixed(1) + "%";
+        }
+      }
+      const srCls = srEstimated ? " estimated-val" : "";
 
       const tr = document.createElement("tr");
       tr.className = "totals-row";
@@ -2665,14 +3284,19 @@
       if (!isSso) cells += `<td class="num ga-col">${t.ga_user}</td>`;
       cells += `
         <td class="num ga-col">${t.ga_cred}</td>
+        <td class="num ${gaRate.cls}">${gaRate.display}</td>`;
+      if (!isSso) {
+        var tEstLaunches = computeEstLaunches(t);
+        cells += `<td class="num">${tEstLaunches !== null ? tEstLaunches : ""}</td>`;
+      }
+      cells += `
         <td class="num"></td>`;
       if (!isSso) cells += `<td class="num">${selUserPct}</td>`;
       cells += `
         <td class="num">${selCredPct}</td>
-        <td class="num">${selSuccPct}</td>
         <td class="num">${t.sessions}</td>
         <td class="num">${t.sess_with_success}</td>
-        <td class="num">${sessSuccPct}</td>
+        <td class="num${srCls}">${srDisplay}</td>
         <td class="num">${t.placements}</td>`;
       tr.innerHTML = cells;
       return tr;
@@ -2735,6 +3359,21 @@
         if (block) block.style.display = rows.length ? "" : "none";
         const header = fiGroupHeaders[integration];
         if (header) header.textContent = rows.length ? `${integration} (${rows.length})` : integration;
+
+        // Add/remove footnote for non-SSO tables
+        if (block) {
+          var existingNote = block.querySelector(".fi-table-footnote");
+          if (integration !== "SSO" && rows.length) {
+            if (!existingNote) {
+              var note = document.createElement("div");
+              note.className = "fi-table-footnote";
+              note.textContent = "~ Estimated from GA-calibrated launch data";
+              block.appendChild(note);
+            }
+          } else if (existingNote) {
+            existingNote.remove();
+          }
+        }
       });
 
       // Attach sort handlers
@@ -2777,11 +3416,21 @@
     function renderInsights(metrics, startDate, endDate, daySpan, visibleRows, best) {
       if (!EI) { console.warn('[insights] engagement-insights.js not loaded'); return; }
 
+      // Auto-detect integration context from visible rows
+      var allSso = visibleRows && visibleRows.length > 0 &&
+        visibleRows.every(function(r) { return normalizeIntegrationLabel(r.integration_type || "") === "SSO"; });
+      var allNonSso = visibleRows && visibleRows.length > 0 &&
+        visibleRows.every(function(r) { return normalizeIntegrationLabel(r.integration_type || "") !== "SSO"; });
+      var detectedContext = allSso ? 'sso' : allNonSso ? 'nonsso' : 'combined';
+
       // Build metrics context
       insightsCtx = EI.buildMetricsContext(
         { metrics, best, startDate, endDate, daySpan },
-        { registryMap, visibleRows, filterState: window.__FILTER_STATE }
+        { registryMap, visibleRows, filterState: window.__FILTER_STATE, integrationContext: detectedContext }
       );
+
+      // Attach blended cardholder count for funnel viz
+      insightsCtx.totalCardholders = metrics.totalCardholders;
 
       // Need minimum data to show insights
       const hasData = insightsCtx.totalSessions > 0 || insightsCtx.gaSelect > 0;
@@ -2796,6 +3445,11 @@
       renderActions(insightsCtx);
       renderProjections(insightsCtx);
 
+      // Integration type breakdown (SSO vs Non-SSO)
+      try {
+        renderIntegrationBreakdown(startDate, endDate, daySpan, visibleRows, best);
+      } catch (err) { console.warn('[insights] integration breakdown error:', err); }
+
       // QBR sections (only render when QBR mode is active)
       renderQBRSections(startDate, endDate);
 
@@ -2808,7 +3462,7 @@
     }
 
     function hideInsightsSections() {
-      ['funnelVizSection', 'narrativeSection', 'spectrumSection', 'actionsSection', 'projectionSection', 'qbrTrendSection', 'qbrNarrativeSection', 'qbrYoySection', 'qbrMonthlySection', 'qbrSummarySection', 'adminObjectionsSection', 'adminBenchmarkRefsSection'].forEach(id => {
+      ['funnelVizSection', 'narrativeSection', 'spectrumSection', 'actionsSection', 'projectionSection', 'integrationBreakdownSection', 'qbrTrendSection', 'qbrNarrativeSection', 'qbrYoySection', 'qbrMonthlySection', 'qbrSummarySection', 'adminObjectionsSection', 'adminBenchmarkRefsSection'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.style.display = 'none';
       });
@@ -2821,23 +3475,23 @@
       const section = document.getElementById('funnelVizSection');
       if (!container || !section) return;
 
-      // When GA is hidden (SSO mode), use session starts as launches
+      // When GA is hidden (SSO mode), cardholders = sessions
       const gaHidden = document.body.classList.contains('hide-ga');
-      const launchLabel = gaHidden ? 'Session Starts' : 'Launches';
-      const launchValue = gaHidden ? ctx.totalSessions : ctx.gaSelect;
+      const cardholders = ctx.totalCardholders || (gaHidden ? ctx.totalSessions : ctx.gaSelect);
 
       const stages = gaHidden ? [
-        // SSO mode: skip Launches (= visit starts), start from Visits pipeline
-        { label: 'Visits', value: ctx.totalSessions, color: '#fff7ed', borderColor: '#fdba74', textColor: '#9a3412' },
+        // SSO mode: Cardholders (= sessions) → Credential Entry → Successful → Cards Updated
+        { label: 'Cardholders', value: cardholders, color: '#ede9fe', borderColor: '#c4b5fd', textColor: '#5b21b6' },
         { label: 'Credential Entry', value: ctx.credSessions || ctx.gaCred, color: '#fef3c7', borderColor: '#fcd34d', textColor: '#92400e' },
-        { label: 'Successful Cardholders', value: ctx.sessionsWithSuccess, color: '#dbeafe', borderColor: '#93c5fd', textColor: '#1e40af' },
-        { label: 'Placements', value: ctx.successfulPlacements, color: '#dcfce7', borderColor: '#86efac', textColor: '#166534' },
+        { label: 'Successful', value: ctx.sessionsWithSuccess, color: '#dbeafe', borderColor: '#93c5fd', textColor: '#1e40af' },
+        { label: 'Cards Updated', value: ctx.successfulPlacements, color: '#dcfce7', borderColor: '#86efac', textColor: '#166534' },
       ] : [
-        { label: 'Launches', value: ctx.gaSelect, color: '#ede9fe', borderColor: '#c4b5fd', textColor: '#5b21b6' },
-        { label: 'Visits', value: ctx.totalSessions, color: '#fff7ed', borderColor: '#fdba74', textColor: '#9a3412' },
+        // Non-SSO / mixed: Cardholders (blended) → Sessions → Credential Entry → Successful → Cards Updated
+        { label: 'Cardholders', value: cardholders, color: '#ede9fe', borderColor: '#c4b5fd', textColor: '#5b21b6' },
+        { label: 'Sessions', value: ctx.totalSessions, color: '#fff7ed', borderColor: '#fdba74', textColor: '#9a3412' },
         { label: 'Credential Entry', value: ctx.credSessions || ctx.gaCred, color: '#fef3c7', borderColor: '#fcd34d', textColor: '#92400e' },
-        { label: 'Successful Cardholders', value: ctx.sessionsWithSuccess, color: '#dbeafe', borderColor: '#93c5fd', textColor: '#1e40af' },
-        { label: 'Placements', value: ctx.successfulPlacements, color: '#dcfce7', borderColor: '#86efac', textColor: '#166534' },
+        { label: 'Successful', value: ctx.sessionsWithSuccess, color: '#dbeafe', borderColor: '#93c5fd', textColor: '#1e40af' },
+        { label: 'Cards Updated', value: ctx.successfulPlacements, color: '#dcfce7', borderColor: '#86efac', textColor: '#166534' },
       ];
 
       // Calculate relative heights (min 30%, max 100%)
@@ -2845,11 +3499,12 @@
       let html = '';
 
       // Map stage transitions to narrative scroll targets
-      // Key = "FromLabel→ToLabel", value = data-insight-id prefix to scroll to
       const transitionTargets = {
-        'Visits→Credential Entry': 'selCred',
-        'Credential Entry→Successful Cardholders': 'credCompletion',
-        'Successful Cardholders→Placements': 'avgCards',
+        'Cardholders→Sessions': null,
+        'Sessions→Credential Entry': 'selCred',
+        'Cardholders→Credential Entry': 'selCred',
+        'Credential Entry→Successful': 'credCompletion',
+        'Successful→Cards Updated': 'avgCards',
       };
 
       stages.forEach((stage, i) => {
@@ -2857,31 +3512,41 @@
 
         if (i > 0 && stages[i - 1].value > 0) {
           const ratio = stage.value / stages[i - 1].value;
+          const prevVal = stages[i - 1].value;
           const transKey = `${stages[i - 1].label}→${stage.label}`;
-          const scrollTarget = transitionTargets[transKey] || null;
+          const scrollTarget = transitionTargets[transKey] !== undefined ? transitionTargets[transKey] : null;
+          // Suppress qualitative labels when either side of the transition has <10 observations
+          const tooSmall = prevVal < 10 || stage.value < 10;
           let badge = '';
           if (ratio > 1.05) {
             const multiplier = ratio.toFixed(1);
-            badge = `<div class="funnel-expansion">${multiplier}× cards per visit</div>`;
-          } else if (ratio >= 0.95) {
+            badge = `<div class="funnel-expansion">${multiplier}× cards per cardholder</div>`;
+          } else if (!tooSmall && ratio >= 0.95) {
             badge = `<div class="funnel-neutral">Strong follow-through</div>`;
-          } else {
+          } else if (ratio < 0.95) {
             const dropPct = (1 - ratio) * 100;
-            let dropClass = 'dropoff-green';
-            if (dropPct > 80) dropClass = 'dropoff-red';
-            else if (dropPct > 50) dropClass = 'dropoff-yellow';
-            // Contextual label based on transition
-            let dropLabel;
-            if (stage.label === 'Credential Entry') {
-              dropLabel = `${dropPct.toFixed(0)}% browse but don't start`;
-            } else if (stage.label === 'Successful Cardholders') {
-              dropLabel = `${dropPct.toFixed(0)}% start but don't finish`;
+            if (tooSmall) {
+              // Small sample: show raw percentage without severity color or qualitative label
+              badge = `<div class="funnel-dropoff dropoff-green" style="opacity:0.7;">${dropPct.toFixed(0)}% drop-off</div>`;
             } else {
-              dropLabel = `${dropPct.toFixed(0)}% conversion opportunity`;
+              let dropClass = 'dropoff-green';
+              if (dropPct > 80) dropClass = 'dropoff-red';
+              else if (dropPct > 50) dropClass = 'dropoff-yellow';
+              // Contextual label based on transition
+              let dropLabel;
+              if (stage.label === 'Sessions') {
+                dropLabel = `${dropPct.toFixed(0)}% didn't complete the form`;
+              } else if (stage.label === 'Credential Entry') {
+                dropLabel = `${dropPct.toFixed(0)}% browse but don't start`;
+              } else if (stage.label === 'Successful') {
+                dropLabel = `${dropPct.toFixed(0)}% start but don't finish`;
+              } else {
+                dropLabel = `${dropPct.toFixed(0)}% conversion opportunity`;
+              }
+              badge = `<div class="funnel-dropoff ${dropClass}">${dropLabel}</div>`;
             }
-            badge = `<div class="funnel-dropoff ${dropClass}">${dropLabel}</div>`;
           }
-          const insightLink = scrollTarget
+          const insightLink = (!tooSmall && scrollTarget)
             ? `<a class="funnel-insight-link" onclick="scrollToInsight('${scrollTarget}')">See insights →</a>`
             : '';
           html += `<div class="funnel-arrow">
@@ -3048,7 +3713,20 @@
       const section = document.getElementById('spectrumSection');
       if (!gauge || !section) return;
 
-      if (ctx.sessionSuccessPct === null) { section.style.display = 'none'; return; }
+      // Low-volume: show diagnosis text without the gauge visualization
+      const diag = ctx.integrationContext === 'nonsso' ? EI.buildNonSSOSpectrumDiagnosis(ctx) : EI.buildSpectrumDiagnosis(ctx);
+      if (diag.isLowVolume) {
+        gauge.innerHTML = '';
+        if (diagEl) diagEl.innerHTML = diag.html;
+        // Hide the spectrum labels row when gauge is empty
+        const labelsEl = gauge.parentElement ? gauge.parentElement.querySelector('.spectrum-labels') : null;
+        if (labelsEl) labelsEl.style.display = 'none';
+        section.style.display = '';
+        return;
+      }
+
+      const effectiveRate = ctx.launchSuccessPct != null ? ctx.launchSuccessPct : ctx.sessionSuccessPct;
+      if (effectiveRate === null) { section.style.display = 'none'; return; }
 
       // Build gauge zones (proportional widths on a 0–30% scale)
       const maxScale = 30;
@@ -3067,19 +3745,21 @@
       }
 
       // Current rate marker
-      const currentPos = Math.min(ctx.sessionSuccessPct / maxScale, 1) * 100;
-      gaugeHtml += `<div class="spectrum-marker" style="left:${currentPos}%;" data-label="Current: ${EI.fmt(ctx.sessionSuccessPct)}%"></div>`;
+      const currentPos = Math.min(effectiveRate / maxScale, 1) * 100;
+      gaugeHtml += `<div class="spectrum-marker" style="left:${currentPos}%;" data-label="Current: ${EI.fmt(effectiveRate)}%"></div>`;
 
       // Best week marker
-      if (ctx.bestWeekRate && ctx.bestWeekRate > ctx.sessionSuccessPct * 1.1) {
+      if (ctx.bestWeekRate && ctx.bestWeekRate > effectiveRate * 1.1) {
         const bestPos = Math.min(ctx.bestWeekRate / maxScale, 1) * 100;
         gaugeHtml += `<div class="spectrum-marker best-marker" style="left:${bestPos}%;" data-label="Best: ${EI.fmt(ctx.bestWeekRate)}%"></div>`;
       }
 
       gauge.innerHTML = gaugeHtml;
 
-      // Diagnosis paragraph
-      const diag = EI.buildSpectrumDiagnosis(ctx);
+      // Restore spectrum labels if previously hidden
+      const labelsEl = gauge.parentElement ? gauge.parentElement.querySelector('.spectrum-labels') : null;
+      if (labelsEl) labelsEl.style.display = '';
+
       if (diagEl) diagEl.innerHTML = diag.html;
 
       section.style.display = '';
@@ -3270,10 +3950,280 @@
       }
 
       html += `</tbody></table>`;
-      html += `<div class="projection-note">Projections based on current volume of ${EI.fmtN(current.sessions)} CardUpdatr visits over ${current.days} days. Actual results depend on traffic quality and cardholder motivation.</div>`;
+      const volLabel = current.estimatedLaunches
+        ? `${EI.fmtN(current.estimatedLaunches)} estimated launches (from ${EI.fmtN(current.sessions)} sessions)`
+        : `${EI.fmtN(current.sessions)} CardUpdatr visits`;
+      html += `<div class="projection-note">Projections based on current volume of ${volLabel} over ${current.days} days. Actual results depend on traffic quality and cardholder motivation.</div>`;
 
       container.innerHTML = html;
       section.style.display = '';
+    }
+
+    // ── Integration Breakdown (SSO vs Non-SSO) ────────────────────────────
+
+    /**
+     * Render per-integration-type breakdown when both SSO and non-SSO FIs are present.
+     * Splits visibleRows by integration type, runs the insights engine separately for each,
+     * and renders narratives, spectrum, actions, and projections per type.
+     */
+    function renderIntegrationBreakdown(startDate, endDate, daySpan, visibleRows, best) {
+      var section = document.getElementById('integrationBreakdownSection');
+      if (!section || !EI) { if (section) section.style.display = 'none'; return; }
+
+      // Split rows by integration type
+      var ssoRows = [];
+      var nonssoRows = [];
+      for (var i = 0; i < visibleRows.length; i++) {
+        var row = visibleRows[i];
+        var intType = (row.integration_type || row.integration || '').toUpperCase();
+        if (intType === 'SSO') {
+          ssoRows.push(row);
+        } else {
+          nonssoRows.push(row);
+        }
+      }
+
+      // Only show breakdown when BOTH types are present
+      if (ssoRows.length === 0 || nonssoRows.length === 0) {
+        section.style.display = 'none';
+        return;
+      }
+
+      // Calculate metrics for each subset
+      var ssoMetrics = calculateMetrics(startDate, endDate, ssoRows);
+      var nonssoMetrics = calculateMetrics(startDate, endDate, nonssoRows);
+      var ssoBest = computeBestWindows(startDate, endDate, lastAggregated || {}, ssoRows);
+      var nonssoBest = computeBestWindows(startDate, endDate, lastAggregated || {}, nonssoRows);
+
+      // Build metrics context for each
+      var ssoCtx = EI.buildMetricsContext(
+        { metrics: ssoMetrics, best: ssoBest, startDate: startDate, endDate: endDate, daySpan: daySpan },
+        { registryMap: registryMap, visibleRows: ssoRows, filterState: window.__FILTER_STATE, integrationContext: 'sso' }
+      );
+      var nonssoCtx = EI.buildMetricsContext(
+        { metrics: nonssoMetrics, best: nonssoBest, startDate: startDate, endDate: endDate, daySpan: daySpan },
+        { registryMap: registryMap, visibleRows: nonssoRows, filterState: window.__FILTER_STATE, integrationContext: 'nonsso' }
+      );
+
+      // SSO block
+      var ssoBlock = document.getElementById('ssoBreakdownBlock');
+      if (ssoBlock && ssoCtx.totalSessions > 0) {
+        renderBreakdownNarratives('ssoNarrativeBlocks', ssoCtx);
+        renderBreakdownSpectrum('ssoSpectrumGauge', 'ssoSpectrumDiagnosis', ssoCtx, 'sso');
+        renderBreakdownActions('ssoActionsList', ssoCtx);
+        renderBreakdownProjection('ssoProjectionContent', ssoCtx);
+        ssoBlock.style.display = '';
+      } else if (ssoBlock) {
+        ssoBlock.style.display = 'none';
+      }
+
+      // Non-SSO block
+      var nonssoBlock = document.getElementById('nonssoBreakdownBlock');
+      if (nonssoBlock && nonssoCtx.totalSessions > 0) {
+        // Update calibration banner with data-driven text when available
+        var calBanner = document.getElementById('nonssoCalibrationBanner');
+        if (calBanner) {
+          if (nonssoCtx.gaCalibrationRate !== null && nonssoCtx.gaCalibrationRate !== undefined) {
+            var gaRatePctStr = (nonssoCtx.gaCalibrationRate * 100).toFixed(0);
+            calBanner.innerHTML = '<strong>GA calibration:</strong> Estimated launches derived from per-FI GA tracking rate (' +
+              gaRatePctStr + '% for this view — GA-reported Credential Entry views \u00F7 server-verified Credential Entry sessions). ' +
+              'GA Select Merchant counts adjusted by this factor to account for Safari ITP and ad-blocker undercount. ' +
+              'Success Rate values marked with ~ are calculated from estimated launches.';
+          } else {
+            calBanner.innerHTML = '<strong>GA measurement note:</strong> Non-SSO traffic is tracked via Google Analytics, which undercounts by approximately 15\u201330% due to Safari Intelligent Tracking Prevention and ad blockers. ' +
+              'Server-side clickstream calibration data is not yet available for this partner \u2014 actual cardholder volume is likely higher than reported.';
+          }
+        }
+        renderBreakdownNarratives('nonssoNarrativeBlocks', nonssoCtx);
+        renderBreakdownSpectrum('nonssoSpectrumGauge', 'nonssoSpectrumDiagnosis', nonssoCtx, 'nonsso');
+        renderBreakdownActions('nonssoActionsList', nonssoCtx);
+        renderBreakdownProjection('nonssoProjectionContent', nonssoCtx);
+        nonssoBlock.style.display = '';
+      } else if (nonssoBlock) {
+        nonssoBlock.style.display = 'none';
+      }
+
+      // Store split contexts for PDF payload
+      window.__integrationBreakdown = { ssoCtx: ssoCtx, nonssoCtx: nonssoCtx };
+
+      section.style.display = '';
+    }
+
+    /** Render narrative blocks into a breakdown container */
+    function renderBreakdownNarratives(containerId, ctx) {
+      var container = document.getElementById(containerId);
+      if (!container) return;
+
+      var narratives = EI.evaluateNarratives(ctx);
+      if (!narratives.length) { container.innerHTML = ''; return; }
+
+      var html = '';
+      for (var n = 0; n < narratives.length; n++) {
+        var narr = narratives[n];
+        html += '<div class="insight-block" data-insight-id="' + narr.id + '">';
+        html += '<div class="insight-label">' + getSectionLabel(narr.section) + '</div>';
+        html += '<div>' + narr.html + '</div>';
+        if (narr.benchmarkKeys.length > 0) {
+          var benchmarks = EI.getBenchmarkDisplay(narr.benchmarkKeys);
+          if (benchmarks.length > 0) {
+            html += '<div class="benchmark-ref">';
+            for (var b = 0; b < benchmarks.length; b++) {
+              html += '<strong>' + benchmarks[b].value + '</strong> \u2014 ' + benchmarks[b].description;
+              if (benchmarks[b].proof) html += ' <span style="color:#94a3b8;">(' + benchmarks[b].proof + ')</span>';
+              html += '<br>';
+            }
+            html += '</div>';
+          }
+        }
+        html += '</div>';
+      }
+      container.innerHTML = html;
+    }
+
+    /** Render spectrum gauge into a breakdown container */
+    function renderBreakdownSpectrum(gaugeId, diagId, ctx, type) {
+      var gauge = document.getElementById(gaugeId);
+      var diagEl = document.getElementById(diagId);
+      if (!gauge) return;
+
+      // Low-volume: show diagnosis text without the gauge visualization
+      var isNonSSOType = (type === 'nonsso');
+      var breakdownDiag = isNonSSOType ? EI.buildNonSSOSpectrumDiagnosis(ctx) : EI.buildSpectrumDiagnosis(ctx);
+      if (breakdownDiag.isLowVolume) {
+        gauge.innerHTML = '';
+        if (diagEl) diagEl.innerHTML = breakdownDiag.html;
+        var labelsEl0 = gauge.parentElement ? gauge.parentElement.querySelector('.spectrum-labels') : null;
+        if (labelsEl0) labelsEl0.style.display = 'none';
+        return;
+      }
+
+      if (ctx.sessionSuccessPct === null) {
+        gauge.innerHTML = '';
+        if (diagEl) diagEl.innerHTML = '';
+        return;
+      }
+
+      var isNonSSO = (type === 'nonsso');
+      // When calibration data is available for non-SSO, use SSO-scale gauge
+      // (launch-based conversion is directly comparable to SSO session-based)
+      var hasCalibration = isNonSSO && ctx.launchSuccessPct !== null && ctx.launchSuccessPct !== undefined;
+      var useSSScale = !isNonSSO || hasCalibration;
+      var maxScale = useSSScale ? 30 : 50;
+      var displayRate = hasCalibration ? ctx.launchSuccessPct : ctx.sessionSuccessPct;
+
+      var zones;
+      if (isNonSSO && !hasCalibration) {
+        zones = [
+          { label: 'Tier 3: Organic', min: 0, max: 8, color: '#ef4444' },
+          { label: '\u27F6', min: 8, max: 15, color: '#f97316' },
+          { label: 'Tier 2: Campaigns', min: 15, max: 25, color: '#eab308' },
+          { label: '\u27F6', min: 25, max: 35, color: '#84cc16' },
+          { label: 'Tier 1: Activation', min: 35, max: 50, color: '#22c55e' },
+        ];
+      } else {
+        zones = [
+          { label: 'Tier 3: Incidental', min: 0, max: 3, color: '#ef4444' },
+          { label: '\u27F6', min: 3, max: 8, color: '#f97316' },
+          { label: 'Tier 2: Campaigns', min: 8, max: 12, color: '#eab308' },
+          { label: '\u27F6', min: 12, max: 21, color: '#84cc16' },
+          { label: 'Tier 1: Activation', min: 21, max: 30, color: '#22c55e' },
+        ];
+      }
+
+      // Update spectrum labels for non-SSO with calibration
+      if (hasCalibration) {
+        var labelsEl = gauge.parentElement ? gauge.parentElement.querySelector('.spectrum-labels') : null;
+        if (labelsEl) {
+          labelsEl.innerHTML = '<span>0%</span><span>Incidental</span><span>Campaigns</span><span>Activation</span><span>30%+</span>';
+        }
+      }
+
+      var gaugeHtml = '';
+      for (var z = 0; z < zones.length; z++) {
+        var widthPct = ((zones[z].max - zones[z].min) / maxScale) * 100;
+        gaugeHtml += '<div class="spectrum-zone" style="width:' + widthPct + '%;background:' + zones[z].color + ';">' + zones[z].label + '</div>';
+      }
+
+      // Current rate marker — use launch-based rate when calibrated
+      var markerLabel = hasCalibration ? 'Launch: ' + EI.fmt(displayRate) + '%' : 'Current: ' + EI.fmt(displayRate) + '%';
+      var currentPos = Math.min(displayRate / maxScale, 1) * 100;
+      gaugeHtml += '<div class="spectrum-marker" style="left:' + currentPos + '%;" data-label="' + markerLabel + '"></div>';
+
+      // Best week marker
+      if (ctx.bestWeekRate && ctx.bestWeekRate > displayRate * 1.1) {
+        var bestPos = Math.min(ctx.bestWeekRate / maxScale, 1) * 100;
+        gaugeHtml += '<div class="spectrum-marker best-marker" style="left:' + bestPos + '%;" data-label="Best: ' + EI.fmt(ctx.bestWeekRate) + '%"></div>';
+      }
+
+      gauge.innerHTML = gaugeHtml;
+
+      // Restore spectrum labels if previously hidden
+      var labelsEl1 = gauge.parentElement ? gauge.parentElement.querySelector('.spectrum-labels') : null;
+      if (labelsEl1) labelsEl1.style.display = '';
+
+      // Diagnosis (reuse already-computed diagnosis from top of function)
+      if (diagEl) {
+        diagEl.innerHTML = breakdownDiag.html;
+      }
+    }
+
+    /** Render action items into a breakdown container */
+    function renderBreakdownActions(listId, ctx) {
+      var list = document.getElementById(listId);
+      if (!list) return;
+
+      var result = EI.evaluateActions(ctx);
+      var actions = result.actions;
+      if (!actions.length) { list.innerHTML = ''; return; }
+
+      var html = '';
+      for (var i = 0; i < actions.length; i++) {
+        var action = actions[i];
+        html += '<li class="action-item">';
+        html += '<div class="action-priority ' + action.impact + '">' + (i + 1) + '</div>';
+        html += '<div class="action-body">';
+        html += '<div class="action-headline">' + action.headline + '</div>';
+        html += '<div class="action-detail">' + action.detail + '</div>';
+        html += '</div></li>';
+      }
+      list.innerHTML = html;
+    }
+
+    /** Render projection table into a breakdown container */
+    function renderBreakdownProjection(containerId, ctx) {
+      var container = document.getElementById(containerId);
+      if (!container) return;
+
+      var result = EI.computeProjections(ctx);
+      var current = result.current;
+      var scenarios = result.scenarios;
+      if (!scenarios.length || current.sessions < 10) { container.innerHTML = ''; return; }
+
+      var html = '<table class="projection-table">';
+      html += '<thead><tr><th>Scenario</th><th class="num">Success Rate</th><th class="num">Projected Placements</th><th class="num">vs Current</th></tr></thead>';
+      html += '<tbody><tr class="current-row">';
+      html += '<td>Current performance</td>';
+      html += '<td class="num">' + (current.successRate !== null ? EI.fmt(current.successRate) + '%' : '\u2014') + '</td>';
+      html += '<td class="num">' + EI.fmtN(current.placements) + '</td>';
+      html += '<td class="num">\u2014</td></tr>';
+
+      for (var s = 0; s < scenarios.length; s++) {
+        var scen = scenarios[s];
+        var multiplierStr = scen.multiplier && scen.multiplier > 1
+          ? '<span class="multiplier">' + EI.fmt(scen.multiplier) + '\u00D7</span>'
+          : '\u2014';
+        html += '<tr class="scenario-row"><td>' + scen.label + '</td>';
+        html += '<td class="num">' + EI.fmt(scen.rate) + '%</td>';
+        html += '<td class="num">~' + EI.fmtN(scen.projectedPlacements) + '</td>';
+        html += '<td class="num">' + multiplierStr + '</td></tr>';
+      }
+
+      html += '</tbody></table>';
+      var bVolLabel = current.estimatedLaunches
+        ? EI.fmtN(current.estimatedLaunches) + ' estimated launches (from ' + EI.fmtN(current.sessions) + ' sessions)'
+        : EI.fmtN(current.sessions) + ' visits';
+      html += '<div class="projection-note">Projections based on current volume of ' + bVolLabel + ' over ' + current.days + ' days.</div>';
+      container.innerHTML = html;
     }
 
     // ── QBR Rendering ─────────────────────────────────────────────────────
@@ -3329,9 +4279,13 @@
 
           const qCtx = EI.buildMetricsContext(
             { metrics: qMetrics, startDate: qStart, endDate: qEnd, daySpan: qDaySpan },
-            { registryMap, visibleRows: qVisibleRows, filterState: window.__FILTER_STATE }
+            { registryMap, visibleRows: qVisibleRows, filterState: window.__FILTER_STATE, integrationContext: insightsCtx ? insightsCtx.integrationContext : undefined }
           );
-          const qTierInfo = EI.classifyTier(qCtx.sessionSuccessPct);
+          // Use correct rate + classifier based on integration context
+          var qRateForTier = (qCtx.launchSuccessPct != null) ? qCtx.launchSuccessPct : qCtx.sessionSuccessPct;
+          const qTierInfo = (qCtx.integrationContext === 'nonsso' && qCtx.launchSuccessPct == null)
+            ? EI.classifyNonSSOTier(qCtx.sessionSuccessPct)
+            : EI.classifyTier(qRateForTier);
 
           quarters.push({
             quarter: `Q${qNum} ${qYear}`,
@@ -3342,6 +4296,7 @@
             visibleRows: qVisibleRows,
             daySpan: qDaySpan,
             tierInfo: qTierInfo,
+            effectiveRate: qRateForTier,
           });
         }
         cursor = new Date(Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth() + 3, 1));
@@ -3358,9 +4313,9 @@
       if (!container || !section || !quartersData.length) { if (section) section.style.display = 'none'; return; }
 
       const metricRows = [
-        { label: 'Total Visits', key: 'totalSessions', format: 'n', pctChange: true },
+        { label: 'Total Sessions', key: 'totalSessions', format: 'n', pctChange: true },
         { label: 'Credential Entry Rate', key: 'selCredPct', format: '%' },
-        { label: 'Cardholder Success Rate', key: 'sessionSuccessPct', format: '%' },
+        { label: 'Success Rate', key: '__successRate', format: '%' },
         { label: 'Successful Placements', key: 'successfulPlacements', format: 'n', pctChange: true },
         { label: 'Avg Cards Per Cardholder', key: 'avgCardsPerSession', format: 'd' },
         { label: 'Monthly Reach', key: 'monthlyReachPct', format: '%' },
@@ -3379,8 +4334,11 @@
           const m = q.metrics;
           let val, display;
           if (mr.key === '__tier') {
-            val = m.sessionSuccessPct;
+            val = m.launchSuccessPct != null ? m.launchSuccessPct : m.sessionSuccessPct;
             display = q.tierInfo ? q.tierInfo.label : '—';
+          } else if (mr.key === '__successRate') {
+            val = m.launchSuccessPct != null ? m.launchSuccessPct : m.sessionSuccessPct;
+            display = val !== null && val !== undefined ? EI.fmt(val) + '%' : '—';
           } else {
             val = m[mr.key];
             if (mr.format === '%') display = val !== null && val !== undefined ? EI.fmt(val) + '%' : '—';
@@ -3417,7 +4375,7 @@
 
         // Trend indicator
         if (mr.key === '__tier') {
-          const tiers = quartersData.map(q => EI.classifyTier(q.metrics.sessionSuccessPct).tier);
+          const tiers = quartersData.map(q => q.tierInfo ? q.tierInfo.tier : EI.classifyTier(q.metrics.sessionSuccessPct).tier);
           const improving = tiers.length >= 2 && tiers[tiers.length - 1] < tiers[0];
           const stuck = tiers.every(t => t === tiers[0]);
           if (improving) html += `<td class="trend-up">\u25B2 improving</td>`;
@@ -3447,8 +4405,8 @@
       if (!container || quartersData.length < 2) return;
 
       const sparklines = [
-        { label: 'Cardholder Success %', values: quartersData.map(q => q.metrics.sessionSuccessPct), color: '#2563eb' },
-        { label: 'Visits', values: quartersData.map(q => q.metrics.totalSessions), color: '#f59e0b' },
+        { label: 'Success Rate %', values: quartersData.map(q => q.metrics.launchSuccessPct != null ? q.metrics.launchSuccessPct : q.metrics.sessionSuccessPct), color: '#2563eb' },
+        { label: 'Sessions', values: quartersData.map(q => q.metrics.totalSessions), color: '#f59e0b' },
         { label: 'Placements', values: quartersData.map(q => q.metrics.successfulPlacements), color: '#16a34a' },
         { label: 'Monthly Reach %', values: quartersData.map(q => q.metrics.monthlyReachPct), color: '#8b5cf6' },
       ];
@@ -3534,16 +4492,16 @@
       priorVisibleRows.forEach(row => { row.periodStart = priorStart; row.periodEnd = priorEnd; row.dayCount = priorDaySpan; });
       const priorCtx = EI.buildMetricsContext(
         { metrics: priorMetrics, startDate: priorStart, endDate: priorEnd, daySpan: priorDaySpan },
-        { registryMap, visibleRows: priorVisibleRows, filterState: window.__FILTER_STATE }
+        { registryMap, visibleRows: priorVisibleRows, filterState: window.__FILTER_STATE, integrationContext: insightsCtx ? insightsCtx.integrationContext : undefined }
       );
 
       const m = latest.metrics;
       const p = priorCtx;
 
       const rows = [
-        { label: 'Cardholder Success', curr: m.sessionSuccessPct, prev: p.sessionSuccessPct, format: '%', pp: true },
+        { label: 'Success Rate', curr: m.launchSuccessPct != null ? m.launchSuccessPct : m.sessionSuccessPct, prev: p.launchSuccessPct != null ? p.launchSuccessPct : p.sessionSuccessPct, format: '%', pp: true },
         { label: 'Placements', curr: m.successfulPlacements, prev: p.successfulPlacements, format: 'n' },
-        { label: 'Visits', curr: m.totalSessions, prev: p.totalSessions, format: 'n' },
+        { label: 'Sessions', curr: m.totalSessions, prev: p.totalSessions, format: 'n' },
         { label: 'Credential Entry Rate', curr: m.selCredPct, prev: p.selCredPct, format: '%', pp: true },
       ];
 
@@ -3567,7 +4525,7 @@
       }
 
       // YoY narrative
-      const yoyNarrative = EI.buildYoYNarrative(latestQ, m.sessionSuccessPct, p.sessionSuccessPct);
+      const yoyNarrative = EI.buildYoYNarrative(latestQ, m.launchSuccessPct != null ? m.launchSuccessPct : m.sessionSuccessPct, p.launchSuccessPct != null ? p.launchSuccessPct : p.sessionSuccessPct);
       if (yoyNarrative) {
         html += `<div style="margin-top:8px;font-size:13px;color:#0369a1;">${yoyNarrative}</div>`;
       }
@@ -3602,7 +4560,7 @@
         mVisible.forEach(row => { row.periodStart = mStart; row.periodEnd = mEnd; row.dayCount = mDaySpan; });
         const mCtx = EI.buildMetricsContext(
           { metrics: mMetrics, startDate: mStart, endDate: mEnd, daySpan: mDaySpan },
-          { registryMap, visibleRows: mVisible, filterState: window.__FILTER_STATE }
+          { registryMap, visibleRows: mVisible, filterState: window.__FILTER_STATE, integrationContext: insightsCtx ? insightsCtx.integrationContext : undefined }
         );
 
         const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
@@ -3611,48 +4569,54 @@
         months.push({
           label: monthNames[mDate.getUTCMonth()],
           metrics: mCtx,
+          launches: mMetrics.totalCardholders || 0,
         });
       }
 
       if (!months.length) { section.style.display = 'none'; return; }
 
       let html = `<table class="qbr-monthly-table"><thead><tr>
-        <th>Month</th><th>Visits</th><th>Cred Entry %</th><th>Success Rate</th><th>Placements</th>
+        <th>Month</th><th>Launches</th><th>Sessions</th><th>Cred Entry %</th><th>Success Rate</th><th>Placements</th>
       </tr></thead><tbody>`;
 
-      let totalSessions = 0, totalPlacements = 0;
+      let totalLaunches = 0, totalSessions = 0, totalPlacements = 0;
       for (const mo of months) {
         const m = mo.metrics;
+        totalLaunches += mo.launches;
         totalSessions += m.totalSessions;
         totalPlacements += m.successfulPlacements;
+        const effectiveRate = m.launchSuccessPct != null ? m.launchSuccessPct : m.sessionSuccessPct;
         html += `<tr>
           <td>${mo.label}</td>
+          <td>${EI.fmtN(mo.launches)}</td>
           <td>${EI.fmtN(m.totalSessions)}</td>
           <td>${m.selCredPct !== null ? EI.fmt(m.selCredPct) + '%' : '—'}</td>
-          <td>${m.sessionSuccessPct !== null ? EI.fmt(m.sessionSuccessPct) + '%' : '—'}</td>
+          <td>${effectiveRate !== null ? EI.fmt(effectiveRate) + '%' : '—'}</td>
           <td>${EI.fmtN(m.successfulPlacements)}</td>
         </tr>`;
       }
 
-      // Totals row
-      const totalRate = totalSessions > 0 ? (totalPlacements / totalSessions * 100) : null;
+      // Totals row — use effective rate from the full quarter context
+      const latestEffRate = latest.metrics.launchSuccessPct != null ? latest.metrics.launchSuccessPct : latest.metrics.sessionSuccessPct;
       html += `<tr class="totals-row">
         <td>${latest.quarter} Total</td>
+        <td>${EI.fmtN(totalLaunches)}</td>
         <td>${EI.fmtN(totalSessions)}</td>
         <td>—</td>
-        <td>${totalRate !== null ? EI.fmt(latest.metrics.sessionSuccessPct) + '%' : '—'}</td>
+        <td>${latestEffRate !== null ? EI.fmt(latestEffRate) + '%' : '—'}</td>
         <td>${EI.fmtN(totalPlacements)}</td>
       </tr></tbody></table>`;
 
       // Intra-quarter narrative
       if (months.length >= 2) {
-        const rates = months.map(m => m.metrics.sessionSuccessPct).filter(r => r !== null);
+        const rates = months.map(m => m.metrics.launchSuccessPct != null ? m.metrics.launchSuccessPct : m.metrics.sessionSuccessPct).filter(r => r !== null);
         if (rates.length >= 2) {
           const bestIdx = rates.indexOf(Math.max(...rates));
           const bestMonth = months[bestIdx];
+          const bestRate = bestMonth.metrics.launchSuccessPct != null ? bestMonth.metrics.launchSuccessPct : bestMonth.metrics.sessionSuccessPct;
           const monthlyNarrative = EI.buildMonthlyNarrative(latest.quarter, {
             label: bestMonth.label,
-            sessionSuccessPct: bestMonth.metrics.sessionSuccessPct,
+            sessionSuccessPct: bestRate,
           });
           if (monthlyNarrative) {
             html += `<div class="qbr-intra-narrative">${monthlyNarrative}</div>`;
@@ -3673,10 +4637,10 @@
       if (!section || !container || !quartersData.length) { if (section) section.style.display = 'none'; return; }
 
       const latest = quartersData[quartersData.length - 1];
-      // Find best quarter rate for QBR-mode projections
+      // Find best quarter rate for QBR-mode projections (use effectiveRate stamped by buildQBRQuarterlyData)
       let bestQRate = null;
       for (const q of quartersData) {
-        const r = q.metrics.sessionSuccessPct;
+        const r = q.effectiveRate != null ? q.effectiveRate : q.metrics.sessionSuccessPct;
         if (r !== null && (bestQRate === null || r > bestQRate)) bestQRate = r;
       }
       const projections = EI.computeProjections(latest.metrics, { qbrBestQuarterRate: bestQRate });
@@ -3759,18 +4723,18 @@
             current_quarter: latest ? {
               quarter: latest.quarter,
               total_sessions: latest.metrics.totalSessions,
-              session_success_rate: latest.metrics.sessionSuccessPct,
+              success_rate: latest.metrics.launchSuccessPct != null ? latest.metrics.launchSuccessPct : latest.metrics.sessionSuccessPct,
               placements: latest.metrics.successfulPlacements,
               monthly_reach: latest.metrics.monthlyReachPct,
               motivation_tier: latest.tierInfo ? latest.tierInfo.label : null,
             } : null,
             trailing_quarters: (qd.slice(0, -1) || []).map(q => ({
               quarter: q.quarter,
-              session_success_rate: q.metrics.sessionSuccessPct,
+              success_rate: q.metrics.launchSuccessPct != null ? q.metrics.launchSuccessPct : q.metrics.sessionSuccessPct,
               placements: q.metrics.successfulPlacements,
               total_sessions: q.metrics.totalSessions,
             })),
-            trend_direction: EI.classifyTrend(qd.map(q => q.metrics.sessionSuccessPct)),
+            trend_direction: EI.classifyTrend(qd.map(q => q.metrics.launchSuccessPct != null ? q.metrics.launchSuccessPct : q.metrics.sessionSuccessPct)),
           } : null,
         }),
       }).catch(() => {});
@@ -3847,8 +4811,9 @@
       highlightsSection.style.display = "";
       const rows = valid.map(h => {
         const dateRange = h.start === h.end ? h.start : `${h.start} → ${h.end}`;
-        const selSuccessPct = typeof h.selSuccessRatio === "number" ? (h.selSuccessRatio * 100).toFixed(1) + "%" : "—";
-        const sessSuccessPct = typeof h.sessionSuccessRatio === "number" ? (h.sessionSuccessRatio * 100).toFixed(1) + "%" : "—";
+        const srVal = typeof h.successRatio === "number" ? (h.successRatio * 100).toFixed(1) + "%" : "—";
+        const srDisplay = h.isEstimated ? "~" + srVal : srVal;
+        const srCls = h.isEstimated ? " estimated-val" : "";
         return `<tr>
           <td class="hl-label">${h.label || ""}</td>
           <td>${h.fi || ""}${h.instance ? ' <span class="muted">(' + h.instance + ')</span>' : ""}</td>
@@ -3857,16 +4822,15 @@
           <td class="num">${fmt(h.sel)}</td>
           <td class="num">${fmt(h.sessions)}</td>
           <td class="num">${fmt(h.sess_with_success)}</td>
-          <td class="num">${selSuccessPct}</td>
-          <td class="num">${sessSuccessPct}</td>
+          <td class="num${srCls}">${srDisplay}</td>
           <td class="num">${fmt(h.placements)}</td>
         </tr>`;
       }).join("");
       bestWindowsDiv.innerHTML = `<table class="highlights-table">
         <thead><tr>
           <th>Highlight</th><th>FI</th><th>Integration</th><th>Window</th>
-          <th class="num">Launches</th><th class="num">Visits</th><th class="num">Successful Cardholders</th>
-          <th class="num">Success Rate</th><th class="num">Cardholder Success %</th><th class="num">Placements</th>
+          <th class="num">Launches</th><th class="num">Sessions</th><th class="num">Successful Cardholders</th>
+          <th class="num">Success Rate</th><th class="num">Placements</th>
         </tr></thead>
         <tbody>${rows}</tbody>
       </table>`;
@@ -4108,23 +5072,23 @@
       table.className = "fi-table";
       let headerHtml = `<thead><tr>
           <th data-sort="period">Period</th>
-          <th data-sort="fi">Financial Institution</th>
-          <th data-sort="instances">Instance</th>
-          <th data-sort="integration">Integration</th>
+          <th data-sort="fi">FI</th>
+          <th data-sort="instances">Inst</th>
+          <th data-sort="integration">Type</th>
           <th data-sort="ga_select" class="num">Launches</th>
-          <th data-sort="cs_select" class="num">Visits @Select</th>`;
-      if (!isSso) headerHtml += `<th data-sort="ga_user" class="num">User Data Views</th>`;
+          <th data-sort="cs_select" class="num">@Select</th>`;
+      if (!isSso) headerHtml += `<th data-sort="ga_user" class="num">UD Views</th>`;
       headerHtml += `
-          <th data-sort="ga_cred" class="num">Credential Views</th>
-          <th data-sort="reach" class="num">Monthly Reach %</th>`;
-      if (!isSso) headerHtml += `<th data-sort="sel_user_pct" class="num">Sel\u2192User %</th>`;
+          <th data-sort="ga_cred" class="num">Cred Views</th>
+          <th data-sort="ga_rate" class="num" title="Percentage of server-recorded visits detected by Google Analytics. Lower values indicate tracking gaps (Safari ITP, ad blockers).">GA %</th>
+          <th data-sort="reach" class="num" title="Projected monthly rate based on selected time period">Reach %</th>`;
+      if (!isSso) headerHtml += `<th data-sort="sel_user_pct" class="num">Sel\u2192U %</th>`;
       headerHtml += `
-          <th data-sort="sel_cred_pct" class="num">Sel\u2192Cred %</th>
-          <th data-sort="sel_success_pct" class="num">Success Rate</th>
-          <th data-sort="sessions" class="num">Visits</th>
-          <th data-sort="sess_with_success" class="num">Successful Cardholders</th>
-          <th data-sort="sess_success_pct" class="num">Cardholder Success %</th>
-          <th data-sort="placements" class="num">Placements</th>
+          <th data-sort="sel_cred_pct" class="num">Sel\u2192C %</th>
+          <th data-sort="sessions" class="num">Sessions</th>
+          <th data-sort="sess_with_success" class="num">Successful</th>
+          <th data-sort="sess_success_pct" class="num">Rate</th>
+          <th data-sort="placements" class="num">Placed</th>
         </tr></thead>`;
       table.innerHTML = headerHtml;
 
@@ -4192,13 +5156,26 @@
         case "cs_select": return row.cs_select || 0;
         case "ga_user": return row.ga_user || 0;
         case "ga_cred": return row.ga_cred || 0;
+        case "ga_rate":
+          var _isSso2 = row.integration_type === "SSO";
+          var _ga2 = _isSso2 ? (row.ga_select || 0) : (row.ga_cred || 0);
+          var _cs2 = _isSso2 ? (row.cs_select || 0) : (row.cs_cred || 0);
+          return _cs2 ? _ga2 / _cs2 : 0;
+        case "est_launches": return computeEstLaunches(row) || 0;
+        case "launch_success_pct":
+          var _lsr2 = computeLaunchSuccessRate(row);
+          return _lsr2.value !== null ? _lsr2.value : 0;
         case "reach": return getMonthlyReachValue(row);
         case "sel_user_pct": return row.cs_select ? (row.cs_user || 0) / row.cs_select : 0;
         case "sel_cred_pct": return row.cs_select ? (row.cs_cred || 0) / row.cs_select : 0;
-        case "sel_success_pct": return row.cs_select && row.sess_with_success ? row.sess_with_success / row.cs_select : 0;
         case "sessions": return row.sessions || 0;
         case "sess_with_success": return row.sess_with_success || 0;
-        case "sess_success_pct": return row.sessions ? (row.sess_with_success || 0) / row.sessions : 0;
+        case "sess_success_pct":
+          var _isRowSso2 = (row.integration_type || "").toUpperCase() === "SSO";
+          if (_isRowSso2) return row.sessions ? (row.sess_with_success || 0) / row.sessions : 0;
+          var _estL2 = computeEstLaunches(row);
+          if (_estL2 && _estL2 > 0) return (row.sess_with_success || 0) / _estL2;
+          return row.sessions ? (row.sess_with_success || 0) / row.sessions : 0;
         case "placements": return row.placements || 0;
         default: return 0;
       }
@@ -4209,11 +5186,12 @@
       const instancesText = row.instance || (Array.isArray(row.instances) ? row.instances.join(", ") : "");
       const selUserPct = row.cs_select ? ((row.cs_user / row.cs_select) * 100).toFixed(1) + "%" : "";
       const selCredPct = row.cs_select ? ((row.cs_cred / row.cs_select) * 100).toFixed(1) + "%" : "";
-      const selSuccPct = formatSelSuccessPct(row);
       const reachPct = formatMonthlyReachPct(row);
       const reachVal = getMonthlyReachValue(row);
       const reachCls = reachVal >= 0.025 ? " reach-good" : reachVal > 0 ? " reach-low" : "";
-      const sessSuccPct = formatSessSuccessPct(row);
+      const sr = formatSuccessRate(row, isSso ? "SSO" : "NON-SSO");
+      const srCls = sr.isEstimated ? " estimated-val" : "";
+      const gaRate = computeGaRate(row, isSso ? "SSO" : "NON-SSO");
       let cells = `
         <td>${row.periodLabel || ""}</td>
         <td>${row.fi || ""}</td>
@@ -4224,14 +5202,14 @@
       if (!isSso) cells += `<td class="num">${row.ga_user || 0}</td>`;
       cells += `
         <td class="num">${row.ga_cred || 0}</td>
+        <td class="num ${gaRate.cls}">${gaRate.display}</td>
         <td class="num${reachCls}">${reachPct}</td>`;
       if (!isSso) cells += `<td class="num">${selUserPct}</td>`;
       cells += `
         <td class="num">${selCredPct}</td>
-        <td class="num">${selSuccPct}</td>
         <td class="num">${row.sessions || 0}</td>
         <td class="num">${row.sess_with_success || 0}</td>
-        <td class="num">${sessSuccPct}</td>
+        <td class="num${srCls}">${sr.display}</td>
         <td class="num">${row.placements || 0}</td>`;
       tr.innerHTML = cells;
       return tr;
@@ -4240,25 +5218,33 @@
     function renderPartnerSummary(summaryData) {
       if (!partnerSummaryBox) return;
       if (!summaryData) { partnerSummaryBox.style.display = "none"; partnerSummaryBox.innerHTML = ""; return; }
-      const pctStr = (v) => typeof v === "number" && Number.isFinite(v) ? v.toFixed(1) + "%" : "—";
-      const rows = summaryData.rows.map(r => `<tr>
-        <td>${r.integration}</td><td class="num">${r.fiCount}</td><td class="num ga-col">${fmt(r.ga_select)}</td>
-        <td class="num">${pctStr(r.selSuccessPct)}</td><td class="num">${fmt(r.sessions)}</td>
-        <td class="num">${fmt(r.sess_with_success)}</td><td class="num">${pctStr(r.sessionSuccessPct)}</td>
-      </tr>`).join("");
+      const fmtSr = (v, est) => {
+        if (typeof v !== "number" || !Number.isFinite(v)) return "—";
+        var s = v.toFixed(1) + "%";
+        return est ? "~" + s : s;
+      };
+      const rows = summaryData.rows.map(r => {
+        var srCls = r.isEstimated ? " estimated-val" : "";
+        return `<tr>
+          <td>${r.integration}</td><td class="num">${r.fiCount}</td><td class="num ga-col">${fmt(r.ga_select)}</td>
+          <td class="num">${fmt(r.sessions)}</td>
+          <td class="num">${fmt(r.sess_with_success)}</td><td class="num${srCls}">${fmtSr(r.successPct, r.isEstimated)}</td>
+        </tr>`;
+      }).join("");
       const t = summaryData.totals || {};
+      const tSrCls = t.isEstimated ? " estimated-val" : "";
       const totalRow = `<tr class="total-row">
         <td><strong>Total</strong></td><td class="num"><strong>${t.fiCount || ""}</strong></td>
-        <td class="num ga-col"><strong>${fmt(t.ga_select)}</strong></td><td class="num"><strong>${pctStr(t.selSuccessPct)}</strong></td>
+        <td class="num ga-col"><strong>${fmt(t.ga_select)}</strong></td>
         <td class="num"><strong>${fmt(t.sessions)}</strong></td><td class="num"><strong>${fmt(t.sess_with_success)}</strong></td>
-        <td class="num"><strong>${pctStr(t.sessionSuccessPct)}</strong></td>
+        <td class="num${tSrCls}"><strong>${fmtSr(t.successPct, t.isEstimated)}</strong></td>
       </tr>`;
       partnerSummaryBox.innerHTML = `
         <div class="perf-section-title">${summaryData.partner || "Partner"} Integration Mix <span class="muted">${summaryData.rows.length} integration types</span></div>
         <table><thead><tr>
           <th>Integration</th><th class="num">FIs</th><th class="num ga-col">GA Select</th>
-          <th class="num">Success Rate</th><th class="num">Visits</th>
-          <th class="num">Successful Cardholders</th><th class="num">Cardholder Success %</th>
+          <th class="num">Sessions</th>
+          <th class="num">Successful Cardholders</th><th class="num">Success Rate</th>
         </tr></thead><tbody>${rows}${totalRow}</tbody></table>`;
       partnerSummaryBox.style.display = "";
     }
@@ -4280,31 +5266,30 @@
       const validH = (highlights || []).filter(h => h && !h.empty);
       if (validH.length) {
         lines.push("Performance Highlights");
-        lines.push(["Highlight","FI","Integration","Window Start","Window End","GA Select","Visits","Successful Cardholders","Success Rate","Cardholder Success %","Placements"].map(csvEscape).join(","));
+        lines.push(["Highlight","FI","Integration","Window Start","Window End","Launches","Sessions","Successful Cardholders","Success Rate","Placements"].map(csvEscape).join(","));
         validH.forEach(h => {
-          const selSuccPct = typeof h.selSuccessRatio === "number" ? (h.selSuccessRatio * 100).toFixed(1) + "%" : "";
-          const sessSuccPct = typeof h.sessionSuccessRatio === "number" ? (h.sessionSuccessRatio * 100).toFixed(1) + "%" : "";
-          lines.push([h.label, h.fi, h.integration, h.start, h.end, h.sel || 0, h.sessions || 0, h.sess_with_success || 0, selSuccPct, sessSuccPct, h.placements || 0].map(csvEscape).join(","));
+          const srVal = typeof h.successRatio === "number" ? (h.successRatio * 100).toFixed(1) + "%" : "";
+          const srDisplay = h.isEstimated ? "~" + srVal : srVal;
+          lines.push([h.label, h.fi, h.integration, h.start, h.end, h.sel || 0, h.sessions || 0, h.sess_with_success || 0, srDisplay, h.placements || 0].map(csvEscape).join(","));
         });
         lines.push("", "");
       }
 
       // Summary by FI
       if (visibleRows.length) {
-        const header = ["FI","Partner","Integration","Instance","GA Select","Visits @Select","GA User","GA Cred","Monthly Reach %","Select→User %","Select→Cred %","Success Rate","Visits","Successful Cardholders","Cardholder Success %","Placements"];
+        const header = ["FI","Partner","Integration","Instance","GA Select","Sess @Select","GA User","GA Cred","Monthly Reach %","Select→User %","Select→Cred %","Sessions","Successful Cardholders","Success Rate","Placements"];
         lines.push("Summary by FI");
         lines.push(header.map(csvEscape).join(","));
         visibleRows.forEach(row => {
           const reachPct = formatMonthlyReachPct(row);
           const selUserPct = row.cs_select ? (((row.cs_user || 0) / row.cs_select) * 100).toFixed(1) + "%" : "";
           const selCredPct = row.cs_select ? (((row.cs_cred || 0) / row.cs_select) * 100).toFixed(1) + "%" : "";
-          const selSuccPct = row.cs_select && row.sess_with_success ? ((row.sess_with_success / row.cs_select) * 100).toFixed(1) + "%" : "";
-          const sessSuccPct = row.sessions && row.sess_with_success ? ((row.sess_with_success / row.sessions) * 100).toFixed(1) + "%" : "";
+          const sr = formatSuccessRate(row, row.integration_type || "");
           lines.push([
             row.fi, row.partner, row.integration_type, row.instance,
             row.ga_select || 0, row.cs_select || 0, row.ga_user || 0, row.ga_cred || 0,
-            reachPct, selUserPct, selCredPct, selSuccPct,
-            row.sessions || 0, row.sess_with_success || 0, sessSuccPct,
+            reachPct, selUserPct, selCredPct,
+            row.sessions || 0, row.sess_with_success || 0, sr.display,
             row.placements || 0,
           ].map(csvEscape).join(","));
         });
@@ -4315,12 +5300,14 @@
       if (partnerSummary && partnerSummary.rows && partnerSummary.rows.length) {
         const pctStr = (v) => typeof v === "number" && Number.isFinite(v) ? v.toFixed(1) + "%" : "";
         lines.push(`${partnerSummary.partner} Integration Mix`);
-        lines.push(["Integration","FIs","GA Select","Success Rate","Visits","Successful Cardholders","Cardholder Success %"].map(csvEscape).join(","));
+        lines.push(["Integration","FIs","GA Select","Sessions","Successful Cardholders","Success Rate"].map(csvEscape).join(","));
         partnerSummary.rows.forEach(r => {
-          lines.push([r.integration, r.fiCount, r.ga_select, pctStr(r.selSuccessPct), r.sessions, r.sess_with_success, pctStr(r.sessionSuccessPct)].map(csvEscape).join(","));
+          var srStr = r.isEstimated ? "~" + pctStr(r.successPct) : pctStr(r.successPct);
+          lines.push([r.integration, r.fiCount, r.ga_select, r.sessions, r.sess_with_success, srStr].map(csvEscape).join(","));
         });
         const t = partnerSummary.totals || {};
-        lines.push([t.integration || "Total", t.fiCount || 0, t.ga_select || 0, pctStr(t.selSuccessPct), t.sessions || 0, t.sess_with_success || 0, pctStr(t.sessionSuccessPct)].map(csvEscape).join(","));
+        var tSrStr = t.isEstimated ? "~" + pctStr(t.successPct) : pctStr(t.successPct);
+        lines.push([t.integration || "Total", t.fiCount || 0, t.ga_select || 0, t.sessions || 0, t.sess_with_success || 0, tSrStr].map(csvEscape).join(","));
       }
 
       return lines.join("\n");
@@ -4417,10 +5404,36 @@
     }
 
     // ─── View mode ───
+    // Wrapped in IIFE so `return` is valid (Safari rejects top-level return)
+    (function __viewModeInit() {
     const __viewParams = new URLSearchParams(window.location.search);
     const __isViewMode = __viewParams.get("view") === "1";
 
     if (__isViewMode) {
+      // ─── Share link expiration ───
+      // New links use "expires" param; legacy links use "created" with 3-day default
+      const __expiresRaw = __viewParams.get("expires");
+      const __createdRaw = __viewParams.get("created");
+      const __expiresTs = __expiresRaw ? parseInt(__expiresRaw, 10) : 0;
+      const __createdTs = __createdRaw ? parseInt(__createdRaw, 10) : 0;
+      const __effectiveExpires = __expiresTs || (__createdTs ? __createdTs + 3 * 24 * 60 * 60 * 1000 : 0);
+      if (!__effectiveExpires || Date.now() > __effectiveExpires) {
+        const sisContent = document.querySelector(".sis-content") || document.querySelector(".sis-panel") || document.body;
+        sisContent.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;min-height:60vh;"><div style="text-align:center;max-width:480px;padding:40px;"><div style="font-size:48px;margin-bottom:16px;">&#128279;</div><h2 style="color:#1e293b;margin:0 0 12px;">This shared link has expired</h2><p style="color:#64748b;font-size:15px;line-height:1.6;">Shared dashboard links expire for security. Please ask the sender to generate a new link.</p><p style="color:#94a3b8;font-size:13px;margin-top:20px;">Strivve CardUpdatr\u2122</p></div></div>';
+        const __expSid = __viewParams.get("sid");
+        if (__expSid) { try { fetch("/api/share-log/view?sid=" + encodeURIComponent(__expSid) + "&expired=1").catch(function() {}); } catch (e) {} }
+        return;
+      }
+      // Compute remaining time for header display
+      var __expiresInText = "";
+      if (__effectiveExpires) {
+        var __remainMs = __effectiveExpires - Date.now();
+        var __remainHrs = Math.max(0, Math.ceil(__remainMs / (60 * 60 * 1000)));
+        if (__remainHrs <= 0) __expiresInText = "Expiring soon";
+        else if (__remainHrs < 24) __expiresInText = "Link expires in " + __remainHrs + " hour" + (__remainHrs === 1 ? "" : "s");
+        else { var __remainDays = Math.ceil(__remainHrs / 24); __expiresInText = "Link expires in " + __remainDays + " day" + (__remainDays === 1 ? "" : "s"); }
+      }
+
       window.__sisViewMode = true;
       document.body.classList.add('share-presentation-mode');
 
@@ -4474,10 +5487,32 @@
         <div class="pres-title">${isQBRShare ? 'Quarterly Business Review' : 'Cardholder Engagement Report'}</div>
         ${fiNameShare ? `<div class="pres-fi">${fiNameShare}</div>` : ''}
         ${partnerShare ? `<div class="pres-partner">${partnerShare}</div>` : ''}
-        <div class="pres-dates">
-          ${vpFrom || ''} \u2014 ${vpTo || ''}${daysCount ? ` (${daysCount} Days)` : ''}
+        <div class="pres-date-controls">
+          <div class="pdc-field">
+            <span class="pdc-label">Range</span>
+            <select id="presDatePreset">
+              <option value="last7">Last 7 days</option>
+              <option value="last14">Last 14 days</option>
+              <option value="last30">Last 30 days</option>
+              <option value="last60">Last 60 days</option>
+              <option value="last90">Last 90 days</option>
+              <option value="ytd">Year to date</option>
+              <option value="">Custom</option>
+            </select>
+          </div>
+          <div class="pdc-field">
+            <span class="pdc-label">From</span>
+            <input type="date" id="presStartDate" value="${vpFrom || ''}" />
+          </div>
+          <div class="pdc-field">
+            <span class="pdc-label">To</span>
+            <input type="date" id="presEndDate" value="${vpTo || ''}" />
+          </div>
+          <button class="pdc-update-btn" id="presApplyBtn">Update</button>
+          <span class="pdc-day-count" id="presDayCount">${daysCount ? `${daysCount} days` : ''}</span>
         </div>
         <div class="pres-prepared">Prepared by Strivve CardUpdatr\u2122 Platform</div>
+        ${__expiresInText ? '<div style="margin-top:6px;font-size:12px;color:#94a3b8;letter-spacing:0.3px;">' + __expiresInText + '</div>' : ''}
         <div style="margin-top:10px;">
           <button id="exportPdfBtnPres" class="form-button" style="font-size:0.85rem;padding:8px 20px;min-width:auto;">Export PDF</button>
         </div>
@@ -4490,6 +5525,62 @@
       const presPdfBtn = document.getElementById("exportPdfBtnPres");
       if (presPdfBtn && exportPdfBtnView) {
         presPdfBtn.addEventListener("click", () => exportPdfBtnView.click());
+      }
+
+      // ─── Wire presentation date controls ───
+      const presPreset = document.getElementById("presDatePreset");
+      const presStart = document.getElementById("presStartDate");
+      const presEnd = document.getElementById("presEndDate");
+      const presApply = document.getElementById("presApplyBtn");
+      const presDayCount = document.getElementById("presDayCount");
+
+      // Set initial preset to Custom since share link has explicit dates
+      if (presPreset) presPreset.value = "";
+
+      function updatePresDayCount() {
+        const s = presStart?.value || startDateInput.value;
+        const e = presEnd?.value || endDateInput.value;
+        const dc = s && e ? dayCountInclusive(s, e) : null;
+        if (presDayCount) presDayCount.textContent = dc ? `${dc} days` : '';
+      }
+
+      function syncPresToReal() {
+        if (presStart?.value) startDateInput.value = presStart.value;
+        if (presEnd?.value) endDateInput.value = presEnd.value;
+      }
+
+      if (presPreset) {
+        presPreset.addEventListener("change", () => {
+          const val = presPreset.value;
+          if (val) {
+            applyPresetRange(val);
+            // Copy real inputs back to presentation inputs
+            if (presStart) presStart.value = startDateInput.value;
+            if (presEnd) presEnd.value = endDateInput.value;
+          }
+          updatePresDayCount();
+        });
+      }
+
+      if (presStart) presStart.addEventListener("change", () => {
+        if (presPreset) presPreset.value = "";
+        updatePresDayCount();
+      });
+      if (presEnd) presEnd.addEventListener("change", () => {
+        if (presPreset) presPreset.value = "";
+        updatePresDayCount();
+      });
+
+      if (presApply) {
+        presApply.addEventListener("click", () => {
+          syncPresToReal();
+          lastRenderContext = null;
+          lastFilterSnapshot = null;
+          startLoading("Loading data\u2026");
+          safeApplyFilters()
+            .catch(err => console.error("apply failed", err))
+            .finally(() => stopLoading());
+        });
       }
 
       // Inject clean footer
@@ -4513,7 +5604,9 @@
         const presetEl = document.getElementById("datePreset");
         if (presetEl) presetEl.value = "last7";
       }
-      // Share button
+      // Share button — fetch configurable TTL, then wire up
+      var __shareTtlHours = 72; // default fallback
+      fetch("/api/share-settings").then(function(r) { return r.json(); }).then(function(d) { __shareTtlHours = d.ttlHours || 72; }).catch(function() {});
       const shareLinkBtn = document.getElementById("shareLinkBtn");
       if (shareLinkBtn) {
         shareLinkBtn.style.display = "";
@@ -4525,6 +5618,7 @@
           crypto.getRandomValues(sidBytes);
           const sid = Array.from(sidBytes).map(b => b.toString(16).padStart(2, "0")).join("");
           params.set("sid", sid);
+          params.set("expires", Date.now() + __shareTtlHours * 60 * 60 * 1000);
           if (startDateInput && startDateInput.value) params.set("from", startDateInput.value);
           if (endDateInput && endDateInput.value) params.set("to", endDateInput.value);
           if (fs.fis && fs.fis.size > 0) {
@@ -4534,6 +5628,14 @@
           if (fs.__partnerSetTouched && fs.partnerSet && fs.partnerSet.size > 0) {
             const arr = Array.from(fs.partnerSet);
             if (arr.length === 1) params.set("partner", arr[0]);
+          }
+          if (fs.__instanceSetTouched && fs.instanceSet && fs.instanceSet.size > 0) {
+            const arr = Array.from(fs.instanceSet);
+            if (arr.length === 1) params.set("instance", arr[0]);
+          }
+          if (fs.__integrationSetTouched && fs.integrationSet && fs.integrationSet.size > 0) {
+            const arr = Array.from(fs.integrationSet);
+            if (arr.length === 1) params.set("integration", arr[0]);
           }
           // Preserve QBR mode in share link
           if (document.body.classList.contains("qbr-mode")) {
@@ -4691,22 +5793,23 @@
           try {
             const ctx = insightsCtx;
             const narrativeResults = EI.evaluateNarratives(ctx);
-            const spectrumDiag = EI.buildSpectrumDiagnosis(ctx);
+            const spectrumDiag = ctx.integrationContext === 'nonsso' ? EI.buildNonSSOSpectrumDiagnosis(ctx) : EI.buildSpectrumDiagnosis(ctx);
             const { actions } = EI.evaluateActions(ctx);
             const projections = EI.computeProjections(ctx);
 
             const pdfGaHidden = document.body.classList.contains('hide-ga');
+            const pdfCardholders = ctx.totalCardholders || (pdfGaHidden ? ctx.totalSessions : ctx.gaSelect);
             const pdfFunnelStages = pdfGaHidden ? [
-              { label: 'Visits', value: ctx.totalSessions, color: '#fff7ed', borderColor: '#fdba74', textColor: '#9a3412' },
+              { label: 'Cardholders', value: pdfCardholders, color: '#ede9fe', borderColor: '#c4b5fd', textColor: '#5b21b6' },
               { label: 'Credential Entry', value: ctx.credSessions || ctx.gaCred, color: '#fef3c7', borderColor: '#fcd34d', textColor: '#92400e' },
-              { label: 'Successful Cardholders', value: ctx.sessionsWithSuccess, color: '#dbeafe', borderColor: '#93c5fd', textColor: '#1e40af' },
-              { label: 'Placements', value: ctx.successfulPlacements, color: '#dcfce7', borderColor: '#86efac', textColor: '#166534' },
+              { label: 'Successful', value: ctx.sessionsWithSuccess, color: '#dbeafe', borderColor: '#93c5fd', textColor: '#1e40af' },
+              { label: 'Cards Updated', value: ctx.successfulPlacements, color: '#dcfce7', borderColor: '#86efac', textColor: '#166534' },
             ] : [
-              { label: 'Launches', value: ctx.gaSelect, color: '#ede9fe', borderColor: '#c4b5fd', textColor: '#5b21b6' },
-              { label: 'Visits', value: ctx.totalSessions, color: '#fff7ed', borderColor: '#fdba74', textColor: '#9a3412' },
+              { label: 'Cardholders', value: pdfCardholders, color: '#ede9fe', borderColor: '#c4b5fd', textColor: '#5b21b6' },
+              { label: 'Sessions', value: ctx.totalSessions, color: '#fff7ed', borderColor: '#fdba74', textColor: '#9a3412' },
               { label: 'Credential Entry', value: ctx.credSessions || ctx.gaCred, color: '#fef3c7', borderColor: '#fcd34d', textColor: '#92400e' },
-              { label: 'Successful Cardholders', value: ctx.sessionsWithSuccess, color: '#dbeafe', borderColor: '#93c5fd', textColor: '#1e40af' },
-              { label: 'Placements', value: ctx.successfulPlacements, color: '#dcfce7', borderColor: '#86efac', textColor: '#166534' },
+              { label: 'Successful', value: ctx.sessionsWithSuccess, color: '#dbeafe', borderColor: '#93c5fd', textColor: '#1e40af' },
+              { label: 'Cards Updated', value: ctx.successfulPlacements, color: '#dcfce7', borderColor: '#86efac', textColor: '#166534' },
             ];
             insightsPayload = {
               funnel: pdfFunnelStages,
@@ -4716,7 +5819,7 @@
                 benchmarks: EI.getBenchmarkDisplay(n.benchmarkKeys),
               })),
               spectrum: {
-                currentRate: ctx.sessionSuccessPct,
+                currentRate: ctx.launchSuccessPct != null ? ctx.launchSuccessPct : ctx.sessionSuccessPct,
                 bestRate: ctx.bestWeekRate,
                 diagnosisHtml: spectrumDiag.html,
               },
@@ -4736,7 +5839,7 @@
                   totalSessions: q.metrics.totalSessions,
                   sessionsWithSuccess: q.metrics.sessionsWithSuccess,
                   successfulPlacements: q.metrics.successfulPlacements,
-                  sessionSuccessPct: q.metrics.sessionSuccessPct,
+                  successRate: q.metrics.launchSuccessPct != null ? q.metrics.launchSuccessPct : q.metrics.sessionSuccessPct,
                   gaSelect: q.metrics.gaSelect,
                   monthlyReachPct: q.metrics.monthlyReachPct,
                   avgCardsPerSession: q.metrics.avgCardsPerSession,
@@ -4749,7 +5852,7 @@
               })),
               sparklines: {
                 sessions: buildSparklineSVG(qd.map(q => q.metrics.totalSessions), { color: '#f59e0b' }),
-                successRate: buildSparklineSVG(qd.map(q => q.metrics.sessionSuccessPct || 0), { color: '#2563eb' }),
+                successRate: buildSparklineSVG(qd.map(q => (q.metrics.launchSuccessPct != null ? q.metrics.launchSuccessPct : q.metrics.sessionSuccessPct) || 0), { color: '#2563eb' }),
                 placements: buildSparklineSVG(qd.map(q => q.metrics.successfulPlacements), { color: '#16a34a' }),
               },
               summary: document.getElementById('qbrSummaryContent')?.innerHTML || '',
@@ -4780,7 +5883,7 @@
             label: h.label, fi: h.fi, instance: h.instance, integration: h.integration,
             start: h.start, end: h.end, sel: h.sel, sessions: h.sessions,
             sess_with_success: h.sess_with_success, placements: h.placements,
-            selSuccessRatio: h.selSuccessRatio, sessionSuccessRatio: h.sessionSuccessRatio, empty: h.empty,
+            successRatio: h.successRatio, isEstimated: h.isEstimated, sessionSuccessRatio: h.sessionSuccessRatio, empty: h.empty,
           })),
           partnerSummary: latestPartnerSummary || null,
           insights: insightsPayload,
@@ -4910,6 +6013,7 @@
     }
 
     applyDefaultDateRange(false);
+    })(); // end __viewModeInit IIFE
 
     // Initialize filters
     (function ensureFilters(pageId){

@@ -1,0 +1,696 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <script>try{var t=localStorage.getItem('sis-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+  <title>Campaign URL Builder</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <link rel="stylesheet" href="./sis-shared.css?v=navfix" />
+  <link rel="stylesheet" href="./assets/css/sis.css">
+  <link rel="stylesheet" href="./assets/css/mobile.css">
+  <script src="./assets/js/passcode-gate.js"></script>
+  <script defer src="./assets/js/sis.js"></script>
+  <script src="./assets/js/config.js"></script>
+  <script defer src="./assets/js/nav.js"></script>
+  <script src="./assets/js/qrcode.min.js"></script>
+  <script defer src="./assets/js/campaign-builder.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function(){
+      if (window.renderHeaderNav && !window.__sisHeaderNav_campaign) {
+        window.__sisHeaderNav_campaign = true;
+        window.renderHeaderNav({
+          currentId: "campaign-builder",
+          title: "Campaign URL Builder",
+          subtitle: "Build tracked CardUpdatr launch URLs for partner campaigns"
+        });
+      }
+    });
+  </script>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      background: var(--bg);
+      color: var(--panel-title);
+      font-family: "Inter", "Segoe UI", ui-sans-serif, system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+
+    .builder-wrap {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 24px 20px 60px;
+    }
+
+    /* --- Collapsible Cards --- */
+    .builder-card {
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 18px;
+      margin-top: 20px;
+      box-shadow: 0 18px 45px rgba(15, 23, 42, 0.12);
+      overflow: visible;
+    }
+    .builder-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 24px;
+      cursor: pointer;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .builder-card-header:hover {
+      background: var(--hover-bg, rgba(148, 163, 184, 0.06));
+    }
+    .builder-card-header h2 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--ink);
+    }
+    .builder-card-header .collapse-icon {
+      font-size: 18px;
+      color: var(--muted);
+      transition: transform 0.2s ease;
+    }
+    .builder-card.collapsed .collapse-icon {
+      transform: rotate(-90deg);
+    }
+    .builder-card-body {
+      padding: 0 24px 22px;
+      overflow: visible;
+    }
+    .builder-card.collapsed .builder-card-body {
+      display: none;
+    }
+
+    /* --- Form Grid --- */
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 14px 18px;
+    }
+    .form-grid.two-col {
+      grid-template-columns: 1fr 1fr;
+    }
+    .full-width {
+      grid-column: 1 / -1;
+    }
+    label {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
+    input, select, textarea {
+      border-radius: 10px;
+      border: 1px solid var(--panel-border);
+      background: var(--input-bg);
+      color: var(--panel-title);
+      padding: 9px 12px;
+      font-size: 14px;
+      height: 40px;
+      line-height: 22px;
+    }
+    textarea {
+      height: auto;
+      resize: vertical;
+      font-family: inherit;
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: var(--link, #3b82f6);
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+    }
+    .input-hint {
+      font-size: 11px;
+      letter-spacing: normal;
+      text-transform: none;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+    .input-error {
+      border-color: rgba(248, 113, 113, 0.9) !important;
+      box-shadow: 0 0 0 1px rgba(248, 113, 113, 0.4) !important;
+    }
+
+    /* --- Chip / Tag Input (top_sites) --- */
+    .chip-input-wrap {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+      border-radius: 10px;
+      border: 1px solid var(--panel-border);
+      background: var(--input-bg);
+      padding: 6px 10px;
+      min-height: 40px;
+      cursor: text;
+    }
+    .chip-input-wrap:focus-within {
+      border-color: var(--link, #3b82f6);
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+    }
+    .chip-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(59, 130, 246, 0.12);
+      color: var(--link, #3b82f6);
+      border-radius: 6px;
+      padding: 3px 8px;
+      font-size: 13px;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+    .chip-tag .chip-remove {
+      cursor: pointer;
+      font-size: 14px;
+      line-height: 1;
+      opacity: 0.6;
+      margin-left: 2px;
+    }
+    .chip-tag .chip-remove:hover {
+      opacity: 1;
+    }
+    .chip-input {
+      border: none !important;
+      background: transparent !important;
+      padding: 0 !important;
+      height: 26px !important;
+      min-width: 100px;
+      flex: 1;
+      font-size: 14px;
+      color: var(--panel-title);
+      outline: none !important;
+      box-shadow: none !important;
+    }
+
+
+    /* --- Color Combo --- */
+    .color-combo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .color-combo input[type="text"] {
+      flex: 1;
+    }
+    .color-combo input[type="color"] {
+      width: 40px;
+      height: 40px;
+      padding: 2px;
+      border-radius: 10px;
+      border: 1px solid var(--panel-border);
+      cursor: pointer;
+      background: var(--input-bg);
+    }
+
+    /* --- Toggle Switch --- */
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      height: 40px;
+    }
+    .toggle-switch {
+      position: relative;
+      width: 44px;
+      height: 24px;
+      flex-shrink: 0;
+    }
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+      position: absolute;
+    }
+    .toggle-slider {
+      position: absolute;
+      cursor: pointer;
+      inset: 0;
+      background: rgba(148, 163, 184, 0.25);
+      border-radius: 24px;
+      transition: background 0.2s;
+    }
+    .toggle-slider::before {
+      content: "";
+      position: absolute;
+      left: 3px;
+      top: 3px;
+      width: 18px;
+      height: 18px;
+      background: #fff;
+      border-radius: 50%;
+      transition: transform 0.2s;
+    }
+    .toggle-switch input:checked + .toggle-slider {
+      background: var(--link, #3b82f6);
+    }
+    .toggle-switch input:checked + .toggle-slider::before {
+      transform: translateX(20px);
+    }
+    .toggle-label-text {
+      font-size: 14px;
+      color: var(--panel-title);
+    }
+
+    /* --- Output Section --- */
+    .output-card {
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 18px;
+      margin-top: 20px;
+      padding: 24px;
+      box-shadow: 0 18px 45px rgba(15, 23, 42, 0.12);
+    }
+    .output-card h2 {
+      margin: 0 0 16px;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--ink);
+    }
+    .output-empty {
+      color: var(--muted);
+      font-size: 14px;
+      font-style: italic;
+      padding: 20px 0;
+      text-align: center;
+    }
+    .output-section {
+      margin-bottom: 20px;
+    }
+    .output-section:last-child {
+      margin-bottom: 0;
+    }
+    .output-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    .output-url-wrap {
+      position: relative;
+    }
+    .output-url {
+      background: var(--code-bg, rgba(148, 163, 184, 0.08));
+      border: 1px solid var(--panel-border);
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-family: "SF Mono", "Fira Code", "Cascadia Code", ui-monospace, monospace;
+      font-size: 13px;
+      line-height: 1.5;
+      word-break: break-all;
+      color: var(--panel-title);
+      max-height: 120px;
+      overflow-y: auto;
+    }
+    .output-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    /* --- Buttons --- */
+    .btn {
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      text-decoration: none;
+      color: #f8fafc;
+      border-radius: 999px;
+      font-weight: 600;
+      letter-spacing: 0.2px;
+      font-size: 13px;
+      padding: 8px 18px;
+      border: none;
+      cursor: pointer;
+      transition: background 0.15s, box-shadow 0.15s;
+    }
+    .btn-primary {
+      background: var(--link, #3b82f6);
+    }
+    .btn-primary:hover {
+      filter: brightness(1.1);
+    }
+    .btn-secondary {
+      background: rgba(148, 163, 184, 0.15);
+      color: var(--panel-title);
+    }
+    .btn-secondary:hover {
+      background: rgba(148, 163, 184, 0.25);
+    }
+    .btn-sm {
+      font-size: 12px;
+      padding: 6px 14px;
+    }
+    .btn-icon {
+      gap: 6px;
+    }
+    .copy-success {
+      color: #22c55e;
+      font-size: 12px;
+      font-weight: 600;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    .copy-success.show {
+      opacity: 1;
+    }
+
+    /* --- QR Section --- */
+    .qr-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      padding: 16px 0;
+    }
+    .qr-wrap canvas,
+    .qr-wrap img {
+      border-radius: 8px;
+      border: 4px solid #fff;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+    }
+
+    /* --- JSON Preview --- */
+    .json-toggle {
+      cursor: pointer;
+      font-size: 13px;
+      color: var(--link, #3b82f6);
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      margin-bottom: 8px;
+    }
+    .json-toggle:hover {
+      text-decoration: underline;
+    }
+    .json-preview {
+      background: var(--code-bg, rgba(148, 163, 184, 0.08));
+      border: 1px solid var(--panel-border);
+      border-radius: 10px;
+      padding: 14px;
+      font-family: "SF Mono", "Fira Code", "Cascadia Code", ui-monospace, monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      color: var(--panel-title);
+      white-space: pre;
+      overflow-x: auto;
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease;
+      border-width: 0;
+      padding: 0;
+    }
+    .json-preview.open {
+      max-height: 600px;
+      overflow-y: auto;
+      border-width: 1px;
+      padding: 14px;
+    }
+
+    /* --- Presets Section --- */
+    .presets-card {
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 18px;
+      margin-top: 20px;
+      padding: 20px 24px;
+      box-shadow: 0 18px 45px rgba(15, 23, 42, 0.12);
+    }
+    .presets-card h3 {
+      margin: 0 0 14px;
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--ink);
+    }
+    .preset-save-row {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .preset-save-row input {
+      flex: 1;
+    }
+    .preset-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .preset-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      border-radius: 10px;
+      background: var(--code-bg, rgba(148, 163, 184, 0.06));
+      border: 1px solid var(--panel-border);
+    }
+    .preset-item-name {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--panel-title);
+    }
+    .preset-item-actions {
+      display: flex;
+      gap: 8px;
+    }
+    .preset-empty {
+      color: var(--muted);
+      font-size: 13px;
+      font-style: italic;
+      padding: 8px 0;
+    }
+
+    /* --- Section Divider --- */
+    .section-divider {
+      border: none;
+      border-top: 1px solid var(--panel-border);
+      margin: 16px 0;
+    }
+
+    /* --- Dark mode overrides --- */
+    [data-theme="dark"] .chip-tag {
+      background: rgba(59, 130, 246, 0.2);
+    }
+    [data-theme="dark"] .copy-success {
+      color: #4ade80;
+    }
+    [data-theme="dark"] .qr-wrap canvas,
+    [data-theme="dark"] .qr-wrap img {
+      border-color: rgba(255,255,255,0.15);
+    }
+
+    /* --- Responsive --- */
+    @media (max-width: 600px) {
+      .builder-wrap {
+        padding: 16px 12px 40px;
+      }
+      .builder-card-header {
+        padding: 14px 16px;
+      }
+      .builder-card-body {
+        padding: 0 16px 18px;
+      }
+      .output-card {
+        padding: 18px 16px;
+      }
+      .form-grid.two-col {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="sis-header"></div>
+
+  <div class="builder-wrap">
+
+    <!-- Panel 1: Configuration -->
+    <div class="builder-card" id="configPanel">
+      <div class="builder-card-header" data-panel="configPanel">
+        <h2>Configuration</h2>
+        <span class="collapse-icon">&#9660;</span>
+      </div>
+      <div class="builder-card-body">
+        <div class="form-grid">
+          <label class="full-width">
+            Hostname <span style="color:var(--link,#3b82f6)">*</span>
+            <input type="text" id="hostname" placeholder="fi.cardupdatr.app" autocomplete="off" />
+            <span class="input-hint" id="hostnameHint">The CardUpdatr hostname for this FI (e.g. fi.cardupdatr.app)</span>
+          </label>
+          <label class="full-width">
+            Top Sites
+            <div class="chip-input-wrap" id="topSitesWrap">
+              <input type="text" class="chip-input" id="topSitesInput" placeholder="Type domain and press Enter" autocomplete="off" />
+            </div>
+            <span class="input-hint">Pre-selected merchant domains (e.g. amazon.com, netflix.com)</span>
+          </label>
+          <label>
+            Merchant Site Tags
+            <select id="merchantSiteTag">
+              <option value="demo" selected>demo</option>
+              <option value="prod">prod</option>
+              <option value="beta">beta</option>
+              <option value="synthetic">synthetic</option>
+              <option value="unrestricted">unrestricted</option>
+              <option value="limited">limited</option>
+              <option value="down">down</option>
+            </select>
+          </label>
+          <label>
+            Overlay Mode
+            <div class="toggle-row">
+              <div class="toggle-switch">
+                <input type="checkbox" id="overlayToggle" />
+                <span class="toggle-slider"></span>
+              </div>
+              <span class="toggle-label-text" id="overlayLabel">Off</span>
+            </div>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Panel 2: Source Tracking -->
+    <div class="builder-card" id="sourcePanel">
+      <div class="builder-card-header" data-panel="sourcePanel">
+        <h2>Source Tracking</h2>
+        <span class="collapse-icon">&#9660;</span>
+      </div>
+      <div class="builder-card-body">
+        <div class="form-grid">
+          <label>
+            Source Type
+            <select id="sourceType">
+              <option value="">-- select --</option>
+              <option value="email">email</option>
+              <option value="navigation">navigation</option>
+              <option value="push_notification">push_notification</option>
+              <option value="promo">promo</option>
+              <option value="qr_code">qr_code</option>
+              <option value="sms">sms</option>
+              <option value="test">test</option>
+            </select>
+          </label>
+          <label>
+            Category
+            <select id="sourceCategory">
+              <option value="">-- select --</option>
+              <option value="activation">activation</option>
+              <option value="card_controls">card_controls</option>
+              <option value="campaign">campaign</option>
+              <option value="other">other</option>
+            </select>
+          </label>
+          <label>
+            Sub-Category
+            <input type="text" id="sourceSubCategory" placeholder="e.g. spring-2026" autocomplete="off" />
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Panel 3: Styling (collapsed by default) -->
+    <div class="builder-card collapsed" id="stylePanel">
+      <div class="builder-card-header" data-panel="stylePanel">
+        <h2>Styling</h2>
+        <span class="collapse-icon">&#9660;</span>
+      </div>
+      <div class="builder-card-body">
+        <div class="form-grid">
+          <label class="full-width">
+            Card Description
+            <input type="text" id="cardDescription" placeholder="e.g. Your Visa Debit Card" autocomplete="off" />
+          </label>
+          <label>
+            Button Color
+            <div class="color-combo">
+              <input type="text" id="buttonColor" placeholder="#1E40AF" autocomplete="off" />
+              <input type="color" id="buttonColorPicker" value="#1E40AF" />
+            </div>
+          </label>
+          <label>
+            Border Color
+            <div class="color-combo">
+              <input type="text" id="borderColor" placeholder="#E5E7EB" autocomplete="off" />
+              <input type="color" id="borderColorPicker" value="#E5E7EB" />
+            </div>
+          </label>
+          <label>
+            Button Border Radius
+            <input type="text" id="borderRadius" placeholder="e.g. 6px" autocomplete="off" />
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Output Section -->
+    <div class="output-card" id="outputCard">
+      <h2>Generated URL</h2>
+      <div id="outputEmpty" class="output-empty">Enter a hostname above to generate a URL</div>
+      <div id="outputContent" style="display:none;">
+        <!-- URL -->
+        <div class="output-section">
+          <div class="output-label">Launch URL</div>
+          <div class="output-url-wrap">
+            <div class="output-url" id="outputUrl"></div>
+          </div>
+          <div class="output-actions">
+            <button class="btn btn-primary btn-sm btn-icon" id="copyUrlBtn">Copy URL</button>
+            <button class="btn btn-secondary btn-sm btn-icon" id="openUrlBtn">Open in New Tab</button>
+            <span class="copy-success" id="copyUrlFeedback">Copied!</span>
+          </div>
+        </div>
+
+        <hr class="section-divider" />
+
+        <!-- QR Code -->
+        <div class="output-section">
+          <div class="output-label">QR Code</div>
+          <div class="qr-wrap">
+            <div id="qrContainer"></div>
+            <button class="btn btn-secondary btn-sm btn-icon" id="downloadQrBtn">Download QR (PNG)</button>
+          </div>
+        </div>
+
+        <hr class="section-divider" />
+
+        <!-- JSON Preview -->
+        <div class="output-section">
+          <div class="output-label">
+            <span class="json-toggle" id="jsonToggle">Settings JSON &#9660;</span>
+          </div>
+          <div class="json-preview" id="jsonPreview"></div>
+          <div class="output-actions" id="jsonActions" style="display:none;">
+            <button class="btn btn-secondary btn-sm btn-icon" id="copyJsonBtn">Copy JSON</button>
+            <span class="copy-success" id="copyJsonFeedback">Copied!</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Presets -->
+    <div class="presets-card">
+      <h3>Saved Presets</h3>
+      <div class="preset-save-row">
+        <input type="text" id="presetName" placeholder="Preset name" autocomplete="off" />
+        <button class="btn btn-primary btn-sm" id="savePresetBtn">Save</button>
+      </div>
+      <div class="preset-list" id="presetList">
+        <div class="preset-empty">No saved presets</div>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>

@@ -10,6 +10,11 @@
 (function() {
 'use strict';
 
+// ─── Low-Volume Threshold ─────────────────────────────────────────────────────
+// Below this session count, suppress conversion-quality analysis and replace
+// with traffic-growth messaging. At n=30, a 10% rate has 95% CI ~2–26%.
+const LOW_VOLUME_THRESHOLD = 30;
+
 // ─── Tier Boundaries ────────────────────────────────────────────────────────
 
 const TIER_BOUNDARIES = {
@@ -19,6 +24,16 @@ const TIER_BOUNDARIES = {
   // Transition zones
   tier2to1: { min: 12, max: 21, label: 'Campaign → Activation', color: '#84cc16' },
   tier3to2: { min: 3, max: 8, label: 'Discovery → Campaign', color: '#f97316' },
+};
+
+// Non-SSO tiers: post-commitment traffic has higher baselines
+// Every non-SSO "visit" already represents a cardholder who entered card data manually.
+const NONSSO_TIER_BOUNDARIES = {
+  tier1: { min: 35, max: 67, label: 'Card Activation Flow', color: '#22c55e' },
+  tier2: { min: 15, max: 25, label: 'Targeted Campaigns', color: '#eab308' },
+  tier3: { min: 0, max: 8, label: 'Organic Discovery', color: '#ef4444' },
+  tier2to1: { min: 25, max: 35, label: 'Campaign → Activation', color: '#84cc16' },
+  tier3to2: { min: 8, max: 15, label: 'Discovery → Campaign', color: '#f97316' },
 };
 
 // ─── Benchmark Data ─────────────────────────────────────────────────────────
@@ -36,7 +51,7 @@ const BENCHMARKS = {
   campaignWeeksSustained: {
     sessionSuccessRange: '8–12%',
     description: 'Best campaign weeks across the network',
-    proof: '6 separate weeks in 2025 and 3 in 2024 sustained this range across hundreds of visits',
+    proof: 'Multiple weeks sustained this range across hundreds of visits',
     scaleProof: 'One partner achieved 409 visits at 9.8% in a single week — high volume doesn\'t dilute conversion when traffic is motivated',
     _admin: {
       sources: 'MSUFCU best weeks 2025 (6 weeks confirmed)',
@@ -154,7 +169,7 @@ const NARRATIVE_RULES = [
     id: 'avgCards_low',
     metric: 'avgCardsPerSession',
     section: 'outcomes',
-    condition: (m) => m.avgCardsPerSession !== null && m.avgCardsPerSession > 0 && m.avgCardsPerSession < 1.5,
+    condition: (m) => m.avgCardsPerSession !== null && m.avgCardsPerSession > 0 && m.avgCardsPerSession < 1.5 && m.sessionsWithSuccess >= 10,
     narrative: (m) => `Your successful cardholders are averaging <strong>${fmt(m.avgCardsPerSession)}</strong> card updates per visit. Partners who surface a curated list of popular, relevant merchants see cardholders update more accounts per visit — deepening each visit's impact and multiplying the value of every successful engagement.`,
     benchmarks: [],
   },
@@ -162,7 +177,7 @@ const NARRATIVE_RULES = [
     id: 'avgCards_good',
     metric: 'avgCardsPerSession',
     section: 'outcomes',
-    condition: (m) => m.avgCardsPerSession !== null && m.avgCardsPerSession >= 1.5,
+    condition: (m) => m.avgCardsPerSession !== null && m.avgCardsPerSession >= 1.5 && m.sessionsWithSuccess >= 10,
     narrative: (m) => `Your successful cardholders are updating <strong>${fmt(m.avgCardsPerSession)}</strong> merchants on average — strong depth. Once they commit, they're engaging across multiple merchants, which means every successful visit delivers compounding value.`,
     benchmarks: [],
   },
@@ -174,7 +189,7 @@ const NARRATIVE_RULES = [
     metric: 'monthlyReachPct',
     section: 'reach',
     condition: (m) => m.monthlyReachPct !== null && m.monthlyReachPct < 0.5,
-    narrative: (m) => `You're reaching <strong>${fmt(m.monthlyReachPct)}%</strong> of your member base today — and even small increases in visibility unlock outsized impact. Embedding CardUpdatr in card activation or reissuance flows is the fastest path to expanding reach to motivated cardholders who are ready to act.`,
+    narrative: (m) => `You're reaching <strong>${fmtPct(m.monthlyReachPct)}%</strong> of your member base today — and even small increases in visibility unlock outsized impact. Embedding CardUpdatr in card activation or reissuance flows is the fastest path to expanding reach to motivated cardholders who are ready to act.`,
     benchmarks: ['motivationMultiplier'],
   },
   {
@@ -182,7 +197,7 @@ const NARRATIVE_RULES = [
     metric: 'monthlyReachPct',
     section: 'reach',
     condition: (m) => m.monthlyReachPct !== null && m.monthlyReachPct >= 0.5 && m.monthlyReachPct < 2.5,
-    narrative: (m) => `<strong>${fmt(m.monthlyReachPct)}%</strong> monthly reach shows cardholders are finding CardUpdatr — a growing foundation. Expanding visibility through card activation and reissuance touchpoints is the next high-impact move, connecting with cardholders at the moment their motivation is highest.`,
+    narrative: (m) => `<strong>${fmtPct(m.monthlyReachPct)}%</strong> monthly reach shows cardholders are finding CardUpdatr — a growing foundation. Expanding visibility through card activation and reissuance touchpoints is the next high-impact move, connecting with cardholders at the moment their motivation is highest.`,
     benchmarks: [],
   },
   {
@@ -190,7 +205,7 @@ const NARRATIVE_RULES = [
     metric: 'monthlyReachPct',
     section: 'reach',
     condition: (m) => m.monthlyReachPct !== null && m.monthlyReachPct >= 2.5,
-    narrative: (m) => `<strong>${fmt(m.monthlyReachPct)}%</strong> monthly reach is strong visibility — your cardholders are consistently encountering CardUpdatr. The opportunity now is optimizing conversion quality within this engaged audience, turning more encounters into completed placements.`,
+    narrative: (m) => `<strong>${fmtPct(m.monthlyReachPct)}%</strong> monthly reach is strong visibility — your cardholders are consistently encountering CardUpdatr. The opportunity now is optimizing conversion quality within this engaged audience, turning more encounters into completed placements.`,
     benchmarks: [],
   },
 
@@ -200,7 +215,7 @@ const NARRATIVE_RULES = [
     id: 'credCompletion_low',
     metric: 'credCompletionPct',
     section: 'completion',
-    condition: (m) => m.credCompletionPct !== null && m.credCompletionPct > 0 && m.credCompletionPct < 25,
+    condition: (m) => m.credCompletionPct !== null && m.credCompletionPct > 0 && m.credCompletionPct < 25 && m.credSessions >= 10,
     narrative: (m) => `<strong>${fmt(m.credCompletionPct)}%</strong> of cardholders who enter credentials are completing placements — and each improvement in this rate directly multiplies your placement count. Partners who optimize the merchant experience and streamline authentication see meaningful gains here, turning more committed cardholders into completed placements.`,
     benchmarks: [],
   },
@@ -208,7 +223,7 @@ const NARRATIVE_RULES = [
     id: 'credCompletion_good',
     metric: 'credCompletionPct',
     section: 'completion',
-    condition: (m) => m.credCompletionPct !== null && m.credCompletionPct >= 25,
+    condition: (m) => m.credCompletionPct !== null && m.credCompletionPct >= 25 && m.credSessions >= 10,
     narrative: (m) => `Once cardholders commit to entering credentials, <strong>${fmt(m.credCompletionPct)}%</strong> complete a placement — a healthy completion rate that shows the process is working well. The biggest growth lever now is getting more cardholders to that commitment point through stronger positioning and motivated touchpoints.`,
     benchmarks: [],
   },
@@ -219,7 +234,7 @@ const NARRATIVE_RULES = [
     id: 'bestWeek_gap',
     metric: 'bestWeekGap',
     section: 'potential',
-    condition: (m) => m.bestWeekRate !== null && m.sessionSuccessPct !== null && m.sessionSuccessPct > 0 && (m.bestWeekRate / m.sessionSuccessPct) > 2,
+    condition: (m) => m.bestWeekRate !== null && m.sessionSuccessPct !== null && m.sessionSuccessPct > 0 && (m.bestWeekRate / m.sessionSuccessPct) > 2 && (m.bestWeekSessions || 0) >= 10,
     narrative: (m) => {
       const multiplier = fmt(m.bestWeekRate / m.sessionSuccessPct);
       return `Your best 7-day window hit <strong>${fmt(m.bestWeekRate)}%</strong> — that's <strong>${multiplier}×</strong> your current average, achieved with <em>your</em> cardholders on <em>your</em> integration. The demand is proven. The question isn't whether your members will respond — it's how to make that peak performance the norm rather than the exception.`;
@@ -232,21 +247,193 @@ const NARRATIVE_RULES = [
   },
 ];
 
+// ─── Low-Volume Narratives ──────────────────────────────────────────────────
+// When total sessions < LOW_VOLUME_THRESHOLD, replace all standard narratives
+// with traffic-growth messaging. Same shape as evaluateNarratives() output.
+const LOW_VOLUME_NARRATIVES = [
+  {
+    id: 'lowvol_headline',
+    metric: 'lowVolume',
+    section: 'headline',
+    narrative: (m) => {
+      const swingPp = m.totalSessions > 0 ? Math.round(100 / m.totalSessions) : 100;
+      return `With <strong>${fmtN(m.totalSessions)}</strong> CardUpdatr visits over <strong>${m.daySpan}</strong> days, conversion metrics can swing significantly — a single successful cardholder changes the rate by <strong>${swingPp}</strong> percentage points. Building a consistent traffic base is the essential first step toward meaningful performance insights.`;
+    },
+    benchmarks: [],
+  },
+  {
+    id: 'lowvol_reach',
+    metric: 'lowVolume',
+    section: 'reach',
+    narrative: () => `The fastest path to both volume and conversion quality is reaching cardholders at moments of peak motivation. Two proven approaches: <strong>(1)</strong> embed CardUpdatr in card activation and reissuance flows, where cardholders have an immediate, natural need to update their merchants, and <strong>(2)</strong> launch targeted SMS or email campaigns that connect with cardholders at the right moment. Partners who combine these channels consistently reach 8–12% success rates with meaningful traffic volume.`,
+    benchmarks: ['campaignWeeksSustained'],
+  },
+];
+
+// ─── Non-SSO Narrative Overrides ────────────────────────────────────────────
+// When integrationContext === 'nonsso', these override or suppress standard narrative rules.
+// key = rule ID from NARRATIVE_RULES
+// value = { suppress: true } to hide, or { narrative: fn } to replace the text
+const NONSSO_NARRATIVE_OVERRIDES = {
+  // Select→Credential conversion doesn't apply for non-SSO — cardholders enter card data
+  // before they ever see merchants, so there is no "select → credential" funnel step.
+  selCred_low: { suppress: true },
+  selCred_mid: { suppress: true },
+  selCred_high: { suppress: true },
+
+  // Session success: use effective rate (launch-based when calibrated, session-based with shifted thresholds otherwise)
+  // Conditions use the effective rate so the right tier narrative fires.
+  sessSuccess_low: {
+    condition: (m) => {
+      if (m.launchSuccessPct != null) return m.launchSuccessPct < 3; // SSO-comparable thresholds
+      return m.sessionSuccessPct !== null && m.sessionSuccessPct < 8; // non-SSO shifted thresholds
+    },
+    narrative: (m) => {
+      if (m.launchSuccessPct != null) {
+        return `Your non-SSO cardholders convert at <strong>${fmt(m.launchSuccessPct)}%</strong> from launch to completion (estimated from ${fmtN(m.estimatedLaunches)} calibrated launches). Among cardholders who entered their card details, <strong>${fmt(m.sessionSuccessPct)}%</strong> completed — showing ${m.sessionSuccessPct >= 15 ? 'strong' : 'solid'} post-commitment engagement. The gap between launch and session rates reflects cardholders who browse but don't enter card data — this is normal for non-SSO flows. Timing outreach to card activation moments is the fastest path to improving launch conversion.${m.totalSessions < 100 ? ' <em>Note: With fewer than 100 sessions, rates may fluctuate — look for directional trends.</em>' : ''}`;
+      }
+      return `Your cardholders are converting at <strong>${fmt(m.sessionSuccessPct)}%</strong> — and because non-SSO cardholders have already entered their card details before this point, every session represents a committed cardholder. This is a strong foundation: the next step is reaching these cardholders at peak-motivation moments like card activation or reissuance, where conversion rates climb to 15–25%.${m.totalSessions < 100 ? ' <em>Note: With fewer than 100 sessions in this window, rates may fluctuate — look for directional trends rather than exact percentages.</em>' : ''}`;
+    },
+  },
+  sessSuccess_mid: {
+    condition: (m) => {
+      if (m.launchSuccessPct != null) return m.launchSuccessPct >= 3 && m.launchSuccessPct <= 8;
+      return m.sessionSuccessPct !== null && m.sessionSuccessPct >= 8 && m.sessionSuccessPct <= 25;
+    },
+    narrative: (m) => {
+      if (m.launchSuccessPct != null) {
+        return `Your non-SSO cardholders convert at <strong>${fmt(m.launchSuccessPct)}%</strong> from launch to completion — a solid result measured from an estimated ${fmtN(m.estimatedLaunches)} true launches. Post-commitment conversion (among those who entered card details) is <strong>${fmt(m.sessionSuccessPct)}%</strong>, demonstrating real engagement quality. Sustained campaign cadence targeting card activation moments can push launch conversion toward the 8–12% campaign tier.`;
+      }
+      return `At <strong>${fmt(m.sessionSuccessPct)}%</strong>, your non-SSO cardholders are showing real engagement — remember, every one of these sessions required manually entering card information first. This conversion rate with committed traffic is promising. Sustained campaign cadence targeting card activation moments can push this toward the 25–35% range.`;
+    },
+  },
+  sessSuccess_high: {
+    condition: (m) => {
+      if (m.launchSuccessPct != null) return m.launchSuccessPct > 8;
+      return m.sessionSuccessPct !== null && m.sessionSuccessPct > 25;
+    },
+    narrative: (m) => {
+      if (m.launchSuccessPct != null) {
+        return `Excellent — <strong>${fmt(m.launchSuccessPct)}%</strong> launch-to-completion conversion from an estimated ${fmtN(m.estimatedLaunches)} true launches. Post-commitment conversion is <strong>${fmt(m.sessionSuccessPct)}%</strong>, showing outstanding cardholder follow-through. The focus now is expanding the volume of cardholders who encounter CardUpdatr at high-motivation moments.`;
+      }
+      return `Excellent — <strong>${fmt(m.sessionSuccessPct)}%</strong> of your non-SSO cardholders are completing placements. Since every session required manually entering card details, this high conversion rate demonstrates strong cardholder motivation. The focus now is expanding the volume of cardholders who reach this point.`;
+    },
+  },
+
+  // Reach: use calibrated data when available, fall back to generic disclaimer
+  reach_low: {
+    narrative: (m) => {
+      if (m.gaCalibrationRate !== null && m.gaCalibrationRate !== undefined) {
+        const gaRatePct = (m.gaCalibrationRate * 100).toFixed(0);
+        return `You're reaching <strong>${fmtPct(m.monthlyReachPct)}%</strong> of your member base monthly (estimated from calibrated launch data — GA tracking rate of <strong>${gaRatePct}%</strong> at credential entry for this partner). Embedding CardUpdatr in card activation or reissuance flows is the fastest path to expanding reach.`;
+      }
+      return `You're reaching <strong>${fmtPct(m.monthlyReachPct)}%</strong> of your member base today. <em>Note: Non-SSO traffic is measured via Google Analytics, which undercounts by 15–30% due to Safari and ad-blocker tracking prevention — your actual reach is likely higher.</em> Embedding CardUpdatr in card activation or reissuance flows is the fastest path to expanding reach.`;
+    },
+  },
+  reach_ok: {
+    narrative: (m) => {
+      if (m.gaCalibrationRate !== null && m.gaCalibrationRate !== undefined) {
+        const gaRatePct = (m.gaCalibrationRate * 100).toFixed(0);
+        return `<strong>${fmtPct(m.monthlyReachPct)}%</strong> monthly reach shows cardholders are finding CardUpdatr (estimated from calibrated launch data — GA tracking rate of <strong>${gaRatePct}%</strong> at credential entry). Expanding touchpoints through card activation and reissuance moments is the next high-impact move.`;
+      }
+      return `<strong>${fmtPct(m.monthlyReachPct)}%</strong> monthly reach shows cardholders are finding CardUpdatr. <em>Note: Non-SSO traffic measurement via GA may undercount by 15–30% due to browser tracking prevention.</em> Expanding touchpoints through card activation and reissuance moments is the next high-impact move.`;
+    },
+  },
+
+  // Best week gap: use effective rate (launch-based when calibrated) for both comparison and display
+  bestWeek_gap: {
+    condition: (m) => {
+      const effectiveRate = m.launchSuccessPct != null ? m.launchSuccessPct : m.sessionSuccessPct;
+      return m.bestWeekRate !== null && effectiveRate !== null && effectiveRate > 0 && (m.bestWeekRate / effectiveRate) > 2 && (m.bestWeekSessions || 0) >= 10;
+    },
+    narrative: (m) => {
+      const effectiveRate = m.launchSuccessPct != null ? m.launchSuccessPct : m.sessionSuccessPct;
+      const multiplier = fmt(m.bestWeekRate / effectiveRate);
+      return `Your best 7-day window hit <strong>${fmt(m.bestWeekRate)}%</strong> — that's <strong>${multiplier}×</strong> your current average, achieved with <em>your</em> cardholders on <em>your</em> integration. The demand is proven. The question isn't whether your members will respond — it's how to make that peak performance the norm rather than the exception.`;
+    },
+  },
+};
+
+// ─── Non-SSO Action Rules (supplements standard rules) ──────────────────────
+const NONSSO_ACTION_RULES = [
+  {
+    id: 'nonsso_activation_timing',
+    condition: () => true,
+    priority: 0,
+    actions: [
+      {
+        headline: 'Time prompts to card activation moments',
+        detail: 'Non-SSO cardholders who encounter CardUpdatr during card activation or reissuance show the strongest commitment. Timing outreach to these moments — when cardholders have a new card number — maximizes conversion from an already-motivated audience.',
+        impact: 'high',
+      },
+    ],
+  },
+  {
+    id: 'nonsso_sso_upgrade',
+    condition: (d) => d.tier >= 2,
+    priority: 6,
+    actions: [
+      {
+        headline: 'Consider SSO integration to remove the manual card entry step',
+        detail: 'An SSO integration pre-authenticates cardholders, eliminating the manual card entry barrier. This broadens the top of funnel — reaching cardholders who are interested but wouldn\'t have manually entered card data — while maintaining your strong conversion quality.',
+        impact: 'medium',
+      },
+    ],
+  },
+];
+
+// ─── Low-Volume Actions ─────────────────────────────────────────────────────
+// Replaces tier-based actions when total sessions < LOW_VOLUME_THRESHOLD.
+// Focus: drive traffic volume first, conversion quality analysis comes later.
+const LOW_VOLUME_ACTIONS = [
+  {
+    headline: 'Increase cardholder encounters with CardUpdatr',
+    detail: 'Expanding visibility in digital banking, card lifecycle touchpoints, and marketing channels is the highest-leverage move when traffic volume is the primary growth constraint.',
+    impact: 'high',
+    ruleId: 'low_volume',
+  },
+  {
+    headline: 'Embed CardUpdatr in card activation and reissuance flows',
+    detail: 'Cardholders receiving a new or replacement card have an immediate, natural need to update their merchants — this is peak motivation. Partners who connect CardUpdatr to these moments see 21–27% cardholder success rates, the highest tier across the network.',
+    impact: 'high',
+    ruleId: 'activation_reissuance',
+  },
+  {
+    headline: 'Launch a targeted SMS or email campaign',
+    detail: 'A focused campaign drives motivated cardholders to CardUpdatr when they\'re ready to act. Campaign weeks consistently deliver 8–12% success rates across the network — a transformative step up from organic discovery.',
+    impact: 'high',
+    ruleId: 'tier3_incidental',
+  },
+  {
+    headline: 'Enable Source Path Tracking to measure channel effectiveness',
+    detail: 'Once traffic grows, source tracking lets you measure which channels drive the best results — giving you the data to invest confidently in what\'s working.',
+    impact: 'medium',
+    ruleId: 'tier3_incidental',
+  },
+];
+
 // ─── Action Rules ───────────────────────────────────────────────────────────
 // Each rule: { id, condition(diagnosis), priority, actions[] }
 // diagnosis = { tier, lowReach, lowCredEntry, lowCompletion, goodPerformance, bestWeekGap, metrics }
 
 const ACTION_RULES = [
   {
+    id: 'activation_reissuance',
+    condition: () => true,  // always show — this is the #1 lever
+    priority: 0,
+    actions: [
+      {
+        headline: 'Embed CardUpdatr in card activation and reissuance flows',
+        detail: 'Cardholders receiving a new or replacement card have an immediate, natural need to update their merchants — this is peak motivation. Partners who connect CardUpdatr to these moments see 21–27% cardholder success rates, the highest tier across the network.',
+        impact: 'high',
+      },
+    ],
+  },
+  {
     id: 'tier3_incidental',
     condition: (d) => d.tier === 3,
     priority: 1,
     actions: [
-      {
-        headline: 'Activate your highest-impact channel: card activation flow',
-        detail: 'Partners who embed CardUpdatr in card activation and reissuance moments see 21–27% cardholder success — the highest conversion tier across the network. Your organic engagement proves cardholder demand; activation flows connect with that demand at the peak moment.',
-        impact: 'high',
-      },
       {
         headline: 'Launch a targeted SMS or email campaign',
         detail: 'A focused campaign drives motivated cardholders to CardUpdatr when they\'re ready to act. Campaign weeks consistently deliver 8–12% success rates across the network — a transformative step up from organic discovery.',
@@ -266,12 +453,7 @@ const ACTION_RULES = [
     actions: [
       {
         headline: 'Expand CardUpdatr visibility in your digital banking experience',
-        detail: (d) => `You're reaching ${fmt(d.metrics.monthlyReachPct)}% of members today — even a modest increase in visibility to motivated cardholders could meaningfully multiply your placement volume. This is your highest-leverage growth opportunity.`,
-        impact: 'high',
-      },
-      {
-        headline: 'Connect CardUpdatr to card activation and reissuance communications',
-        detail: 'Card activation and reissuance moments are when cardholder motivation peaks — a new or replacement card creates an immediate, natural need to update merchants. Meeting cardholders at this moment produces the strongest engagement.',
+        detail: (d) => `You're reaching ${fmtPct(d.metrics.monthlyReachPct)}% of members today — even a modest increase in visibility to motivated cardholders could meaningfully multiply your placement volume. This is your highest-leverage growth opportunity.`,
         impact: 'high',
       },
     ],
@@ -365,7 +547,7 @@ const ADMIN_TALKING_POINTS = [
   {
     id: 'low_reach_lever',
     condition: (m) => m.monthlyReachPct !== null && m.monthlyReachPct < 0.5,
-    point: (m) => `Only ${fmt(m.monthlyReachPct)}% of members seeing CardUpdatr. This is the biggest lever. Don't let them blame the product — the product works, it just needs motivated eyeballs.`,
+    point: (m) => `Only ${fmtPct(m.monthlyReachPct)}% of members seeing CardUpdatr. This is the biggest lever. Don't let them blame the product — the product works, it just needs motivated eyeballs.`,
     category: 'strategy',
   },
   {
@@ -428,6 +610,14 @@ function fmt(n) {
   return rounded % 1 === 0 ? rounded.toFixed(0) : rounded.toFixed(1);
 }
 
+/** Format a percentage: 2 decimal places when <1%, 1 decimal otherwise */
+function fmtPct(n) {
+  if (n === null || n === undefined || isNaN(n)) return '—';
+  if (n < 1) return n.toFixed(2);
+  const rounded = Math.round(n * 10) / 10;
+  return rounded % 1 === 0 ? rounded.toFixed(0) : rounded.toFixed(1);
+}
+
 /** Format an integer with commas */
 function fmtN(n) {
   if (n === null || n === undefined || isNaN(n)) return '—';
@@ -462,6 +652,25 @@ function buildMetricsContext(renderCtx, opts = {}) {
   const gaUser = m.totalGaUser || 0;
   const gaCred = m.totalGaCred || 0;
 
+  // Clickstream metrics (server-side, 100% accurate)
+  const csSelect = m.totalCsSelect || 0;
+  const csUser = m.totalCsUser || 0;
+  const csCred = m.totalCsCred || 0;
+
+  // GA calibration: compare GA-reported vs server-verified credential entry counts
+  // For non-SSO, credential entry is the first point where both GA and CardSavr sessions
+  // exist — User Data comparison is invalid (ga_user includes form abandoners, cs_user
+  // only counts completions). gaCalibrationRate = GA accuracy (e.g. 0.78 means 22% undercount)
+  const gaCalibrationRate = csCred > 0 && gaCred > 0 ? gaCred / csCred : null;
+  // Estimated true launches: inflate ga_select by the undercount factor
+  const estimatedLaunches = gaCalibrationRate && gaSelect > 0
+    ? Math.round(gaSelect / gaCalibrationRate)
+    : null;
+  // True non-SSO conversion: launches → successful placements
+  const launchSuccessPct = estimatedLaunches > 0
+    ? (sessionsWithSuccess / estimatedLaunches) * 100
+    : null;
+
   // Conversion rates
   const selCredPct = gaSelect > 0 ? (gaCred / gaSelect) * 100 : null;
   const selUserPct = gaSelect > 0 ? (gaUser / gaSelect) * 100 : null;
@@ -472,33 +681,46 @@ function buildMetricsContext(renderCtx, opts = {}) {
   const credCompletionPct = credSessions > 0 ? (sessionsWithSuccess / credSessions) * 100 : null;
 
   // Monthly reach — average across visible FIs that have cardholder totals
+  // Uses row.cardholders (pre-resolved during aggregation) instead of re-looking
+  // up the registry, which can fail on key normalization mismatches.
   let monthlyReachPct = null;
   if (visibleRows.length > 0) {
-    const registry = opts.registryMap || {};
     let totalCardholders = 0;
-    let totalGaSelectForReach = 0;
+    let totalReachBase = 0;
     for (const row of visibleRows) {
-      const key = row.fi_lookup_key || row.fi;
-      const regEntry = registry[key];
-      if (regEntry && regEntry.cardholder_total) {
-        totalCardholders += regEntry.cardholder_total;
-        totalGaSelectForReach += row.ga?.select_merchants || 0;
+      const cardholders = Number(row.cardholders);
+      if (cardholders > 0) {
+        totalCardholders += cardholders;
+        const isSSO = (row.integration_type || "").toUpperCase() === "SSO";
+        if (isSSO) {
+          // SSO: use session data (true clickstream top of funnel)
+          totalReachBase += row.sessions || 0;
+        } else {
+          // Non-SSO: use calibrated estimated launches when available, fall back to GA
+          const rowGaCred = row.ga_cred || 0;
+          const rowCsCred = row.cs_cred || 0;
+          const rowGaRate = rowCsCred > 0 && rowGaCred > 0 ? rowGaCred / rowCsCred : null;
+          const gaVal = row.ga_select || row.ga?.select_merchants || 0;
+          const rowEstLaunches = rowGaRate && gaVal > 0 ? Math.round(gaVal / rowGaRate) : null;
+          totalReachBase += rowEstLaunches || (gaVal > 0 ? gaVal : (row.sessions || 0));
+        }
       }
     }
     if (totalCardholders > 0 && daySpan > 0) {
-      const monthlySelects = (totalGaSelectForReach / daySpan) * 30;
+      const monthlySelects = (totalReachBase / daySpan) * 30;
       monthlyReachPct = (monthlySelects / totalCardholders) * 100;
     }
   }
 
   // Best week data
   const bestWeekEntry = findBestWeekEntry(best);
-  // sessionSuccessRatio is stored as a ratio (0–1), convert to percentage
-  const bestWeekRateRaw = bestWeekEntry ? bestWeekEntry.sessionSuccessRatio : null;
+  // successRatio (effective rate) preferred over sessionSuccessRatio; stored as 0–1, convert to percentage
+  const bestWeekRateRaw = bestWeekEntry ? (bestWeekEntry.successRatio != null ? bestWeekEntry.successRatio : bestWeekEntry.sessionSuccessRatio) : null;
   const bestWeekRate = bestWeekRateRaw !== null ? bestWeekRateRaw * 100 : null;
   const bestWeekStart = bestWeekEntry ? bestWeekEntry.start : null;
   const bestWeekEnd = bestWeekEntry ? bestWeekEntry.end : null;
   const bestWeekLabel = bestWeekStart && bestWeekEnd ? `${bestWeekStart} – ${bestWeekEnd}` : null;
+  const bestWeekSessions = bestWeekEntry ? (bestWeekEntry.sessions || 0) : 0;
 
   // Integration info
   const integrationTypes = new Set(visibleRows.map(r => (r.integration_type || r.integration || '').toUpperCase()));
@@ -514,6 +736,8 @@ function buildMetricsContext(renderCtx, opts = {}) {
     gaSelect,
     gaUser,
     gaCred,
+    csSelect,
+    csUser,
     credSessions,
     daySpan,
 
@@ -526,13 +750,20 @@ function buildMetricsContext(renderCtx, opts = {}) {
     credCompletionPct,
     monthlyReachPct,
 
+    // Calibrated launch metrics (non-SSO)
+    gaCalibrationRate,
+    estimatedLaunches,
+    launchSuccessPct,
+
     // Best week
     bestWeekRate,
     bestWeekStart,
     bestWeekEnd,
     bestWeekLabel,
+    bestWeekSessions,
 
     // Context flags
+    isLowVolume: totalSessions < LOW_VOLUME_THRESHOLD,
     hasSSO,
     hasMultipleIntegrations,
     hasMultipleFIs,
@@ -540,11 +771,15 @@ function buildMetricsContext(renderCtx, opts = {}) {
     // Pass-through
     startDate: renderCtx.startDate,
     endDate: renderCtx.endDate,
+
+    // Integration context for split views ('combined'|'sso'|'nonsso')
+    integrationContext: opts.integrationContext || 'combined',
   };
 }
 
 /**
- * Find the best-week entry with highest session success ratio
+ * Find the best-week entry with highest success ratio.
+ * Prefers `successRatio` (effective rate — launch-based for non-SSO) over `sessionSuccessRatio`.
  */
 function findBestWeekEntry(best) {
   if (!best) return null;
@@ -552,7 +787,8 @@ function findBestWeekEntry(best) {
   const entries = Array.isArray(best) ? best : Object.values(best);
   let top = null;
   for (const e of entries) {
-    if (e && e.sessionSuccessRatio != null && (!top || e.sessionSuccessRatio > top.sessionSuccessRatio)) {
+    const ratio = e ? (e.successRatio != null ? e.successRatio : e.sessionSuccessRatio) : null;
+    if (ratio != null && (!top || ratio > (top.successRatio != null ? top.successRatio : top.sessionSuccessRatio))) {
       top = e;
     }
   }
@@ -574,15 +810,67 @@ function classifyTier(rate) {
 }
 
 /**
+ * Classify a session success rate into a motivation tier for non-SSO traffic.
+ * Non-SSO visitors have already entered card data manually, so every "visit"
+ * represents a committed cardholder — thresholds are shifted upward.
+ * @param {number} rate - session success percentage
+ * @returns {{ tier: number, label: string, color: string, zone: string }}
+ */
+function classifyNonSSOTier(rate) {
+  if (rate === null || rate === undefined) return { tier: 0, label: 'Insufficient Data', color: '#94a3b8', zone: 'unknown' };
+  if (rate >= 35) return { tier: 1, label: 'Card Activation Flow', color: NONSSO_TIER_BOUNDARIES.tier1.color, zone: 'tier1' };
+  if (rate >= 25) return { tier: 1.5, label: 'Campaign → Activation', color: NONSSO_TIER_BOUNDARIES.tier2to1.color, zone: 'tier2to1' };
+  if (rate >= 15) return { tier: 2, label: 'Targeted Campaigns', color: NONSSO_TIER_BOUNDARIES.tier2.color, zone: 'tier2' };
+  if (rate >= 8) return { tier: 2.5, label: 'Discovery → Campaign', color: NONSSO_TIER_BOUNDARIES.tier3to2.color, zone: 'tier3to2' };
+  return { tier: 3, label: 'Organic Discovery', color: NONSSO_TIER_BOUNDARIES.tier3.color, zone: 'tier3' };
+}
+
+/**
  * Evaluate all narrative rules against the metrics context.
  * @returns {{ id, section, html, benchmarkKeys[], filterHint? }[]}
  */
 function evaluateNarratives(metricsCtx) {
+  // Low-volume early exit: replace all conversion narratives with traffic-growth messaging
+  if (metricsCtx.isLowVolume) {
+    return LOW_VOLUME_NARRATIVES.map(n => ({
+      id: n.id,
+      metric: n.metric,
+      section: n.section,
+      html: n.narrative(metricsCtx),
+      benchmarkKeys: n.benchmarks || [],
+      filterHint: null,
+    }));
+  }
+
+  const isNonSSO = metricsCtx.integrationContext === 'nonsso';
+  const isSplitView = metricsCtx.integrationContext === 'sso' || isNonSSO;
   const results = [];
   for (const rule of NARRATIVE_RULES) {
     try {
+      // Check non-SSO overrides
+      if (isNonSSO && NONSSO_NARRATIVE_OVERRIDES[rule.id]) {
+        const override = NONSSO_NARRATIVE_OVERRIDES[rule.id];
+        if (override.suppress) continue;
+        // Use override condition if provided (e.g., shifted thresholds for non-SSO),
+        // otherwise fall back to the standard rule condition
+        const condFn = override.condition || rule.condition;
+        if (override.narrative && condFn(metricsCtx)) {
+          results.push({
+            id: rule.id,
+            metric: rule.metric,
+            section: rule.section,
+            html: override.narrative(metricsCtx),
+            benchmarkKeys: rule.benchmarks || [],
+            filterHint: isSplitView ? null : (rule.filterHint ? rule.filterHint(metricsCtx) : null),
+          });
+        }
+        // Always skip the standard rule when an override exists — prevents
+        // SSO-threshold conditions from firing with non-SSO data
+        continue;
+      }
       if (rule.condition(metricsCtx)) {
-        const hint = rule.filterHint ? rule.filterHint(metricsCtx) : null;
+        // Suppress filter hints in split views (already filtered by type)
+        const hint = isSplitView ? null : (rule.filterHint ? rule.filterHint(metricsCtx) : null);
         results.push({
           id: rule.id,
           metric: rule.metric,
@@ -604,25 +892,54 @@ function evaluateNarratives(metricsCtx) {
  * @returns {{ diagnosis: Object, actions: { headline, detail, impact }[] }}
  */
 function evaluateActions(metricsCtx) {
-  const rate = metricsCtx.sessionSuccessPct;
-  const tierInfo = classifyTier(rate);
+  // Low-volume early exit: replace tier-based diagnosis with traffic-growth actions
+  if (metricsCtx.isLowVolume) {
+    const diagnosis = {
+      tier: null,
+      tierInfo: null,
+      isLowVolume: true,
+      metrics: metricsCtx,
+      integrationContext: metricsCtx.integrationContext || 'combined',
+    };
+    return {
+      diagnosis,
+      actions: LOW_VOLUME_ACTIONS.map((a, i) => ({
+        headline: a.headline,
+        detail: typeof a.detail === 'function' ? a.detail(diagnosis) : a.detail,
+        impact: a.impact,
+        ruleId: a.ruleId || 'low_volume',
+        actionIndex: i,
+      })),
+    };
+  }
+
+  const isNonSSO = metricsCtx.integrationContext === 'nonsso';
+  const hasCalibration = isNonSSO && metricsCtx.launchSuccessPct !== null && metricsCtx.launchSuccessPct !== undefined;
+  // When calibration data is available for non-SSO, use launch-based conversion with SSO thresholds
+  // (launch-based rate is apples-to-apples with SSO session-based rate — both measure from true top of funnel)
+  const rate = hasCalibration ? metricsCtx.launchSuccessPct : metricsCtx.sessionSuccessPct;
+  const tierInfo = (isNonSSO && !hasCalibration) ? classifyNonSSOTier(rate) : classifyTier(rate);
 
   const diagnosis = {
     tier: tierInfo.tier <= 1.5 ? 1 : tierInfo.tier <= 2.5 ? 2 : 3,
     tierInfo,
     lowReach: metricsCtx.monthlyReachPct !== null && metricsCtx.monthlyReachPct < 0.5,
-    lowCredEntry: metricsCtx.selCredPct !== null && metricsCtx.selCredPct < 5,
+    lowCredEntry: isNonSSO ? false : (metricsCtx.selCredPct !== null && metricsCtx.selCredPct < 5),
     lowCompletion: metricsCtx.credCompletionPct !== null && metricsCtx.credCompletionPct < 25,
-    goodPerformance: rate !== null && rate > 8,
+    goodPerformance: hasCalibration ? (rate !== null && rate > 8) : (isNonSSO ? (rate !== null && rate > 15) : (rate !== null && rate > 8)),
     bestWeekGap: metricsCtx.bestWeekRate !== null && rate !== null && rate > 0 && (metricsCtx.bestWeekRate / rate) > 2,
     metrics: metricsCtx,
+    integrationContext: metricsCtx.integrationContext || 'combined',
+    hasCalibration,
   };
 
   // Collect all matching actions, deduplicated by headline
   const allActions = [];
   const seen = new Set();
 
-  const matchingRules = ACTION_RULES
+  // Use standard rules plus non-SSO-specific rules when applicable
+  const ruleSets = isNonSSO ? [...NONSSO_ACTION_RULES, ...ACTION_RULES] : ACTION_RULES;
+  const matchingRules = ruleSets
     .filter(r => { try { return r.condition(diagnosis); } catch { return false; } })
     .sort((a, b) => a.priority - b.priority);
 
@@ -650,24 +967,56 @@ function evaluateActions(metricsCtx) {
  * @returns {{ current: Object, scenarios: Object[] }}
  */
 function computeProjections(metricsCtx, opts = {}) {
+  // Low-volume early exit: no projection scenarios (section won't render)
+  if (metricsCtx.isLowVolume) {
+    return {
+      current: {
+        sessions: metricsCtx.totalSessions,
+        successRate: metricsCtx.sessionSuccessPct,
+        placements: metricsCtx.successfulPlacements,
+        days: metricsCtx.daySpan,
+        isLowVolume: true,
+      },
+      scenarios: [],
+    };
+  }
+
   const { totalSessions, sessionSuccessPct, successfulPlacements, avgCardsPerSession, daySpan, bestWeekRate } = metricsCtx;
   const cardsPerSession = avgCardsPerSession || 1;
+  const isNonSSO = metricsCtx.integrationContext === 'nonsso';
+  const hasCalibration = isNonSSO && metricsCtx.estimatedLaunches > 0 && metricsCtx.launchSuccessPct !== null;
+
+  // When calibration data is available for non-SSO, use launch-based metrics with SSO thresholds
+  // (launch-based conversion is directly comparable to SSO session-based conversion)
+  const volumeBase = hasCalibration ? metricsCtx.estimatedLaunches : totalSessions;
+  const currentRate = hasCalibration ? metricsCtx.launchSuccessPct : sessionSuccessPct;
+  const campaignRate = (isNonSSO && !hasCalibration) ? 15 : 8;
+  const activationRate = (isNonSSO && !hasCalibration) ? 35 : 21;
+  const campaignLabel = hasCalibration
+    ? 'At campaign-tier launch conversion (8%)'
+    : (isNonSSO ? 'At campaign-tier performance (15%)' : 'At campaign-tier performance (8%)');
+  const activationLabel = hasCalibration
+    ? 'At activation-flow launch conversion (21%)'
+    : (isNonSSO ? 'At activation-flow performance (35%)' : 'At activation-flow performance (21%)');
 
   const current = {
     sessions: totalSessions,
-    successRate: sessionSuccessPct,
+    successRate: currentRate,
     placements: successfulPlacements,
     days: daySpan,
+    estimatedLaunches: hasCalibration ? metricsCtx.estimatedLaunches : null,
+    launchSuccessPct: hasCalibration ? metricsCtx.launchSuccessPct : null,
+    volumeBase: volumeBase,
   };
 
   const scenarios = [];
 
   // Best-quarter scenario (QBR mode) — takes precedence over best-week when provided
   const qbrBestQuarterRate = opts.qbrBestQuarterRate;
-  if (qbrBestQuarterRate && sessionSuccessPct && qbrBestQuarterRate > sessionSuccessPct * 1.3) {
-    const nearCampaign = Math.abs(qbrBestQuarterRate - 8) < 1.5;
+  if (qbrBestQuarterRate && currentRate && qbrBestQuarterRate > currentRate * 1.3) {
+    const nearCampaign = Math.abs(qbrBestQuarterRate - campaignRate) < 1.5;
     if (!nearCampaign) {
-      const projSuccess = Math.round(totalSessions * (qbrBestQuarterRate / 100));
+      const projSuccess = Math.round(volumeBase * (qbrBestQuarterRate / 100));
       const projPlacements = Math.round(projSuccess * cardsPerSession);
       scenarios.push({
         label: `At your best-quarter rate (${fmt(qbrBestQuarterRate)}%)`,
@@ -680,8 +1029,8 @@ function computeProjections(metricsCtx, opts = {}) {
   }
 
   // Only show best-week scenario if it's meaningfully different (skip if best-quarter already shown)
-  if (!qbrBestQuarterRate && bestWeekRate && sessionSuccessPct && bestWeekRate > sessionSuccessPct * 1.3) {
-    const projSuccess = Math.round(totalSessions * (bestWeekRate / 100));
+  if (!qbrBestQuarterRate && bestWeekRate && currentRate && bestWeekRate > currentRate * 1.3) {
+    const projSuccess = Math.round(volumeBase * (bestWeekRate / 100));
     const projPlacements = Math.round(projSuccess * cardsPerSession);
     scenarios.push({
       label: 'At your best-week rate',
@@ -694,13 +1043,13 @@ function computeProjections(metricsCtx, opts = {}) {
 
   // Campaign tier (only if current is below it AND not redundant with best-week/best-quarter)
   const bestRate = qbrBestQuarterRate || bestWeekRate;
-  const bestNearCampaign = bestRate && Math.abs(bestRate - 8) < 1.5;
-  if ((!sessionSuccessPct || sessionSuccessPct < 8) && !bestNearCampaign) {
-    const projSuccess = Math.round(totalSessions * 0.08);
+  const bestNearCampaign = bestRate && Math.abs(bestRate - campaignRate) < 1.5;
+  if ((!currentRate || currentRate < campaignRate) && !bestNearCampaign) {
+    const projSuccess = Math.round(volumeBase * (campaignRate / 100));
     const projPlacements = Math.round(projSuccess * cardsPerSession);
     scenarios.push({
-      label: 'At campaign-tier performance (8%)',
-      rate: 8,
+      label: campaignLabel,
+      rate: campaignRate,
       projectedSessions: projSuccess,
       projectedPlacements: projPlacements,
       multiplier: successfulPlacements > 0 ? projPlacements / successfulPlacements : null,
@@ -708,12 +1057,12 @@ function computeProjections(metricsCtx, opts = {}) {
   }
 
   // Activation flow (only if current is below it)
-  if (!sessionSuccessPct || sessionSuccessPct < 21) {
-    const projSuccess = Math.round(totalSessions * 0.21);
+  if (!currentRate || currentRate < activationRate) {
+    const projSuccess = Math.round(volumeBase * (activationRate / 100));
     const projPlacements = Math.round(projSuccess * cardsPerSession);
     scenarios.push({
-      label: 'At activation-flow performance (21%)',
-      rate: 21,
+      label: activationLabel,
+      rate: activationRate,
       projectedSessions: projSuccess,
       projectedPlacements: projPlacements,
       multiplier: successfulPlacements > 0 ? projPlacements / successfulPlacements : null,
@@ -760,6 +1109,17 @@ function getAdminInsights(metricsCtx) {
  * @returns {{ currentTier: Object, bestTier: Object|null, html: string }}
  */
 function buildSpectrumDiagnosis(metricsCtx) {
+  if (metricsCtx.isLowVolume) {
+    const sessions = metricsCtx.totalSessions;
+    const swingPp = sessions > 0 ? Math.round(100 / sessions) : 100;
+    return {
+      currentTier: null,
+      bestTier: null,
+      isLowVolume: true,
+      html: `<p>With <strong>${fmtN(sessions)}</strong> visits, there isn't enough data to reliably classify your traffic tier — each individual outcome shifts the measured rate by ~${swingPp} percentage points. As traffic volume builds past ${LOW_VOLUME_THRESHOLD} visits, the motivation spectrum will provide a meaningful diagnosis of your cardholder engagement pattern.</p>`,
+    };
+  }
+
   const rate = metricsCtx.sessionSuccessPct;
   const currentTier = classifyTier(rate);
   const bestTier = metricsCtx.bestWeekRate ? classifyTier(metricsCtx.bestWeekRate) : null;
@@ -782,6 +1142,84 @@ function buildSpectrumDiagnosis(metricsCtx) {
 
   if (bestTier && metricsCtx.bestWeekRate && metricsCtx.bestWeekRate > (rate || 0) * 1.3) {
     html += ` Your best 7-day window hit <strong>${fmt(metricsCtx.bestWeekRate)}%</strong> — <strong>${bestTier.label}</strong> territory. This proves the potential within your cardholder base when the conditions are right.`;
+  }
+
+  return { currentTier, bestTier, html };
+}
+
+/**
+ * Build the motivation spectrum diagnosis for non-SSO traffic.
+ * Uses shifted tier boundaries and reframes around post-commitment behavior.
+ * @returns {{ currentTier: Object, bestTier: Object|null, html: string }}
+ */
+function buildNonSSOSpectrumDiagnosis(metricsCtx) {
+  if (metricsCtx.isLowVolume) {
+    const sessions = metricsCtx.totalSessions;
+    const swingPp = sessions > 0 ? Math.round(100 / sessions) : 100;
+    return {
+      currentTier: null,
+      bestTier: null,
+      isLowVolume: true,
+      html: `<p>With <strong>${fmtN(sessions)}</strong> visits, there isn't enough data to reliably classify your traffic tier — each individual outcome shifts the measured rate by ~${swingPp} percentage points. As traffic volume builds past ${LOW_VOLUME_THRESHOLD} visits, the motivation spectrum will provide a meaningful diagnosis of your cardholder engagement pattern.</p>`,
+    };
+  }
+
+  const hasCalibration = metricsCtx.launchSuccessPct !== null && metricsCtx.launchSuccessPct !== undefined;
+
+  if (hasCalibration) {
+    // Use launch-based conversion with standard SSO thresholds (apples-to-apples comparison)
+    const rate = metricsCtx.launchSuccessPct;
+    const sessRate = metricsCtx.sessionSuccessPct;
+    const currentTier = classifyTier(rate);
+    const bestTier = metricsCtx.bestWeekRate ? classifyTier(metricsCtx.bestWeekRate) : null;
+    const gaRatePct = metricsCtx.gaCalibrationRate ? (metricsCtx.gaCalibrationRate * 100).toFixed(0) : null;
+    const launchNote = ` <em>(Based on ${fmtN(metricsCtx.estimatedLaunches)} estimated launches, calibrated from a ${gaRatePct}% GA tracking rate at credential entry.)</em>`;
+
+    let html = '';
+    if (rate === null) {
+      html = 'Insufficient data to classify your current non-SSO traffic pattern.';
+    } else if (rate < 3) {
+      html = `Your non-SSO launch-to-completion conversion is <strong>${fmt(rate)}%</strong> — in the <strong>Incidental Discovery</strong> tier. Among cardholders who entered their card details, <strong>${fmt(sessRate)}%</strong> completed, showing solid post-commitment engagement. The gap reflects cardholders who browse but don't enter card data — timing outreach to card activation moments is the fastest path to improving launch conversion.${launchNote}`;
+    } else if (rate <= 8) {
+      html = `Your non-SSO launch-to-completion rate is <strong>${fmt(rate)}%</strong>, in the transition zone between <strong>Discovery</strong> and <strong>Campaign</strong> tiers. Post-commitment conversion is <strong>${fmt(sessRate)}%</strong>. Sustaining campaign cadence and targeting card activation windows is the path to pushing above 8%.${launchNote}`;
+    } else if (rate <= 12) {
+      html = `Strong performance — <strong>${fmt(rate)}%</strong> launch-to-completion puts your non-SSO traffic at <strong>campaign-tier levels (Tier 2)</strong>. Post-commitment conversion of <strong>${fmt(sessRate)}%</strong> confirms engaged cardholders. The next tier up — activation-flow performance at 21–27% — is achieved by embedding CardUpdatr directly in card activation and reissuance moments.${launchNote}`;
+    } else if (rate <= 21) {
+      html = `You're approaching <strong>activation-flow territory</strong> — <strong>${fmt(rate)}%</strong> launch-to-completion conversion, with <strong>${fmt(sessRate)}%</strong> post-commitment success. You're in the transition zone between Campaign (Tier 2) and Activation Flow (Tier 1). Embedding CardUpdatr in card activation moments bridges this gap.${launchNote}`;
+    } else {
+      html = `Outstanding — <strong>${fmt(rate)}%</strong> launch-to-completion conversion puts your non-SSO traffic in the <strong>activation-flow tier (Tier 1)</strong>. Post-commitment success of <strong>${fmt(sessRate)}%</strong> confirms exceptional follow-through. This is best-in-class performance.${launchNote}`;
+    }
+
+    if (bestTier && metricsCtx.bestWeekRate && metricsCtx.bestWeekRate > (rate || 0) * 1.3) {
+      html += ` Your best 7-day window hit <strong>${fmt(metricsCtx.bestWeekRate)}%</strong> — <strong>${bestTier.label}</strong> territory.`;
+    }
+
+    return { currentTier, bestTier, html };
+  }
+
+  // Fallback: no calibration data — use session-based rates with non-SSO thresholds
+  const rate = metricsCtx.sessionSuccessPct;
+  const currentTier = classifyNonSSOTier(rate);
+  const bestTier = metricsCtx.bestWeekRate ? classifyNonSSOTier(metricsCtx.bestWeekRate) : null;
+
+  let html = '';
+
+  if (rate === null) {
+    html = 'Insufficient data to classify your current non-SSO traffic pattern.';
+  } else if (rate < 8) {
+    html = `Your non-SSO cardholders are converting at <strong>${fmt(rate)}%</strong> — in the <strong>Organic Discovery</strong> tier. Because every non-SSO visitor has already committed by entering their card details, even this baseline represents genuine engagement. Partners who time outreach to card activation moments see conversion climb to 15–25% with this same committed audience. <em>Note: GA metrics may undercount by 15–30% — server-side calibration data not yet available for this partner.</em>`;
+  } else if (rate <= 15) {
+    html = `At <strong>${fmt(rate)}%</strong>, your non-SSO traffic is in the transition zone between <strong>Discovery</strong> and <strong>Campaign</strong> tiers. These cardholders have already entered their card details — they're committed. Sustaining campaign cadence and targeting card activation windows is the path to pushing above 15%.`;
+  } else if (rate <= 25) {
+    html = `Strong performance — <strong>${fmt(rate)}%</strong> puts your non-SSO traffic at <strong>campaign-tier levels</strong>. Remember, every one of these visitors manually entered their card data first — this conversion rate with committed traffic shows real engagement quality. The next step is embedding CardUpdatr in card activation flows to reach the 25–35% tier.`;
+  } else if (rate <= 35) {
+    html = `At <strong>${fmt(rate)}%</strong>, your non-SSO traffic is approaching <strong>activation-flow territory</strong>. Your cardholders are encountering CardUpdatr at high-motivation moments. This is excellent performance for non-SSO traffic — you're in the transition zone between Campaign and Activation tiers.`;
+  } else {
+    html = `Outstanding — <strong>${fmt(rate)}%</strong> puts your non-SSO traffic in the <strong>activation-flow tier</strong>, the highest performance bracket. This is exceptional for non-SSO traffic, matching what the best SSO-integrated partners achieve. Your cardholders are reaching CardUpdatr at exactly the right moment.`;
+  }
+
+  if (bestTier && metricsCtx.bestWeekRate && metricsCtx.bestWeekRate > (rate || 0) * 1.3) {
+    html += ` Your best 7-day window hit <strong>${fmt(metricsCtx.bestWeekRate)}%</strong> — <strong>${bestTier.label}</strong> territory. This proves the potential within your committed cardholder base.`;
   }
 
   return { currentTier, bestTier, html };
@@ -883,40 +1321,45 @@ const QBR_NARRATIVE_RULES = [
     id: 'qbr_declining_success',
     section: 'trend',
     condition: (qd) => {
-      const rates = qd.quarters.map(q => q.metrics.sessionSuccessPct);
+      const rates = qd.quarters.map(q => q.effectiveRate != null ? q.effectiveRate : q.metrics.sessionSuccessPct);
       return classifyTrend(rates) === 'declining' && qd.quarters.length >= 3;
     },
     narrative: (qd) => {
-      const rates = qd.quarters.map(q => q.metrics.sessionSuccessPct);
+      const rates = qd.quarters.map(q => q.effectiveRate != null ? q.effectiveRate : q.metrics.sessionSuccessPct);
       const n = consecutiveDirection(rates);
       const best = qd.best;
-      return `Your conversion pattern has evolved over the past ${n} quarters — from ${fmt(qd.earliest.metrics.sessionSuccessPct)}% in ${qd.earliest.quarter} to ${fmt(qd.latest.metrics.sessionSuccessPct)}% in ${qd.latest.quarter}, reflecting changes in how cardholders are encountering CardUpdatr. The encouraging news: your strongest quarter hit <strong>${fmt(best.metrics.sessionSuccessPct)}%</strong> in ${best.quarter}, demonstrating clear cardholder demand. Re-engaging with targeted activation or campaign flows would recapture that momentum.`;
+      const bestRate = best.effectiveRate != null ? best.effectiveRate : best.metrics.sessionSuccessPct;
+      const earliestRate = qd.earliest.effectiveRate != null ? qd.earliest.effectiveRate : qd.earliest.metrics.sessionSuccessPct;
+      const latestRate = qd.latest.effectiveRate != null ? qd.latest.effectiveRate : qd.latest.metrics.sessionSuccessPct;
+      return `Your conversion pattern has evolved over the past ${n} quarters — from ${fmt(earliestRate)}% in ${qd.earliest.quarter} to ${fmt(latestRate)}% in ${qd.latest.quarter}, reflecting changes in how cardholders are encountering CardUpdatr. The encouraging news: your strongest quarter hit <strong>${fmt(bestRate)}%</strong> in ${best.quarter}, demonstrating clear cardholder demand. Re-engaging with targeted activation or campaign flows would recapture that momentum.`;
     },
   },
   {
     id: 'qbr_improving_success',
     section: 'trend',
     condition: (qd) => {
-      const rates = qd.quarters.map(q => q.metrics.sessionSuccessPct);
+      const rates = qd.quarters.map(q => q.effectiveRate != null ? q.effectiveRate : q.metrics.sessionSuccessPct);
       return classifyTrend(rates) === 'improving' && qd.quarters.length >= 3;
     },
     narrative: (qd) => {
-      const rates = qd.quarters.map(q => q.metrics.sessionSuccessPct);
+      const rates = qd.quarters.map(q => q.effectiveRate != null ? q.effectiveRate : q.metrics.sessionSuccessPct);
       const n = consecutiveDirection(rates);
-      return `Great momentum — cardholder success has improved for ${n} consecutive quarters, from ${fmt(qd.earliest.metrics.sessionSuccessPct)}% in ${qd.earliest.quarter} to <strong>${fmt(qd.latest.metrics.sessionSuccessPct)}%</strong> in ${qd.latest.quarter}. Your cardholder engagement strategy is working. The focus now should be on scaling volume while maintaining this conversion quality — partners who do this successfully see compounding returns.`;
+      const earliestRate = qd.earliest.effectiveRate != null ? qd.earliest.effectiveRate : qd.earliest.metrics.sessionSuccessPct;
+      const latestRate = qd.latest.effectiveRate != null ? qd.latest.effectiveRate : qd.latest.metrics.sessionSuccessPct;
+      return `Great momentum — cardholder success has improved for ${n} consecutive quarters, from ${fmt(earliestRate)}% in ${qd.earliest.quarter} to <strong>${fmt(latestRate)}%</strong> in ${qd.latest.quarter}. Your cardholder engagement strategy is working. The focus now should be on scaling volume while maintaining this conversion quality — partners who do this successfully see compounding returns.`;
     },
   },
   {
     id: 'qbr_stable_success',
     section: 'trend',
     condition: (qd) => {
-      const rates = qd.quarters.map(q => q.metrics.sessionSuccessPct).filter(r => r !== null);
+      const rates = qd.quarters.map(q => q.effectiveRate != null ? q.effectiveRate : q.metrics.sessionSuccessPct).filter(r => r !== null);
       if (rates.length < 3) return false;
       const range = Math.max(...rates) - Math.min(...rates);
       return range < 1.5;
     },
     narrative: (qd) => {
-      const rates = qd.quarters.map(q => q.metrics.sessionSuccessPct).filter(r => r !== null);
+      const rates = qd.quarters.map(q => q.effectiveRate != null ? q.effectiveRate : q.metrics.sessionSuccessPct).filter(r => r !== null);
       const avg = rates.reduce((a, b) => a + b, 0) / rates.length;
       return `Your conversion has been consistent at approximately <strong>${fmt(avg)}%</strong> across ${qd.quarters.length} quarters — a stable foundation. The opportunity now is to build on this base: adding activation flows or targeted campaigns to your existing organic engagement is the proven path to step-change improvement.`;
     },
@@ -925,7 +1368,7 @@ const QBR_NARRATIVE_RULES = [
     id: 'qbr_mixed_trend',
     section: 'trend',
     condition: (qd) => {
-      const rates = qd.quarters.map(q => q.metrics.sessionSuccessPct).filter(r => r !== null);
+      const rates = qd.quarters.map(q => q.effectiveRate != null ? q.effectiveRate : q.metrics.sessionSuccessPct).filter(r => r !== null);
       if (rates.length < 3) return false;
       const trend = classifyTrend(rates);
       const range = Math.max(...rates) - Math.min(...rates);
@@ -933,8 +1376,9 @@ const QBR_NARRATIVE_RULES = [
     },
     narrative: (qd) => {
       const best = qd.best;
-      const rates = qd.quarters.map(q => q.metrics.sessionSuccessPct).filter(r => r !== null);
-      return `Cardholder success has ranged from ${fmt(Math.min(...rates))}% to ${fmt(Math.max(...rates))}% over the past year, with your strongest performance at <strong>${fmt(best.metrics.sessionSuccessPct)}%</strong> in ${best.quarter}. Establishing a more consistent campaign cadence would help sustain performance closer to that ceiling, turning your best quarters into the norm.`;
+      const bestRate = best.effectiveRate != null ? best.effectiveRate : best.metrics.sessionSuccessPct;
+      const rates = qd.quarters.map(q => q.effectiveRate != null ? q.effectiveRate : q.metrics.sessionSuccessPct).filter(r => r !== null);
+      return `Cardholder success has ranged from ${fmt(Math.min(...rates))}% to ${fmt(Math.max(...rates))}% over the past year, with your strongest performance at <strong>${fmt(bestRate)}%</strong> in ${best.quarter}. Establishing a more consistent campaign cadence would help sustain performance closer to that ceiling, turning your best quarters into the norm.`;
     },
   },
   {
@@ -944,7 +1388,8 @@ const QBR_NARRATIVE_RULES = [
       return qd.quarters.length >= 2 && qd.best === qd.latest;
     },
     narrative: (qd) => {
-      return `This was your strongest quarter of the trailing year at <strong>${fmt(qd.latest.metrics.sessionSuccessPct)}%</strong> cardholder success — great progress. Identifying what drove this performance and making it repeatable is the key to sustained growth.`;
+      const latestRate = qd.latest.effectiveRate != null ? qd.latest.effectiveRate : qd.latest.metrics.sessionSuccessPct;
+      return `This was your strongest quarter of the trailing year at <strong>${fmt(latestRate)}%</strong> cardholder success — great progress. Identifying what drove this performance and making it repeatable is the key to sustained growth.`;
     },
   },
   {
@@ -954,7 +1399,9 @@ const QBR_NARRATIVE_RULES = [
       return qd.quarters.length >= 2 && qd.worst === qd.latest && qd.best !== qd.latest;
     },
     narrative: (qd) => {
-      return `Your cardholders delivered <strong>${fmt(qd.latest.metrics.sessionSuccessPct)}%</strong> this quarter — and your trailing-year best of <strong>${fmt(qd.best.metrics.sessionSuccessPct)}%</strong> in ${qd.best.quarter} shows the engagement ceiling within your cardholder base. That proven performance is achievable and repeatable — your cardholders have already demonstrated they'll engage at higher rates when the conditions are right.`;
+      const latestRate = qd.latest.effectiveRate != null ? qd.latest.effectiveRate : qd.latest.metrics.sessionSuccessPct;
+      const bestRate = qd.best.effectiveRate != null ? qd.best.effectiveRate : qd.best.metrics.sessionSuccessPct;
+      return `Your cardholders delivered <strong>${fmt(latestRate)}%</strong> this quarter — and your trailing-year best of <strong>${fmt(bestRate)}%</strong> in ${qd.best.quarter} shows the engagement ceiling within your cardholder base. That proven performance is achievable and repeatable — your cardholders have already demonstrated they'll engage at higher rates when the conditions are right.`;
     },
   },
   {
@@ -962,13 +1409,17 @@ const QBR_NARRATIVE_RULES = [
     section: 'divergence',
     condition: (qd) => {
       if (qd.quarters.length < 2) return false;
+      const latestRate = qd.latest.effectiveRate != null ? qd.latest.effectiveRate : qd.latest.metrics.sessionSuccessPct;
+      const earliestRate = qd.earliest.effectiveRate != null ? qd.earliest.effectiveRate : qd.earliest.metrics.sessionSuccessPct;
       const volChange = computeQoQChange(qd.latest.metrics.totalSessions, qd.earliest.metrics.totalSessions);
-      const convChange = computeQoQChangePP(qd.latest.metrics.sessionSuccessPct, qd.earliest.metrics.sessionSuccessPct);
+      const convChange = computeQoQChangePP(latestRate, earliestRate);
       return volChange !== null && volChange > 10 && convChange !== null && convChange < -1;
     },
     narrative: (qd) => {
+      const latestRate = qd.latest.effectiveRate != null ? qd.latest.effectiveRate : qd.latest.metrics.sessionSuccessPct;
+      const earliestRate = qd.earliest.effectiveRate != null ? qd.earliest.effectiveRate : qd.earliest.metrics.sessionSuccessPct;
       const volChange = computeQoQChange(qd.latest.metrics.totalSessions, qd.earliest.metrics.totalSessions);
-      const convChange = computeQoQChangePP(qd.latest.metrics.sessionSuccessPct, qd.earliest.metrics.sessionSuccessPct);
+      const convChange = computeQoQChangePP(latestRate, earliestRate);
       return `An interesting pattern: visit volume has grown <strong>${fmt(volChange)}%</strong> over the trailing year — more cardholders are discovering CardUpdatr, which is positive. The conversion shift (${fmt(convChange)}pp) suggests the newer traffic is largely organic discovery. The opportunity: pair this growing visibility with targeted activation moments to convert more of these engaged cardholders.`;
     },
   },
@@ -977,12 +1428,15 @@ const QBR_NARRATIVE_RULES = [
     section: 'divergence',
     condition: (qd) => {
       if (qd.quarters.length < 2) return false;
+      const latestRate = qd.latest.effectiveRate != null ? qd.latest.effectiveRate : qd.latest.metrics.sessionSuccessPct;
+      const earliestRate = qd.earliest.effectiveRate != null ? qd.earliest.effectiveRate : qd.earliest.metrics.sessionSuccessPct;
       const volChange = computeQoQChange(qd.latest.metrics.totalSessions, qd.earliest.metrics.totalSessions);
-      const convChange = computeQoQChangePP(qd.latest.metrics.sessionSuccessPct, qd.earliest.metrics.sessionSuccessPct);
+      const convChange = computeQoQChangePP(latestRate, earliestRate);
       return volChange !== null && volChange < -10 && convChange !== null && convChange > 1;
     },
     narrative: (qd) => {
-      return `Conversion has strengthened to <strong>${fmt(qd.latest.metrics.sessionSuccessPct)}%</strong> — your engaged cardholders are converting better than ever. The growth opportunity is expanding reach back to previous volume levels while maintaining this quality. Targeted campaigns can drive both volume and motivation simultaneously.`;
+      const latestRate = qd.latest.effectiveRate != null ? qd.latest.effectiveRate : qd.latest.metrics.sessionSuccessPct;
+      return `Conversion has strengthened to <strong>${fmt(latestRate)}%</strong> — your engaged cardholders are converting better than ever. The growth opportunity is expanding reach back to previous volume levels while maintaining this quality. Targeted campaigns can drive both volume and motivation simultaneously.`;
     },
   },
   {
@@ -990,8 +1444,7 @@ const QBR_NARRATIVE_RULES = [
     section: 'tier',
     condition: (qd) => {
       return qd.quarters.length >= 3 && qd.quarters.every(q => {
-        const tier = classifyTier(q.metrics.sessionSuccessPct);
-        return tier.tier === 3;
+        return q.tierInfo && q.tierInfo.tier === 3;
       });
     },
     narrative: (qd) => {
@@ -1003,14 +1456,10 @@ const QBR_NARRATIVE_RULES = [
     section: 'tier',
     condition: (qd) => {
       if (qd.quarters.length < 2) return false;
-      const earliestTier = classifyTier(qd.earliest.metrics.sessionSuccessPct);
-      const latestTier = classifyTier(qd.latest.metrics.sessionSuccessPct);
-      return latestTier.tier < earliestTier.tier;
+      return qd.latest.tierInfo && qd.earliest.tierInfo && qd.latest.tierInfo.tier < qd.earliest.tierInfo.tier;
     },
     narrative: (qd) => {
-      const earliestTier = classifyTier(qd.earliest.metrics.sessionSuccessPct);
-      const latestTier = classifyTier(qd.latest.metrics.sessionSuccessPct);
-      return `Your traffic quality has improved from <strong>${earliestTier.label}</strong> territory to <strong>${latestTier.label}</strong> over the trailing year — a meaningful shift. Your cardholder engagement efforts are driving real results.`;
+      return `Your traffic quality has improved from <strong>${qd.earliest.tierInfo.label}</strong> territory to <strong>${qd.latest.tierInfo.label}</strong> over the trailing year — a meaningful shift. Your cardholder engagement efforts are driving real results.`;
     },
   },
   {
@@ -1035,7 +1484,7 @@ const QBR_NARRATIVE_RULES = [
     condition: (qd) => {
       if (qd.quarters.length < 2) return false;
       const volChange = computeQoQChange(qd.latest.metrics.totalSessions, qd.earliest.metrics.totalSessions);
-      const rates = qd.quarters.map(q => q.metrics.sessionSuccessPct).filter(r => r !== null);
+      const rates = qd.quarters.map(q => q.effectiveRate != null ? q.effectiveRate : q.metrics.sessionSuccessPct).filter(r => r !== null);
       const range = rates.length > 0 ? Math.max(...rates) - Math.min(...rates) : 999;
       return volChange !== null && volChange > 15 && range < 1.5;
     },
@@ -1049,14 +1498,19 @@ const QBR_NARRATIVE_RULES = [
     section: 'divergence',
     condition: (qd) => {
       if (qd.quarters.length < 2) return false;
+      const latestRate = qd.latest.effectiveRate != null ? qd.latest.effectiveRate : qd.latest.metrics.sessionSuccessPct;
+      const earliestRate = qd.earliest.effectiveRate != null ? qd.earliest.effectiveRate : qd.earliest.metrics.sessionSuccessPct;
       const volChange = computeQoQChange(qd.latest.metrics.totalSessions, qd.earliest.metrics.totalSessions);
-      const convChange = computeQoQChangePP(qd.latest.metrics.sessionSuccessPct, qd.earliest.metrics.sessionSuccessPct);
+      const convChange = computeQoQChangePP(latestRate, earliestRate);
       return volChange !== null && volChange < -10 && convChange !== null && convChange < -1;
     },
     narrative: (qd) => {
+      const latestRate = qd.latest.effectiveRate != null ? qd.latest.effectiveRate : qd.latest.metrics.sessionSuccessPct;
+      const earliestRate = qd.earliest.effectiveRate != null ? qd.earliest.effectiveRate : qd.earliest.metrics.sessionSuccessPct;
+      const bestRate = qd.best.effectiveRate != null ? qd.best.effectiveRate : qd.best.metrics.sessionSuccessPct;
       const volChange = computeQoQChange(qd.latest.metrics.totalSessions, qd.earliest.metrics.totalSessions);
-      const convChange = computeQoQChangePP(qd.latest.metrics.sessionSuccessPct, qd.earliest.metrics.sessionSuccessPct);
-      return `This quarter saw a pullback in both traffic (<strong>${fmt(volChange)}%</strong>) and conversion (<strong>${fmt(convChange)}pp</strong>) — which often happens when campaign cadence shifts or seasonal patterns change. The positive signal: your infrastructure is in place and your cardholders have demonstrated willingness to engage at <strong>${fmt(qd.best.metrics.sessionSuccessPct)}%</strong> in ${qd.best.quarter}. A focused campaign push next quarter would leverage that foundation and is the fastest path to reversing both trends.`;
+      const convChange = computeQoQChangePP(latestRate, earliestRate);
+      return `This quarter saw a pullback in both traffic (<strong>${fmt(volChange)}%</strong>) and conversion (<strong>${fmt(convChange)}pp</strong>) — which often happens when campaign cadence shifts or seasonal patterns change. The positive signal: your infrastructure is in place and your cardholders have demonstrated willingness to engage at <strong>${fmt(bestRate)}%</strong> in ${qd.best.quarter}. A focused campaign push next quarter would leverage that foundation and is the fastest path to reversing both trends.`;
     },
   },
   {
@@ -1064,14 +1518,10 @@ const QBR_NARRATIVE_RULES = [
     section: 'tier',
     condition: (qd) => {
       if (qd.quarters.length < 2) return false;
-      const earliestTier = classifyTier(qd.earliest.metrics.sessionSuccessPct);
-      const latestTier = classifyTier(qd.latest.metrics.sessionSuccessPct);
-      return latestTier.tier > earliestTier.tier;
+      return qd.latest.tierInfo && qd.earliest.tierInfo && qd.latest.tierInfo.tier > qd.earliest.tierInfo.tier;
     },
     narrative: (qd) => {
-      const earliestTier = classifyTier(qd.earliest.metrics.sessionSuccessPct);
-      const latestTier = classifyTier(qd.latest.metrics.sessionSuccessPct);
-      return `Your traffic has shifted from <strong>${earliestTier.label}</strong> territory to <strong>${latestTier.label}</strong> over the trailing year — typically reflecting a change in the mix of motivated vs. organic cardholders reaching CardUpdatr. The path back is clear: partners who re-engage with targeted campaigns or activation flows consistently recover their previous tier performance. Your earlier results at ${earliestTier.label} levels prove your cardholder base supports it.`;
+      return `Your traffic has shifted from <strong>${qd.earliest.tierInfo.label}</strong> territory to <strong>${qd.latest.tierInfo.label}</strong> over the trailing year — typically reflecting a change in the mix of motivated vs. organic cardholders reaching CardUpdatr. The path back is clear: partners who re-engage with targeted campaigns or activation flows consistently recover their previous tier performance. Your earlier results at ${qd.earliest.tierInfo.label} levels prove your cardholder base supports it.`;
     },
   },
 ];
@@ -1089,12 +1539,13 @@ function evaluateQBRNarratives(quartersData) {
   const latest = quarters[quarters.length - 1];
   const earliest = quarters[0];
 
-  // Find best and worst by session success rate
+  // Find best and worst by effective rate (launchSuccessPct for non-SSO when calibrated, else sessionSuccessPct)
+  const _qbrRate = (q) => q.effectiveRate != null ? q.effectiveRate : q.metrics.sessionSuccessPct;
   let best = quarters[0], worst = quarters[0];
   for (const q of quarters) {
-    const rate = q.metrics.sessionSuccessPct;
-    if (rate !== null && (best.metrics.sessionSuccessPct === null || rate > best.metrics.sessionSuccessPct)) best = q;
-    if (rate !== null && (worst.metrics.sessionSuccessPct === null || rate < worst.metrics.sessionSuccessPct)) worst = q;
+    const rate = _qbrRate(q);
+    if (rate !== null && (_qbrRate(best) === null || rate > _qbrRate(best))) best = q;
+    if (rate !== null && (_qbrRate(worst) === null || rate < _qbrRate(worst))) worst = q;
   }
 
   const qd = { quarters, latest, earliest, best, worst };
@@ -1129,23 +1580,28 @@ function buildQBRSummary(quartersData, qbrNarratives, projections) {
   const latest = quartersData[quartersData.length - 1];
   const earliest = quartersData[0];
   const m = latest.metrics;
-  const rates = quartersData.map(q => q.metrics.sessionSuccessPct).filter(r => r !== null);
+  const _qbrRate = (q) => q.effectiveRate != null ? q.effectiveRate : q.metrics.sessionSuccessPct;
+  const rates = quartersData.map(q => _qbrRate(q)).filter(r => r !== null);
   const trend = classifyTrend(rates);
-  const tierInfo = classifyTier(m.sessionSuccessPct);
+  const tierInfo = latest.tierInfo || classifyTier(_qbrRate(latest));
 
   // Find best quarter
   let best = quartersData[0];
   for (const q of quartersData) {
-    if (q.metrics.sessionSuccessPct !== null &&
-        (best.metrics.sessionSuccessPct === null || q.metrics.sessionSuccessPct > best.metrics.sessionSuccessPct)) {
+    const rate = _qbrRate(q);
+    if (rate !== null && (_qbrRate(best) === null || rate > _qbrRate(best))) {
       best = q;
     }
   }
 
+  const latestRate = _qbrRate(latest);
+  const bestRate = _qbrRate(best);
+
   let html = `<div class="qbr-summary-block">`;
 
-  // Opening — lead with achievement
-  html += `<p>In <strong>${latest.quarter}</strong>, your cardholders made <strong>${fmtN(m.totalSessions)}</strong> visits to CardUpdatr, generating <strong>${fmtN(m.successfulPlacements)}</strong> successful card-on-file placements at a <strong>${fmt(m.sessionSuccessPct)}%</strong> cardholder success rate.</p>`;
+  // Opening — lead with achievement (use blended top-of-funnel to match effectiveRate denominator)
+  const qbrLaunches = latest.rawMetrics?.totalCardholders || m.totalSessions;
+  html += `<p>In <strong>${latest.quarter}</strong>, <strong>${fmtN(qbrLaunches)}</strong> cardholders launched CardUpdatr, generating <strong>${fmtN(m.successfulPlacements)}</strong> successful card-on-file placements at a <strong>${fmt(latestRate)}%</strong> cardholder success rate.</p>`;
 
   // Trailing year highlights
   html += `<p><strong>Trailing Year Highlights:</strong> `;
@@ -1159,7 +1615,7 @@ function buildQBRSummary(quartersData, qbrNarratives, projections) {
     html += `Performance has varied across the trailing year, with your strongest quarter providing a clear benchmark.`;
   }
   if (best !== latest) {
-    html += ` Your strongest quarter was ${best.quarter} at ${fmt(best.metrics.sessionSuccessPct)}% — demonstrating the engagement potential within your cardholder base.`;
+    html += ` Your strongest quarter was ${best.quarter} at ${fmt(bestRate)}% — demonstrating the engagement potential within your cardholder base.`;
   }
   html += `</p>`;
 
@@ -1235,10 +1691,13 @@ function buildMonthlyNarrative(quarterLabel, bestMonth) {
 const AL = window.ActionLibrary || {};
 
 window.EngagementInsights = {
+  LOW_VOLUME_THRESHOLD,
   TIER_BOUNDARIES,
+  NONSSO_TIER_BOUNDARIES,
   BENCHMARKS,
   NARRATIVE_RULES,
   ACTION_RULES,
+  NONSSO_ACTION_RULES,
   ADMIN_TALKING_POINTS,
   ADMIN_OBJECTIONS,
   ADMIN_BENCHMARK_REFS,
@@ -1255,11 +1714,13 @@ window.EngagementInsights = {
   // Engine
   buildMetricsContext,
   classifyTier,
+  classifyNonSSOTier,
   evaluateNarratives,
   evaluateActions,
   computeProjections,
   getAdminInsights,
   buildSpectrumDiagnosis,
+  buildNonSSOSpectrumDiagnosis,
   getBenchmarkDisplay,
 
   // QBR Engine
