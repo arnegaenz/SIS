@@ -74,6 +74,11 @@ const state = {
   includeTests: false,
   trafficShowNormal: false,
   trafficShowSleeping: false,
+  feedFilters: {
+    statuses: new Set(["success", "failed", "cancelled", "abandoned"]),
+    merchants: new Set(),
+    fis: new Set(),
+  },
 };
 
 const fiSelect = createMultiSelect(document.getElementById("fiSelect"), {
@@ -1005,36 +1010,178 @@ async function fetchEventFeed() {
     const res = await fetch("/api/metrics/ops-feed");
     if (!res.ok) return;
     const data = await res.json();
-    const events = data.events || [];
-    state.feedEvents = events;
-    const colHeader = `<div class="event-feed__item event-feed__item--header">
-      <span class="event-feed__time">Time</span>
-      <span class="event-feed__merchant">Merchant</span>
-      <span class="event-feed__fi">FI</span>
-      <span class="event-feed__status">Status</span>
-    </div>`;
-    if (!events.length) {
-      kioskEls.eventList.innerHTML = colHeader + `<div class="empty-state">No recent events.</div>`;
-      return;
-    }
-    kioskEls.eventList.innerHTML = colHeader + events
-      .map((evt) => {
-        const statusClass = evt.status === "success" ? "success" : evt.status === "pending" ? "pending" : "failed";
-        const fullTime = evt.timestamp ? new Date(evt.timestamp).toLocaleString() : "Unknown";
-        const termInfo = evt.termination_type ? `Termination: ${evt.termination_type}` : "No termination code";
-        const evtTip = `${evt.merchant || "Unknown"} — ${evt.fi_name || "Unknown FI"}\nStatus: ${evt.status || "unknown"}\nTimestamp: ${fullTime}\n${termInfo}\n\nThis is a single card placement job. Each job represents\none cardholder attempting to update their card at this merchant.`;
-        return `
-          <div class="event-feed__item" title="${evtTip.replace(/"/g, '&quot;')}">
-            <span class="event-feed__time">${formatRelativeTime(evt.timestamp)}</span>
-            <span class="event-feed__merchant">${evt.merchant || "Unknown"}</span>
-            <span class="event-feed__fi">${evt.fi_name || ""}</span>
-            <span class="event-feed__status ${statusClass}">${evt.status || "unknown"}</span>
-          </div>
-        `;
-      })
-      .join("");
+    state.feedEvents = data.events || [];
+    updateFeedFilterOptions();
+    renderFilteredFeed();
   } catch (err) {
     console.warn("[ops-kiosk] event feed failed", err);
+  }
+}
+
+function renderFilteredFeed() {
+  if (!kioskEls.eventList) return;
+  const { statuses, merchants, fis } = state.feedFilters;
+  const events = (state.feedEvents || []).filter((evt) => {
+    if (!statuses.has(evt.status || "unknown")) return false;
+    if (merchants.size > 0 && !merchants.has(evt.merchant || "Unknown")) return false;
+    if (fis.size > 0 && !fis.has(evt.fi_name || "")) return false;
+    return true;
+  });
+  const colHeader = `<div class="event-feed__item event-feed__item--header">
+    <span class="event-feed__time">Time</span>
+    <span class="event-feed__merchant">Merchant</span>
+    <span class="event-feed__fi">FI</span>
+    <span class="event-feed__status">Status</span>
+  </div>`;
+  if (!events.length) {
+    kioskEls.eventList.innerHTML = colHeader + `<div class="empty-state">No events match filters.</div>`;
+    return;
+  }
+  kioskEls.eventList.innerHTML = colHeader + events
+    .map((evt) => {
+      const s = evt.status || "unknown";
+      const statusClass = s === "success" ? "success" : s === "cancelled" ? "cancelled" : s === "abandoned" ? "abandoned" : s === "pending" ? "pending" : "failed";
+      const fullTime = evt.timestamp ? new Date(evt.timestamp).toLocaleString() : "Unknown";
+      const termInfo = evt.termination_type ? `Termination: ${evt.termination_type}` : "No termination code";
+      const evtTip = `${evt.merchant || "Unknown"} — ${evt.fi_name || "Unknown FI"}\nStatus: ${s}\nTimestamp: ${fullTime}\n${termInfo}\n\nThis is a single card placement job. Each job represents\none cardholder attempting to update their card at this merchant.`;
+      return `
+        <div class="event-feed__item" title="${evtTip.replace(/"/g, '&quot;')}">
+          <span class="event-feed__time">${formatRelativeTime(evt.timestamp)}</span>
+          <span class="event-feed__merchant">${evt.merchant || "Unknown"}</span>
+          <span class="event-feed__fi">${evt.fi_name || ""}</span>
+          <span class="event-feed__status ${statusClass}">${s}</span>
+        </div>
+      `;
+    })
+    .join("");
+}
+
+function updateFeedFilterOptions() {
+  const merchantSet = new Set();
+  const fiSet = new Set();
+  (state.feedEvents || []).forEach((evt) => {
+    if (evt.merchant) merchantSet.add(evt.merchant);
+    if (evt.fi_name) fiSet.add(evt.fi_name);
+  });
+  renderMiniSelectOptions("feedMerchantSelect", Array.from(merchantSet).sort(), state.feedFilters.merchants);
+  renderMiniSelectOptions("feedFiSelect", Array.from(fiSet).sort(), state.feedFilters.fis);
+}
+
+function renderMiniSelectOptions(containerId, options, selectedSet) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  const optionsEl = container.querySelector(".feed-mini-select__options");
+  if (!optionsEl) return;
+  const searchEl = container.querySelector(".feed-mini-select__search");
+  const query = (searchEl?.value || "").toLowerCase();
+  const filtered = query ? options.filter((o) => o.toLowerCase().includes(query)) : options;
+  optionsEl.innerHTML = filtered
+    .map((val) => {
+      const checked = selectedSet.has(val) ? "checked" : "";
+      return `<label class="feed-mini-select__option"><input type="checkbox" value="${val.replace(/"/g, "&quot;")}" ${checked} />${val}</label>`;
+    })
+    .join("");
+}
+
+function updateClearBtnVisibility() {
+  const clearBtn = document.getElementById("feedClearBtn");
+  if (!clearBtn) return;
+  const isDefault = state.feedFilters.statuses.size === 4 && state.feedFilters.merchants.size === 0 && state.feedFilters.fis.size === 0;
+  clearBtn.style.display = isDefault ? "none" : "";
+}
+
+function updateMiniSelectBtnState(id, selectedSet) {
+  const container = document.getElementById(id);
+  if (!container) return;
+  const btn = container.querySelector(".feed-mini-select__btn");
+  if (btn) btn.classList.toggle("has-selection", selectedSet.size > 0);
+}
+
+function initFeedFilters() {
+  const pillsEl = document.getElementById("feedStatusPills");
+  if (!pillsEl) return;
+
+  const FEED_STATUSES = [
+    { key: "success", label: "OK", color: "#22c55e" },
+    { key: "failed", label: "Fail", color: "#ef4444" },
+    { key: "cancelled", label: "Cxl", color: "#f59e0b" },
+    { key: "abandoned", label: "Abn", color: "#64748b" },
+  ];
+  pillsEl.innerHTML = FEED_STATUSES.map((s) =>
+    `<button type="button" class="feed-status-pill active" data-status="${s.key}"><span class="feed-status-pill__dot" style="background:${s.color}"></span>${s.label}</button>`
+  ).join("");
+
+  pillsEl.addEventListener("click", (e) => {
+    const pill = e.target.closest(".feed-status-pill");
+    if (!pill) return;
+    const key = pill.dataset.status;
+    const { statuses } = state.feedFilters;
+    if (statuses.has(key)) {
+      if (statuses.size <= 1) return;
+      statuses.delete(key);
+      pill.classList.remove("active");
+    } else {
+      statuses.add(key);
+      pill.classList.add("active");
+    }
+    updateClearBtnVisibility();
+    renderFilteredFeed();
+  });
+
+  ["feedMerchantSelect", "feedFiSelect"].forEach((id) => {
+    const container = document.getElementById(id);
+    if (!container) return;
+    const btn = container.querySelector(".feed-mini-select__btn");
+    const panel = container.querySelector(".feed-mini-select__panel");
+    const searchInput = container.querySelector(".feed-mini-select__search");
+    const setRef = id === "feedMerchantSelect" ? state.feedFilters.merchants : state.feedFilters.fis;
+
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const wasOpen = container.classList.contains("open");
+      document.querySelectorAll(".feed-mini-select.open").forEach((el) => el.classList.remove("open"));
+      if (!wasOpen) {
+        container.classList.add("open");
+        searchInput.value = "";
+        updateFeedFilterOptions();
+        searchInput.focus();
+      }
+    });
+
+    searchInput.addEventListener("input", () => {
+      const src = id === "feedMerchantSelect"
+        ? [...new Set((state.feedEvents || []).map((e) => e.merchant).filter(Boolean))].sort()
+        : [...new Set((state.feedEvents || []).map((e) => e.fi_name).filter(Boolean))].sort();
+      renderMiniSelectOptions(id, src, setRef);
+    });
+
+    panel.addEventListener("change", (e) => {
+      if (e.target.type !== "checkbox") return;
+      if (e.target.checked) setRef.add(e.target.value); else setRef.delete(e.target.value);
+      updateMiniSelectBtnState(id, setRef);
+      updateClearBtnVisibility();
+      renderFilteredFeed();
+    });
+  });
+
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest(".feed-mini-select")) {
+      document.querySelectorAll(".feed-mini-select.open").forEach((el) => el.classList.remove("open"));
+    }
+  });
+
+  const clearBtn = document.getElementById("feedClearBtn");
+  if (clearBtn) {
+    clearBtn.addEventListener("click", () => {
+      state.feedFilters.statuses = new Set(["success", "failed", "cancelled", "abandoned"]);
+      state.feedFilters.merchants.clear();
+      state.feedFilters.fis.clear();
+      pillsEl.querySelectorAll(".feed-status-pill").forEach((p) => p.classList.add("active"));
+      updateMiniSelectBtnState("feedMerchantSelect", state.feedFilters.merchants);
+      updateMiniSelectBtnState("feedFiSelect", state.feedFilters.fis);
+      updateClearBtnVisibility();
+      renderFilteredFeed();
+    });
   }
 }
 
@@ -1048,6 +1195,9 @@ function initKioskLayout() {
   // Show kiosk containers
   if (kioskEls.kpiRow) kioskEls.kpiRow.style.display = "";
   if (kioskEls.split) kioskEls.split.style.display = "";
+
+  // Init event feed filters
+  initFeedFilters();
 
   // Add "Include test data" checkbox to kiosk header
   const headerStatus = document.querySelector(".kiosk-header__status");

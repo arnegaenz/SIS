@@ -183,6 +183,24 @@
         <div id="kioskVolumeChart" class="kiosk-volume-chart"></div>
         <div class="kiosk-section-title" style="margin-top:12px;">Live Event Feed</div>
         <div id="kioskEventFeed" class="event-feed">
+          <div class="event-feed__header" id="feedFilterBar">
+            <div class="feed-status-pills" id="feedStatusPills"></div>
+            <div class="feed-mini-select" id="feedMerchantSelect">
+              <button type="button" class="feed-mini-select__btn">Merchant</button>
+              <div class="feed-mini-select__panel">
+                <input class="feed-mini-select__search" type="text" placeholder="Search…" />
+                <div class="feed-mini-select__options"></div>
+              </div>
+            </div>
+            <div class="feed-mini-select" id="feedFiSelect">
+              <button type="button" class="feed-mini-select__btn">FI</button>
+              <div class="feed-mini-select__panel">
+                <input class="feed-mini-select__search" type="text" placeholder="Search…" />
+                <div class="feed-mini-select__options"></div>
+              </div>
+            </div>
+            <button type="button" class="feed-clear-btn" id="feedClearBtn" style="display:none;">Clear</button>
+          </div>
           <div class="event-feed__list" id="kioskEventList"></div>
         </div>
       </div>
