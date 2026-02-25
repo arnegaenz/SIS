@@ -438,6 +438,7 @@ const kioskEls = {
 };
 
 let priorOverall = null;
+let priorByDay = [];
 let merchantTrends = new Map(); // merchant_name → { priorFailRate, trend }
 
 async function fetchOpsTrends() {
@@ -462,6 +463,7 @@ async function fetchOpsTrends() {
     if (!res.ok) return;
     const data = await res.json();
     priorOverall = data.overall || {};
+    priorByDay = (data.by_day || []).slice().sort((a, b) => a.date.localeCompare(b.date));
 
     // Build per-merchant prior failure rates
     merchantTrends.clear();
@@ -501,7 +503,42 @@ function kpiDelta(current, prior, label) {
   return `<div class="kpi-delta" style="color:#a8b3cf;font-size:0.75rem;margin-top:4px;">${sign}${formatPercent(pctChange, 1)} vs prior wk</div>`;
 }
 
-function renderKioskKpis(overall, byMerchant) {
+function buildKpiSparkline(values, priorValues, color, isRate) {
+  if (!values.length) return "";
+  const w = 260, h = 56, pad = 4;
+  // Prior week average (single horizontal line)
+  const priorAvg = (priorValues && priorValues.length)
+    ? priorValues.reduce((s, v) => s + v, 0) / priorValues.length
+    : null;
+  const allVals = priorAvg != null ? [...values, priorAvg] : values;
+  const max = Math.max(...allVals, isRate ? 1 : 1);
+  const min = isRate ? 0 : Math.min(...allVals, 0);
+  const range = max - min || 1;
+
+  const pts = values.map((v, i) => {
+    const x = pad + (i / Math.max(values.length - 1, 1)) * (w - pad * 2);
+    const y = pad + (1 - (v - min) / range) * (h - pad * 2);
+    return `${x},${y}`;
+  });
+
+  const firstX = pad;
+  const lastX = pad + ((values.length - 1) / Math.max(values.length - 1, 1)) * (w - pad * 2);
+  const areaPath = `M${pts[0]} ${pts.slice(1).map(p => `L${p}`).join(" ")} L${lastX},${h - pad} L${firstX},${h - pad} Z`;
+
+  let avgLine = "";
+  if (priorAvg != null) {
+    const avgY = pad + (1 - (priorAvg - min) / range) * (h - pad * 2);
+    avgLine = `<line x1="${pad}" y1="${avgY}" x2="${w - pad}" y2="${avgY}" stroke="${color}" stroke-width="1.5" stroke-opacity="0.45" stroke-dasharray="6,4" />`;
+  }
+
+  return `<svg class="kpi-spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+    <path d="${areaPath}" fill="${color}" fill-opacity="0.12" />
+    ${avgLine}
+    <polyline points="${pts.join(" ")}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" />
+  </svg>`;
+}
+
+function renderKioskKpis(overall, byMerchant, byDay) {
   if (!kioskEls.kpiRow) return;
   const total = overall.Jobs_Total || 0;
   const success = overall.Jobs_Success || 0;
@@ -519,25 +556,124 @@ function renderKioskKpis(overall, byMerchant) {
   const successTrend = pTotal > 0 ? opsTrendArrow(successRate, pSuccessRate, false) : "";
   const failTrend = pTotal > 0 ? opsTrendArrow(failRate, pFailRate, true) : "";
 
+  // Build daily sparkline data — current week
+  const sorted = (byDay || []).slice().sort((a, b) => a.date.localeCompare(b.date));
+  const dailyJobs = sorted.map(d => d.Jobs_Total || 0);
+  const dailySuccessRate = sorted.map(d => d.Jobs_Total > 0 ? (d.Jobs_Success || 0) / d.Jobs_Total : 0);
+  const dailyFailRate = sorted.map(d => d.Jobs_Total > 0 ? (d.Jobs_Failed || 0) / d.Jobs_Total : 0);
+  const dailyMerchants = sorted.map(d => d.merchants_active || 0);
+
+  // Prior week daily data (dashed comparison line)
+  const priorJobs = priorByDay.map(d => d.Jobs_Total || 0);
+  const priorSuccessRate = priorByDay.map(d => d.Jobs_Total > 0 ? (d.Jobs_Success || 0) / d.Jobs_Total : 0);
+  const priorFailRate = priorByDay.map(d => d.Jobs_Total > 0 ? (d.Jobs_Failed || 0) / d.Jobs_Total : 0);
+  const priorMerchants = priorByDay.map(d => d.merchants_active || 0);
+
+  // Build verbose tooltips
+  const avgDailyJobs = dailyJobs.length ? (dailyJobs.reduce((a, b) => a + b, 0) / dailyJobs.length).toFixed(1) : "0";
+  const priorAvgDailyJobs = priorJobs.length ? (priorJobs.reduce((a, b) => a + b, 0) / priorJobs.length).toFixed(1) : "N/A";
+  const peakDay = sorted.length ? sorted.reduce((best, d) => (d.Jobs_Total || 0) > (best.Jobs_Total || 0) ? d : best, sorted[0]) : null;
+  const lowDay = sorted.length ? sorted.reduce((worst, d) => (d.Jobs_Total || 0) < (worst.Jobs_Total || 0) ? d : worst, sorted[0]) : null;
+
+  const tipJobs = [
+    `TOTAL JOBS (7-Day Window)`,
+    `Total placement jobs across all merchants and FIs.`,
+    ``,
+    `This week: ${formatNumber(total)} jobs (${avgDailyJobs}/day avg)`,
+    `Prior week: ${formatNumber(pTotal)} jobs (${priorAvgDailyJobs}/day avg)`,
+    peakDay ? `Peak day: ${peakDay.date} (${formatNumber(peakDay.Jobs_Total)} jobs)` : "",
+    lowDay ? `Lowest day: ${lowDay.date} (${formatNumber(lowDay.Jobs_Total)} jobs)` : "",
+    ``,
+    `Sparkline: solid line = this week daily volume.`,
+    `Dashed line = prior week daily average.`,
+    `Above the line = higher volume than last week.`,
+  ].filter(Boolean).join("\n");
+
+  const bestSuccessDay = sorted.length ? sorted.reduce((best, d) => {
+    const r = d.Jobs_Total > 0 ? (d.Jobs_Success || 0) / d.Jobs_Total : 0;
+    const br = best.Jobs_Total > 0 ? (best.Jobs_Success || 0) / best.Jobs_Total : 0;
+    return r > br ? d : best;
+  }, sorted[0]) : null;
+  const worstSuccessDay = sorted.length ? sorted.reduce((worst, d) => {
+    const r = d.Jobs_Total > 0 ? (d.Jobs_Success || 0) / d.Jobs_Total : 1;
+    const wr = worst.Jobs_Total > 0 ? (worst.Jobs_Success || 0) / worst.Jobs_Total : 1;
+    return r < wr ? d : worst;
+  }, sorted[0]) : null;
+
+  const tipSuccess = [
+    `SUCCESS RATE`,
+    `Percentage of placement jobs that completed successfully.`,
+    ``,
+    `This week: ${formatRate(success, total)} (${formatNumber(success)} of ${formatNumber(total)} jobs)`,
+    `Prior week: ${pTotal > 0 ? formatRate(pSuccess, pTotal) : "N/A"} (${formatNumber(pSuccess)} of ${formatNumber(pTotal)} jobs)`,
+    bestSuccessDay ? `Best day: ${bestSuccessDay.date} (${formatPercent(bestSuccessDay.Jobs_Total > 0 ? bestSuccessDay.Jobs_Success / bestSuccessDay.Jobs_Total : 0)})` : "",
+    worstSuccessDay ? `Worst day: ${worstSuccessDay.date} (${formatPercent(worstSuccessDay.Jobs_Total > 0 ? worstSuccessDay.Jobs_Success / worstSuccessDay.Jobs_Total : 1)})` : "",
+    ``,
+    `Thresholds: Green >= 85% | Amber >= 70% | Red < 70%`,
+    `Sparkline: solid line = daily success rate.`,
+    `Dashed line = prior week daily average rate.`,
+  ].filter(Boolean).join("\n");
+
+  const tipFail = [
+    `FAILURE RATE`,
+    `Percentage of placement jobs that failed (credential errors, site issues, timeouts).`,
+    ``,
+    `This week: ${formatRate(failed, total)} (${formatNumber(failed)} of ${formatNumber(total)} jobs)`,
+    `Prior week: ${pTotal > 0 ? formatRate(pFailed, pTotal) : "N/A"} (${formatNumber(pFailed)} of ${formatNumber(pTotal)} jobs)`,
+    `Cancelled: ${formatNumber(overall.Jobs_Cancelled || 0)} | Abandoned: ${formatNumber(overall.Jobs_Abandoned || 0)}`,
+    ``,
+    `Rising failure rate may indicate merchant site changes,`,
+    `credential flow issues, or degraded infrastructure.`,
+    `Sparkline: solid line = daily failure rate.`,
+    `Dashed line = prior week daily average rate.`,
+  ].filter(Boolean).join("\n");
+
+  const avgDailyMerchants = dailyMerchants.length ? (dailyMerchants.reduce((a, b) => a + b, 0) / dailyMerchants.length).toFixed(1) : "0";
+  const tipMerchants = [
+    `ACTIVE MERCHANTS`,
+    `Number of distinct merchant sites with at least one placement job.`,
+    ``,
+    `This week: ${formatNumber(activeMerchants)} active merchants`,
+    `Daily average: ${avgDailyMerchants} merchants/day`,
+    `Total merchants in system: ${formatNumber(byMerchant.length)}`,
+    ``,
+    `A drop in active merchants may indicate site outages`,
+    `or reduced cardholder activity at specific retailers.`,
+    `Sparkline: solid line = daily active merchant count.`,
+    `Dashed line = prior week daily average.`,
+  ].filter(Boolean).join("\n");
+
   kioskEls.kpiRow.innerHTML = `
-    <div class="card">
-      <h3>Total Jobs (7d)</h3>
-      <div class="kpi-value">${formatNumber(total)}</div>
-      ${kpiDelta(total, pTotal, "jobs")}
+    <div class="card kpi-spark-card" title="${tipJobs}">
+      <div class="kpi-spark-left">
+        <h3>Total Jobs (7d)</h3>
+        <div class="kpi-value">${formatNumber(total)}</div>
+        ${kpiDelta(total, pTotal, "jobs")}
+      </div>
+      <div class="kpi-spark-right">${buildKpiSparkline(dailyJobs, priorJobs, "#60a5fa", false)}</div>
     </div>
-    <div class="card">
-      <h3>Success Rate ${successTrend}</h3>
-      <div class="kpi-value" style="color:${successRate >= 0.85 ? "#22c55e" : successRate >= 0.70 ? "#f59e0b" : "#ef4444"}">${formatRate(success, total)}</div>
-      ${pTotal > 0 ? `<div class="kpi-delta" style="color:#a8b3cf;font-size:0.75rem;margin-top:4px;">Prior wk: ${formatRate(pSuccess, pTotal)}</div>` : ""}
+    <div class="card kpi-spark-card" title="${tipSuccess}">
+      <div class="kpi-spark-left">
+        <h3>Success Rate ${successTrend}</h3>
+        <div class="kpi-value" style="color:${successRate >= 0.85 ? "#22c55e" : successRate >= 0.70 ? "#f59e0b" : "#ef4444"}">${formatRate(success, total)}</div>
+        ${pTotal > 0 ? `<div class="kpi-delta" style="color:#a8b3cf;font-size:0.75rem;margin-top:4px;">Prior wk: ${formatRate(pSuccess, pTotal)}</div>` : ""}
+      </div>
+      <div class="kpi-spark-right">${buildKpiSparkline(dailySuccessRate, priorSuccessRate, "#22c55e", true)}</div>
     </div>
-    <div class="card">
-      <h3>Failure Rate ${failTrend}</h3>
-      <div class="kpi-value">${formatRate(failed, total)}</div>
-      ${pTotal > 0 ? `<div class="kpi-delta" style="color:#a8b3cf;font-size:0.75rem;margin-top:4px;">Prior wk: ${formatRate(pFailed, pTotal)}</div>` : ""}
+    <div class="card kpi-spark-card" title="${tipFail}">
+      <div class="kpi-spark-left">
+        <h3>Failure Rate ${failTrend}</h3>
+        <div class="kpi-value">${formatRate(failed, total)}</div>
+        ${pTotal > 0 ? `<div class="kpi-delta" style="color:#a8b3cf;font-size:0.75rem;margin-top:4px;">Prior wk: ${formatRate(pFailed, pTotal)}</div>` : ""}
+      </div>
+      <div class="kpi-spark-right">${buildKpiSparkline(dailyFailRate, priorFailRate, "#ef4444", true)}</div>
     </div>
-    <div class="card">
-      <h3>Active Merchants</h3>
-      <div class="kpi-value">${formatNumber(activeMerchants)}</div>
+    <div class="card kpi-spark-card" title="${tipMerchants}">
+      <div class="kpi-spark-left">
+        <h3>Active Merchants</h3>
+        <div class="kpi-value">${formatNumber(activeMerchants)}</div>
+      </div>
+      <div class="kpi-spark-right">${buildKpiSparkline(dailyMerchants, priorMerchants, "#a78bfa", false)}</div>
     </div>
   `;
 }
@@ -559,8 +695,39 @@ function renderMerchantHealthGrid(rows) {
 
     const severity = failRate >= 0.4 ? 'merchant-tile--danger' : failRate > 0.15 ? 'merchant-tile--warn' : '';
 
+    // Build verbose tooltip
+    const priorFailStr = prior ? formatPercent(prior.priorFailRate) : "N/A";
+    const priorTotalStr = prior ? formatNumber(prior.priorTotal) : "N/A";
+    const trendLabel = prior
+      ? (Math.abs(failRate - prior.priorFailRate) < 0.02 ? "Stable" : failRate > prior.priorFailRate ? "Worsening" : "Improving")
+      : "No prior data";
+    const severityLabel = failRate >= 0.4 ? "CRITICAL (>=40% failure)"
+      : failRate > 0.15 ? "ELEVATED (>15% failure)"
+      : successRate >= 0.85 ? "HEALTHY (>=85% success)"
+      : "MODERATE";
+    const topErr = row.top_error_code || "None";
+    const tipMerch = [
+      `${name.toUpperCase()}`,
+      `Status: ${severityLabel}`,
+      ``,
+      `This week:`,
+      `  Total jobs: ${formatNumber(row.Jobs_Total || 0)}`,
+      `  Successful: ${formatNumber(row.Jobs_Success || 0)} (${formatPercent(successRate)})`,
+      `  Failed: ${formatNumber(row.Jobs_Failed || 0)} (${formatPercent(failRate)})`,
+      `  Top error: ${topErr}`,
+      ``,
+      `Prior week:`,
+      `  Total jobs: ${priorTotalStr}`,
+      `  Failure rate: ${priorFailStr}`,
+      `  Trend: ${trendLabel}`,
+      ``,
+      `Click to open detail modal with full breakdown,`,
+      `week-over-week comparison, and recent activity.`,
+    ].join("\n");
+
     const tile = document.createElement("div");
     tile.className = `merchant-tile ${severity}`;
+    tile.title = tipMerch;
     tile.innerHTML = `
       <div class="merchant-tile__header">
         <span class="merchant-tile__name">${name}</span>
@@ -744,6 +911,24 @@ function closeMerchantModal() {
 
 function renderVolumeSparkline(byDay) {
   if (!kioskEls.volumeChart) return;
+  // Add tooltip to volume chart container
+  const totalVol = byDay.reduce((s, d) => s + (d.Jobs_Total || 0), 0);
+  const totalSuccess = byDay.reduce((s, d) => s + (d.Jobs_Success || 0), 0);
+  const totalFailed = byDay.reduce((s, d) => s + (d.Jobs_Failed || 0), 0);
+  const volTip = [
+    `PLACEMENT VOLUME (${byDay.length} days)`,
+    `Daily placement job volume across all merchants and FIs.`,
+    ``,
+    `Total jobs: ${formatNumber(totalVol)}`,
+    `Successful: ${formatNumber(totalSuccess)} (${totalVol > 0 ? formatPercent(totalSuccess / totalVol) : "0%"})`,
+    `Failed: ${formatNumber(totalFailed)} (${totalVol > 0 ? formatPercent(totalFailed / totalVol) : "0%"})`,
+    ``,
+    `Green area = successful placements.`,
+    `Gray area = total placements (gap = failed + cancelled).`,
+    `Y-axis = job count. X-axis = date.`,
+  ].join("\n");
+  kioskEls.volumeChart.title = volTip;
+
   if (!byDay.length) {
     kioskEls.volumeChart.innerHTML = `<div class="empty-state">No daily data.</div>`;
     return;
@@ -834,8 +1019,11 @@ async function fetchEventFeed() {
     kioskEls.eventList.innerHTML = colHeader + events
       .map((evt) => {
         const statusClass = evt.status === "success" ? "success" : evt.status === "pending" ? "pending" : "failed";
+        const fullTime = evt.timestamp ? new Date(evt.timestamp).toLocaleString() : "Unknown";
+        const termInfo = evt.termination_type ? `Termination: ${evt.termination_type}` : "No termination code";
+        const evtTip = `${evt.merchant || "Unknown"} — ${evt.fi_name || "Unknown FI"}\nStatus: ${evt.status || "unknown"}\nTimestamp: ${fullTime}\n${termInfo}\n\nThis is a single card placement job. Each job represents\none cardholder attempting to update their card at this merchant.`;
         return `
-          <div class="event-feed__item">
+          <div class="event-feed__item" title="${evtTip.replace(/"/g, '&quot;')}">
             <span class="event-feed__time">${formatRelativeTime(evt.timestamp)}</span>
             <span class="event-feed__merchant">${evt.merchant || "Unknown"}</span>
             <span class="event-feed__fi">${evt.fi_name || ""}</span>
@@ -852,7 +1040,7 @@ async function fetchEventFeed() {
 function initKioskLayout() {
   // Hide normal dashboard sections
   const normalSections = document.querySelectorAll(
-    ".dashboard-grid, .dashboard-grid.two, .section-title, .table-wrap, #trafficHealthSection"
+    ".dashboard-grid, .dashboard-grid.two, .section-title, .table-wrap, #trafficHealthSection, .dashboard-shell > section"
   );
   normalSections.forEach((el) => (el.style.display = "none"));
 
@@ -880,7 +1068,7 @@ function renderKioskView() {
   const byMerchant = addFailureRates(state.data.by_merchant || []);
   const byDay = state.data.by_day || [];
 
-  renderKioskKpis(overall, byMerchant);
+  renderKioskKpis(overall, byMerchant, byDay);
   renderMerchantHealthGrid(byMerchant);
   renderVolumeSparkline(byDay);
   requestAnimationFrame(capRightColumnHeight);
@@ -998,10 +1186,45 @@ function renderTrafficTile(fi) {
     statsHtml = `Today: <strong>${fi.today_sessions}</strong> sessions (<strong>${fi.pct_of_baseline}%</strong> of baseline)`;
   }
 
+  // Build verbose tooltip
+  const statusExplain = fi.status === "dark"
+    ? "DARK: Zero sessions detected. This FI may have an outage, integration issue, or has gone offline."
+    : fi.status === "low"
+    ? "LOW: Session volume is significantly below the 14-day baseline. Could indicate reduced traffic, partial outage, or campaign ending."
+    : "NORMAL: Session volume is within expected range based on the 14-day rolling baseline.";
+  const lastSessionStr = fi.hours_since_last != null ? `${fi.hours_since_last} hours ago` : "Unknown";
+  const dailyCounts = fi.daily_counts || [];
+  const recentDays = dailyCounts.slice(-3).map((c, i) => `Day ${dailyCounts.length - 2 + i}: ${c} sessions`).join("\n  ");
+  const tipFi = [
+    `${fi.fi_name.toUpperCase()}`,
+    `Partner: ${fi.partner}`,
+    `Instance: ${fi.instance || "N/A"}`,
+    `Integration: ${fi.integration_type || "N/A"}`,
+    ``,
+    statusExplain,
+    ``,
+    `Today's sessions: ${fi.today_sessions}`,
+    `Today projected: ${fi.today_projected} sessions`,
+    `% of baseline: ${fi.pct_of_baseline}%`,
+    `Last session: ${lastSessionStr}`,
+    ``,
+    `14-Day Baseline:`,
+    `  Median: ${fi.baseline_median} sessions/day`,
+    `  Average: ${fi.baseline_avg} sessions/day`,
+    `  Yesterday: ${fi.yesterday_sessions} sessions`,
+    ``,
+    `Recent daily counts:`,
+    `  ${recentDays}`,
+    ``,
+    `Sparkline: bars = daily session counts (14 days).`,
+    `Dashed line = baseline median.`,
+    `Click to open detail modal with full 15-day chart.`,
+  ].join("\n");
+
   return `
-    <div class="traffic-tile status-${fi.status}" data-fi-key="${fi.fi_lookup_key}">
+    <div class="traffic-tile status-${fi.status}" data-fi-key="${fi.fi_lookup_key}" title="${tipFi.replace(/"/g, '&quot;')}">
       <div class="traffic-tile__header">
-        <span class="traffic-tile__name" title="${fi.fi_name}">${fi.fi_name}</span>
+        <span class="traffic-tile__name">${fi.fi_name}</span>
         <span class="traffic-tile__status-badge ${fi.status}">${fi.status.toUpperCase()}</span>
       </div>
       <div class="traffic-tile__partner">${fi.partner}</div>

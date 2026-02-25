@@ -5912,9 +5912,11 @@ const server = http.createServer(async (req, res) => {
           if (status === "abandoned") overall.Jobs_Abandoned += 1;
           if (status === "failed") overall.Jobs_Failed += 1;
 
-          const dayEntry = byDay.get(dayKey) || { date: dayKey, Jobs_Total: 0, Jobs_Failed: 0 };
+          const dayEntry = byDay.get(dayKey) || { date: dayKey, Jobs_Total: 0, Jobs_Success: 0, Jobs_Failed: 0, _merchants: new Set() };
           dayEntry.Jobs_Total += 1;
+          if (status === "success") dayEntry.Jobs_Success += 1;
           if (status === "failed") dayEntry.Jobs_Failed += 1;
+          dayEntry._merchants.add(merchant);
           byDay.set(dayKey, dayEntry);
 
           const merchantEntry = byMerchant.get(merchant) || {
@@ -5996,7 +5998,9 @@ const server = http.createServer(async (req, res) => {
           status,
           count,
         })),
-        by_day: Array.from(byDay.values()).sort((a, b) => a.date.localeCompare(b.date)),
+        by_day: Array.from(byDay.values())
+          .map(d => ({ date: d.date, Jobs_Total: d.Jobs_Total, Jobs_Success: d.Jobs_Success, Jobs_Failed: d.Jobs_Failed, merchants_active: d._merchants ? d._merchants.size : 0 }))
+          .sort((a, b) => a.date.localeCompare(b.date)),
         by_merchant: byMerchantRows,
         by_fi_instance: Array.from(byFiInstance.values()),
         top_error_codes: topErrorCodes,

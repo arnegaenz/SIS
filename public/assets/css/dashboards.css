@@ -522,7 +522,7 @@ body.kiosk-mode .dashboard-shell {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 14px;
-  margin-bottom: 18px;
+  margin-bottom: 14px;
 }
 
 .kiosk-kpi-row .card {
@@ -539,6 +539,28 @@ body.kiosk-mode .dashboard-shell {
 
 .kiosk-kpi-row .kpi-value {
   font-size: clamp(24px, 2.5vw, 38px);
+}
+
+.kpi-spark-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.kpi-spark-left {
+  flex: 1;
+  min-width: 0;
+}
+
+.kpi-spark-right {
+  flex: 0 0 260px;
+  height: 56px;
+}
+
+.kpi-spark {
+  width: 100%;
+  height: 100%;
+  display: block;
 }
 
 /* Health indicator dot */
@@ -1921,4 +1943,161 @@ body.kiosk-mode .traffic-tile.status-dark {
 
 [data-theme="dark"] .traffic-health-banner.has-warnings {
   background: rgba(245, 158, 11, 0.08);
+}
+
+/* ── Portfolio Kiosk Enhancements ── */
+
+/* Kiosk KPI row top spacing */
+#kioskKpiRow {
+  margin-top: 6px;
+}
+
+/* FI card severity coloring (portfolio kiosk) */
+.partner-card--danger {
+  background: rgba(239, 68, 68, 0.10);
+  border-color: rgba(239, 68, 68, 0.30);
+}
+
+.partner-card--warn {
+  background: rgba(245, 158, 11, 0.10);
+  border-color: rgba(245, 158, 11, 0.25);
+}
+
+.partner-card--danger:hover {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.45);
+}
+
+.partner-card--warn:hover {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: rgba(245, 158, 11, 0.40);
+}
+
+/* Network trend chart panel (portfolio kiosk right column) */
+.kiosk-network-chart {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 10px 10px 6px;
+  min-height: 180px;
+}
+
+.kiosk-network-chart svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* Warnings panel (portfolio kiosk right column) */
+.kiosk-warnings-panel {
+  max-height: 200px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+.kiosk-warnings-panel::-webkit-scrollbar {
+  width: 4px;
+}
+
+.kiosk-warnings-panel::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+/* Compact distributions (portfolio kiosk right column) */
+.kiosk-distributions-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.kiosk-dist-section {
+  font-size: 0.75rem;
+}
+
+.kiosk-dist-section__label {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.kiosk-dist-bar {
+  display: flex;
+  height: 20px;
+  border-radius: 999px;
+  overflow: hidden;
+  margin-bottom: 4px;
+}
+
+.kiosk-dist-bar__segment {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: #fff;
+  transition: width 0.3s ease;
+  min-width: 0;
+}
+
+.kiosk-dist-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 0.65rem;
+  color: var(--muted);
+}
+
+.kiosk-dist-legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.kiosk-dist-legend__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+/* Score histogram compact (horizontal bars) */
+.kiosk-score-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.kiosk-score-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.68rem;
+}
+
+.kiosk-score-row__label {
+  flex: 0 0 36px;
+  text-align: right;
+  color: var(--muted);
+}
+
+.kiosk-score-row__bar {
+  flex: 1;
+  height: 14px;
+  border-radius: 3px;
+  min-width: 2px;
+  transition: width 0.3s ease;
+}
+
+.kiosk-score-row__count {
+  flex: 0 0 20px;
+  text-align: left;
+  font-weight: 700;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
 }

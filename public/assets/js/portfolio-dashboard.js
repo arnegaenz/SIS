@@ -34,6 +34,13 @@ const els = {
   fiCardGrid: document.getElementById("fiCardGrid"),
   fiTable: document.getElementById("fiTable"),
   fiTableMeta: document.getElementById("fiTableMeta"),
+  // Kiosk split layout
+  kioskKpiRow: document.getElementById("kioskKpiRow"),
+  kioskSplit: document.getElementById("kioskSplit"),
+  kioskFiGrid: document.getElementById("kioskFiGrid"),
+  kioskNetworkChart: document.getElementById("kioskNetworkChart"),
+  kioskWarnings: document.getElementById("kioskWarnings"),
+  kioskDistributions: document.getElementById("kioskDistributions"),
 };
 
 /* ── State ── */
@@ -1099,18 +1106,9 @@ function initKioskLayout() {
   if (els.fiCardGrid) els.fiCardGrid.style.display = "none";
   if (els.warningsTitle) els.warningsTitle.style.display = "none";
 
-  // Show kiosk containers
-  const kioskAlerts = document.getElementById("kioskAlerts");
-  const kioskGrid = document.getElementById("kioskPartnerGrid");
-  if (kioskAlerts) kioskAlerts.style.display = "";
-  if (kioskGrid) kioskGrid.style.display = "";
-
-  // Section title
-  const gridTitle = document.createElement("div");
-  gridTitle.className = "kiosk-section-title";
-  gridTitle.textContent = "All FIs";
-  gridTitle.style.marginTop = "8px";
-  if (kioskGrid) kioskGrid.parentNode.insertBefore(gridTitle, kioskGrid);
+  // Show kiosk split containers
+  if (els.kioskKpiRow) els.kioskKpiRow.style.display = "";
+  if (els.kioskSplit) els.kioskSplit.style.display = "";
 
   // Test toggle in kiosk header
   const headerStatus = document.querySelector(".kiosk-header__status");
@@ -1131,81 +1129,277 @@ function initKioskLayout() {
 }
 
 function renderKioskView(fis) {
-  const kioskAlerts = document.getElementById("kioskAlerts");
-  const kioskGrid = document.getElementById("kioskPartnerGrid");
-
-  // Render KPI row in kiosk
+  // KPI row with sparklines
   renderKioskKpis(fis);
 
-  // Render alerts
-  if (kioskAlerts) {
-    const allWarnings = [];
-    fis.forEach((fi) => (fi.warnings || []).forEach((w) => allWarnings.push(w)));
+  // Left column: FI grid sorted by sessions (highest first)
+  renderKioskFiGrid(fis);
 
-    if (!allWarnings.length) {
-      kioskAlerts.innerHTML = "";
-    } else {
-      const COLLAPSED_COUNT = 3;
-      const visible = alertsExpanded ? allWarnings : allWarnings.slice(0, COLLAPSED_COUNT);
-      const hasMore = allWarnings.length > COLLAPSED_COUNT;
+  // Right column: network chart + warnings + distributions
+  renderKioskNetworkChart();
+  renderKioskWarnings(fis);
+  renderKioskDistributions(fis);
+}
 
-      let html = visible
-        .map(
-          (w) =>
-            `<div class="kiosk-alert ${w.type}"><span class="warning-item__type ${w.category}">${w.category.toUpperCase()}</span> ${w.text}</div>`
-        )
-        .join("");
+function renderKioskFiGrid(fis) {
+  const grid = els.kioskFiGrid;
+  if (!grid) return;
+  grid.innerHTML = "";
 
-      if (hasMore) {
-        const remaining = allWarnings.length - COLLAPSED_COUNT;
-        html += `<div class="kiosk-alerts__expand" id="kioskWarningsExpand">${
-          alertsExpanded
-            ? '<span class="partner-grid__expand-arrow">&#9650;</span> Show less'
-            : `<span class="partner-grid__expand-arrow">&#9660;</span> Show ${remaining} more`
-        }</div>`;
-      }
+  // Sort by total sessions (highest first) in kiosk mode
+  const sorted = [...fis].sort((a, b) => (b.SM_Sessions || 0) - (a.SM_Sessions || 0));
+  const active = sorted.filter((fi) => (fi.SM_Sessions || 0) >= LOW_VOLUME_THRESHOLD);
+  const lowVol = sorted.filter((fi) => (fi.SM_Sessions || 0) < LOW_VOLUME_THRESHOLD);
 
-      kioskAlerts.innerHTML = html;
-      if (hasMore) {
-        document.getElementById("kioskWarningsExpand")?.addEventListener("click", () => {
-          alertsExpanded = !alertsExpanded;
-          renderKioskView(fis);
-        });
-      }
-    }
-  }
+  active.forEach((fi) => grid.appendChild(buildKioskCard(fi)));
 
-  // Render grid
-  if (kioskGrid) {
-    kioskGrid.innerHTML = "";
-    const sorted = [...fis].sort((a, b) => b.score - a.score);
-    const active = sorted.filter((fi) => (fi.SM_Sessions || 0) >= LOW_VOLUME_THRESHOLD);
-    const lowVol = sorted.filter((fi) => (fi.SM_Sessions || 0) < LOW_VOLUME_THRESHOLD);
+  if (lowVol.length) {
+    const toggle = document.createElement("div");
+    toggle.className = "partner-grid__expand";
+    toggle.innerHTML = lowVolumeExpanded
+      ? '<span class="partner-grid__expand-arrow">&#9650;</span> Hide low volume'
+      : `<span class="partner-grid__expand-arrow">&#9660;</span> Low Volume (${lowVol.length} FIs)`;
+    toggle.addEventListener("click", () => {
+      lowVolumeExpanded = !lowVolumeExpanded;
+      renderKioskFiGrid(fis);
+    });
+    grid.appendChild(toggle);
 
-    active.forEach((fi) => kioskGrid.appendChild(buildKioskCard(fi)));
-
-    if (lowVol.length) {
-      const toggle = document.createElement("div");
-      toggle.className = "partner-grid__expand";
-      toggle.innerHTML = lowVolumeExpanded
-        ? '<span class="partner-grid__expand-arrow">&#9650;</span> Hide low volume'
-        : `<span class="partner-grid__expand-arrow">&#9660;</span> Low Volume (${lowVol.length} FIs)`;
-      toggle.addEventListener("click", () => {
-        lowVolumeExpanded = !lowVolumeExpanded;
-        renderKioskView(fis);
-      });
-      kioskGrid.appendChild(toggle);
-
-      if (lowVolumeExpanded) {
-        lowVol.forEach((fi) => kioskGrid.appendChild(buildKioskCard(fi)));
-      }
+    if (lowVolumeExpanded) {
+      lowVol.forEach((fi) => grid.appendChild(buildKioskCard(fi)));
     }
   }
 }
 
+function renderKioskWarnings(fis) {
+  const container = els.kioskWarnings;
+  if (!container) return;
+
+  const allWarnings = [];
+  fis.forEach((fi) => (fi.warnings || []).forEach((w) => allWarnings.push(w)));
+
+  if (!allWarnings.length) {
+    container.innerHTML = '<div style="font-size:0.78rem;color:var(--muted);padding:8px 0;">No active warnings.</div>';
+    return;
+  }
+
+  const COLLAPSED_COUNT = 5;
+  const visible = alertsExpanded ? allWarnings : allWarnings.slice(0, COLLAPSED_COUNT);
+  const hasMore = allWarnings.length > COLLAPSED_COUNT;
+
+  let html = visible
+    .map(
+      (w) =>
+        `<div class="kiosk-alert ${w.type}" style="padding:6px 10px;margin-bottom:4px;font-size:0.75rem;"><span class="warning-item__type ${w.category}" style="font-size:0.55rem;">${w.category.toUpperCase()}</span> ${w.text}</div>`
+    )
+    .join("");
+
+  if (hasMore) {
+    const remaining = allWarnings.length - COLLAPSED_COUNT;
+    html += `<div class="kiosk-alerts__expand" id="kioskWarningsExpand">${
+      alertsExpanded
+        ? '<span class="partner-grid__expand-arrow">&#9650;</span> Show less'
+        : `<span class="partner-grid__expand-arrow">&#9660;</span> Show ${remaining} more`
+    }</div>`;
+  }
+
+  container.innerHTML = html;
+  if (hasMore) {
+    document.getElementById("kioskWarningsExpand")?.addEventListener("click", () => {
+      alertsExpanded = !alertsExpanded;
+      renderKioskWarnings(fis);
+    });
+  }
+}
+
+/* ── Network Trend Chart (7-day SVG: session bars + success rate line) ── */
+function renderKioskNetworkChart() {
+  const container = els.kioskNetworkChart;
+  if (!container) return;
+
+  const byDay = (state.data?.by_day || []).slice().sort((a, b) => a.date.localeCompare(b.date));
+  // Take last 7 days
+  const days = byDay.slice(-7);
+  if (!days.length) {
+    container.innerHTML = '<div style="font-size:0.78rem;color:var(--muted);padding:16px;text-align:center;">No daily data available.</div>';
+    return;
+  }
+
+  const w = 340, h = 160, padL = 38, padR = 38, padT = 16, padB = 28;
+  const chartW = w - padL - padR;
+  const chartH = h - padT - padB;
+
+  const sessions = days.map((d) => d.SM_Sessions || 0);
+  const rates = days.map((d) => {
+    const sm = d.SM_Sessions || 0;
+    const success = d.Success_Sessions || 0;
+    return sm > 0 ? success / sm : 0;
+  });
+
+  const maxSessions = Math.max(...sessions, 1);
+  const maxRate = Math.max(...rates, 0.01);
+  // Cap rate axis at reasonable ceiling
+  const rateAxisMax = Math.min(Math.max(maxRate * 1.2, 0.05), 1);
+
+  const barW = Math.min(chartW / days.length * 0.6, 30);
+  const barGap = chartW / days.length;
+
+  // Bars
+  let barsHtml = "";
+  days.forEach((d, i) => {
+    const sm = d.SM_Sessions || 0;
+    const barH = (sm / maxSessions) * chartH;
+    const x = padL + i * barGap + (barGap - barW) / 2;
+    const y = padT + chartH - barH;
+    barsHtml += `<rect x="${x}" y="${y}" width="${barW}" height="${barH}" rx="3" fill="#60a5fa" fill-opacity="0.5" />`;
+  });
+
+  // Rate line
+  let linePoints = days.map((d, i) => {
+    const sm = d.SM_Sessions || 0;
+    const success = d.Success_Sessions || 0;
+    const rate = sm > 0 ? success / sm : 0;
+    const x = padL + i * barGap + barGap / 2;
+    const y = padT + chartH - (rate / rateAxisMax) * chartH;
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  });
+  const lineHtml = `<polyline points="${linePoints.join(" ")}" fill="none" stroke="#22c55e" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" />`;
+
+  // Rate dots
+  let dotsHtml = days.map((d, i) => {
+    const sm = d.SM_Sessions || 0;
+    const success = d.Success_Sessions || 0;
+    const rate = sm > 0 ? success / sm : 0;
+    const x = padL + i * barGap + barGap / 2;
+    const y = padT + chartH - (rate / rateAxisMax) * chartH;
+    return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3.5" fill="#22c55e" />`;
+  }).join("");
+
+  // X-axis day labels
+  const dayLabels = days.map((d) => {
+    const dt = new Date(d.date + "T12:00:00");
+    return ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][dt.getDay()];
+  });
+  let xLabelsHtml = days.map((d, i) => {
+    const x = padL + i * barGap + barGap / 2;
+    const y = h - 6;
+    return `<text x="${x}" y="${y}" text-anchor="middle" fill="var(--muted)" font-size="9" font-weight="600">${dayLabels[i]}</text>`;
+  }).join("");
+
+  // Y-axis: sessions (left)
+  const ySteps = 3;
+  let yLeftHtml = "";
+  for (let s = 0; s <= ySteps; s++) {
+    const val = Math.round((maxSessions / ySteps) * s);
+    const y = padT + chartH - (s / ySteps) * chartH;
+    yLeftHtml += `<text x="${padL - 4}" y="${y + 3}" text-anchor="end" fill="var(--muted)" font-size="8">${val}</text>`;
+    if (s > 0) {
+      yLeftHtml += `<line x1="${padL}" y1="${y}" x2="${w - padR}" y2="${y}" stroke="var(--border)" stroke-width="0.5" stroke-dasharray="4,3" />`;
+    }
+  }
+
+  // Y-axis: rate (right)
+  let yRightHtml = "";
+  for (let s = 0; s <= ySteps; s++) {
+    const val = ((rateAxisMax / ySteps) * s * 100).toFixed(0);
+    const y = padT + chartH - (s / ySteps) * chartH;
+    yRightHtml += `<text x="${w - padR + 4}" y="${y + 3}" text-anchor="start" fill="#22c55e" font-size="8">${val}%</text>`;
+  }
+
+  // Baseline
+  const baselineY = padT + chartH;
+  const baselineHtml = `<line x1="${padL}" y1="${baselineY}" x2="${w - padR}" y2="${baselineY}" stroke="var(--border)" stroke-width="1" />`;
+
+  container.innerHTML = `
+    <svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid meet">
+      ${yLeftHtml}
+      ${yRightHtml}
+      ${baselineHtml}
+      ${barsHtml}
+      ${lineHtml}
+      ${dotsHtml}
+      ${xLabelsHtml}
+    </svg>
+    <div style="display:flex;gap:14px;font-size:0.68rem;color:var(--muted);padding:2px 4px 0;">
+      <span><span style="display:inline-block;width:10px;height:10px;background:#60a5fa;border-radius:2px;vertical-align:middle;margin-right:3px;opacity:0.5;"></span>Sessions</span>
+      <span><span style="display:inline-block;width:10px;height:3px;background:#22c55e;border-radius:2px;vertical-align:middle;margin-right:3px;"></span>Success Rate</span>
+    </div>
+  `;
+}
+
+/* ── Compact Distributions (kiosk right column) ── */
+function renderKioskDistributions(fis) {
+  const container = els.kioskDistributions;
+  if (!container) return;
+
+  // Tier distribution — compact stacked bar
+  const tierBuckets = [
+    { key: "1", label: "T1", color: "#22c55e", count: 0 },
+    { key: "1.5", label: "T1.5", color: "#84cc16", count: 0 },
+    { key: "2", label: "T2", color: "#f59e0b", count: 0 },
+    { key: "2.5", label: "T2.5", color: "#f97316", count: 0 },
+    { key: "3", label: "T3", color: "#ef4444", count: 0 },
+  ];
+  fis.forEach((fi) => {
+    const bucket = tierBuckets.find((b) => Number(b.key) === fi.tier);
+    if (bucket) bucket.count++;
+  });
+  const total = fis.length || 1;
+
+  const tierBarHtml = tierBuckets
+    .filter((b) => b.count > 0)
+    .map((b) => `<div class="kiosk-dist-bar__segment" style="width:${(b.count / total) * 100}%;background:${b.color};" title="${b.label}: ${b.count} FIs">${b.count > 0 ? b.count : ""}</div>`)
+    .join("");
+  const tierLegendHtml = tierBuckets
+    .map((b) => `<span class="kiosk-dist-legend__item"><span class="kiosk-dist-legend__dot" style="background:${b.color}"></span>${b.label} (${b.count})</span>`)
+    .join("");
+
+  // Score distribution — compact horizontal bars
+  const scoreBuckets = [
+    { label: "0-24", color: "#ef4444", count: 0 },
+    { label: "25-49", color: "#f97316", count: 0 },
+    { label: "50-74", color: "#f59e0b", count: 0 },
+    { label: "75-100", color: "#22c55e", count: 0 },
+  ];
+  fis.forEach((fi) => {
+    if (fi.score >= 75) scoreBuckets[3].count++;
+    else if (fi.score >= 50) scoreBuckets[2].count++;
+    else if (fi.score >= 25) scoreBuckets[1].count++;
+    else scoreBuckets[0].count++;
+  });
+  const maxCount = Math.max(...scoreBuckets.map((b) => b.count), 1);
+
+  const scoreBarsHtml = scoreBuckets
+    .map((b) => {
+      const pct = Math.max(4, (b.count / maxCount) * 100);
+      return `<div class="kiosk-score-row">
+        <span class="kiosk-score-row__label">${b.label}</span>
+        <div class="kiosk-score-row__bar" style="width:${pct}%;background:${b.color};opacity:0.7;"></div>
+        <span class="kiosk-score-row__count">${b.count}</span>
+      </div>`;
+    })
+    .join("");
+
+  container.innerHTML = `
+    <div class="kiosk-dist-section">
+      <div class="kiosk-dist-section__label">Tier Distribution</div>
+      <div class="kiosk-dist-bar">${tierBarHtml}</div>
+      <div class="kiosk-dist-legend">${tierLegendHtml}</div>
+    </div>
+    <div class="kiosk-dist-section">
+      <div class="kiosk-dist-section__label">Score Distribution</div>
+      <div class="kiosk-score-bars">${scoreBarsHtml}</div>
+    </div>
+  `;
+}
+
 function buildKioskCard(fi) {
   const card = document.createElement("div");
-  card.className = "partner-card";
+  // Severity coloring
+  let severityCls = "";
+  if (fi.score < 25 || fi.successRate < 0.05) severityCls = " partner-card--danger";
+  else if (fi.score < 50 || fi.successRate < 0.15) severityCls = " partner-card--warn";
+  card.className = "partner-card" + severityCls;
 
   const sm = fi.SM_Sessions || 0;
   const success = fi.Success_Sessions || 0;
@@ -1213,7 +1407,10 @@ function buildKioskCard(fi) {
   const sparkline = fi.trendData ? buildSparklineSvg(fi.trendData.weeks) : "";
   const sColor = scoreColor(fi.score);
 
-  card.title = `Click to view detailed breakdown for ${fi.fi_name}: weekly trends, system health, tier diagnosis, and recommended engagement actions.`;
+  // Verbose tooltip with engagement detail
+  const scoreBreakdown = scoreTooltip(fi);
+  const tierDesc = TIER_TOOLTIPS[fi.tierInfo.zone] || "";
+  card.title = `${fi.fi_name}${fi.partner ? " — " + fi.partner : ""}${fi.integration_type ? " (" + fi.integration_type + ")" : ""}\n\n${scoreBreakdown}\n\nTier: ${fi.tierInfo.label}\n${tierDesc}\n\nSessions: ${formatNumber(sm)} | Success Rate: ${formatPercent(fi.successRate)} | Trend: ${fi.trend}${fi.monthlyReachPct !== null ? "\nMonthly Reach: " + fi.monthlyReachPct.toFixed(2) + "%" : ""}\n\nClick for detailed breakdown.`;
   card.innerHTML = `
     <div class="partner-card__header">
       <span class="partner-card__name" title="${fi.fi_name} (${fi.fi_lookup_key})${fi.partner ? ' — Partner: ' + fi.partner : ''}">${fi.fi_name}</span>
@@ -1247,18 +1444,52 @@ function buildKioskCard(fi) {
   return card;
 }
 
-let kioskKpiRow = null;
+/* ── KPI Sparkline Builder (matches operations-dashboard pattern) ── */
+function buildPortfolioKpiSparkline(values, priorValues, color, isRate) {
+  if (!values.length) return "";
+  const w = 260, h = 56, pad = 4;
+  const priorAvg = (priorValues && priorValues.length)
+    ? priorValues.reduce((s, v) => s + v, 0) / priorValues.length
+    : null;
+  const allVals = priorAvg != null ? [...values, priorAvg] : values;
+  const max = Math.max(...allVals, isRate ? 1 : 1);
+  const min = isRate ? 0 : Math.min(...allVals, 0);
+  const range = max - min || 1;
+
+  const pts = values.map((v, i) => {
+    const x = pad + (i / Math.max(values.length - 1, 1)) * (w - pad * 2);
+    const y = pad + (1 - (v - min) / range) * (h - pad * 2);
+    return `${x},${y}`;
+  });
+
+  const firstX = pad;
+  const lastX = pad + ((values.length - 1) / Math.max(values.length - 1, 1)) * (w - pad * 2);
+  const areaPath = `M${pts[0]} ${pts.slice(1).map(p => `L${p}`).join(" ")} L${lastX},${h - pad} L${firstX},${h - pad} Z`;
+
+  let avgLine = "";
+  if (priorAvg != null) {
+    const avgY = pad + (1 - (priorAvg - min) / range) * (h - pad * 2);
+    avgLine = `<line x1="${pad}" y1="${avgY}" x2="${w - pad}" y2="${avgY}" stroke="${color}" stroke-width="1.5" stroke-opacity="0.45" stroke-dasharray="6,4" />`;
+  }
+
+  return `<svg class="kpi-spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+    <path d="${areaPath}" fill="${color}" fill-opacity="0.12" />
+    ${avgLine}
+    <polyline points="${pts.join(" ")}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" />
+  </svg>`;
+}
+
+function kpiDeltaHtml(current, prior, label) {
+  if (!Number.isFinite(prior) || prior === 0) return "";
+  const delta = current - prior;
+  const pctChange = prior > 0 ? delta / prior : 0;
+  const sign = delta >= 0 ? "+" : "";
+  return `<div class="kpi-delta" style="color:#a8b3cf;font-size:0.75rem;margin-top:4px;">${sign}${(pctChange * 100).toFixed(1)}% vs prior wk</div>`;
+}
 
 function renderKioskKpis(fis) {
-  if (!kioskKpiRow) {
-    kioskKpiRow = document.createElement("div");
-    kioskKpiRow.className = "kiosk-kpi-row";
-    const shell = document.querySelector(".dashboard-shell");
-    const kioskAlerts = document.getElementById("kioskAlerts");
-    if (shell && kioskAlerts) {
-      shell.insertBefore(kioskKpiRow, kioskAlerts);
-    }
-  }
+  const row = els.kioskKpiRow;
+  if (!row) return;
 
   const activeFis = fis.filter((fi) => (fi.SM_Sessions || 0) > 0).length;
   const totalSm = fis.reduce((s, fi) => s + (fi.SM_Sessions || 0), 0);
@@ -1273,26 +1504,127 @@ function renderKioskKpis(fis) {
   const opsRate = opsTotal > 0 ? opsSuccess / opsTotal : 1;
   const opsColor = opsHealthColor(opsRate);
 
-  kioskKpiRow.innerHTML = `
-    <div class="card" title="Number of FIs with at least 1 CardUpdatr session (Select Merchant page view) in the last 30 days.">
-      <h3>Active FIs</h3>
-      <div class="kpi-value">${formatNumber(activeFis)}</div>
+  // Daily data for sparklines — split into current 7d and prior 7d
+  const byDay = (state.data?.by_day || []).slice().sort((a, b) => a.date.localeCompare(b.date));
+  const opsByDay = (state.opsData?.by_day || []).slice().sort((a, b) => a.date.localeCompare(b.date));
+
+  const currentDays = byDay.slice(-7);
+  const priorDays = byDay.slice(-14, -7);
+  const currentOpsDays = opsByDay.slice(-7);
+  const priorOpsDays = opsByDay.slice(-14, -7);
+
+  // Sparkline data arrays
+  const dailySessions = currentDays.map(d => d.SM_Sessions || 0);
+  const priorSessions = priorDays.map(d => d.SM_Sessions || 0);
+
+  const dailySuccessRate = currentDays.map(d => (d.SM_Sessions || 0) > 0 ? (d.Success_Sessions || 0) / d.SM_Sessions : 0);
+  const priorSuccessRate = priorDays.map(d => (d.SM_Sessions || 0) > 0 ? (d.Success_Sessions || 0) / d.SM_Sessions : 0);
+
+  const dailyPlacements = currentDays.map(d => d.Jobs_Success || 0);
+  const priorPlacements = priorDays.map(d => d.Jobs_Success || 0);
+
+  const dailyOpsRate = currentOpsDays.map(d => (d.Jobs_Total || 0) > 0 ? (d.Jobs_Success || 0) / d.Jobs_Total : 0);
+  const priorOpsRate = priorOpsDays.map(d => (d.Jobs_Total || 0) > 0 ? (d.Jobs_Success || 0) / d.Jobs_Total : 0);
+
+  // Prior week totals for deltas
+  const priorTotalSm = priorDays.reduce((s, d) => s + (d.SM_Sessions || 0), 0);
+  const priorTotalSuccess = priorDays.reduce((s, d) => s + (d.Success_Sessions || 0), 0);
+  const priorNetworkRate = priorTotalSm > 0 ? priorTotalSuccess / priorTotalSm : 0;
+  const priorTotalPlacements = priorDays.reduce((s, d) => s + (d.Jobs_Success || 0), 0);
+
+  // Trend arrows for rate-based KPIs
+  const rateDelta = networkRate - priorNetworkRate;
+  const successTrend = priorTotalSm > 0
+    ? (rateDelta > 0.02 ? '<span style="color:#22c55e;font-size:0.85rem;">&#9650;</span>'
+      : rateDelta < -0.02 ? '<span style="color:#ef4444;font-size:0.85rem;">&#9660;</span>'
+      : '<span style="color:#64748b;font-size:0.7rem;">&#9644;</span>')
+    : "";
+
+  // Verbose tooltips
+  const avgDailySessions = dailySessions.length ? (dailySessions.reduce((a, b) => a + b, 0) / dailySessions.length).toFixed(1) : "0";
+  const priorAvgDailySessions = priorSessions.length && priorTotalSm > 0 ? (priorTotalSm / priorSessions.length).toFixed(1) : "N/A";
+
+  const tipRate = [
+    "NETWORK SUCCESS RATE",
+    "Weighted average session success rate across all active FIs.",
+    "",
+    `This week: ${formatPercent(networkRate)} (${formatNumber(totalSuccess)} of ${formatNumber(totalSm)} sessions)`,
+    priorTotalSm > 0 ? `Prior week: ${formatPercent(priorNetworkRate)} (${formatNumber(priorTotalSuccess)} of ${formatNumber(priorTotalSm)} sessions)` : "",
+    "",
+    "Sparkline: solid line = daily success rate.",
+    "Dashed line = prior week daily average rate.",
+  ].filter(Boolean).join("\n");
+
+  const tipSessions = [
+    "TOTAL SESSIONS",
+    "Select Merchant (SM) sessions across all FIs.",
+    "",
+    `This week: ${formatNumber(totalSm)} (${avgDailySessions}/day avg)`,
+    `Prior week: ${formatNumber(priorTotalSm)} (${priorAvgDailySessions}/day avg)`,
+    "",
+    "Sparkline: solid line = daily session volume.",
+    "Dashed line = prior week daily average.",
+  ].filter(Boolean).join("\n");
+
+  const tipPlacements = [
+    "TOTAL PLACEMENTS",
+    "Successful card placements (cards updated at merchants).",
+    "",
+    `This week: ${formatNumber(totalPlacements)}`,
+    priorTotalPlacements > 0 ? `Prior week: ${formatNumber(priorTotalPlacements)}` : "",
+    "",
+    "Sparkline: solid line = daily placement count.",
+    "Dashed line = prior week daily average.",
+  ].filter(Boolean).join("\n");
+
+  const tipHealth = [
+    "SYSTEM HEALTH",
+    "Network-wide job success rate across all merchants and FIs.",
+    "",
+    `Current: ${(opsRate * 100).toFixed(1)}% (${formatNumber(opsTotal)} total jobs)`,
+    "Green >= 85% | Amber >= 70% | Red < 70%",
+    "",
+    "Sparkline: solid line = daily job success rate.",
+    "Dashed line = prior week daily average.",
+  ].filter(Boolean).join("\n");
+
+  // Show active FI count in header subtitle (matches Ops 4-card KPI pattern)
+  const headerTitle = document.querySelector(".kiosk-header__title");
+  if (headerTitle) {
+    headerTitle.innerHTML = `CS Portfolio Dashboard — Last 30 Days <span style="font-weight:400;font-size:0.78rem;color:var(--muted);margin-left:12px;">${formatNumber(activeFis)} active FIs of ${formatNumber(fis.length)}</span>`;
+  }
+
+  row.innerHTML = `
+    <div class="card kpi-spark-card" title="${tipRate}">
+      <div class="kpi-spark-left">
+        <h3>Success Rate ${successTrend}</h3>
+        <div class="kpi-value">${formatPercent(networkRate)}</div>
+        ${priorTotalSm > 0 ? `<div class="kpi-delta" style="color:#a8b3cf;font-size:0.75rem;margin-top:4px;">Prior wk: ${formatPercent(priorNetworkRate)}</div>` : ""}
+      </div>
+      <div class="kpi-spark-right">${buildPortfolioKpiSparkline(dailySuccessRate, priorSuccessRate, "#22c55e", true)}</div>
     </div>
-    <div class="card" title="Weighted average success rate across all FIs. Total successful sessions (${formatNumber(totalSuccess)}) / Total SM sessions (${formatNumber(totalSm)}). Not a simple average of per-FI rates — FIs with more volume contribute proportionally more.">
-      <h3>Network Success Rate</h3>
-      <div class="kpi-value">${formatPercent(networkRate)}</div>
+    <div class="card kpi-spark-card" title="${tipSessions}">
+      <div class="kpi-spark-left">
+        <h3>Total Sessions (7d)</h3>
+        <div class="kpi-value">${formatNumber(totalSm)}</div>
+        ${kpiDeltaHtml(totalSm, priorTotalSm, "sessions")}
+      </div>
+      <div class="kpi-spark-right">${buildPortfolioKpiSparkline(dailySessions, priorSessions, "#60a5fa", false)}</div>
     </div>
-    <div class="card" title="Total Select Merchant (SM) sessions across all FIs in the last 30 days. Each session = one cardholder opening CardUpdatr and reaching the merchant selection page.">
-      <h3>Total Sessions</h3>
-      <div class="kpi-value">${formatNumber(totalSm)}</div>
+    <div class="card kpi-spark-card" title="${tipPlacements}">
+      <div class="kpi-spark-left">
+        <h3>Placements (7d)</h3>
+        <div class="kpi-value">${formatNumber(totalPlacements)}</div>
+        ${kpiDeltaHtml(totalPlacements, priorTotalPlacements, "placements")}
+      </div>
+      <div class="kpi-spark-right">${buildPortfolioKpiSparkline(dailyPlacements, priorPlacements, "#a78bfa", false)}</div>
     </div>
-    <div class="card" title="Total successful card placements (cards updated at merchants) across all FIs. One session can produce multiple placements if the cardholder updates multiple merchants.">
-      <h3>Total Placements</h3>
-      <div class="kpi-value">${formatNumber(totalPlacements)}</div>
-    </div>
-    <div class="card" title="Network-wide job success rate: ${(opsRate * 100).toFixed(1)}%. Measures the percentage of individual card placement jobs that succeed across all merchants. Green (>=85%) = healthy. Amber (70-85%) = elevated failures. Red (<70%) = degraded. Based on ${formatNumber(opsTotal)} total jobs.">
-      <h3>System Health</h3>
-      <div class="kpi-value"><span class="health-dot ${opsColor}" style="margin-right:6px;"></span>${(opsRate * 100).toFixed(1)}%</div>
+    <div class="card kpi-spark-card" title="${tipHealth}">
+      <div class="kpi-spark-left">
+        <h3>System Health</h3>
+        <div class="kpi-value"><span class="health-dot ${opsColor}" style="margin-right:6px;"></span>${(opsRate * 100).toFixed(1)}%</div>
+      </div>
+      <div class="kpi-spark-right">${buildPortfolioKpiSparkline(dailyOpsRate, priorOpsRate, opsColor === "green" ? "#22c55e" : opsColor === "amber" ? "#f59e0b" : "#ef4444", true)}</div>
     </div>
   `;
 }

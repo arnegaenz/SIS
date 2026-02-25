@@ -151,8 +151,21 @@
     </div>
 
     <!-- Kiosk-only containers (hidden in regular mode) -->
-    <div id="kioskAlerts" class="kiosk-alerts" style="display:none;"></div>
-    <div id="kioskPartnerGrid" class="partner-grid" style="display:none;"></div>
+    <div id="kioskKpiRow" class="kiosk-kpi-row" style="display:none;margin-top:16px;"></div>
+    <div id="kioskSplit" class="kiosk-main-split" style="display:none;">
+      <div class="kiosk-main-split__left">
+        <div class="kiosk-section-title">All FIs</div>
+        <div id="kioskFiGrid" class="partner-grid"></div>
+      </div>
+      <div class="kiosk-main-split__right">
+        <div class="kiosk-section-title">Network Trend (7 days)</div>
+        <div id="kioskNetworkChart" class="kiosk-network-chart"></div>
+        <div class="kiosk-section-title" style="margin-top:12px;">Early Warnings</div>
+        <div id="kioskWarnings" class="kiosk-warnings-panel"></div>
+        <div class="kiosk-section-title" style="margin-top:12px;">Distributions</div>
+        <div id="kioskDistributions" class="kiosk-distributions-panel"></div>
+      </div>
+    </div>
   </div>
 </body>
 </html>

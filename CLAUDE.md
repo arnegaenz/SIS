@@ -100,7 +100,6 @@ At the end of each working session, briefly discuss:
   - **arg-fcu.com pages**: Deploy via `git push` to main (GitHub Pages)
 
 ## Known Issues
-- `[analytics] log error: ReferenceError: readBody is not defined` - seen in logs, separate bug
 - FI lookup keys not unique across instances — always filter by partner/instance composite
 
 ---
@@ -156,6 +155,28 @@ All partner-facing content follows engagement-positive tone:
 ---
 
 # Build History
+
+## Feb 25, 2026 (Session 3)
+
+### Portfolio Kiosk Split-Column Layout
+- **Problem**: Portfolio kiosk was a flat single-column layout (KPIs → warnings → FI grid), visually uncompelling compared to Ops kiosk's split-column design
+- **Solution**: Transformed to matching split-column layout (`kiosk-main-split` grid, `5fr 2fr`)
+  - **Left column**: FI card grid sorted by sessions (highest first), with severity coloring — `.partner-card--danger` (score<25 or rate<5%), `.partner-card--warn` (score<50 or rate<15%)
+  - **Right column**: 7-day network trend chart (SVG dual y-axis: session bars + success rate line), early warnings panel, compact tier + score distributions
+  - **KPI row**: 4 sparkline cards (Success Rate, Sessions, Placements, System Health) with prior-week dashed average + delta badges. Active FIs count moved to header subtitle
+  - **Sparklines**: Reused Ops pattern (`buildPortfolioKpiSparkline()` — 260x56 viewBox, area fill + solid line + dashed prior-week avg)
+  - **Verbose tooltips**: Multi-line detail on all kiosk FI cards (score breakdown, tier, sessions, rate, trend)
+- **Files**: `portfolio.html` (HTML containers), `portfolio-dashboard.js` (~500 lines new/modified), `dashboards.css` (severity classes, chart/panel styling, distributions)
+
+### Kiosk Spacing Alignment (Ops + Portfolio)
+- **Problem**: Gap between header and KPI cards differed between Ops and Portfolio kiosk views when displayed side-by-side on two 27" monitors
+- **Root cause**: Two `<section style="margin-top: 22px;">` wrappers in `operations.html` (merchant table, FI table) were NOT being hidden by `initKioskLayout()` — only their children were hidden. These empty sections contributed 44px of ghost spacing
+- **Fix**: Added `.dashboard-shell > section` to the Ops `initKioskLayout()` hide selector. Set both pages' `#kioskKpiRow` to `margin-top:16px` inline for exact match
+- **Files**: `operations-dashboard.js` (hide selector fix), `operations.html` + `portfolio.html` (inline margin)
+
+### Ops by_day Data Enhancement
+- Added `Jobs_Success` and `merchants_active` fields to ops `/api/metrics/ops` `by_day` response data (needed for Portfolio kiosk System Health sparkline)
+- **File**: `scripts/serve-funnel.mjs`
 
 ## Feb 25, 2026 (Session 2)
 
