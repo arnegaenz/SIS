@@ -1135,10 +1135,9 @@ function renderKioskView(fis) {
   // Left column: FI grid sorted by sessions (highest first)
   renderKioskFiGrid(fis);
 
-  // Right column: network chart + warnings + distributions
+  // Right column: network chart + warnings
   renderKioskNetworkChart();
   renderKioskWarnings(fis);
-  renderKioskDistributions(fis);
 }
 
 function renderKioskFiGrid(fis) {
@@ -1146,29 +1145,9 @@ function renderKioskFiGrid(fis) {
   if (!grid) return;
   grid.innerHTML = "";
 
-  // Sort by total sessions (highest first) in kiosk mode
+  // Sort by total sessions (highest first) — show ALL FIs, no low-volume split
   const sorted = [...fis].sort((a, b) => (b.SM_Sessions || 0) - (a.SM_Sessions || 0));
-  const active = sorted.filter((fi) => (fi.SM_Sessions || 0) >= LOW_VOLUME_THRESHOLD);
-  const lowVol = sorted.filter((fi) => (fi.SM_Sessions || 0) < LOW_VOLUME_THRESHOLD);
-
-  active.forEach((fi) => grid.appendChild(buildKioskCard(fi)));
-
-  if (lowVol.length) {
-    const toggle = document.createElement("div");
-    toggle.className = "partner-grid__expand";
-    toggle.innerHTML = lowVolumeExpanded
-      ? '<span class="partner-grid__expand-arrow">&#9650;</span> Hide low volume'
-      : `<span class="partner-grid__expand-arrow">&#9660;</span> Low Volume (${lowVol.length} FIs)`;
-    toggle.addEventListener("click", () => {
-      lowVolumeExpanded = !lowVolumeExpanded;
-      renderKioskFiGrid(fis);
-    });
-    grid.appendChild(toggle);
-
-    if (lowVolumeExpanded) {
-      lowVol.forEach((fi) => grid.appendChild(buildKioskCard(fi)));
-    }
-  }
+  sorted.forEach((fi) => grid.appendChild(buildKioskCard(fi)));
 }
 
 function renderKioskWarnings(fis) {
@@ -1183,33 +1162,22 @@ function renderKioskWarnings(fis) {
     return;
   }
 
-  const COLLAPSED_COUNT = 5;
-  const visible = alertsExpanded ? allWarnings : allWarnings.slice(0, COLLAPSED_COUNT);
-  const hasMore = allWarnings.length > COLLAPSED_COUNT;
+  const headerRow = `<div class="warnings-feed__item warnings-feed__item--header">
+    <span class="warnings-feed__category">TYPE</span>
+    <span class="warnings-feed__text">WARNING</span>
+  </div>`;
 
-  let html = visible
+  const rows = allWarnings
     .map(
       (w) =>
-        `<div class="kiosk-alert ${w.type}" style="padding:6px 10px;margin-bottom:4px;font-size:0.75rem;"><span class="warning-item__type ${w.category}" style="font-size:0.55rem;">${w.category.toUpperCase()}</span> ${w.text}</div>`
+        `<div class="warnings-feed__item">
+          <span class="warnings-feed__category ${w.category}">${w.category.toUpperCase()}</span>
+          <span class="warnings-feed__text">${w.text}</span>
+        </div>`
     )
     .join("");
 
-  if (hasMore) {
-    const remaining = allWarnings.length - COLLAPSED_COUNT;
-    html += `<div class="kiosk-alerts__expand" id="kioskWarningsExpand">${
-      alertsExpanded
-        ? '<span class="partner-grid__expand-arrow">&#9650;</span> Show less'
-        : `<span class="partner-grid__expand-arrow">&#9660;</span> Show ${remaining} more`
-    }</div>`;
-  }
-
-  container.innerHTML = html;
-  if (hasMore) {
-    document.getElementById("kioskWarningsExpand")?.addEventListener("click", () => {
-      alertsExpanded = !alertsExpanded;
-      renderKioskWarnings(fis);
-    });
-  }
+  container.innerHTML = `<div class="warnings-feed__list">${headerRow}${rows}</div>`;
 }
 
 /* ── Network Trend Chart (7-day SVG: session bars + success rate line) ── */
@@ -1310,19 +1278,51 @@ function renderKioskNetworkChart() {
   const baselineY = padT + chartH;
   const baselineHtml = `<line x1="${padL}" y1="${baselineY}" x2="${w - padR}" y2="${baselineY}" stroke="var(--border)" stroke-width="1" />`;
 
+  // Trailing averages
+  let avgLinesHtml = "";
+  const avgSum = (arr) => arr.reduce((a, b) => a + b, 0) / (arr.length || 1);
+
+  // 7-day avg (what's on screen)
+  const avg7Sessions = avgSum(sessions);
+  const avg7Rate = avgSum(rates);
+  const avg7SessY = padT + chartH - (avg7Sessions / maxSessions) * chartH;
+  const avg7RateY = padT + chartH - (avg7Rate / rateAxisMax) * chartH;
+  avgLinesHtml += `<line x1="${padL}" y1="${avg7SessY.toFixed(1)}" x2="${w - padR}" y2="${avg7SessY.toFixed(1)}" stroke="#60a5fa" stroke-width="1.5" stroke-dasharray="6,4" opacity="0.6" />`;
+  avgLinesHtml += `<line x1="${padL}" y1="${avg7RateY.toFixed(1)}" x2="${w - padR}" y2="${avg7RateY.toFixed(1)}" stroke="#22c55e" stroke-width="1.5" stroke-dasharray="6,4" opacity="0.6" />`;
+
+  // 30-day trailing avg (from full dataset)
+  const days30 = byDay.slice(-30);
+  if (days30.length > 7) {
+    const sess30 = days30.map((d) => d.SM_Sessions || 0);
+    const rates30 = days30.map((d) => {
+      const sm = d.SM_Sessions || 0;
+      const success = d.Success_Sessions || 0;
+      return sm > 0 ? success / sm : 0;
+    });
+    const avg30Sessions = avgSum(sess30);
+    const avg30Rate = avgSum(rates30);
+    const avg30SessY = Math.max(padT, padT + chartH - (avg30Sessions / maxSessions) * chartH);
+    const avg30RateY = Math.max(padT, padT + chartH - (avg30Rate / rateAxisMax) * chartH);
+    avgLinesHtml += `<line x1="${padL}" y1="${avg30SessY.toFixed(1)}" x2="${w - padR}" y2="${avg30SessY.toFixed(1)}" stroke="#60a5fa" stroke-width="1" stroke-dasharray="2,4" opacity="0.55" />`;
+    avgLinesHtml += `<line x1="${padL}" y1="${avg30RateY.toFixed(1)}" x2="${w - padR}" y2="${avg30RateY.toFixed(1)}" stroke="#22c55e" stroke-width="1" stroke-dasharray="2,4" opacity="0.55" />`;
+  }
+
   container.innerHTML = `
     <svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid meet">
       ${yLeftHtml}
       ${yRightHtml}
       ${baselineHtml}
+      ${avgLinesHtml}
       ${barsHtml}
       ${lineHtml}
       ${dotsHtml}
       ${xLabelsHtml}
     </svg>
-    <div style="display:flex;gap:14px;font-size:0.68rem;color:var(--muted);padding:2px 4px 0;">
-      <span><span style="display:inline-block;width:10px;height:10px;background:#60a5fa;border-radius:2px;vertical-align:middle;margin-right:3px;opacity:0.5;"></span>Sessions</span>
-      <span><span style="display:inline-block;width:10px;height:3px;background:#22c55e;border-radius:2px;vertical-align:middle;margin-right:3px;"></span>Success Rate</span>
+    <div style="display:flex;align-items:center;gap:16px;font-size:0.75rem;color:var(--muted);padding:6px 8px 0;">
+      <span style="display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:8px;height:8px;background:#60a5fa;border-radius:2px;opacity:0.6;flex-shrink:0;"></span>Sessions</span>
+      <span style="display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:8px;height:8px;background:#22c55e;border-radius:50%;flex-shrink:0;"></span>Success Rate</span>
+      <span style="display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:16px;height:0;border-top:2px dashed var(--muted);opacity:0.7;flex-shrink:0;"></span>7d avg</span>
+      <span style="display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:16px;height:0;border-top:2px dotted var(--muted);opacity:0.5;flex-shrink:0;"></span>30d avg</span>
     </div>
   `;
 }

@@ -156,6 +156,19 @@ All partner-facing content follows engagement-positive tone:
 
 # Build History
 
+## Feb 24, 2026 (Session 4 — Evening)
+
+### Portfolio Kiosk Polish Pass
+- **FI grid**: Removed low-volume split/toggle — all FIs shown, sorted by sessions. Changed from `auto-fill` responsive grid to fixed 5-column layout with vertical scroll (`max-height: calc(100vh - 200px)`)
+- **Boxed panels**: FI grid and Early Warnings both wrapped in panel containers (`background: var(--panel)`, `border`, `border-radius: 14px`) matching Ops kiosk visual language
+- **Distributions removed**: Tier/Score distribution section removed from kiosk right column
+- **Early Warnings restyled**: Changed from stacked alert boxes to event-feed style — clean rows with `border-bottom` separators, sticky column header (TYPE | WARNING), category pills (SYSTEM amber, ENGAGEMENT blue) at fixed `11ch` width for columnar text alignment. Scrolls vertically within panel.
+- **Severity tinting unified**: Portfolio card danger/warn opacity bumped to match Ops (danger: 18% red bg, warn: 15% amber bg). White text on danger cards for contrast.
+- **Network chart averages**: Added 7-day (dashed, 60% opacity) and 30-day (dotted, 55% opacity) trailing average lines for both sessions and success rate. Color-matched to their series (blue/green).
+- **Legend cleanup**: Replaced tiny SVG swatches with clean CSS elements — colored squares/circles for data series, dashed/dotted borders for averages. Bumped font to 0.75rem.
+- **Renamed**: "Network Trend (7 days)" → "FI Session Traffic (7 days)"
+- **Files**: `portfolio-dashboard.js`, `dashboards.css`, `portfolio.html`
+
 ## Feb 25, 2026 (Session 3)
 
 ### Portfolio Kiosk Split-Column Layout
@@ -696,6 +709,18 @@ Full audit in `narrative-rules-audit.md` in project root. 50 narrative templates
 ---
 
 # What's Pending / Queued
+
+### Per-FI Hourly Traffic Profiles — Time-of-Day Aware Alerting (Next Up)
+- **Problem**: Traffic health monitoring uses a flat daily baseline, so FIs get flagged as "dark" or "low" at night when zero traffic is completely normal. Elevations showed "LOW" and American Eagle showed "DARK" at 10pm — false alarms.
+- **Key insight**: Traffic patterns vary by FI due to cardholder timezones (Michigan FI peaks at different UTC hours than Colorado FI). No need for timezone config — each FI's own historical data reveals its pattern.
+- **Approach**: Build hourly traffic profiles from the existing 14-day baseline session files (which already have timestamps). For each FI, compute what % of daily traffic typically occurs in each hour. When the background monitor checks current traffic, compare against the **expected rate for the current hour**, not a flat daily average.
+- **Implementation details**:
+  - Session files already have timestamps — bucket by hour to build profiles
+  - Background monitor (15-min interval) already loads baseline data — extend to compute hourly distributions
+  - Dark/low thresholds become relative: "this FI is at 20% of expected traffic for this hour" instead of "38% of daily baseline"
+  - Each FI gets its own fingerprint — automatically timezone-aware
+  - Affects: `/api/traffic-health` endpoint, `computeTrafficHealthDirect()` background monitor, Ops dashboard FI tiles
+- **Files**: `scripts/serve-funnel.mjs` (traffic health endpoint + background monitor)
 
 ### Card Replacement Reach Math (Discussed, Not Yet Built)
 - ~25% annual portfolio turnover from expirations, ~3-5% lost/stolen = ~28-30% annual (2.3-2.5% monthly)

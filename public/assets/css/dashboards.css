@@ -1094,12 +1094,37 @@ body.kiosk-mode .dashboard-shell {
   min-width: 0;
 }
 
+/* Portfolio kiosk: FI grid — 5 cols, boxed, vertical scroll */
+.kiosk-main-split__left .partner-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+  max-height: calc(100vh - 200px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 12px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+.kiosk-main-split__left .partner-grid::-webkit-scrollbar {
+  width: 4px;
+}
+
+.kiosk-main-split__left .partner-grid::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
 .kiosk-main-split__right {
   min-width: 0;
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  align-self: start;
+  max-height: calc(100vh - 200px);
 }
 
 .kiosk-main-split__right .event-feed {
@@ -1122,6 +1147,7 @@ body.kiosk-mode .dashboard-shell {
   border: 1px solid var(--border);
   border-radius: 14px;
   padding: 10px 10px 6px;
+  flex-shrink: 0;
 }
 
 .kiosk-volume-chart svg {
@@ -1195,6 +1221,7 @@ body.kiosk-mode .dashboard-shell {
   color: var(--muted);
   font-weight: 600;
   margin-bottom: 10px;
+  flex-shrink: 0;
 }
 
 /* Kiosk table overrides — use theme vars */
@@ -1952,24 +1979,35 @@ body.kiosk-mode .traffic-tile.status-dark {
   margin-top: 6px;
 }
 
-/* FI card severity coloring (portfolio kiosk) */
+/* FI card severity coloring (portfolio kiosk) — matches Ops tinting */
 .partner-card--danger {
-  background: rgba(239, 68, 68, 0.10);
-  border-color: rgba(239, 68, 68, 0.30);
+  background: rgba(239, 68, 68, 0.18);
+  border-color: rgba(239, 68, 68, 0.35);
 }
 
 .partner-card--warn {
-  background: rgba(245, 158, 11, 0.10);
-  border-color: rgba(245, 158, 11, 0.25);
+  background: rgba(245, 158, 11, 0.15);
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+.partner-card--danger .partner-card__name,
+.partner-card--danger .partner-card__metric-value,
+.partner-card--danger .score-circle {
+  color: #fff;
+}
+
+.partner-card--danger .partner-card__metric-label,
+.partner-card--danger .partner-card__badges {
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .partner-card--danger:hover {
-  background: rgba(239, 68, 68, 0.15);
+  background: rgba(239, 68, 68, 0.24);
   border-color: rgba(239, 68, 68, 0.45);
 }
 
 .partner-card--warn:hover {
-  background: rgba(245, 158, 11, 0.15);
+  background: rgba(245, 158, 11, 0.20);
   border-color: rgba(245, 158, 11, 0.40);
 }
 
@@ -1988,21 +2026,84 @@ body.kiosk-mode .traffic-tile.status-dark {
   height: auto;
 }
 
-/* Warnings panel (portfolio kiosk right column) */
+/* Warnings panel (portfolio kiosk right column) — event-feed style */
 .kiosk-warnings-panel {
-  max-height: 200px;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+}
+
+.warnings-feed__list {
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: var(--border) transparent;
 }
 
-.kiosk-warnings-panel::-webkit-scrollbar {
+.warnings-feed__list::-webkit-scrollbar {
   width: 4px;
 }
 
-.kiosk-warnings-panel::-webkit-scrollbar-thumb {
+.warnings-feed__list::-webkit-scrollbar-thumb {
   background: var(--border);
   border-radius: 4px;
+}
+
+.warnings-feed__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 14px;
+  font-size: 0.78rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.warnings-feed__item:last-child {
+  border-bottom: none;
+}
+
+.warnings-feed__item--header {
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.5;
+  font-size: 0.72rem;
+  position: sticky;
+  top: 0;
+  background: var(--panel);
+  z-index: 1;
+}
+
+.warnings-feed__category {
+  flex: 0 0 11ch;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  text-align: center;
+  box-sizing: content-box;
+}
+
+.warnings-feed__category.system {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+}
+
+.warnings-feed__category.engagement {
+  background: rgba(122, 162, 255, 0.15);
+  color: #7aa2ff;
+}
+
+.warnings-feed__text {
+  flex: 1;
+  color: var(--text);
+  min-width: 0;
 }
 
 /* Compact distributions (portfolio kiosk right column) */
