@@ -766,24 +766,6 @@ Full audit in `narrative-rules-audit.md` in project root. 50 narrative templates
 - Framing: "You have ~1,000 cardholders per month at peak motivation. How many encounter CardUpdatr at that moment?"
 - Could become a calculator widget or narrative rule
 
----
-
-# Infrastructure — Mac Pro Always-On Server
-
-An old Mac Pro tower (connected to two 27" Thunderbolt displays) will serve as:
-1. **Always-on Claude Code server** — SSH in from iPad via Termius + Tailscale from anywhere
-2. **CS command center** (left 27" display) — Customer Success portfolio dashboard
-3. **Ops command center** (right 27" display) — Real-time operations dashboard
-
-**Setup**: Tailscale + Homebrew + Node.js + Claude Code, prevent sleep, auto-login on restart, kiosk-mode browsers
-**iPad access**: Tailscale + Termius → SSH → `cd ~/project && claude`
-
-**Current status (Feb 16, 2026)**:
-- GitHub SSH key configured (`~/.ssh/id_ed25519`, titled "TrashCanMachine")
-- Lightsail SSH key configured (`~/.ssh/LightsailDefaultKey-us-west-2.pem`)
-- Git remote switched to SSH (`git@github.com:arnegaenz/sis.git`)
-- Claude Code can push/pull GitHub and deploy to Lightsail independently
-- macOS 12 — Homebrew Tier 3, some packages fail to compile (poppler blocked by outdated Xcode CLT)
 
 ---
 
