@@ -9,7 +9,7 @@
 
 ## End-of-Session Protocol ("lock it down")
 When the user says "lock it down", "end the session", or similar — run this checklist before signing off:
-1. **Commit all changes**: `git status`, stage relevant files, commit with a clear message summarizing the session's work
+1. **Commit & push all changes**: `git status`, stage relevant files, commit with a clear message, then `git push` to origin. Verify `git log --oneline origin/main..HEAD` shows nothing.
 2. **Verify deployment**: Confirm all changed files that were deployed during the session are committed locally (no drift between server and repo)
 3. **Update build history**: Add a dated entry to `CHANGELOG.md` documenting what was built/changed
 4. **Testing checklist review**: Run through the Pre-Deployment Testing Checklist below for any deployed changes, and discuss whether new checks should be added
