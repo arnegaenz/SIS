@@ -157,6 +157,25 @@ All partner-facing content follows engagement-positive tone:
 
 # Build History
 
+## Feb 25, 2026
+
+### Portfolio Dashboard — Low-Volume FI Group
+- **Problem**: FIs with very few sessions produce noisy/meaningless engagement scores, cluttering the card grid
+- **Solution**: Split FI card grid into Active (>=25 sessions) and Low Volume groups. Low-volume group is collapsed by default with a "Low Volume (N FIs)" toggle
+- **Both views**: Regular dashboard and kiosk mode (`?kiosk=1`) use the same split. Module-level `lowVolumeExpanded` flag persists across kiosk auto-refresh cycles
+- **Refactored**: Card-building extracted into `buildFiCard()` (regular) and `buildKioskCard()` (kiosk) helper functions
+- **Files**: `public/assets/js/portfolio-dashboard.js`
+
+### Traffic Health — Midnight False-Dark Fix
+- **Problem**: Every night at ~00:00-00:30 UTC, all FIs went "dark" on the ops dashboard because yesterday's daily session file hasn't been generated yet (created at 00:30 UTC). The code checked `dayCounts.get(baselineEndStr)` (literally yesterday) which returned 0
+- **Fix**: Instead of hardcoding yesterday, walk backward through the 14-day baseline array and use the most recent day with actual data. Fixed in both the `/api/traffic-health` endpoint and `computeTrafficHealthDirect()` background monitor
+- **Files**: `scripts/serve-funnel.mjs` (two code paths)
+
+### Ops Dashboard — Merchant Tile Severity Coloring
+- **Merchant tiles**: Added `.merchant-tile--warn` (amber, >15% fail) and `.merchant-tile--danger` (red, >=40% fail) severity classes with background tinting
+- **Kiosk layout**: Fixed volume chart overflow with `min-width:0;overflow:hidden` on the right column of the kiosk split
+- **Files**: `public/assets/css/dashboards.css`, `public/assets/js/operations-dashboard.js`, `public/dashboards/operations.html`
+
 ## Feb 24, 2026
 
 ### Traffic Health Monitoring — Live FI Outage Detection + Email Alerts
