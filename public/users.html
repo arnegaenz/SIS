@@ -96,9 +96,18 @@
     .users-table tr:hover {
       background: var(--hover-bg, rgba(0,0,0,0.02));
     }
+    .users-table td:nth-child(1),
+    .users-table td:nth-child(2) {
+      max-width: 180px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
     .users-table .actions {
       display: flex;
-      gap: 8px;
+      gap: 4px;
+      flex-wrap: nowrap;
+      white-space: nowrap;
     }
     .badge {
       display: inline-block;
@@ -147,6 +156,23 @@
       opacity: 0.5;
       cursor: not-allowed;
     }
+    .btn-icon {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 6px 10px;
+      font-size: 12px;
+      border-radius: 6px;
+      border: 1px solid var(--panel-border);
+      background: var(--panel-bg);
+      color: var(--panel-title);
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .btn-icon:hover { background: var(--hover-bg, #f3f4f6); }
+    .btn-icon:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-icon svg { width: 14px; height: 14px; flex-shrink: 0; }
+    .btn-icon.sending { opacity: 0.6; pointer-events: none; }
     .status-message {
       padding: 12px;
       border-radius: 8px;
@@ -682,6 +708,10 @@
           <input type="checkbox" id="userEnabled" checked />
           Account enabled
         </label>
+        <label class="checkbox-label" id="sendInviteLabel" style="display:none;">
+          <input type="checkbox" id="sendInviteCheckbox" />
+          Send invite email after saving
+        </label>
         <label>
           Notes (optional)
           <input type="text" id="userNotes" placeholder="Internal notes about this user" />
@@ -794,8 +824,10 @@
           <td style="text-align: center;">${user.login_count || 0}</td>
           <td>${user.enabled !== false ? '<span class="badge badge-admin">Active</span>' : '<span class="badge badge-disabled">Disabled</span>'}</td>
           <td class="actions">
-            <button class="btn btn-secondary" onclick="window.editUser('${escapeHtml(user.email)}')">Edit</button>
-            <button class="btn btn-danger" onclick="window.deleteUser('${escapeHtml(user.email)}')">Delete</button>
+            <button class="btn-icon" onclick="window.sendInvite('${escapeHtml(user.email)}')" title="Send invite email" ${user.enabled === false ? 'disabled' : ''} id="invite-${escapeHtml(user.email).replace(/[^a-zA-Z0-9]/g,'_')}"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M3 4a2 2 0 00-2 2v1.161l8.441 4.221a1.25 1.25 0 001.118 0L19 7.162V6a2 2 0 00-2-2H3z"/><path d="M19 8.839l-7.77 3.885a2.75 2.75 0 01-2.46 0L1 8.839V14a2 2 0 002 2h14a2 2 0 002-2V8.839z"/></svg>Send Link</button>
+            <button class="btn-icon" onclick="window.viewAsUser('${escapeHtml(user.email)}')" title="View dashboard as this user"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 12.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5z"/><path fill-rule="evenodd" d="M.664 10.59a1.651 1.651 0 010-1.186A10.004 10.004 0 0110 3c4.257 0 7.893 2.66 9.336 6.41.147.381.146.804 0 1.186A10.004 10.004 0 0110 17c-4.257 0-7.893-2.66-9.336-6.41zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"/></svg>View As</button>
+            <button class="btn-icon" onclick="window.editUser('${escapeHtml(user.email)}')"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M2.695 14.763l-1.262 3.154a.5.5 0 00.65.65l3.155-1.262a4 4 0 001.343-.885L17.5 5.5a2.121 2.121 0 00-3-3L3.58 13.42a4 4 0 00-.885 1.343z"/></svg>Edit</button>
+            <button class="btn-icon" onclick="window.deleteUser('${escapeHtml(user.email)}')" style="color:#991b1b;"><svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8.75 1A2.75 2.75 0 006 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 10.23 1.482l.149-.022.841 10.518A2.75 2.75 0 007.596 19h4.807a2.75 2.75 0 002.742-2.53l.841-10.52.149.023a.75.75 0 00.23-1.482A41.03 41.03 0 0014 4.193V3.75A2.75 2.75 0 0011.25 1h-2.5zM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4zM8.58 7.72a.75.75 0 00-1.5.06l.3 7.5a.75.75 0 101.5-.06l-.3-7.5zm4.34.06a.75.75 0 10-1.5-.06l-.3 7.5a.75.75 0 101.5.06l.3-7.5z" clip-rule="evenodd"/></svg>Del</button>
           </td>
         </tr>
       `).join("");
@@ -1223,6 +1255,9 @@
       updateButtonText(fiAccessBtn, selectedFis, "FI", "FIs");
     }
 
+    const sendInviteLabel = document.getElementById("sendInviteLabel");
+    const sendInviteCheckbox = document.getElementById("sendInviteCheckbox");
+
     function openModal(user = null) {
       // Clear selections
       selectedInstances.clear();
@@ -1238,6 +1273,8 @@
         accessLevelField.value = user.access_level === "full" ? "admin" : (user.access_level || "limited");
         enabledField.checked = user.enabled !== false;
         notesField.value = user.notes || "";
+        sendInviteLabel.style.display = "none";
+        sendInviteCheckbox.checked = false;
 
         // Populate selections from user data (handle both arrays and legacy wildcards)
         if (Array.isArray(user.instance_keys)) {
@@ -1257,6 +1294,8 @@
         accessLevelField.value = "limited";
         enabledField.checked = true;
         notesField.value = "";
+        sendInviteLabel.style.display = "";
+        sendInviteCheckbox.checked = true;
       }
 
       renderAllMultiSelects();
@@ -1298,6 +1337,57 @@
       } catch (err) {
         showStatus(`Error: ${err.message}`, true);
       }
+    };
+
+    window.sendInvite = async function(email) {
+      const btnId = "invite-" + email.replace(/[^a-zA-Z0-9]/g, "_");
+      const btn = document.getElementById(btnId);
+      if (btn) { btn.classList.add("sending"); btn.textContent = "Sending..."; }
+      try {
+        const res = await fetch(API_BASE + "/api/users/send-invite", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email })
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error || `HTTP ${res.status}`);
+        }
+        showStatus(`Invite email sent to "${email}".`);
+      } catch (err) {
+        showStatus(`Error sending invite: ${err.message}`, true);
+      } finally {
+        if (btn) { btn.classList.remove("sending"); btn.innerHTML = '<svg viewBox="0 0 20 20" fill="currentColor" style="width:14px;height:14px;"><path d="M3 4a2 2 0 00-2 2v1.161l8.441 4.221a1.25 1.25 0 001.118 0L19 7.162V6a2 2 0 00-2-2H3z"/><path d="M19 8.839l-7.77 3.885a2.75 2.75 0 01-2.46 0L1 8.839V14a2 2 0 002 2h14a2 2 0 002-2V8.839z"/></svg>Send Link'; }
+      }
+    };
+
+    window.viewAsUser = function(email) {
+      const user = currentUsers.find(u => u.email === email);
+      if (!user) return;
+      const profile = {
+        email: user.email,
+        name: user.name || "",
+        access_level: user.access_level === "full" ? "admin" : (user.access_level || "limited"),
+        instance_keys: user.instance_keys || [],
+        partner_keys: user.partner_keys || [],
+        fi_keys: user.fi_keys || []
+      };
+      // Set impersonation before opening — new tab inherits sessionStorage snapshot
+      if (window.sisAuth && window.sisAuth.setImpersonation) {
+        try { sessionStorage.removeItem("sis_view_as"); } catch (e) {}
+        window.sisAuth.setImpersonation(profile);
+      }
+      var level = profile.access_level;
+      var dest = "./dashboards/portfolio.html";
+      if (level === "executive") dest = "./dashboards/executive.html";
+      else if (level === "limited") dest = "./funnel-customer.html";
+      window.open(dest, "_blank");
+      // Clear impersonation in this tab so users.html stays normal
+      setTimeout(function() {
+        if (window.sisAuth && window.sisAuth.clearImpersonation) {
+          window.sisAuth.clearImpersonation();
+        }
+      }, 100);
     };
 
     // Event listeners
@@ -1370,9 +1460,26 @@
           const err = await res.json().catch(() => ({}));
           throw new Error(err.error || `HTTP ${res.status}`);
         }
+        const shouldInvite = !isEdit && sendInviteCheckbox.checked && userData.enabled;
         showStatus(isEdit ? `User "${userData.email}" updated.` : `User "${userData.email}" added.`);
         closeModal();
         loadUsers();
+
+        // Send invite email after successful save (new users only)
+        if (shouldInvite) {
+          try {
+            const invRes = await fetch(API_BASE + "/api/users/send-invite", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ email: userData.email })
+            });
+            if (invRes.ok) {
+              showStatus(`User "${userData.email}" added and invite email sent.`);
+            }
+          } catch (invErr) {
+            console.warn("[users] Invite send failed:", invErr);
+          }
+        }
       } catch (err) {
         showStatus(`Error: ${err.message}`, true);
       }

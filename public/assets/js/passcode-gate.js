@@ -35,6 +35,9 @@
   var TOKEN_KEY = "sis_session_token";
   var USER_KEY = "sis_user";
 
+  // Impersonation key (per-tab, sessionStorage)
+  var IMPERSONATE_KEY = "sis_impersonate_user";
+
   // Legacy passcode keys (kept for backward compatibility during transition)
   var LEGACY_STORAGE_KEY = "sis_passcode_ok";
   var LEGACY_ACCESS_KEY = "sis_access_level";
@@ -84,12 +87,30 @@
     return false;
   }
 
+  function getImpersonatedUser() {
+    try {
+      var json = sessionStorage.getItem(IMPERSONATE_KEY);
+      if (json) return JSON.parse(json);
+    } catch (e) {}
+    return null;
+  }
+
+  function isImpersonating() {
+    return !!getImpersonatedUser();
+  }
+
   function getStoredUser() {
     try {
       var userJson = localStorage.getItem(USER_KEY);
       if (userJson) return JSON.parse(userJson);
     } catch (e) {}
     return null;
+  }
+
+  function getEffectiveUser() {
+    var imp = getImpersonatedUser();
+    if (imp) return imp;
+    return getStoredUser();
   }
 
   function getSessionToken() {
@@ -113,6 +134,10 @@
   }
 
   function getAccessLevel() {
+    // Impersonation overrides everything
+    var imp = getImpersonatedUser();
+    if (imp && imp.access_level) return imp.access_level;
+
     var real = getRealAccessLevel();
     // Admin/full users can preview other access levels via "View as" switcher
     if (real === "admin" || real === "full") {
@@ -158,7 +183,7 @@
   }
 
   function isViewAsActive() {
-    try { return !!(sessionStorage.getItem("sis_view_as")); } catch (e) { return false; }
+    try { return !!(sessionStorage.getItem("sis_view_as")) || isImpersonating(); } catch (e) { return false; }
   }
 
   function checkPageAccess() {
@@ -332,11 +357,19 @@
 
   // Expose auth API for other scripts
   global.sisAuth = {
-    getUser: getStoredUser,
+    getUser: getEffectiveUser,
+    getRealUser: getStoredUser,
     getToken: getSessionToken,
     getAccessLevel: getAccessLevel,
     getRealAccessLevel: getRealAccessLevel,
     isAuthenticated: isAuthenticated,
+    isImpersonating: isImpersonating,
+    setImpersonation: function(profile) {
+      try { sessionStorage.setItem(IMPERSONATE_KEY, JSON.stringify(profile)); } catch (e) {}
+    },
+    clearImpersonation: function() {
+      try { sessionStorage.removeItem(IMPERSONATE_KEY); } catch (e) {}
+    },
     logout: function() {
       clearAuth();
       redirectToLogin();

@@ -78,6 +78,7 @@ const state = {
     statuses: new Set(["success", "failed", "cancelled", "abandoned"]),
     merchants: new Set(),
     fis: new Set(),
+    excludeDevInstance: true,
   },
 };
 
@@ -1020,8 +1021,9 @@ async function fetchEventFeed() {
 
 function renderFilteredFeed() {
   if (!kioskEls.eventList) return;
-  const { statuses, merchants, fis } = state.feedFilters;
+  const { statuses, merchants, fis, excludeDevInstance } = state.feedFilters;
   const events = (state.feedEvents || []).filter((evt) => {
+    if (excludeDevInstance && evt.instance === "customer-dev") return false;
     if (!statuses.has(evt.status || "unknown")) return false;
     if (merchants.size > 0 && !merchants.has(evt.merchant || "Unknown")) return false;
     if (fis.size > 0 && !fis.has(evt.fi_name || "")) return false;
@@ -1170,12 +1172,24 @@ function initFeedFilters() {
     }
   });
 
+  // Exclude customer-dev checkbox
+  const excludeDevCb = document.getElementById("feedExcludeDev");
+  if (excludeDevCb) {
+    excludeDevCb.checked = state.feedFilters.excludeDevInstance;
+    excludeDevCb.addEventListener("change", () => {
+      state.feedFilters.excludeDevInstance = excludeDevCb.checked;
+      renderFilteredFeed();
+    });
+  }
+
   const clearBtn = document.getElementById("feedClearBtn");
   if (clearBtn) {
     clearBtn.addEventListener("click", () => {
       state.feedFilters.statuses = new Set(["success", "failed", "cancelled", "abandoned"]);
       state.feedFilters.merchants.clear();
       state.feedFilters.fis.clear();
+      state.feedFilters.excludeDevInstance = true;
+      if (excludeDevCb) excludeDevCb.checked = true;
       pillsEl.querySelectorAll(".feed-status-pill").forEach((p) => p.classList.add("active"));
       updateMiniSelectBtnState("feedMerchantSelect", state.feedFilters.merchants);
       updateMiniSelectBtnState("feedFiSelect", state.feedFilters.fis);

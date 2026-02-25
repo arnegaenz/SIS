@@ -2323,6 +2323,14 @@
         const integrationSetActive = Boolean(shared.__integrationSetTouched);
         const instanceSet = shared.instanceSetNormalized instanceof Set ? shared.instanceSetNormalized : null;
         const instanceSetActive = Boolean(shared.__instanceSetTouched);
+        // Always enforce user's instance scope (limited/executive users have hidden instance dropdown)
+        let userInstanceSet = null;
+        try {
+          const user = window.sisAuth?.getUser?.();
+          if (user && Array.isArray(user.instance_keys) && user.instance_keys.length > 0) {
+            userInstanceSet = new Set(user.instance_keys.map(k => (k || "").toString().trim().toLowerCase()));
+          }
+        } catch (e) {}
         return Object.values(perFi).filter((row) => {
           if (!includeTests && row.is_test) return false;
           if (fiTouched && sharedFiSet.size === 0) return false;
@@ -2341,6 +2349,11 @@
             if (!instanceSet || instanceSet.size === 0) return false;
             const rowInstanceKey = normalizeInstanceKey(row.instance);
             if (!instanceSet.has(rowInstanceKey)) return false;
+          }
+          // Enforce user instance scope even when instance dropdown is hidden
+          if (userInstanceSet) {
+            const rowInstanceKey = (row.instance || "").toString().trim().toLowerCase();
+            if (!userInstanceSet.has(rowInstanceKey)) return false;
           }
           if (sharedFiSet.size) {
             const fiKey = normalizeFiKey(row.fi);
@@ -3136,6 +3149,9 @@
       var ga = isSso ? (row.ga_select || 0) : (row.ga_cred || 0);
       var cs = isSso ? (row.cs_select || 0) : (row.cs_cred || 0);
       if (!cs) return { value: null, display: "", cls: "" };
+      // If no GA data at all but there are sessions, show "—" (GA not configured)
+      var totalGa = (row.ga_select || 0) + (row.ga_cred || 0) + (row.ga_user || 0);
+      if (totalGa === 0 && (row.sessions || 0) > 0) return { value: null, display: '<span class="muted" title="GA analytics not configured for this FI">—</span>', cls: "" };
       var rate = ga / cs;
       var cls = rate >= 0.85 ? "ga-good" : rate >= 0.70 ? "ga-warn" : "ga-low";
       return { value: rate, display: (rate * 100).toFixed(1) + "%", cls: cls };
@@ -3206,15 +3222,21 @@
       const gaRate = computeGaRate(row, integration);
 
       const tr = document.createElement("tr");
+      const noGaTip = 'title="GA analytics not configured for this FI"';
+      const gaSelectDisplay = (row.ga_select || 0) > 0 ? (row.ga_select || 0) : (row.sessions > 0 ? `<span class="muted" ${noGaTip}>—</span>` : "0");
+      const gaCredDisplay = (row.ga_cred || 0) > 0 ? (row.ga_cred || 0) : (row.sessions > 0 && !(row.ga_select > 0) ? `<span class="muted" ${noGaTip}>—</span>` : "0");
       let cells = `
         <td>${row.fi}</td>
         <td>${instancesText}</td>
         <td>${integration}</td>
-        <td class="num ga-col">${row.ga_select || 0}</td>
+        <td class="num ga-col">${gaSelectDisplay}</td>
         <td class="num">${row.cs_select || 0}</td>`;
-      if (isNonSso) cells += `<td class="num ga-col">${row.ga_user || 0}</td>`;
+      if (isNonSso) {
+        const gaUserDisplay = (row.ga_user || 0) > 0 ? (row.ga_user || 0) : (row.sessions > 0 && !(row.ga_select > 0) ? `<span class="muted" ${noGaTip}>—</span>` : "0");
+        cells += `<td class="num ga-col">${gaUserDisplay}</td>`;
+      }
       cells += `
-        <td class="num ga-col">${row.ga_cred || 0}</td>
+        <td class="num ga-col">${gaCredDisplay}</td>
         <td class="num ${gaRate.cls}">${gaRate.display}</td>`;
       if (isNonSso) {
         var estL = computeEstLaunches(row);
@@ -3275,15 +3297,23 @@
 
       const tr = document.createElement("tr");
       tr.className = "totals-row";
+      const noGaTip = 'title="GA analytics not configured for this FI"';
+      const tHasActivity = t.sessions > 0;
+      const tHasAnyGa = t.ga_select > 0;
+      const tGaSelectDisplay = t.ga_select > 0 ? t.ga_select : (tHasActivity ? `<span class="muted" ${noGaTip}>—</span>` : "0");
+      const tGaCredDisplay = t.ga_cred > 0 ? t.ga_cred : (tHasActivity && !tHasAnyGa ? `<span class="muted" ${noGaTip}>—</span>` : "0");
       let cells = `
         <td>Total</td>
         <td>\u2014</td>
         <td>${integration}</td>
-        <td class="num ga-col">${t.ga_select}</td>
+        <td class="num ga-col">${tGaSelectDisplay}</td>
         <td class="num">${t.cs_select}</td>`;
-      if (!isSso) cells += `<td class="num ga-col">${t.ga_user}</td>`;
+      if (!isSso) {
+        const tGaUserDisplay = t.ga_user > 0 ? t.ga_user : (tHasActivity && !tHasAnyGa ? `<span class="muted" ${noGaTip}>—</span>` : "0");
+        cells += `<td class="num ga-col">${tGaUserDisplay}</td>`;
+      }
       cells += `
-        <td class="num ga-col">${t.ga_cred}</td>
+        <td class="num ga-col">${tGaCredDisplay}</td>
         <td class="num ${gaRate.cls}">${gaRate.display}</td>`;
       if (!isSso) {
         var tEstLaunches = computeEstLaunches(t);
@@ -4814,12 +4844,13 @@
         const srVal = typeof h.successRatio === "number" ? (h.successRatio * 100).toFixed(1) + "%" : "—";
         const srDisplay = h.isEstimated ? "~" + srVal : srVal;
         const srCls = h.isEstimated ? " estimated-val" : "";
+        const launchDisplay = h.sel > 0 ? fmt(h.sel) : (h.sessions > 0 ? '<span class="muted" title="GA analytics not configured for this FI">—</span>' : "0");
         return `<tr>
           <td class="hl-label">${h.label || ""}</td>
           <td>${h.fi || ""}${h.instance ? ' <span class="muted">(' + h.instance + ')</span>' : ""}</td>
           <td>${h.integration || ""}</td>
           <td class="nowrap">${dateRange}</td>
-          <td class="num">${fmt(h.sel)}</td>
+          <td class="num">${launchDisplay}</td>
           <td class="num">${fmt(h.sessions)}</td>
           <td class="num">${fmt(h.sess_with_success)}</td>
           <td class="num${srCls}">${srDisplay}</td>
@@ -5192,16 +5223,24 @@
       const sr = formatSuccessRate(row, isSso ? "SSO" : "NON-SSO");
       const srCls = sr.isEstimated ? " estimated-val" : "";
       const gaRate = computeGaRate(row, isSso ? "SSO" : "NON-SSO");
+      const noGaTip = 'title="GA analytics not configured for this FI"';
+      const hasActivity = (row.sessions || 0) > 0;
+      const hasAnyGa = (row.ga_select || 0) > 0;
+      const gaSelectDisplay = (row.ga_select || 0) > 0 ? (row.ga_select || 0) : (hasActivity ? `<span class="muted" ${noGaTip}>—</span>` : "0");
+      const gaCredDisplay = (row.ga_cred || 0) > 0 ? (row.ga_cred || 0) : (hasActivity && !hasAnyGa ? `<span class="muted" ${noGaTip}>—</span>` : "0");
       let cells = `
         <td>${row.periodLabel || ""}</td>
         <td>${row.fi || ""}</td>
         <td>${instancesText}</td>
         <td>${row.integration_type || ""}</td>
-        <td class="num">${row.ga_select || 0}</td>
+        <td class="num">${gaSelectDisplay}</td>
         <td class="num">${row.cs_select || 0}</td>`;
-      if (!isSso) cells += `<td class="num">${row.ga_user || 0}</td>`;
+      if (!isSso) {
+        const gaUserDisplay = (row.ga_user || 0) > 0 ? (row.ga_user || 0) : (hasActivity && !hasAnyGa ? `<span class="muted" ${noGaTip}>—</span>` : "0");
+        cells += `<td class="num">${gaUserDisplay}</td>`;
+      }
       cells += `
-        <td class="num">${row.ga_cred || 0}</td>
+        <td class="num">${gaCredDisplay}</td>
         <td class="num ${gaRate.cls}">${gaRate.display}</td>
         <td class="num${reachCls}">${reachPct}</td>`;
       if (!isSso) cells += `<td class="num">${selUserPct}</td>`;

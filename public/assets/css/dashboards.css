@@ -1211,6 +1211,26 @@ body.kiosk-mode .dashboard-shell {
 .feed-mini-select__option input[type="checkbox"] { accent-color: var(--accent); margin: 0; }
 
 /* Feed filter — Clear button */
+.feed-exclude-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.6rem;
+  font-weight: 500;
+  color: var(--muted);
+  white-space: nowrap;
+  cursor: pointer;
+  text-transform: none;
+  letter-spacing: normal;
+  user-select: none;
+}
+.feed-exclude-label input[type="checkbox"] {
+  width: 12px;
+  height: 12px;
+  margin: 0;
+  accent-color: var(--accent, #2563eb);
+}
+
 .feed-clear-btn {
   display: inline-flex;
   align-items: center;

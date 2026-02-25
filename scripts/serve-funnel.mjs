@@ -433,6 +433,7 @@ const SENDGRID_FROM_EMAIL = process.env.SENDGRID_FROM_EMAIL || "arne@strivve.com
 const SENDGRID_FROM_NAME = process.env.SENDGRID_FROM_NAME || "SIS Metrics Dashboard";
 const MAGIC_LINK_BASE = process.env.SIS_MAGIC_LINK_BASE || "http://localhost:8787";
 const MAGIC_TOKEN_EXPIRY_MS = 15 * 60 * 1000; // 15 minutes
+const INVITE_TOKEN_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 const SESSION_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 function generateMagicToken() {
@@ -637,6 +638,55 @@ async function sendMagicLinkEmail(email, name, magicLink) {
             <p>Or copy this link: ${magicLink}</p>
             <p>This link expires in 15 minutes.</p>
             <p>If you didn't request this, you can ignore this email.</p>
+          `,
+        },
+      ],
+    }),
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`SendGrid error: ${res.status} ${text}`);
+  }
+}
+
+async function sendInviteEmail(email, name, magicLink) {
+  if (!SENDGRID_API_KEY) {
+    console.log("[auth] No SENDGRID_API_KEY - invite link for", email, ":", magicLink);
+    return;
+  }
+
+  const res = await fetch("https://api.sendgrid.com/v3/mail/send", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${SENDGRID_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      personalizations: [{ to: [{ email, name: name || email }] }],
+      from: { email: SENDGRID_FROM_EMAIL, name: SENDGRID_FROM_NAME },
+      subject: "Your CardUpdatr Engagement Dashboard is ready",
+      content: [
+        {
+          type: "text/html",
+          value: `
+            <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 560px; margin: 0 auto; color: #1e293b;">
+              <p style="font-size: 16px;">Hi ${name || "there"},</p>
+              <p>Your team at Strivve has set up a <strong>CardUpdatr Engagement Dashboard</strong> for you — powered by <strong>SIS</strong> (Strivve Insights Service). It's a live view of how your cardholders are using CardUpdatr, updated daily.</p>
+              <p style="font-size: 15px; font-weight: 600; margin-top: 24px;">Here's what you'll find inside:</p>
+              <ul style="padding-left: 20px; line-height: 1.8;">
+                <li><strong>Cardholder engagement metrics</strong> — visits, success rates, and placements across your FIs</li>
+                <li><strong>Motivation tier diagnosis</strong> — understand whether your traffic is activation, campaign, or incidental</li>
+                <li><strong>Recommended actions</strong> — specific steps to increase cardholder engagement, with ready-to-use templates</li>
+                <li><strong>Value projections</strong> — what improved placement strategies could mean for your numbers</li>
+              </ul>
+              <p style="text-align: center; margin: 32px 0;">
+                <a href="${magicLink}" style="display:inline-block;padding:14px 32px;background:#2563eb;color:white;text-decoration:none;border-radius:8px;font-weight:600;font-size:16px;">Open Your Dashboard</a>
+              </p>
+              <p style="color: #64748b; font-size: 13px;">No password needed — this secure link signs you in automatically. It expires in 7 days, but you can always request a new one from the login page.</p>
+              <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 24px 0;" />
+              <p style="color: #94a3b8; font-size: 12px;">Strivve Insights Service (SIS) &middot; CardUpdatr Analytics</p>
+            </div>
           `,
         },
       ],
@@ -2427,6 +2477,22 @@ function parseMetricsFilters(queryParams, payload = null, userContext = null, fi
     // If no overlap, use a placeholder that matches nothing
     if (fiList.length === 0) {
       fiList = ["__no_access__"];
+    }
+
+    // ENFORCE INSTANCE CONSTRAINT — prevents cross-instance leakage for
+    // fi_lookup_keys that exist on multiple instances (e.g. "default", "unknown_fi").
+    // When user is scoped to specific instances, inject those as an instance_list
+    // filter so the data pipeline AND's fi_key + instance together.
+    if (userContext && Array.isArray(userContext.instance_keys) && userContext.instance_keys.length > 0) {
+      const userInstances = userContext.instance_keys.map((k) => (k || "").toString().trim().toLowerCase()).filter(Boolean);
+      if (userInstances.length > 0 && instanceList.length === 0) {
+        instanceList = userInstances;
+      } else if (userInstances.length > 0 && instanceList.length > 0) {
+        // Intersect user's requested instances with their allowed instances
+        const allowed = new Set(userInstances);
+        instanceList = instanceList.filter((inst) => allowed.has(normalizeInstanceKey(inst)));
+        if (instanceList.length === 0) instanceList = ["__no_access__"];
+      }
     }
   }
 
@@ -5494,7 +5560,7 @@ const server = http.createServer(async (req, res) => {
       const userData = {
         email,
         name: user.name || "",
-        access_level: ["admin", "full", "internal", "limited"].includes(user.access_level) ? user.access_level : "limited",
+        access_level: ["admin", "full", "internal", "executive", "limited"].includes(user.access_level) ? user.access_level : "limited",
         instance_keys: normalizeAccessKeys(user.instance_keys),
         partner_keys: normalizeAccessKeys(user.partner_keys),
         fi_keys: normalizeAccessKeys(user.fi_keys),
@@ -5554,6 +5620,50 @@ const server = http.createServer(async (req, res) => {
       return send(res, 500, { error: err.message || "Unable to delete user" });
     }
   }
+  // POST /api/users/send-invite - Send invite email with magic link to a user
+  if (pathname === "/api/users/send-invite" && req.method === "POST") {
+    if (!(await requireFullAccess(req, res, queryParams))) return;
+    try {
+      const rawBody = await readRequestBody(req);
+      const payload = JSON.parse(rawBody || "{}");
+      const email = (payload.email || "").trim().toLowerCase();
+
+      if (!email) {
+        return send(res, 400, { error: "Email is required" });
+      }
+
+      const users = await loadUsersFile();
+      const user = users.find(u => u.email.toLowerCase() === email);
+
+      if (!user) {
+        return send(res, 404, { error: "User not found" });
+      }
+
+      if (!user.enabled) {
+        return send(res, 400, { error: "Cannot send invite to disabled user" });
+      }
+
+      const token = generateMagicToken();
+      const expiresAt = new Date(Date.now() + INVITE_TOKEN_EXPIRY_MS).toISOString();
+
+      await storeMagicToken(token, {
+        email: user.email,
+        created_at: new Date().toISOString(),
+        expires_at: expiresAt,
+      });
+
+      const magicLink = `${MAGIC_LINK_BASE}/login.html?token=${token}`;
+
+      await sendInviteEmail(user.email, user.name, magicLink);
+      console.log("[users] Invite email sent to:", user.email);
+
+      return send(res, 200, { ok: true, email: user.email });
+    } catch (err) {
+      console.error("[users] Send invite error:", err);
+      return send(res, 500, { error: err.message || "Unable to send invite" });
+    }
+  }
+
   // GET /api/user-access-options - Returns all available instances/partners/FIs for user management
   if (pathname === "/api/user-access-options" && req.method === "GET") {
     if (!(await requireFullAccess(req, res, queryParams))) return;
@@ -6115,6 +6225,7 @@ const server = http.createServer(async (req, res) => {
             fi_name: fiName,
             status,
             termination_type: (job.termination || "").toString(),
+            instance: (placement._instance || "").toString(),
           };
         })
         .filter((evt) => evt.timestamp >= cutoff24h && !evt.merchant.toLowerCase().includes("vercel"))

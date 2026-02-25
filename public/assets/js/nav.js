@@ -124,6 +124,10 @@ function getRealAccessLevel() {
 }
 
 function getAccessLevel() {
+  // Impersonation overrides everything (delegates to passcode-gate which handles it)
+  if (global.sisAuth && global.sisAuth.isImpersonating && global.sisAuth.isImpersonating()) {
+    return global.sisAuth.getAccessLevel();
+  }
   var real = getRealAccessLevel();
   // Admin/full users can override their view via "View as" switcher
   if (real === "admin" || real === "full") {
@@ -307,6 +311,7 @@ addDropdown(group, rightGroup);
 // Add user info / view mode login link
 var isViewMode = global.__sisViewMode === true;
 var user = getCurrentUser();
+var _isImpersonating = global.sisAuth && global.sisAuth.isImpersonating && global.sisAuth.isImpersonating();
 if (isViewMode) {
   // View mode: show "Log in to explore" link instead of user info
   var divider = h("span", { class: "sis-nav-divider" }, []);
@@ -355,9 +360,9 @@ if (isViewMode) {
     userSpan.style.marginRight = "8px";
     rightGroup.appendChild(userSpan);
   }
-  // "View as" switcher — admin/full users only
+  // "View as" switcher — admin/full users only, hidden during impersonation
   var realLevel = getRealAccessLevel();
-  if (realLevel === "admin" || realLevel === "full") {
+  if ((realLevel === "admin" || realLevel === "full") && !_isImpersonating) {
     var currentOverride = "";
     try { currentOverride = sessionStorage.getItem("sis_view_as") || ""; } catch (e) {}
     var viewAsWrap = h("div", { class: "sis-view-as" }, []);
@@ -459,6 +464,36 @@ nav.appendChild(rightGroup);
 header.appendChild(titleWrap);
 header.appendChild(nav);
 mount.appendChild(header);
+
+// Impersonation banner — amber bar with user info + Exit button
+if (_isImpersonating) {
+  var impUser = global.sisAuth.getUser();
+  var impName = (impUser && impUser.name) ? impUser.name : "";
+  var impEmail = (impUser && impUser.email) ? impUser.email : "";
+  var impLevel = (impUser && impUser.access_level) ? impUser.access_level : "";
+  var impLabel = impName ? impName + " (" + impEmail + ")" : impEmail;
+  if (impLevel) impLabel += " — " + impLevel;
+
+  var impBanner = h("div", { class: "sis-impersonate-banner" }, []);
+  impBanner.style.cssText = "display:flex;align-items:center;justify-content:center;gap:12px;padding:8px 16px;background:#f59e0b;color:#1e293b;font-size:13px;font-weight:600;position:relative;z-index:100;";
+
+  var impIcon = h("span", {}, ["\uD83D\uDC41\uFE0F"]);
+  var impText = h("span", {}, ["Viewing as: " + impLabel]);
+  var impExit = h("button", { type: "button" }, ["Exit"]);
+  impExit.style.cssText = "padding:4px 12px;border:1px solid #1e293b;border-radius:6px;background:transparent;color:#1e293b;font-size:12px;font-weight:600;cursor:pointer;";
+  impExit.addEventListener("click", function() {
+    if (global.sisAuth && global.sisAuth.clearImpersonation) {
+      global.sisAuth.clearImpersonation();
+    }
+    // Tab was opened by View As — close it. Falls back to users.html if browser blocks close.
+    window.close();
+    setTimeout(function() { window.location.replace(NAV_PREFIX + "users.html"); }, 200);
+  });
+  impBanner.appendChild(impIcon);
+  impBanner.appendChild(impText);
+  impBanner.appendChild(impExit);
+  mount.appendChild(impBanner);
+}
 
 // Minimal styles fallback (only if classes not found). Harmless if CSS already exists.
 // We use inline style tweaks to avoid editing CSS files now.
