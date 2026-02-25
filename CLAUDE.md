@@ -156,6 +156,24 @@ All partner-facing content follows engagement-positive tone:
 
 # Build History
 
+## Feb 25, 2026 (Session 4)
+
+### Per-FI Traffic Fingerprints — Time-of-Day Aware Alerting
+- **Problem**: Traffic health monitoring used a flat daily baseline, causing false "dark" and "low" alerts at night (e.g., Elevations "LOW" at 10pm, American Eagle "DARK" at night) because zero traffic is completely normal during overnight hours
+- **Solution**: Two-tier hourly fingerprinting system built from 14-day baseline session timestamps
+  - **Tier 1** (≥10 sessions/day): Full 24-element cumulative fingerprint with 3-hour rolling average smoothing. Compares actual sessions-so-far against expected cumulative for the current UTC hour. Sleeping when expectation < 2, dark when 0 sessions but expectation > 2, low when < 40% of expectation
+  - **Tier 2** (5-10 sessions/day): Quiet-hours mask — hours with ≤1 total session across 14-day baseline trigger "sleeping" status, non-quiet hours use existing flat baseline logic
+  - **Tier 3** (<5 sessions/day): Unchanged (already filtered by minDailySessions threshold)
+- **New status: `sleeping`**: Expected quiet period — not an outage, not actionable
+  - Indigo-tinted tiles with CSS-animated "zzz" indicator on ops dashboard
+  - Collapsible group in non-kiosk view (between anomalies and normals)
+  - Sorted to end in kiosk mode (after normal, not actionable)
+  - Skipped entirely in email alerts (same as normal)
+  - Clears prior alert state when FI enters sleeping
+- **API response additions**: `fingerprint_tier` (1|2|3), `expected_cumulative` (Tier 1), `pct_of_expected` (Tier 1), `quiet_hours` (Tier 2), `sleeping` count in summary
+- **Cache TTL**: Bumped from 2 minutes to 15 minutes to match background monitor cycle — eliminates unnecessary CardSavr API calls from kiosk auto-refresh
+- **Files**: `scripts/serve-funnel.mjs` (fingerprint building + status classification in both endpoint and background monitor, alert skip, email template, cache TTL), `public/assets/js/operations-dashboard.js` (sleeping tile rendering, banner, sort order, detail modal colors), `public/assets/css/dashboards.css` (sleeping tile/badge/zzz styles, light + dark theme), `public/assets/js/dashboard-utils.js` (trafficHealthColor indigo)
+
 ## Feb 24, 2026 (Session 4 — Evening)
 
 ### Portfolio Kiosk Polish Pass
@@ -709,18 +727,6 @@ Full audit in `narrative-rules-audit.md` in project root. 50 narrative templates
 ---
 
 # What's Pending / Queued
-
-### Per-FI Hourly Traffic Profiles — Time-of-Day Aware Alerting (Next Up)
-- **Problem**: Traffic health monitoring uses a flat daily baseline, so FIs get flagged as "dark" or "low" at night when zero traffic is completely normal. Elevations showed "LOW" and American Eagle showed "DARK" at 10pm — false alarms.
-- **Key insight**: Traffic patterns vary by FI due to cardholder timezones (Michigan FI peaks at different UTC hours than Colorado FI). No need for timezone config — each FI's own historical data reveals its pattern.
-- **Approach**: Build hourly traffic profiles from the existing 14-day baseline session files (which already have timestamps). For each FI, compute what % of daily traffic typically occurs in each hour. When the background monitor checks current traffic, compare against the **expected rate for the current hour**, not a flat daily average.
-- **Implementation details**:
-  - Session files already have timestamps — bucket by hour to build profiles
-  - Background monitor (15-min interval) already loads baseline data — extend to compute hourly distributions
-  - Dark/low thresholds become relative: "this FI is at 20% of expected traffic for this hour" instead of "38% of daily baseline"
-  - Each FI gets its own fingerprint — automatically timezone-aware
-  - Affects: `/api/traffic-health` endpoint, `computeTrafficHealthDirect()` background monitor, Ops dashboard FI tiles
-- **Files**: `scripts/serve-funnel.mjs` (traffic health endpoint + background monitor)
 
 ### Card Replacement Reach Math (Discussed, Not Yet Built)
 - ~25% annual portfolio turnover from expirations, ~3-5% lost/stolen = ~28-30% annual (2.3-2.5% monthly)
