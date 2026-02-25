@@ -156,6 +156,38 @@ All partner-facing content follows engagement-positive tone:
 
 # Build History
 
+## Feb 25, 2026 (Session 5)
+
+### Users Page — Send Invite Link + View As User
+- **Send Invite**: "Send Link" button (envelope icon) on each user row in `users.html`. Triggers `POST /api/users/send-invite` → generates magic token with **7-day expiry** (`INVITE_TOKEN_EXPIRY_MS`) → sends branded onboarding email via SendGrid
+  - Email subject: "Your CardUpdatr Engagement Dashboard is ready"
+  - Body: SIS (Strivve Insights Service) branding, 4-bullet feature overview, "Open Your Dashboard" CTA, password-free explanation
+  - Separate from login magic link email (15-min expiry, unchanged)
+  - Disabled for disabled users
+  - "Send invite email" checkbox in Add User modal — checked by default for new users, hidden for edits
+- **View As User**: "View As" button (eye icon) opens new tab impersonating that user's full profile (access_level + instance/partner/FI keys)
+  - Sets impersonation in `sessionStorage` (`sis_impersonate_user`) before `window.open`, clears in original tab after 100ms
+  - `passcode-gate.js`: `getEffectiveUser()` returns impersonated user, `getAccessLevel()` returns impersonated level, new API: `sisAuth.setImpersonation()`, `clearImpersonation()`, `isImpersonating()`, `getRealUser()`
+  - `nav.js`: amber banner "Viewing as: Name (email) — level" with Exit button. Exit calls `window.close()` (falls back to `location.replace`). View-as role switcher hidden during impersonation
+  - `checkPageAccess()` skips redirects during impersonation (same as view-as)
+  - Data scoping works automatically — `getVisibleRows()` reads from `sisAuth.getUser()` which returns impersonated profile
+- **Uniform action buttons**: All 4 buttons (Send Link, View As, Edit, Del) use `.btn-icon` class with SVG icons, same size
+- **Files**: `users.html`, `passcode-gate.js`, `nav.js`, `serve-funnel.mjs`
+
+### Executive Access Level Bug Fix
+- Server-side user save (`serve-funnel.mjs` line 5513) was missing `"executive"` in the access_level whitelist — silently defaulted to `"limited"`. Fixed.
+
+### Ops Event Feed — Exclude customer-dev
+- Added `instance` field to `/api/metrics/ops-feed` response events (was being discarded)
+- "Exclude customer-dev" checkbox in feed filter bar, checked by default
+- `state.feedFilters.excludeDevInstance` flag, resets on Clear
+- **Files**: `serve-funnel.mjs`, `operations.html`, `operations-dashboard.js`, `dashboards.css`
+
+### Customer Dashboard — Instance Scoping + GA Display Fixes
+- `getVisibleRows()` now enforces user's `instance_keys` scoping even when instance dropdown is hidden (limited/executive users)
+- GA columns show "—" with tooltip for FIs with no GA configured instead of misleading zeroes
+- **Files**: `funnel-customer.html`
+
 ## Feb 25, 2026 (Session 4)
 
 ### Per-FI Traffic Fingerprints — Time-of-Day Aware Alerting
