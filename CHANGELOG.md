@@ -6,6 +6,25 @@
 
 # Build History
 
+## Feb 25, 2026 (Session 6)
+
+### CLAUDE.md Context Reduction
+- Moved full Build History (~600 lines) from CLAUDE.md to new `CHANGELOG.md` — reduces context window usage by ~77% (789 → 181 lines)
+- Reference Partner Data (NASA FCU) also moved to CHANGELOG.md
+- End-of-Session Protocol updated: "commit" → "commit & push" with `git log --oneline origin/main..HEAD` verification step (previous session failed to push 3 commits)
+
+### AI-Powered Insights Engine — Planning
+- Full architecture plan documented in `docs/ai-insights-plan.md`
+- Proposal: Replace 50+ hardcoded rule-based insights with Claude API (Haiku 4.5) generated insights
+- Server-side only, on-demand with caching, existing auth gates access
+- System prompt loaded with: motivation spectrum, tone directives, full ACTION_LIBRARY, benchmarking philosophy
+- Estimated cost: $20-50/mo at normal usage, $0 when idle (pay-per-call, no subscription)
+- Business Anthropic API account (console.anthropic.com) — decision to use work billing from day one
+- Added to CLAUDE.md "What's Pending / Queued" with blocker noted
+
+### Housekeeping
+- Added scratch/test files to `.gitignore` (fi-api-guide.pdf, ga-test-review-output*.json, generate-fi-api-guide.mjs, test-fi-api.mjs)
+
 ## Feb 25, 2026 (Session 5)
 
 ### Users Page — Send Invite Link + View As User
