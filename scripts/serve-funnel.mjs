@@ -5645,6 +5645,19 @@ const server = http.createServer(async (req, res) => {
         created_at: originalIdx !== -1 ? users[originalIdx].created_at : new Date().toISOString()
       };
 
+      // Prevent demoting or disabling the last admin — would lock out user management forever
+      if (originalIdx !== -1) {
+        const orig = users[originalIdx];
+        const wasAdmin = orig.access_level === "admin" || orig.access_level === "full";
+        const stillAdmin = (userData.access_level === "admin" || userData.access_level === "full") && userData.enabled !== false;
+        if (wasAdmin && !stillAdmin) {
+          const otherAdmins = users.filter((u, i) => i !== originalIdx && (u.access_level === "admin" || u.access_level === "full") && u.enabled !== false);
+          if (otherAdmins.length === 0) {
+            return send(res, 400, { error: "Cannot demote or disable the last admin user" });
+          }
+        }
+      }
+
       if (originalIdx !== -1) {
         // Update existing user
         users[originalIdx] = userData;
@@ -5681,6 +5694,15 @@ const server = http.createServer(async (req, res) => {
 
       if (idx === -1) {
         return send(res, 404, { error: "User not found" });
+      }
+
+      // Prevent deleting the last admin — would lock out user management forever
+      const target = users[idx];
+      if (target.access_level === "admin" || target.access_level === "full") {
+        const otherAdmins = users.filter((u, i) => i !== idx && (u.access_level === "admin" || u.access_level === "full") && u.enabled !== false);
+        if (otherAdmins.length === 0) {
+          return send(res, 400, { error: "Cannot delete the last admin user" });
+        }
       }
 
       users.splice(idx, 1);
