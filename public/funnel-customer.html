@@ -2370,12 +2370,16 @@
         const integrationSetActive = Boolean(shared.__integrationSetTouched);
         const instanceSet = shared.instanceSetNormalized instanceof Set ? shared.instanceSetNormalized : null;
         const instanceSetActive = Boolean(shared.__instanceSetTouched);
-        // Always enforce user's instance scope (limited/executive users have hidden instance dropdown)
+        // Always enforce user's instance/fi scope (limited/executive users have hidden instance dropdown)
         let userInstanceSet = null;
+        let userFiSet = null;
         try {
           const user = window.sisAuth?.getUser?.();
           if (user && Array.isArray(user.instance_keys) && user.instance_keys.length > 0) {
             userInstanceSet = new Set(user.instance_keys.map(k => (k || "").toString().trim().toLowerCase()));
+          }
+          if (user && Array.isArray(user.fi_keys) && user.fi_keys.length > 0) {
+            userFiSet = new Set(user.fi_keys.map(k => (k || "").toString().trim().toLowerCase()));
           }
         } catch (e) {}
         return Object.values(perFi).filter((row) => {
@@ -2402,6 +2406,11 @@
             const rowInstanceKey = (row.instance || "").toString().trim().toLowerCase();
             if (!userInstanceSet.has(rowInstanceKey)) return false;
           }
+          // Enforce user fi_keys scope
+          if (userFiSet) {
+            const rowFiKey = (row.fi || "").toString().trim().toLowerCase();
+            if (!userFiSet.has(rowFiKey)) return false;
+          }
           if (sharedFiSet.size) {
             const fiKey = normalizeFiKey(row.fi);
             if (!sharedFiSet.has(fiKey)) return false;
@@ -2412,6 +2421,7 @@
       // Fallback: enforce user scope
       let allowedInstances = null;
       let allowedPartners = null;
+      let allowedFiKeys = null;
       try {
         const user = window.sisAuth?.getUser?.();
         if (user && (user.access_level === "limited" || user.access_level === "executive")) {
@@ -2420,6 +2430,9 @@
           }
           if (Array.isArray(user.partner_keys) && user.partner_keys.length > 0) {
             allowedPartners = new Set(user.partner_keys.map(k => (k || "").toString().trim().toLowerCase()));
+          }
+          if (Array.isArray(user.fi_keys) && user.fi_keys.length > 0) {
+            allowedFiKeys = new Set(user.fi_keys.map(k => (k || "").toString().trim().toLowerCase()));
           }
         }
       } catch (e) {}
@@ -2432,6 +2445,10 @@
         if (allowedPartners) {
           const rowPartner = (row.partner || "").toString().trim().toLowerCase();
           if (!allowedPartners.has(rowPartner)) return false;
+        }
+        if (allowedFiKeys) {
+          const rowFiKey = (row.fi || "").toString().trim().toLowerCase();
+          if (!allowedFiKeys.has(rowFiKey)) return false;
         }
         return true;
       });
@@ -6031,7 +6048,17 @@
             const narrativeResults = EI.evaluateNarratives(ctx);
             const spectrumDiag = ctx.integrationContext === 'nonsso' ? EI.buildNonSSOSpectrumDiagnosis(ctx) : EI.buildSpectrumDiagnosis(ctx);
             const { actions } = EI.evaluateActions(ctx);
-            const projections = EI.computeProjections(ctx);
+            // In QBR mode, pass best-quarter rate so projections match on-screen QBR summary
+            const pdfProjOpts = {};
+            if (document.body.classList.contains('qbr-mode') && window.__qbrQuartersData) {
+              let bestQRate = null;
+              for (const q of window.__qbrQuartersData) {
+                const r = q.effectiveRate != null ? q.effectiveRate : q.metrics.sessionSuccessPct;
+                if (r !== null && (bestQRate === null || r > bestQRate)) bestQRate = r;
+              }
+              if (bestQRate) pdfProjOpts.qbrBestQuarterRate = bestQRate;
+            }
+            const projections = EI.computeProjections(ctx, pdfProjOpts);
 
             const pdfGaHidden = document.body.classList.contains('hide-ga');
             const pdfCardholders = ctx.totalCardholders || (pdfGaHidden ? ctx.totalSessions : ctx.gaSelect);

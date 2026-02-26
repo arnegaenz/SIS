@@ -24,6 +24,14 @@ import {
   buildMerchantSeries,
 } from "../src/lib/analytics/sources.mjs";
 import { fetchGaRowsForDay, resolveFiFromHost } from "../src/ga.mjs";
+import {
+  normalizeFiKey,
+  canonicalInstance,
+  normalizeInstanceKey,
+  parseListParam,
+  normalizeUserAccessFields,
+  computeAllowedFis,
+} from "../src/lib/scoping.mjs";
 import puppeteer from "puppeteer";
 import { buildReportHtml } from "../templates/funnel-report-template.mjs";
 import { buildCustomerReportHtml } from "../templates/funnel-customer-report-template.mjs";
@@ -614,46 +622,7 @@ function extractSessionToken(req, queryParams) {
   return null;
 }
 
-/**
- * Normalize user access fields for backward compatibility.
- * - Renames "full" access_level to "admin"
- * - Ensures instance_keys, partner_keys, fi_keys exist with proper defaults
- */
-function normalizeUserAccessFields(user) {
-  // Handle legacy "full" access_level
-  let accessLevel = user.access_level;
-  if (accessLevel === "full") {
-    accessLevel = "admin";
-  }
-
-  // Handle legacy fi_keys-only format
-  let instanceKeys = user.instance_keys;
-  let partnerKeys = user.partner_keys;
-  let fiKeys = user.fi_keys;
-
-  if (instanceKeys === undefined && partnerKeys === undefined) {
-    // Legacy user: only has fi_keys
-    if (fiKeys === "*") {
-      instanceKeys = "*";
-      partnerKeys = "*";
-    } else {
-      instanceKeys = [];
-      partnerKeys = [];
-    }
-  }
-
-  // Ensure defaults
-  if (instanceKeys === undefined) instanceKeys = [];
-  if (partnerKeys === undefined) partnerKeys = [];
-  if (fiKeys === undefined) fiKeys = [];
-
-  return {
-    access_level: accessLevel,
-    instance_keys: instanceKeys,
-    partner_keys: partnerKeys,
-    fi_keys: fiKeys,
-  };
-}
+// normalizeUserAccessFields — imported from src/lib/scoping.mjs
 
 async function validateSession(req, queryParams) {
   const token = extractSessionToken(req, queryParams);
@@ -2372,9 +2341,8 @@ async function listRawDays(type = "sessions") {
   }
 }
 
-function normalizeFiKey(value) {
-  return value ? value.toString().trim().toLowerCase() : "";
-}
+// normalizeFiKey, canonicalInstance, normalizeInstanceKey, parseListParam
+// — imported from src/lib/scoping.mjs
 
 function normalizeIntegration(value) {
   if (!value) return "UNKNOWN";
@@ -2386,32 +2354,8 @@ function normalizeIntegration(value) {
   return "UNKNOWN";
 }
 
-function canonicalInstance(value) {
-  if (!value) return "";
-  return value.toString().trim().toLowerCase().replace(/[^a-z0-9]/g, "");
-}
-
-function normalizeInstanceKey(value) {
-  const normalized = canonicalInstance(value);
-  return normalized || "unknown";
-}
-
 function makeFiInstanceKey(fiKey, instanceValue) {
   return `${normalizeFiKey(fiKey)}__${normalizeInstanceKey(instanceValue)}`;
-}
-
-function parseListParam(value) {
-  if (!value) return [];
-  if (Array.isArray(value)) {
-    return value
-      .map((entry) => (entry || "").toString().trim())
-      .filter(Boolean);
-  }
-  return value
-    .toString()
-    .split(",")
-    .map((entry) => entry.trim())
-    .filter(Boolean);
 }
 
 function normalizeSourceToken(value) {
@@ -2419,81 +2363,7 @@ function normalizeSourceToken(value) {
   return value.toString().trim().toLowerCase();
 }
 
-/**
- * Compute the set of FI lookup keys a user can access based on their access configuration.
- * Returns null if user has unrestricted access (admin or any wildcard).
- * Returns Set<string> of normalized fi_lookup_keys otherwise.
- *
- * Uses UNION semantics: user can access an FI if it matches ANY of their access criteria.
- */
-function computeAllowedFis(userContext, fiRegistry) {
-  if (!userContext) return null; // No user context = unrestricted
-
-  // Admin and internal users always have full data access
-  if (userContext.access_level === "admin" || userContext.access_level === "internal") {
-    return null;
-  }
-
-  // Check for wildcard access on any dimension
-  const hasFullInstanceAccess = userContext.instance_keys === "*";
-  const hasFullPartnerAccess = userContext.partner_keys === "*";
-  const hasFullFiAccess = userContext.fi_keys === "*";
-
-  // If any dimension is "*", user has full access
-  if (hasFullInstanceAccess || hasFullPartnerAccess || hasFullFiAccess) {
-    return null;
-  }
-
-  // Normalize access arrays
-  const instanceKeys = Array.isArray(userContext.instance_keys)
-    ? new Set(userContext.instance_keys.map((k) => normalizeInstanceKey(k)))
-    : new Set();
-  const partnerKeys = Array.isArray(userContext.partner_keys)
-    ? new Set(userContext.partner_keys.map((k) => (k || "").toString().trim().toLowerCase()))
-    : new Set();
-  const fiKeys = Array.isArray(userContext.fi_keys)
-    ? new Set(userContext.fi_keys.map((k) => normalizeFiKey(k)))
-    : new Set();
-
-  // If all dimensions are empty, no access
-  if (instanceKeys.size === 0 && partnerKeys.size === 0 && fiKeys.size === 0) {
-    return new Set(); // empty = no access
-  }
-
-  // Build allowed FI set from registry using UNION logic
-  const allowed = new Set();
-
-  // Add directly specified FIs
-  for (const fi of fiKeys) {
-    allowed.add(fi);
-  }
-
-  // Add FIs matching instance or partner criteria from registry
-  if (fiRegistry && typeof fiRegistry === "object") {
-    for (const entry of Object.values(fiRegistry)) {
-      if (!entry || !entry.fi_lookup_key) continue;
-      const fiKey = normalizeFiKey(entry.fi_lookup_key);
-
-      // Check instance match
-      if (instanceKeys.size > 0 && entry.instance) {
-        if (instanceKeys.has(normalizeInstanceKey(entry.instance))) {
-          allowed.add(fiKey);
-          continue;
-        }
-      }
-
-      // Check partner match
-      if (partnerKeys.size > 0 && entry.partner) {
-        const normalizedPartner = entry.partner.toString().trim().toLowerCase();
-        if (partnerKeys.has(normalizedPartner)) {
-          allowed.add(fiKey);
-        }
-      }
-    }
-  }
-
-  return allowed;
-}
+// computeAllowedFis — imported from src/lib/scoping.mjs
 
 function parseMetricsFilters(queryParams, payload = null, userContext = null, fiRegistry = null) {
   const query = Object.fromEntries(queryParams.entries());
@@ -2533,7 +2403,7 @@ function parseMetricsFilters(queryParams, payload = null, userContext = null, fi
       query.source_category_list ||
       query.sourceCategoryList
   );
-  const instanceList = parseListParam(
+  let instanceList = parseListParam(
     body.instance_list || body.instanceList || query.instance_list || query.instanceList
   );
   const merchantList = parseListParam(

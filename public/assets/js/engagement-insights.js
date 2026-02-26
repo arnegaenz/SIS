@@ -778,21 +778,26 @@ function buildMetricsContext(renderCtx, opts = {}) {
 }
 
 /**
- * Find the best-week entry with highest success ratio.
- * Prefers `successRatio` (effective rate — launch-based for non-SSO) over `sessionSuccessRatio`.
+ * Find the best-week entry for narratives and projections.
+ * Prefers the "Best Success Rate at Scale" entry (above-median volume) to avoid
+ * small-N inflation (e.g. 2/6 = 33% beating a credible 24.3% on 37 sessions).
+ * Falls back to highest ratio across all entries if no at-scale entry exists.
  */
 function findBestWeekEntry(best) {
   if (!best) return null;
-  // best is an object or array of highlight entries
   const entries = Array.isArray(best) ? best : Object.values(best);
-  let top = null;
+  let atScale = null;
+  let topAny = null;
   for (const e of entries) {
-    const ratio = e ? (e.successRatio != null ? e.successRatio : e.sessionSuccessRatio) : null;
-    if (ratio != null && (!top || ratio > (top.successRatio != null ? top.successRatio : top.sessionSuccessRatio))) {
-      top = e;
+    if (!e) continue;
+    const ratio = e.successRatio != null ? e.successRatio : e.sessionSuccessRatio;
+    if (ratio == null) continue;
+    if (e.label === 'Best Success Rate at Scale') atScale = e;
+    if (!topAny || ratio > (topAny.successRatio != null ? topAny.successRatio : topAny.sessionSuccessRatio)) {
+      topAny = e;
     }
   }
-  return top;
+  return atScale || topAny;
 }
 
 /**
