@@ -1358,7 +1358,7 @@ function renderTrafficTile(fi) {
     const hoursAgo = fi.hours_since_last != null ? `${fi.hours_since_last}h ago` : "unknown";
     statsHtml = `DARK &mdash; last session <strong>${hoursAgo}</strong>`;
   } else if (fi.status === "low") {
-    statsHtml = `Today: <strong>${fi.today_sessions}</strong> sessions (<strong>${fi.pct_of_baseline}%</strong> of baseline)`;
+    statsHtml = `Today: <strong>${fi.today_sessions}</strong> sessions (<strong>${fi.pct_of_baseline}%</strong> of baseline, proj)`;
   } else if (fi.status === "sleeping") {
     const tierNote = fi.fingerprint_tier === 1 && fi.expected_cumulative != null
       ? ` (expect ~${fi.expected_cumulative} by now)`
@@ -1366,7 +1366,7 @@ function renderTrafficTile(fi) {
     statsHtml = `Quiet period${tierNote}`;
     zzzIndicator = `<span class="zzz-indicator">zzz</span>`;
   } else {
-    statsHtml = `Today: <strong>${fi.today_sessions}</strong> sessions (<strong>${fi.pct_of_baseline}%</strong> of baseline)`;
+    statsHtml = `Today: <strong>${fi.today_sessions}</strong> sessions (<strong>${fi.pct_of_baseline}%</strong> of baseline, proj)`;
   }
 
   // Build verbose tooltip
@@ -1390,7 +1390,7 @@ function renderTrafficTile(fi) {
     ``,
     `Today's sessions: ${fi.today_sessions}`,
     `Today projected: ${fi.today_projected} sessions`,
-    `% of baseline: ${fi.pct_of_baseline}%`,
+    `% of baseline (projected): ${fi.pct_of_baseline}%`,
     `Last session: ${lastSessionStr}`,
     ``,
     `14-Day Baseline:`,
@@ -1524,7 +1524,7 @@ function renderTrafficDetailModal(fi, data) {
     { label: "Baseline (median)", value: `${fi.baseline_median}/day` },
     { label: "Baseline (avg)", value: `${fi.baseline_avg}/day` },
     { label: "Yesterday", value: `${fi.yesterday_sessions} sessions` },
-    { label: "% of Baseline", value: `${fi.pct_of_baseline}%` },
+    { label: "% of Baseline (proj)", value: `${fi.pct_of_baseline}%` },
     { label: "Hours Since Last", value: fi.hours_since_last != null ? `${fi.hours_since_last}h` : "N/A" },
   ];
 

@@ -6,6 +6,21 @@
 
 # Build History
 
+## Feb 26, 2026 (Session 9)
+
+### Ops Dashboard — Projected Baseline Label Clarity
+- **Problem**: "% of Baseline" metric compared today's **projected** full-day total (extrapolated from partial-day data) against the 14-day median, but was labeled as if it were an actual measurement — misleading, especially early in the day
+- **Fix** (`operations-dashboard.js`): All instances now labeled as projected:
+  - Card tiles: `"109% of baseline, proj"`
+  - Detail view stat label: `"% of Baseline (proj)"`
+  - Tooltip: `"% of baseline (projected): 109%"`
+
+### Ops Dashboard — Hours Since Last for All FIs
+- **Problem**: `hours_since_last` was only computed for "dark" or "low" status FIs — normal/sleeping FIs showed "N/A" in the detail view even when session timestamps were available
+- **Fix** (`serve-funnel.mjs`): Removed the `if (status === "dark" || status === "low")` guard so `hours_since_last` is computed for all FIs by scanning `fiDayLatest` timestamps
+
+---
+
 ## Feb 26, 2026 (Session 8)
 
 ### Ops Feed — Session Events for Job-less CardUpdatr Launches

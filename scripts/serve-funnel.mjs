@@ -6746,9 +6746,9 @@ const server = http.createServer(async (req, res) => {
           }
         }
 
-        // hours_since_last: for dark/low, scan latest timestamps
+        // hours_since_last: scan latest timestamps for all FIs
         let hoursSinceLast = null;
-        if (status === "dark" || status === "low") {
+        {
           const latestMap = fiDayLatest.get(fiKey);
           if (latestMap) {
             let lastTs = null;
