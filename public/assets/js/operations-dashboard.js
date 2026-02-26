@@ -3,6 +3,8 @@ import {
   formatPercent,
   formatRate,
   buildDateRange,
+  formatLocalDate,
+  getLocalTimezone,
   downloadCsv,
   createMultiSelect,
   sortRows,
@@ -451,19 +453,19 @@ let merchantTrends = new Map(); // merchant_name → { priorFailRate, trend }
 async function fetchOpsTrends() {
   // Compare this week (last 7d) vs prior week (8-14d ago)
   const now = new Date();
-  const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  const end = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const priorEnd = new Date(end);
-  priorEnd.setUTCDate(end.getUTCDate() - 7);
+  priorEnd.setDate(end.getDate() - 7);
   const priorStart = new Date(priorEnd);
-  priorStart.setUTCDate(priorEnd.getUTCDate() - 6);
+  priorStart.setDate(priorEnd.getDate() - 6);
 
   try {
     const res = await fetch("/api/metrics/ops", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        date_from: priorStart.toISOString().slice(0, 10),
-        date_to: priorEnd.toISOString().slice(0, 10),
+        date_from: formatLocalDate(priorStart),
+        date_to: formatLocalDate(priorEnd),
         includeTests: state.includeTests,
       }),
     });
@@ -1008,7 +1010,7 @@ function renderVolumeSparkline(byDay) {
 async function fetchEventFeed() {
   if (!kioskEls.eventList) return;
   try {
-    const res = await fetch("/api/metrics/ops-feed");
+    const res = await fetch(`/api/metrics/ops-feed?tz=${encodeURIComponent(getLocalTimezone())}`);
     if (!res.ok) return;
     const data = await res.json();
     state.feedEvents = data.events || [];
@@ -1270,7 +1272,7 @@ async function kioskRefresh() {
 
 async function fetchTrafficHealth() {
   try {
-    const res = await fetch("/api/traffic-health");
+    const res = await fetch(`/api/traffic-health?tz=${encodeURIComponent(getLocalTimezone())}`);
     if (!res.ok) return;
     const data = await res.json();
     state.trafficHealth = data;

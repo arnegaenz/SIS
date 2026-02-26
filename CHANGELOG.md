@@ -6,6 +6,24 @@
 
 # Build History
 
+## Feb 25, 2026 (Session 7)
+
+### Timezone-Aware Date Bucketing for Ops & Portfolio Dashboards
+- **Problem**: After 4 PM Pacific (UTC date rolls to next day), Ops Command Center showed "Today" as the UTC date with ~1 session, "Yesterday" was actually today Pacific, and live feed was empty
+- **Root cause**: All date math used UTC — `toISOString().slice(0,10)`, `getUTCHours()`, `new Date(...T00:00:00Z)`
+- **Fix**: Client sends IANA timezone (`Intl.DateTimeFormat().resolvedOptions().timeZone`) to server via `?tz=` param; server re-buckets sessions by user's local date
+- **Server changes** (`serve-funnel.mjs`):
+  - 4 new helpers: `isValidTimezone()`, `tzDateInfo()`, `utcToLocalDate()`, `utcToLocalHour()`
+  - `/api/traffic-health`: parses `?tz=`, reads extra UTC files on timezone boundary edges, re-buckets sessions by local date, uses local midnight for `todayStartIso` and `hoursElapsed`, local hour for fingerprints
+  - `/api/metrics/ops-feed`: parses `?tz=`, reads extra batch files when local yesterday < UTC yesterday
+  - Cache: replaced single `_trafficHealthCache` with `_trafficHealthCacheMap` (per-timezone, evicts at >10 entries)
+  - Background monitor stays UTC via `"__utc__"` cache key
+- **Client changes**:
+  - `dashboard-utils.js`: `buildDateRange()` uses local date getters; new exports `formatLocalDate()`, `getLocalTimezone()`
+  - `operations-dashboard.js`: sends `?tz=` on traffic-health and ops-feed calls; `fetchOpsTrends()` uses local date math
+  - `portfolio-dashboard.js`: `fetchWeeklyTrends()` uses local date math
+- **Backward compatible**: no `?tz=` param = UTC behavior (same as before)
+
 ## Feb 25, 2026 (Session 6)
 
 ### CLAUDE.md Context Reduction

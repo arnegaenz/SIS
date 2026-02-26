@@ -3,6 +3,8 @@ import {
   formatPercent,
   formatRate,
   buildDateRange,
+  formatLocalDate,
+  getLocalTimezone,
   downloadCsv,
   createMultiSelect,
   sortRows,
@@ -161,16 +163,16 @@ async function loadFiRegistry() {
 /* ── Weekly Trends (4 weekly buckets) ── */
 async function fetchWeeklyTrends() {
   const now = new Date();
-  const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  const end = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const weeks = [];
   for (let w = 0; w < 4; w++) {
     const wEnd = new Date(end);
-    wEnd.setUTCDate(end.getUTCDate() - w * 7);
+    wEnd.setDate(end.getDate() - w * 7);
     const wStart = new Date(wEnd);
-    wStart.setUTCDate(wEnd.getUTCDate() - 6);
+    wStart.setDate(wEnd.getDate() - 6);
     weeks.push({
-      date_from: wStart.toISOString().slice(0, 10),
-      date_to: wEnd.toISOString().slice(0, 10),
+      date_from: formatLocalDate(wStart),
+      date_to: formatLocalDate(wEnd),
     });
   }
 

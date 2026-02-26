@@ -15,14 +15,24 @@ export function formatRate(numerator, denominator, digits = 1) {
   return `${((numerator / denominator) * 100).toFixed(digits)}%`;
 }
 
+export function formatLocalDate(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+export function getLocalTimezone() {
+  return Intl.DateTimeFormat().resolvedOptions().timeZone;
+}
+
 export function buildDateRange(days) {
   const now = new Date();
-  const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-  const start = new Date(end);
-  start.setUTCDate(end.getUTCDate() - Math.max(0, days - 1));
+  const end = formatLocalDate(now);
+  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - Math.max(0, days - 1));
   return {
-    date_from: start.toISOString().slice(0, 10),
-    date_to: end.toISOString().slice(0, 10),
+    date_from: formatLocalDate(start),
+    date_to: end,
   };
 }
 

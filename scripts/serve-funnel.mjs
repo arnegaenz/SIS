@@ -190,6 +190,83 @@ function isoAddDays(isoDate, deltaDays) {
   return d.toISOString().slice(0, 10);
 }
 
+// ── Timezone-aware date helpers ──
+
+function isValidTimezone(tz) {
+  if (!tz || typeof tz !== "string") return false;
+  try {
+    Intl.DateTimeFormat(undefined, { timeZone: tz });
+    return true;
+  } catch { return false; }
+}
+
+function tzDateInfo(tz) {
+  // Returns local today/yesterday strings and local-midnight-in-UTC for the given IANA timezone.
+  // When tz is null/undefined, falls back to UTC (backward compatible for background monitor).
+  const now = new Date();
+  if (!tz) {
+    const todayStr = now.toISOString().slice(0, 10);
+    const yest = new Date(now); yest.setUTCDate(yest.getUTCDate() - 1);
+    return {
+      localToday: todayStr,
+      localYesterday: yest.toISOString().slice(0, 10),
+      localMidnightUtc: new Date(`${todayStr}T00:00:00Z`),
+      localNow: { hours: now.getUTCHours(), minutes: now.getUTCMinutes() },
+      tzOffsetMinutes: 0,
+    };
+  }
+  // Use Intl to get local date parts
+  const dtf = new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" });
+  const localToday = dtf.format(now); // YYYY-MM-DD (en-CA locale)
+  const timeParts = new Intl.DateTimeFormat("en-US", { timeZone: tz, hour: "numeric", minute: "numeric", hour12: false }).formatToParts(now);
+  const hours = parseInt(timeParts.find(p => p.type === "hour")?.value || "0", 10);
+  const minutes = parseInt(timeParts.find(p => p.type === "minute")?.value || "0", 10);
+
+  // Local midnight in UTC: parse localToday as a date, then subtract the tz offset
+  // We compute the offset by comparing the UTC epoch of "localToday 00:00:00 UTC" with the actual local midnight
+  const localMidnightUtc = new Date(`${localToday}T00:00:00Z`);
+  // Offset = (hours since local midnight) * 60 + minutes, but we need the actual tz offset
+  // Better: compute offset from the difference between UTC time and local time
+  const utcHours = now.getUTCHours();
+  const utcMinutes = now.getUTCMinutes();
+  const localTotalMin = hours * 60 + minutes;
+  const utcTotalMin = utcHours * 60 + utcMinutes;
+  let offsetMinutes = localTotalMin - utcTotalMin;
+  // Normalize to [-720, 720]
+  if (offsetMinutes > 720) offsetMinutes -= 1440;
+  if (offsetMinutes < -720) offsetMinutes += 1440;
+
+  // Adjust local midnight to UTC: local midnight = UTC midnight - offset
+  localMidnightUtc.setMinutes(localMidnightUtc.getMinutes() - offsetMinutes);
+
+  const yest = new Date(localMidnightUtc.getTime() - 86400000);
+  const localYesterday = isoAddDays(localToday, -1);
+
+  return {
+    localToday,
+    localYesterday,
+    localMidnightUtc,
+    localNow: { hours, minutes },
+    tzOffsetMinutes: offsetMinutes,
+  };
+}
+
+function utcToLocalDate(utcTimestamp, tzOffsetMinutes) {
+  // Convert a UTC ISO timestamp to a local YYYY-MM-DD string given the offset in minutes
+  const d = new Date(utcTimestamp);
+  if (Number.isNaN(d.getTime())) return "";
+  d.setMinutes(d.getMinutes() + tzOffsetMinutes);
+  return d.toISOString().slice(0, 10);
+}
+
+function utcToLocalHour(utcTimestamp, tzOffsetMinutes) {
+  // Convert a UTC ISO timestamp to a local hour (0-23)
+  const d = new Date(utcTimestamp);
+  if (Number.isNaN(d.getTime())) return 0;
+  d.setMinutes(d.getMinutes() + tzOffsetMinutes);
+  return d.getUTCHours();
+}
+
 function defaultUpdateRange() {
   const endDate = todayIsoDate();
   const startDate = isoAddDays(endDate, -29);
@@ -736,8 +813,7 @@ setInterval(async () => {
 // ============================================================================
 // Traffic Health — module-level cache (shared by endpoint + background monitor)
 // ============================================================================
-let _trafficHealthCache = null;
-let _trafficHealthCacheTime = 0;
+const _trafficHealthCacheMap = new Map(); // cacheKey → { data, time }
 const TRAFFIC_HEALTH_CACHE_TTL = 15 * 60 * 1000; // 15 minutes — background monitor refreshes on this cycle
 
 
@@ -1168,17 +1244,18 @@ async function checkTrafficHealthAlerts() {
     const lowThresholdHours = settings.lowThresholdHours ?? 8;
     const cooldownHours = settings.cooldownHours ?? 12;
 
-    // Use cached data if fresh, otherwise fetch directly
+    // Use cached data if fresh, otherwise fetch directly (background monitor uses UTC)
+    const utcCacheKey = "__utc__";
     let healthData;
-    if (_trafficHealthCache && (Date.now() - _trafficHealthCacheTime) < 5 * 60 * 1000) {
-      healthData = _trafficHealthCache;
+    const utcCached = _trafficHealthCacheMap.get(utcCacheKey);
+    if (utcCached && (Date.now() - utcCached.time) < 5 * 60 * 1000) {
+      healthData = utcCached.data;
       console.log("[traffic-alert] Using cached traffic health data");
     } else {
       console.log("[traffic-alert] No fresh cache — fetching live data directly...");
       healthData = await computeTrafficHealthDirect();
       // Update the cache so the dashboard benefits too
-      _trafficHealthCache = healthData;
-      _trafficHealthCacheTime = Date.now();
+      _trafficHealthCacheMap.set(utcCacheKey, { data: healthData, time: Date.now() });
       console.log("[traffic-alert] Live fetch complete — " + healthData.fis.length + " FIs monitored");
     }
 
@@ -3830,8 +3907,7 @@ const server = http.createServer(async (req, res) => {
 
       await fs.writeFile(TRAFFIC_HEALTH_SETTINGS_FILE, JSON.stringify(existing, null, 2));
       // Invalidate cache so next request uses new threshold
-      _trafficHealthCache = null;
-      _trafficHealthCacheTime = 0;
+      _trafficHealthCacheMap.clear();
       return send(res, 200, { ok: true, ...existing });
     } catch (err) {
       console.error("[traffic-health-settings] save error:", err);
@@ -6192,22 +6268,36 @@ const server = http.createServer(async (req, res) => {
       return send(res, 401, { error: "Authentication required" });
     }
     try {
+      const feedTz = queryParams.get("tz") || null;
+      const feedTzInfo = tzDateInfo(feedTz && isValidTimezone(feedTz) ? feedTz : null);
       const now = new Date();
-      const today = now.toISOString().slice(0, 10);
-      const yesterday = new Date(now.getTime() - 86400000).toISOString().slice(0, 10);
+      const utcToday = now.toISOString().slice(0, 10);
+      const utcYesterday = new Date(now.getTime() - 86400000).toISOString().slice(0, 10);
       const cutoff24h = new Date(now.getTime() - 86400000).toISOString();
+
+      // Determine which UTC-date files to read to cover local today + local yesterday
+      const fileDaysToRead = new Set([utcToday, utcYesterday]);
+      // If local yesterday < UTC yesterday (user is behind UTC), need the day before UTC yesterday
+      if (feedTzInfo.localYesterday < utcYesterday) {
+        fileDaysToRead.add(isoAddDays(utcYesterday, -1));
+      }
 
       // Today: use live cache (populated every 15 min), fall back to batch file
       const todayPlacements = (_livePlacementsCache && _livePlacementsCacheTime > 0)
         ? _livePlacementsCache
-        : await readPlacementDay(today).then(r => (r && Array.isArray(r.placements)) ? r.placements : []);
+        : await readPlacementDay(utcToday).then(r => (r && Array.isArray(r.placements)) ? r.placements : []);
 
-      // Yesterday: always from batch file (complete data)
-      const yesterdayRaw = await readPlacementDay(yesterday);
+      // Load all needed batch files (excluding today which comes from live cache)
+      const batchPlacements = [];
+      for (const day of fileDaysToRead) {
+        if (day === utcToday) continue; // already have live cache for today
+        const raw = await readPlacementDay(day);
+        if (raw && Array.isArray(raw.placements)) batchPlacements.push(...raw.placements);
+      }
 
       const placements = [
         ...todayPlacements,
-        ...((yesterdayRaw && Array.isArray(yesterdayRaw.placements)) ? yesterdayRaw.placements : []),
+        ...batchPlacements,
       ];
       const fiRegistry = await loadFiRegistrySafe();
       const fiMeta = buildFiMetaMap(fiRegistry);
@@ -6245,10 +6335,19 @@ const server = http.createServer(async (req, res) => {
       return send(res, 401, { error: "Authentication required" });
     }
     try {
-      const now = Date.now();
-      if (_trafficHealthCache && (now - _trafficHealthCacheTime) < TRAFFIC_HEALTH_CACHE_TTL) {
-        return send(res, 200, _trafficHealthCache);
+      const tz = queryParams.get("tz") || null;
+      if (tz && !isValidTimezone(tz)) {
+        return send(res, 400, { error: "Invalid timezone" });
       }
+      const cacheKey = tz || "__utc__";
+      const now = Date.now();
+      const cached = _trafficHealthCacheMap.get(cacheKey);
+      if (cached && (now - cached.time) < TRAFFIC_HEALTH_CACHE_TTL) {
+        return send(res, 200, cached.data);
+      }
+
+      const tzInfo = tzDateInfo(tz);
+      const tzOff = tzInfo.tzOffsetMinutes;
 
       const [fiRegistry, instancesFile] = await Promise.all([
         loadFiRegistrySafe(),
@@ -6272,14 +6371,9 @@ const server = http.createServer(async (req, res) => {
         });
       }
 
-      const todayDate = new Date();
-      const todayStr = todayDate.toISOString().slice(0, 10);
-      const baselineEnd = new Date(todayDate);
-      baselineEnd.setUTCDate(baselineEnd.getUTCDate() - 1);
-      const baselineStart = new Date(baselineEnd);
-      baselineStart.setUTCDate(baselineEnd.getUTCDate() - 13); // 14 days back
-      const baselineStartStr = baselineStart.toISOString().slice(0, 10);
-      const baselineEndStr = baselineEnd.toISOString().slice(0, 10);
+      const todayStr = tzInfo.localToday;
+      const baselineEndStr = tzInfo.localYesterday;
+      const baselineStartStr = isoAddDays(baselineEndStr, -13); // 14 days back
 
       const baselineDays = daysBetween(baselineStartStr, baselineEndStr); // 14 days
 
@@ -6288,8 +6382,11 @@ const server = http.createServer(async (req, res) => {
       const fiDayLatest = new Map(); // fi_key → Map<day, ISO timestamp>
       const fiHourlyCounts = new Map(); // fi_key → Map<hour(0-23), totalCount across all baseline days>
 
-      for (const day of baselineDays) {
-        const dayData = await readSessionDay(day);
+      // Read UTC files that span the local date range (1 extra on each edge for tz overlap)
+      const baselineSet = new Set(baselineDays);
+      const utcFileDays = daysBetween(isoAddDays(baselineStartStr, -1), isoAddDays(baselineEndStr, 1));
+      for (const utcDay of utcFileDays) {
+        const dayData = await readSessionDay(utcDay);
         if (!dayData || !Array.isArray(dayData.sessions)) continue;
         for (const sess of dayData.sessions) {
           const instanceRaw = sess._instance || sess.instance || sess.instance_name || sess.org_name || "";
@@ -6301,14 +6398,18 @@ const server = http.createServer(async (req, res) => {
           );
           if (!fiKey) continue;
 
+          // Re-bucket by local date
+          const createdOn = sess.created_on || "";
+          const localDay = createdOn ? utcToLocalDate(createdOn, tzOff) : utcDay;
+          if (!baselineSet.has(localDay)) continue; // skip if outside baseline range
+
           if (!fiDayCounts.has(fiKey)) fiDayCounts.set(fiKey, new Map());
           const dayCounts = fiDayCounts.get(fiKey);
-          dayCounts.set(day, (dayCounts.get(day) || 0) + 1);
+          dayCounts.set(localDay, (dayCounts.get(localDay) || 0) + 1);
 
-          // Bucket by hour for fingerprint building
-          const createdOn = sess.created_on || "";
+          // Bucket by local hour for fingerprint building
           if (createdOn) {
-            const hour = new Date(createdOn).getUTCHours();
+            const hour = utcToLocalHour(createdOn, tzOff);
             if (!fiHourlyCounts.has(fiKey)) fiHourlyCounts.set(fiKey, new Map());
             const hourMap = fiHourlyCounts.get(fiKey);
             hourMap.set(hour, (hourMap.get(hour) || 0) + 1);
@@ -6316,15 +6417,15 @@ const server = http.createServer(async (req, res) => {
             // Track latest created_on for hours_since_last
             if (!fiDayLatest.has(fiKey)) fiDayLatest.set(fiKey, new Map());
             const dayLatest = fiDayLatest.get(fiKey);
-            const prev = dayLatest.get(day) || "";
-            if (createdOn > prev) dayLatest.set(day, createdOn);
+            const prev = dayLatest.get(localDay) || "";
+            if (createdOn > prev) dayLatest.set(localDay, createdOn);
           }
         }
       }
 
       // ── Step 2: Fetch TODAY's sessions live from CardSavr API (all instances) ──
-      const todayStartIso = `${todayStr}T00:00:00Z`;
-      const nowIso = todayDate.toISOString();
+      const todayStartIso = tzInfo.localMidnightUtc.toISOString();
+      const nowIso = new Date().toISOString();
       const liveCounts = new Map();  // fi_key → count
       const liveLatest = new Map();  // fi_key → latest ISO timestamp
       const instanceErrors = [];
@@ -6463,7 +6564,7 @@ const server = http.createServer(async (req, res) => {
         }
       } catch { /* use default */ }
       const nowMs = Date.now();
-      const todayStartMs = new Date(`${todayStr}T00:00:00Z`).getTime();
+      const todayStartMs = tzInfo.localMidnightUtc.getTime();
       const hoursElapsed = Math.max(0, (nowMs - todayStartMs) / 3600000);
 
       const allDays = [...baselineDays, todayStr]; // 14 baseline + today = 15
@@ -6497,7 +6598,7 @@ const server = http.createServer(async (req, res) => {
 
         // Status classification — fingerprint-aware
         const fp = fiFingerprints.get(fiKey);
-        const currentHour = new Date().getUTCHours();
+        const currentHour = tzInfo.localNow.hours;
         let status = "normal";
         let expectedCumulative = null;
         let pctOfExpected = null;
@@ -6615,6 +6716,7 @@ const server = http.createServer(async (req, res) => {
 
       const result = {
         generated_at: new Date().toISOString(),
+        timezone: tz || "UTC",
         baseline_days: 14,
         min_volume_threshold: MIN_AVG_SESSIONS,
         hours_elapsed_today: Math.round(hoursElapsed * 10) / 10,
@@ -6625,8 +6727,14 @@ const server = http.createServer(async (req, res) => {
         fis,
       };
 
-      _trafficHealthCache = result;
-      _trafficHealthCacheTime = Date.now();
+      _trafficHealthCacheMap.set(cacheKey, { data: result, time: Date.now() });
+      // Evict stale entries if map grows too large
+      if (_trafficHealthCacheMap.size > 10) {
+        const staleThreshold = Date.now() - TRAFFIC_HEALTH_CACHE_TTL;
+        for (const [k, v] of _trafficHealthCacheMap) {
+          if (v.time < staleThreshold) _trafficHealthCacheMap.delete(k);
+        }
+      }
       return send(res, 200, result);
     } catch (err) {
       console.error("[traffic-health] error:", err);
