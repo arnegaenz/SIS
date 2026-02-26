@@ -176,8 +176,8 @@
       this.indexedDB = new IndexedDBCache(); // IndexedDB for large items
       this.initialized = false;
 
-      // Start background validation
-      this.init();
+      // Start background validation — store promise so getAsync() can wait for it
+      this.initPromise = this.init();
     }
 
     _shouldForceIndexedDB(key) {
@@ -260,6 +260,11 @@
      * Async get for IndexedDB support (for large cache entries)
      */
     async getAsync(key) {
+      // Wait for version check to complete before serving cached data
+      // This prevents a race where stale IndexedDB data is returned before
+      // init() has a chance to detect a version mismatch and clear the cache.
+      await this.initPromise;
+
       // Check memory cache first
       if (this.memoryCache.has(key)) {
         return this.memoryCache.get(key);

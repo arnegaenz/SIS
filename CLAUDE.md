@@ -173,6 +173,13 @@ All partner-facing content follows engagement-positive tone:
 - Full plan: `docs/ai-insights-plan.md`
 - **Blocker**: Need business API key before building prototype
 
+### Timezone Selector for Dashboards (Backlog)
+- Currently auto-detects browser timezone via `Intl.DateTimeFormat().resolvedOptions().timeZone`
+- Add a timezone picker (dropdown or setting) so users can pin to a specific timezone (e.g., `America/Los_Angeles`) regardless of where they are
+- Store preference in localStorage, send to server instead of auto-detected tz
+- Useful for traveling users who want to see data bucketed by their FIs' timezone, not their current location
+- Affects: Ops Command Center, Portfolio Dashboard (anywhere `getLocalTimezone()` is called)
+
 ### Card Replacement Reach Math (Discussed, Not Yet Built)
 - ~25% annual portfolio turnover from expirations, ~3-5% lost/stolen = ~28-30% annual (2.3-2.5% monthly)
 - These are Tier 1 motivation cardholders at peak urgency

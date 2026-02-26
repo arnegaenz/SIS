@@ -517,6 +517,54 @@ body.kiosk-mode .dashboard-shell {
   color: var(--text);
 }
 
+.kiosk-tz-toggle {
+  border: 1px solid var(--border);
+  background: var(--panel-soft);
+  color: var(--muted);
+  border-radius: 8px;
+  padding: 5px 10px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.kiosk-tz-toggle:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+.kiosk-tz-menu {
+  position: fixed;
+  z-index: 9999;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 4px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+  min-width: 160px;
+}
+.kiosk-tz-menu__item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: none;
+  color: var(--text);
+  padding: 8px 14px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  border-radius: 7px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.kiosk-tz-menu__item:hover {
+  background: var(--panel-soft);
+}
+.kiosk-tz-menu__item--active {
+  color: var(--accent);
+  font-weight: 700;
+}
+
 /* Kiosk KPI row — larger cards */
 .kiosk-kpi-row {
   display: grid;
@@ -1090,6 +1138,11 @@ body.kiosk-mode .dashboard-shell {
 .event-feed__status.abandoned {
   background: rgba(100,116,139,0.15);
   color: #94a3b8;
+}
+
+.event-feed__status.session {
+  background: rgba(139,92,246,0.15);
+  color: #8b5cf6;
 }
 
 /* Feed filter bar — sits inside .event-feed__header, compact row */

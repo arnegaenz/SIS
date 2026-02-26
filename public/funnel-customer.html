@@ -886,6 +886,38 @@
     .admin-overlay { display: none; }
     body.show-admin-overlay .admin-overlay { display: block; }
 
+    /* AI Insights panel */
+    .ai-insights-btn {
+      background: #8b5cf6; color: #fff; border: none; border-radius: 8px;
+      padding: 6px 16px; font-size: 0.78rem; font-weight: 600; cursor: pointer;
+      transition: background 0.15s;
+    }
+    .ai-insights-btn:hover { background: #7c3aed; }
+    .ai-insights-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .ai-spinner {
+      display: inline-block; width: 18px; height: 18px;
+      border: 2px solid var(--border); border-top-color: #8b5cf6;
+      border-radius: 50%; animation: ai-spin 0.8s linear infinite;
+      vertical-align: middle; margin-right: 8px;
+    }
+    @keyframes ai-spin { to { transform: rotate(360deg); } }
+    .ai-narrative { margin-bottom: 14px; line-height: 1.6; }
+    .ai-narrative p { margin: 0; }
+    .ai-narrative--positive { border-left: 3px solid #22c55e; padding-left: 12px; }
+    .ai-narrative--opportunity { border-left: 3px solid #eab308; padding-left: 12px; }
+    .ai-narrative--caution { border-left: 3px solid #ef4444; padding-left: 12px; }
+    .ai-narrative--neutral { border-left: 3px solid #64748b; padding-left: 12px; }
+    .ai-section-label { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 4px; }
+    .ai-action { background: var(--panel-soft, #f8fafc); border-radius: 10px; padding: 14px 16px; margin-bottom: 10px; }
+    .ai-action__headline { font-weight: 700; margin-bottom: 4px; }
+    .ai-action__detail { font-size: 0.88rem; line-height: 1.5; color: var(--text); }
+    .ai-action__impact { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 700; margin-top: 6px; }
+    .ai-action__impact--high { color: #22c55e; }
+    .ai-action__impact--medium { color: #eab308; }
+    .ai-action__impact--low { color: #64748b; }
+    .ai-admin-notes { background: #1e293b; color: #e2e8f0; border-radius: 10px; padding: 16px; margin-top: 16px; font-size: 0.88rem; line-height: 1.6; white-space: pre-wrap; }
+    .ai-admin-notes__label { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.06em; color: #94a3b8; margin-bottom: 6px; }
+
     .admin-toggle-bar {
       display: none; /* hidden by default, shown for admin users */
       position: fixed; bottom: 16px; right: 16px; z-index: 100;
@@ -1599,6 +1631,21 @@
           <span class="section-badge">Projection</span>
         </div>
         <div id="projectionContent"></div>
+      </div>
+
+      <!-- ═══ AI-Powered Insights (Admin Only) ═══ -->
+      <div id="aiInsightsSection" class="insights-section admin-overlay">
+        <div class="insights-section-title">
+          AI-Powered Insights
+          <span class="section-badge" style="background:#8b5cf6;">Claude</span>
+          <button type="button" id="aiInsightsBtn" class="ai-insights-btn" style="margin-left:auto;">Generate</button>
+        </div>
+        <div id="aiInsightsLoading" style="display:none;padding:20px;text-align:center;color:var(--muted);">
+          <div class="ai-spinner"></div>
+          Generating insights with Claude...
+        </div>
+        <div id="aiInsightsContent" style="display:none;"></div>
+        <div id="aiInsightsMeta" style="display:none;padding:8px 16px;font-size:0.7rem;color:var(--muted);border-top:1px solid var(--border);"></div>
       </div>
 
       <!-- ═══ Performance by Integration Type (SSO vs Non-SSO breakdown) ═══ -->
@@ -3488,6 +3535,8 @@
         renderAdminOverlay(insightsCtx);
         const toggleBar = document.getElementById('adminToggleBar');
         if (toggleBar) toggleBar.style.display = 'flex';
+        // Wire up AI insights button
+        setupAIInsights(insightsCtx, startDate, endDate);
       }
     }
 
@@ -3496,6 +3545,154 @@
         const el = document.getElementById(id);
         if (el) el.style.display = 'none';
       });
+    }
+
+    // ── AI-Powered Insights (Admin Only) ──────────────────────────────────
+
+    var _aiInsightsSetup = false;
+
+    function setupAIInsights(ctx, startDate, endDate) {
+      var section = document.getElementById('aiInsightsSection');
+      var btn = document.getElementById('aiInsightsBtn');
+      if (!section || !btn || _aiInsightsSetup) return;
+      _aiInsightsSetup = true;
+
+      // Determine FI context from filters
+      var fiName = '';
+      var fiKey = '';
+      try {
+        var fs = window.__FILTER_STATE;
+        if (fs && fs.selectedFIs && fs.selectedFIs.length === 1) {
+          fiKey = fs.selectedFIs[0];
+          fiName = fiKey;
+        } else if (fs && fs.selectedPartners && fs.selectedPartners.length === 1) {
+          fiName = fs.selectedPartners[0];
+          fiKey = fs.selectedPartners[0];
+        } else {
+          fiName = 'Portfolio';
+          fiKey = 'portfolio';
+        }
+      } catch(e) { fiName = 'Unknown'; fiKey = 'unknown'; }
+
+      btn.addEventListener('click', function() {
+        btn.disabled = true;
+        btn.textContent = 'Generating...';
+        var loading = document.getElementById('aiInsightsLoading');
+        var content = document.getElementById('aiInsightsContent');
+        var meta = document.getElementById('aiInsightsMeta');
+        loading.style.display = 'block';
+        content.style.display = 'none';
+        meta.style.display = 'none';
+
+        fetch('/api/ai-insights', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            metricsContext: ctx,
+            fiName: fiName,
+            fiKey: fiKey,
+            dateRange: (startDate || '') + ':' + (endDate || ''),
+            integrationContext: ctx.integrationContext || 'combined',
+          })
+        })
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+          loading.style.display = 'none';
+          if (data.error) {
+            content.innerHTML = '<div style="color:#ef4444;padding:16px;">Error: ' + data.error + '</div>';
+            content.style.display = 'block';
+            btn.textContent = 'Retry';
+            btn.disabled = false;
+            return;
+          }
+          renderAIInsights(data);
+          btn.textContent = 'Regenerate';
+          btn.disabled = false;
+        })
+        .catch(function(err) {
+          loading.style.display = 'none';
+          content.innerHTML = '<div style="color:#ef4444;padding:16px;">Error: ' + err.message + '</div>';
+          content.style.display = 'block';
+          btn.textContent = 'Retry';
+          btn.disabled = false;
+        });
+      });
+    }
+
+    function renderAIInsights(data) {
+      var content = document.getElementById('aiInsightsContent');
+      var meta = document.getElementById('aiInsightsMeta');
+      if (!content) return;
+
+      var html = '';
+
+      // Narratives
+      if (data.narratives && data.narratives.length) {
+        html += '<div style="padding:16px 16px 0;">';
+        data.narratives.forEach(function(n) {
+          var cls = 'ai-narrative ai-narrative--' + (n.sentiment || 'neutral');
+          html += '<div class="' + cls + '">';
+          html += '<div class="ai-section-label">' + (n.section || '') + '</div>';
+          html += n.html;
+          html += '</div>';
+        });
+        html += '</div>';
+      }
+
+      // Spectrum diagnosis
+      if (data.spectrum) {
+        html += '<div style="padding:0 16px 16px;">';
+        html += '<div class="ai-section-label">Motivation Spectrum</div>';
+        html += '<div style="font-size:1.1rem;font-weight:700;margin-bottom:4px;">Tier ' + data.spectrum.tier + ' — ' + data.spectrum.label + '</div>';
+        html += '<div style="color:var(--text);line-height:1.5;">' + data.spectrum.diagnosis + '</div>';
+        html += '</div>';
+      }
+
+      // Actions
+      if (data.actions && data.actions.length) {
+        html += '<div style="padding:0 16px;">';
+        html += '<div class="ai-section-label">Recommended Actions</div>';
+        data.actions.forEach(function(a) {
+          html += '<div class="ai-action">';
+          html += '<div class="ai-action__headline">' + a.headline + '</div>';
+          html += '<div class="ai-action__detail">' + a.detail + '</div>';
+          html += '<div class="ai-action__impact ai-action__impact--' + (a.impact || 'medium') + '">' + (a.impact || 'medium') + ' impact — ' + (a.channel || '') + '</div>';
+          html += '</div>';
+        });
+        html += '</div>';
+      }
+
+      // Projections narrative
+      if (data.projections_narrative) {
+        html += '<div style="padding:0 16px 16px;">';
+        html += '<div class="ai-section-label">Growth Projection</div>';
+        html += '<div style="line-height:1.6;">' + data.projections_narrative + '</div>';
+        html += '</div>';
+      }
+
+      // Admin notes
+      if (data.admin_notes) {
+        html += '<div style="padding:0 16px 16px;">';
+        html += '<div class="ai-admin-notes">';
+        html += '<div class="ai-admin-notes__label">Internal Notes (Admin Only)</div>';
+        html += data.admin_notes;
+        html += '</div>';
+        html += '</div>';
+      }
+
+      content.innerHTML = html;
+      content.style.display = 'block';
+
+      // Meta
+      if (data._meta && meta) {
+        var cached = data._cached ? ' (cached)' : '';
+        meta.innerHTML = 'Model: ' + (data._meta.model || '') + cached +
+          ' · ' + (data._meta.elapsed_ms || 0) + 'ms' +
+          ' · ' + (data._meta.input_tokens || 0) + ' in / ' + (data._meta.output_tokens || 0) + ' out' +
+          (data._meta.cache_read_tokens ? ' · ' + data._meta.cache_read_tokens + ' prompt-cached' : '') +
+          ' · ' + (data._meta.generated_at || '');
+        meta.style.display = 'block';
+      }
     }
 
     // ── Funnel Visualization ────────────────────────────────────────────────

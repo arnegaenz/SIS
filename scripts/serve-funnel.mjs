@@ -5,6 +5,7 @@ import crypto from "node:crypto";
 import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import url from "url";
+import { generateAIInsights, clearInsightsCache, getInsightsCacheStats } from "./ai-insights.mjs";
 import { TERMINATION_RULES } from "../src/config/terminationMap.mjs";
 import { isTestInstanceName } from "../src/config/testInstances.mjs";
 import { loadSsoFis } from "../src/utils/config.mjs";
@@ -6283,6 +6284,51 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
+  // ── AI-Powered Insights ──
+  if (pathname === "/api/ai-insights" && req.method === "POST") {
+    const session = await validateSession(req, queryParams);
+    if (!session) {
+      return send(res, 401, { error: "Authentication required" });
+    }
+    try {
+      const rawBody = await readRequestBody(req);
+      const payload = JSON.parse(rawBody || "{}");
+      const { metricsContext, fiName, fiKey, dateRange, integrationContext } = payload;
+
+      if (!metricsContext) {
+        return send(res, 400, { error: "metricsContext is required" });
+      }
+
+      const accessLevel = session.access_level || "limited";
+
+      const insights = await generateAIInsights(metricsContext, {
+        accessLevel,
+        integrationContext: integrationContext || "combined",
+        fiName: fiName || "Unknown FI",
+        fiKey: fiKey || "",
+        dateRange: dateRange || "",
+      });
+
+      return send(res, 200, insights);
+    } catch (err) {
+      console.error("[ai-insights] endpoint error:", err);
+      return send(res, 500, { error: err?.message || "Unable to generate insights" });
+    }
+  }
+
+  // GET /api/ai-insights/cache — cache stats (admin only)
+  if (pathname === "/api/ai-insights/cache" && req.method === "GET") {
+    if (!(await requireFullAccess(req, res, queryParams))) return;
+    return send(res, 200, getInsightsCacheStats());
+  }
+
+  // POST /api/ai-insights/cache/clear — clear cache (admin only)
+  if (pathname === "/api/ai-insights/cache/clear" && req.method === "POST") {
+    if (!(await requireFullAccess(req, res, queryParams))) return;
+    clearInsightsCache();
+    return send(res, 200, { ok: true });
+  }
+
   // ── Ops Event Feed (live cache for today + batch file for yesterday) ──
   if (pathname === "/api/metrics/ops-feed" && req.method === "GET") {
     const session = await validateSession(req, queryParams);
@@ -6324,23 +6370,57 @@ const server = http.createServer(async (req, res) => {
       const fiRegistry = await loadFiRegistrySafe();
       const fiMeta = buildFiMetaMap(fiRegistry);
 
-      const events = placements
-        .map((placement) => {
-          const job = mapPlacementToJob(placement, placement.fi_lookup_key || placement.fi, placement._instance);
-          const fiKey = normalizeFiKey(job.fi_key || placement.fi_lookup_key || placement.fi_name || "");
-          const fiName = fiMeta.get(fiKey)?.fi || placement.fi_name || fiKey || "Unknown";
-          const status = categorizeJobStatus(job);
-          const timestamp = job.created_on || placement.job_created_on || placement.created_on || "";
-          return {
-            timestamp,
-            merchant: (job.merchant || "unknown").toString(),
+      // Build job events from placements
+      const jobEvents = placements.map((placement) => {
+        const job = mapPlacementToJob(placement, placement.fi_lookup_key || placement.fi, placement._instance);
+        const fiKey = normalizeFiKey(job.fi_key || placement.fi_lookup_key || placement.fi_name || "");
+        const fiName = fiMeta.get(fiKey)?.fi || placement.fi_name || fiKey || "Unknown";
+        const status = categorizeJobStatus(job);
+        const timestamp = job.created_on || placement.job_created_on || placement.created_on || "";
+        return {
+          timestamp,
+          merchant: (job.merchant || "unknown").toString(),
+          fi_name: fiName,
+          status,
+          termination_type: (job.termination || "").toString(),
+          instance: (placement._instance || "").toString(),
+        };
+      });
+
+      // Collect agent_session_ids that already have placement/job events
+      const sessionsWithJobs = new Set();
+      for (const pl of placements) {
+        const sid = pl.agent_session_id || pl.session_id || pl.cardholder_session_id || pl.cuid;
+        if (sid) sessionsWithJobs.add(sid);
+      }
+
+      // Read session files for the same days and create events for job-less sessions
+      const sessionEvents = [];
+      for (const day of fileDaysToRead) {
+        const dayData = await readSessionDay(day);
+        if (!dayData || !Array.isArray(dayData.sessions)) continue;
+        for (const sess of dayData.sessions) {
+          if (sess.total_jobs > 0) continue;
+          const sid = sess.agent_session_id || sess.session_id || sess.id || sess.cuid;
+          if (sid && sessionsWithJobs.has(sid)) continue;
+          const instanceRaw = sess._instance || sess.instance || sess.instance_name || sess.org_name || "";
+          const instanceDisplay = formatInstanceDisplay(instanceRaw || "unknown");
+          if (isTestInstanceName(instanceDisplay)) continue;
+          const fiKey = normalizeFiKey(sess.financial_institution_lookup_key || sess.fi_lookup_key || sess.fi_name || "");
+          const fiName = fiMeta.get(fiKey)?.fi || sess.fi_name || fiKey || "Unknown";
+          sessionEvents.push({
+            timestamp: sess.created_on || "",
+            merchant: "",
             fi_name: fiName,
-            status,
-            termination_type: (job.termination || "").toString(),
-            instance: (placement._instance || "").toString(),
-          };
-        })
-        .filter((evt) => evt.timestamp >= cutoff24h && !evt.merchant.toLowerCase().includes("vercel"))
+            status: "session",
+            termination_type: "",
+            instance: instanceDisplay,
+          });
+        }
+      }
+
+      const events = [...jobEvents, ...sessionEvents]
+        .filter((evt) => evt.timestamp >= cutoff24h && (!evt.merchant || !evt.merchant.toLowerCase().includes("vercel")))
         .sort((a, b) => (b.timestamp || "").localeCompare(a.timestamp || ""))
         .slice(0, 100);
 

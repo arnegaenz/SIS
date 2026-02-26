@@ -5,6 +5,7 @@ import {
   buildDateRange,
   formatLocalDate,
   getLocalTimezone,
+  createTimezoneSelect,
   downloadCsv,
   createMultiSelect,
   sortRows,
@@ -1723,6 +1724,10 @@ function init() {
         fetchAll();
       });
     }
+
+    // Timezone select
+    const tzWrap = document.getElementById("tzSelectWrap");
+    if (tzWrap) createTimezoneSelect(tzWrap);
 
     const kioskToggle = document.getElementById("kioskToggle");
     if (kioskToggle) {

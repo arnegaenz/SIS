@@ -5,6 +5,7 @@ import {
   buildDateRange,
   formatLocalDate,
   getLocalTimezone,
+  createTimezoneSelect,
   downloadCsv,
   createMultiSelect,
   sortRows,
@@ -77,7 +78,7 @@ const state = {
   trafficShowNormal: false,
   trafficShowSleeping: false,
   feedFilters: {
-    statuses: new Set(["success", "failed", "cancelled", "abandoned"]),
+    statuses: new Set(["success", "failed", "cancelled", "abandoned", "session"]),
     merchants: new Set(),
     fis: new Set(),
     excludeDevInstance: true,
@@ -822,9 +823,12 @@ function renderMerchantDetailModal(row, prior) {
     <div style="font-family:monospace;font-size:0.85rem;color:var(--text);padding:8px 12px;background:var(--bg);border-radius:8px;margin-bottom:16px;">${topError}</div>
   ` : "";
 
-  // Recent events for this merchant from today's feed
+  // Recent events for this merchant from today's feed (respecting feed filters)
+  // When "Include test data" is checked, show customer-dev events too
+  const skipDev = state.feedFilters.excludeDevInstance && !state.includeTests;
   const feedEvents = (state.feedEvents || []).filter(
     (evt) => (evt.merchant || "").toLowerCase() === name.toLowerCase()
+      && !(skipDev && evt.instance === "customer-dev")
   );
   const recentEvents = feedEvents.slice(0, 10);
   let eventsHtml = "";
@@ -1044,14 +1048,17 @@ function renderFilteredFeed() {
   kioskEls.eventList.innerHTML = colHeader + events
     .map((evt) => {
       const s = evt.status || "unknown";
-      const statusClass = s === "success" ? "success" : s === "cancelled" ? "cancelled" : s === "abandoned" ? "abandoned" : s === "pending" ? "pending" : "failed";
+      const statusClass = s === "success" ? "success" : s === "session" ? "session" : s === "cancelled" ? "cancelled" : s === "abandoned" ? "abandoned" : s === "pending" ? "pending" : "failed";
       const fullTime = evt.timestamp ? new Date(evt.timestamp).toLocaleString() : "Unknown";
-      const termInfo = evt.termination_type ? `Termination: ${evt.termination_type}` : "No termination code";
-      const evtTip = `${evt.merchant || "Unknown"} — ${evt.fi_name || "Unknown FI"}\nStatus: ${s}\nTimestamp: ${fullTime}\n${termInfo}\n\nThis is a single card placement job. Each job represents\none cardholder attempting to update their card at this merchant.`;
+      const isSession = s === "session";
+      const termInfo = isSession ? "" : evt.termination_type ? `Termination: ${evt.termination_type}` : "No termination code";
+      const evtTip = isSession
+        ? `${evt.fi_name || "Unknown FI"}\nStatus: session (no jobs)\nTimestamp: ${fullTime}\n\nA cardholder launched CardUpdatr but did not proceed\nto update any cards during this session.`
+        : `${evt.merchant || "Unknown"} — ${evt.fi_name || "Unknown FI"}\nStatus: ${s}\nTimestamp: ${fullTime}\n${termInfo}\n\nThis is a single card placement job. Each job represents\none cardholder attempting to update their card at this merchant.`;
       return `
         <div class="event-feed__item" title="${evtTip.replace(/"/g, '&quot;')}">
           <span class="event-feed__time">${formatRelativeTime(evt.timestamp)}</span>
-          <span class="event-feed__merchant">${evt.merchant || "Unknown"}</span>
+          <span class="event-feed__merchant">${evt.merchant || (isSession ? "\u2014" : "Unknown")}</span>
           <span class="event-feed__fi">${evt.fi_name || ""}</span>
           <span class="event-feed__status ${statusClass}">${s}</span>
         </div>
@@ -1090,7 +1097,7 @@ function renderMiniSelectOptions(containerId, options, selectedSet) {
 function updateClearBtnVisibility() {
   const clearBtn = document.getElementById("feedClearBtn");
   if (!clearBtn) return;
-  const isDefault = state.feedFilters.statuses.size === 4 && state.feedFilters.merchants.size === 0 && state.feedFilters.fis.size === 0;
+  const isDefault = state.feedFilters.statuses.size === 5 && state.feedFilters.merchants.size === 0 && state.feedFilters.fis.size === 0;
   clearBtn.style.display = isDefault ? "none" : "";
 }
 
@@ -1110,6 +1117,7 @@ function initFeedFilters() {
     { key: "failed", label: "Fail", color: "#ef4444" },
     { key: "cancelled", label: "Cxl", color: "#f59e0b" },
     { key: "abandoned", label: "Abn", color: "#64748b" },
+    { key: "session", label: "Sess", color: "#8b5cf6" },
   ];
   pillsEl.innerHTML = FEED_STATUSES.map((s) =>
     `<button type="button" class="feed-status-pill active" data-status="${s.key}"><span class="feed-status-pill__dot" style="background:${s.color}"></span>${s.label}</button>`
@@ -1187,7 +1195,7 @@ function initFeedFilters() {
   const clearBtn = document.getElementById("feedClearBtn");
   if (clearBtn) {
     clearBtn.addEventListener("click", () => {
-      state.feedFilters.statuses = new Set(["success", "failed", "cancelled", "abandoned"]);
+      state.feedFilters.statuses = new Set(["success", "failed", "cancelled", "abandoned", "session"]);
       state.feedFilters.merchants.clear();
       state.feedFilters.fis.clear();
       state.feedFilters.excludeDevInstance = true;
@@ -1639,6 +1647,9 @@ function init() {
         fetchMetrics();
       });
     }
+    // Timezone select
+    const tzWrap = document.getElementById("tzSelectWrap");
+    if (tzWrap) createTimezoneSelect(tzWrap);
     // Kiosk view toggle
     const kioskToggle = document.getElementById("kioskToggle");
     if (kioskToggle) {

@@ -22,8 +22,45 @@ export function formatLocalDate(d) {
   return `${y}-${m}-${day}`;
 }
 
+const TZ_STORAGE_KEY = "sis-timezone";
+
 export function getLocalTimezone() {
+  try {
+    const saved = localStorage.getItem(TZ_STORAGE_KEY);
+    if (saved && saved !== "auto") return saved;
+  } catch { /* ignore */ }
   return Intl.DateTimeFormat().resolvedOptions().timeZone;
+}
+
+export function getTimezonePreference() {
+  try { return localStorage.getItem(TZ_STORAGE_KEY) || "auto"; } catch { return "auto"; }
+}
+
+export function setTimezonePreference(tz) {
+  try { localStorage.setItem(TZ_STORAGE_KEY, tz); } catch { /* ignore */ }
+}
+
+const TZ_OPTIONS = [
+  { value: "auto", label: "Auto-detect" },
+  { value: "America/New_York", label: "Eastern" },
+  { value: "America/Chicago", label: "Central" },
+  { value: "America/Denver", label: "Mountain" },
+  { value: "America/Los_Angeles", label: "Pacific" },
+  { value: "America/Anchorage", label: "Alaska" },
+  { value: "Pacific/Honolulu", label: "Hawaii" },
+  { value: "UTC", label: "UTC" },
+];
+
+export function getTimezoneOptions() { return TZ_OPTIONS; }
+
+export function getTimezoneLabel(tz) {
+  if (!tz || tz === "auto") {
+    const detected = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const match = TZ_OPTIONS.find(o => o.value === detected);
+    return match ? match.label : detected.split("/").pop().replace(/_/g, " ");
+  }
+  const match = TZ_OPTIONS.find(o => o.value === tz);
+  return match ? match.label : tz.split("/").pop().replace(/_/g, " ");
 }
 
 export function buildDateRange(days) {
@@ -210,6 +247,7 @@ export function initKioskMode(title, refreshSeconds) {
       <button class="theme-toggle kiosk-theme-toggle" id="kioskThemeToggle" type="button">${theme === "dark" ? "Dark mode" : "Light mode"}</button>
       <button class="kiosk-view-toggle" id="kioskViewToggle" type="button" title="Switch to regular view">Regular View</button>
       <div class="kiosk-header__clock" id="kioskClock"></div>
+      <button class="kiosk-tz-toggle" id="kioskTzToggle" type="button" title="Change timezone">${getTimezoneLabel(getTimezonePreference())}</button>
       <div class="kiosk-header__dot" id="kioskDot"></div>
     </div>
   `;
@@ -242,13 +280,52 @@ export function initKioskMode(title, refreshSeconds) {
     });
   }
 
-  // Live clock
+  // Timezone pill — opens dropdown picker
+  const tzBtn = document.getElementById("kioskTzToggle");
+  if (tzBtn) {
+    tzBtn.style.position = "relative";
+    tzBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      let menu = document.getElementById("kioskTzMenu");
+      if (menu) { menu.remove(); return; }
+      const current = getTimezonePreference();
+      const detected = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const detectedLabel = getTimezoneLabel("auto");
+      menu = document.createElement("div");
+      menu.id = "kioskTzMenu";
+      menu.className = "kiosk-tz-menu";
+      for (const opt of getTimezoneOptions()) {
+        const item = document.createElement("button");
+        item.type = "button";
+        item.className = "kiosk-tz-menu__item" + (opt.value === current ? " kiosk-tz-menu__item--active" : "");
+        item.textContent = opt.value === "auto" ? `Auto (${detectedLabel})` : opt.label;
+        item.addEventListener("click", (ev) => {
+          ev.stopPropagation();
+          setTimezonePreference(opt.value);
+          window.location.reload();
+        });
+        menu.appendChild(item);
+      }
+      tzBtn.parentElement.appendChild(menu);
+      // Position below the button
+      const rect = tzBtn.getBoundingClientRect();
+      menu.style.top = (rect.bottom + 4) + "px";
+      menu.style.right = (window.innerWidth - rect.right) + "px";
+      // Close on outside click
+      const closeMenu = () => { menu.remove(); document.removeEventListener("click", closeMenu); };
+      setTimeout(() => document.addEventListener("click", closeMenu), 0);
+    });
+  }
+
+  // Live clock — use selected timezone
   const clockEl = document.getElementById("kioskClock");
+  const clockTz = getLocalTimezone();
   function updateClock() {
     clockEl.textContent = new Date().toLocaleTimeString("en-US", {
       hour: "2-digit",
       minute: "2-digit",
       second: "2-digit",
+      timeZone: clockTz,
     });
   }
   updateClock();
@@ -300,6 +377,39 @@ export function startAutoRefresh(fetchFn, intervalMs) {
       if (countdownTimer) clearInterval(countdownTimer);
     },
   };
+}
+
+export function createTimezoneSelect(container, onChange) {
+  const current = getTimezonePreference();
+  const detected = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const detectedLabel = getTimezoneLabel("auto");
+  const select = document.createElement("select");
+  select.id = "tzSelect";
+  select.title = "Dashboard timezone";
+  select.style.cssText = "font-size:0.78rem;padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);cursor:pointer;";
+  for (const opt of getTimezoneOptions()) {
+    const el = document.createElement("option");
+    el.value = opt.value;
+    el.textContent = opt.value === "auto" ? `Auto (${detectedLabel})` : opt.label;
+    if (opt.value === current) el.selected = true;
+    select.appendChild(el);
+  }
+  select.addEventListener("change", () => {
+    setTimezonePreference(select.value);
+    if (onChange) onChange(select.value);
+    else window.location.reload();
+  });
+
+  const wrap = document.createElement("div");
+  wrap.className = "filter-group";
+  wrap.style.cssText = "display:flex;align-items:center;gap:6px;";
+  const label = document.createElement("label");
+  label.textContent = "Timezone";
+  label.style.cssText = "font-size:0.72rem;text-transform:uppercase;letter-spacing:0.04em;color:var(--muted);white-space:nowrap;";
+  wrap.appendChild(label);
+  wrap.appendChild(select);
+  container.appendChild(wrap);
+  return select;
 }
 
 export function formatRelativeTime(dateStr) {

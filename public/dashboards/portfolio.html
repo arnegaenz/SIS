@@ -67,6 +67,7 @@
         </div>
       </div>
       <div class="toolbar-right">
+        <div id="tzSelectWrap"></div>
         <label class="toolbar-test-toggle" title="When checked, includes sessions from test/demo FI instances (e.g. 'strivve-demo', 'test-instance'). These are normally excluded to keep metrics clean. Enable temporarily to verify test traffic is flowing."><input type="checkbox" id="includeTestsCheckbox" /> Include test data</label>
         <button class="btn-secondary" id="kioskToggle" title="Switch to full-screen kiosk mode optimized for wall-mounted displays. Shows KPI row, early warnings, and FI card grid with auto-refresh every 5 minutes. Add ?kiosk=1 to the URL to bookmark directly. Press 'Regular View' button in kiosk mode to return.">Kiosk View</button>
         <button class="btn-primary" id="exportCsv" title="Download all enriched FI data as a CSV file. Includes: FI name, tier, tier label, engagement score, sessions, success rate, trend direction, monthly reach %, job totals, failure rate, integration type, and partner. Respects current filters.">Export CSV</button>

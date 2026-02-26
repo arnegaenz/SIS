@@ -6,6 +6,37 @@
 
 # Build History
 
+## Feb 26, 2026 (Session 8)
+
+### Ops Feed — Session Events for Job-less CardUpdatr Launches
+- **Problem**: FIs with sessions but no jobs (cardholder launched CardUpdatr but didn't update cards) were invisible in the live event feed, even though they appeared on traffic-health tiles
+- **Server** (`serve-funnel.mjs` `/api/metrics/ops-feed`):
+  - After building placement/job events, collects `agent_session_id` values into a `sessionsWithJobs` Set
+  - Reads session files for same `fileDaysToRead` days via `readSessionDay()`
+  - Creates `"session"` status events for sessions with `total_jobs === 0` not already in placement Set
+  - Skips test instances, merges into events array before cutoff/sort/slice(100)
+- **Client** (`operations-dashboard.js`):
+  - Purple "Sess" pill in feed filter bar (`#8b5cf6`)
+  - Session events show em-dash for merchant, custom tooltip explaining no-job sessions
+  - Default statuses include "session", clear/reset includes it, size check updated 4→5
+- **CSS** (`dashboards.css`): `.event-feed__status.session` purple styling
+
+### Branded Expired Magic Link Page
+- **Problem**: Clicking an expired magic link showed a dead-end "Signing In..." view with hidden spinner and plain "Invalid or expired link" text — no way to recover
+- **Fix** (`login.html`): New `#expired-view` with branded UX:
+  - Hourglass icon + "That link has expired" heading
+  - Explains single-use / 15-min expiry, offers inline email form to send fresh link
+  - Same `/auth/request-link` endpoint, success/error feedback
+  - Tagline: "Unlock insights that move the needle. — Strivve CardUpdatr"
+  - `replaceState` cleans expired `?token=` from URL so refresh shows normal login
+
+### AI Insights Engine + Timezone Selector (infrastructure from prior sessions, uncommitted)
+- AI insights endpoint (`/api/ai-insights`), cache stats/clear endpoints
+- `scripts/ai-insights.mjs` module (new file)
+- Timezone selector widget in Ops kiosk header
+- `createTimezoneSelect()` in dashboard-utils.js
+- Various supporting changes in data-cache.js, portfolio-dashboard.js, operations.html, portfolio.html
+
 ## Feb 25, 2026 (Session 7)
 
 ### Timezone-Aware Date Bucketing for Ops & Portfolio Dashboards

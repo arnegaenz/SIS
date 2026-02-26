@@ -1,7 +1,8 @@
 # AI-Powered Insights Engine — Plan & Architecture
 
 > Captured from planning session on Feb 25, 2026.
-> Status: **Planning** — awaiting Anthropic API key from business account.
+> **Status: Phase 1 Complete, Phase 2 In Progress** — Prototype live on server, admin-only in funnel-customer.html.
+> Last updated: Feb 26, 2026 (Session 7).
 
 ---
 
@@ -46,47 +47,58 @@ An LLM can analyze the same metrics context and generate richer, more nuanced, m
 
 ---
 
-## Proposed Architecture (AI-Powered)
+## Implemented Architecture (AI-Powered)
 
 ### Overview
 
 ```
-Browser (page load)
-  → GET /api/ai-insights?fi=X&dateRange=Y
+Browser (admin clicks "Generate AI Insights" button)
+  → POST /api/ai-insights
     → Server checks auth (existing passcode-gate session)
-    → Server checks cache (per FI + date range hash)
+    → Server checks in-memory cache (per FI + date range + access level + integration context)
     → Cache miss? → Server calls Claude API with:
-        ├── System prompt (cached across calls):
+        ├── System prompt (cached across calls via cache_control: ephemeral):
         │   ├── Strivve product context
-        │   ├── Motivation Spectrum + tier thresholds
+        │   ├── Motivation Spectrum + tier thresholds (SSO + non-SSO)
         │   ├── Tone & Framing Directive (8 rules)
         │   ├── Benchmarking philosophy
-        │   ├── ACTION_LIBRARY (all channels, templates, copy)
+        │   ├── Action Library summary (6 channel categories)
         │   ├── Output format instructions (JSON schema)
         │   └── Admin vs partner content rules
         │
         └── Per-call input (unique per request):
-            ├── metricsContext JSON
+            ├── metricsContext JSON (from buildMetricsContext())
+            ├── FI name and key
             ├── Access level (admin/limited/executive)
-            ├── Integration type (SSO/non-SSO)
+            ├── Integration context (combined/sso/nonsso)
             └── Date range
-    → Cache result
+    → Parse JSON response (handles markdown code fences)
+    → Add metadata (model, timing, token counts)
+    → Cache result (24h TTL)
     → Return insights JSON to client
 ```
+
+### Key files (new)
+- `scripts/ai-insights.mjs` — AI insights module (SDK client, system prompt, caching, API call)
+- `scripts/serve-funnel.mjs` — 3 new endpoints (`/api/ai-insights`, `/api/ai-insights/cache`, `/api/ai-insights/cache/clear`)
+- `public/funnel-customer.html` — AI Insights section (admin-only, Generate button, rendering)
+- `secrets/anthropic.json` — API key (gitignored)
 
 ### Key design decisions
 
 1. **Server-side only** — Claude API key never touches the browser. Users never interact with Claude directly. Server controls exactly what data gets sent.
 
-2. **On-demand with caching** — No cron jobs pre-computing insights. API is called only when someone views the page and cache is empty/stale. Nobody views insights for 15 days = zero API calls = $0 cost.
+2. **On-demand with caching** — No cron jobs pre-computing insights. API is called only when an admin clicks "Generate" and cache is empty/stale. Nobody views insights = zero API calls = $0 cost.
 
-3. **Cache strategy** — Cache key: `{fi_key}:{date_range}:{access_level}:{data_hash}`. Cache TTL: 24 hours or until underlying data changes. In-memory cache (module-level, like existing `_trafficHealthCache` pattern).
+3. **Cache strategy** — Cache key: `{fi_key}:{date_range}:{access_level}:{integration_context}`. Cache TTL: 24 hours. In-memory Map with eviction at >200 entries. Cache stats and clear endpoints for admin monitoring.
 
 4. **Same auth system** — Existing passcode-gate session validation. No new auth infrastructure needed.
 
-5. **Prompt caching** — The system prompt (frameworks + playbook + tone rules) is identical across all calls. Anthropic's prompt caching gives ~90% discount on the cached portion. Only the per-FI metrics context changes per call.
+5. **Prompt caching** — System prompt (~1,800 tokens) uses Anthropic's `cache_control: { type: "ephemeral" }`. Identical across all calls. 90% discount on cached input after first call within a 5-minute window (requires persistent server process — PM2 keeps this alive).
 
-6. **Structured output** — Response follows a JSON schema so the client can render it consistently. The AI generates the *content*, not the *structure*.
+6. **Structured output** — Response follows a strict JSON schema. The AI generates the *content*, not the *structure*. Markdown code fences are stripped before parsing.
+
+7. **Admin-only for now** — AI insights section uses the `admin-overlay` CSS pattern so partners never see it during Phase 2 testing.
 
 ---
 
@@ -113,52 +125,97 @@ Browser (page load)
 
 The system prompt is the "brain" — everything the model needs to know about Strivve, CardUpdatr, and how to analyze FI data. It's sent on every API call but cached after the first one.
 
-### Contents
+### Implemented Contents (~1,800 tokens)
 
 ```
 1. PRODUCT CONTEXT
-   - What CardUpdatr is
-   - What SIS/the dashboard is
-   - SSO vs non-SSO flow differences
-   - What "sessions", "placements", "success rate" mean
+   - What CardUpdatr is (card-on-file update service for FIs)
+   - Key terms: session, successful session, placement, session success rate, monthly reach %, SSO vs non-SSO
 
 2. MOTIVATION SPECTRUM FRAMEWORK
-   - Tier 1 (Activation, 21-27%): definition, characteristics
-   - Tier 2 (Campaigns, 8-12%): definition, characteristics
-   - Tier 3 (Incidental, <3%): definition, characteristics
-   - 7.7x conversion gap
-   - SSO vs non-SSO threshold differences
+   - SSO Tier Classification:
+     - Tier 1 (≥21%): Card Activation Flow
+     - Tier 1.5 (≥12%): Campaign → Activation transition
+     - Tier 2 (≥8%): SMS & Targeted Campaigns
+     - Tier 2.5 (≥3%): Discovery → Campaign transition
+     - Tier 3 (<3%): Incidental Discovery
+   - Non-SSO Tier Classification (shifted higher):
+     - Tier 1 (≥35%), Tier 1.5 (≥25%), Tier 2 (≥15%), Tier 2.5 (≥8%), Tier 3 (<8%)
+   - 7.7x conversion gap between motivated and incidental traffic
 
 3. TONE & FRAMING DIRECTIVE
-   - The 8 rules (lead with what's working, frame gaps as opportunity, etc.)
-   - Admin view: unvarnished, real story
-   - Partner view: engagement-positive, never blame
+   - 8 rules for partner-facing content
+   - Admin/internal: unvarnished, include internal talking points
 
 4. BENCHMARKING PHILOSOPHY
    - Always aspirational ceiling, never averages
-   - Use partner's own best performance as anchor
-   - Named FI references are admin-only
+   - Admin: may reference named FIs (MSUFCU, Cape Cod Five, Kemba, ORNL)
+   - Partner: anonymized benchmarks
 
-5. ACTION LIBRARY (full content)
-   - All 6 sections (Activation, Campaigns, Visibility, Optimization, Scaling, Member Services)
-   - All channels per action
-   - All templates and copy examples
-   - Playbook section descriptions
+5. ACTION LIBRARY — Available Engagement Channels
+   - Issuance & Activation Flows (channels: email, SMS, in-app, IVR, card carrier)
+   - Targeted Campaigns & Promotions (seasonal, behavioral, rewards, awareness)
+   - Digital Banking Visibility (menu placement, lock/unlock prompts, travel notice, card details)
+   - Experience Optimization (value prop copy, merchant list curation)
+   - Scaling What Works (additional card products, campaign frequency, layered channels)
+   - Member Services & Call Center (rep scripts for reissuance, inquiry, fraud)
 
 6. OUTPUT FORMAT
-   - JSON schema for response
-   - Required fields: narratives, spectrum_diagnosis, actions, projections
-   - Admin-only fields (when access_level is admin/internal)
-   - Formatting guidelines
-
-7. EXAMPLES
-   - Sample metricsContext input → expected output
-   - Edge cases (low volume, non-SSO, declining trends)
+   - Strict JSON schema (see below)
+   - Rules for generation (3-6 narratives, 2-4 actions, low-volume disclaimer, etc.)
 ```
 
-### Estimated system prompt size
-- ~10,000-15,000 tokens
-- With prompt caching: full price on first call, ~90% discount thereafter
+### Output JSON Schema
+
+```json
+{
+  "narratives": [
+    {
+      "section": "headline | conversion | outcomes | reach | completion | potential",
+      "html": "<p>Insight text with <strong>key metrics</strong> emphasized.</p>",
+      "sentiment": "positive | neutral | caution | opportunity"
+    }
+  ],
+  "spectrum": {
+    "tier": 1 | 1.5 | 2 | 2.5 | 3,
+    "label": "Tier label string",
+    "diagnosis": "2-3 sentence diagnosis"
+  },
+  "actions": [
+    {
+      "headline": "Action title",
+      "detail": "Contextualized explanation with specific metrics",
+      "impact": "high | medium | low",
+      "channel": "activation | campaigns | visibility | optimization | scaling | member-services"
+    }
+  ],
+  "projections_narrative": "1-2 sentence narrative about potential outcomes",
+  "admin_notes": "Internal-only commentary (omitted for partner access levels)"
+}
+```
+
+---
+
+## Observed Performance (Production)
+
+### Per API call (tested Feb 26, 2026)
+- **Model**: claude-haiku-4-5-20251001
+- **Response time**: ~17-21 seconds (first call), faster with prompt cache hits
+- **Input tokens**: ~2,200-2,500 (system prompt ~1,800 + metrics context ~400-700)
+- **Output tokens**: ~800-1,200 (full insights JSON)
+- **Estimated cost per call**: ~$0.005-0.008
+
+### Test results
+- **Tier 3 FI** (session success rate 2.24%): Correctly classified as Tier 3 — Incidental Discovery. Generated appropriate narratives and upgrade-path actions.
+- **Tier 1 FI** (session success rate 24.9%): Correctly classified as Tier 1 — Card Activation Flow. Generated appropriate strength narratives and scaling actions.
+- Tier classification in AI output matches the rule-based engine's thresholds.
+- Output quality is high — nuanced, personalized, references actual data points.
+
+### Prompt caching
+- System prompt uses `cache_control: { type: "ephemeral" }` for Anthropic's prompt caching
+- Within a 5-minute window on the same server process, subsequent calls get ~90% discount on system prompt tokens
+- PM2 keeps the process persistent, so caching works well in production
+- `cache_read_input_tokens` and `cache_creation_input_tokens` tracked in response metadata
 
 ---
 
@@ -168,21 +225,24 @@ The same access level system controls what AI generates:
 
 | Access Level | What AI produces |
 |-------------|-----------------|
-| **admin / internal** | Full unvarnished analysis. Named FI comparisons. Internal talking points. Objection responses. |
-| **limited / executive** | Engagement-positive framing. Anonymized benchmarks. Partner-appropriate tone. No internal commentary. |
+| **admin / internal** | Full unvarnished analysis. Named FI comparisons. Internal talking points. `admin_notes` field included. |
+| **limited / executive** | Engagement-positive framing. Anonymized benchmarks. Partner-appropriate tone. `admin_notes` omitted. |
 | **shared view** | Same as limited, but read-only rendering. |
 
 The access level is passed as part of the per-call input. The system prompt instructs the model to adjust tone and content based on this value.
+
+**Current state**: AI insights section is admin-only (uses `admin-overlay` CSS class). Partners cannot see or trigger AI generation yet.
 
 ---
 
 ## Cost Estimates
 
-### Per API call
-- **Input**: ~3,000-4,000 tokens (metrics context) + ~12,000 tokens (system prompt, cached)
-- **Output**: ~1,200-1,800 tokens (full insights response)
+### Per API call (observed)
+- **Input**: ~400-700 tokens (metrics context) + ~1,800 tokens (system prompt, cached after first call)
+- **Output**: ~800-1,200 tokens (full insights response)
+- **Cost**: ~$0.005-0.008 per call
 
-### Model choice: Haiku 4.5
+### Model: Haiku 4.5 (`claude-haiku-4-5-20251001`)
 - Best fit for structured data analysis → structured output
 - Pricing: $0.80/M input tokens, $4/M output tokens
 - Cached input: $0.08/M tokens (90% discount)
@@ -191,15 +251,15 @@ The access level is passed as part of the per-call input. The system prompt inst
 
 | Scenario | Calls/day | Monthly cost |
 |----------|-----------|-------------|
-| **Low usage** (few users, few FIs viewed) | 10-20 | **$5-10** |
-| **Normal usage** (regular dashboard views) | 50-75 | **$20-25** |
-| **Heavy usage** (all FIs, multiple date ranges) | 200 | **$55-60** |
+| **Low usage** (few users, few FIs viewed) | 10-20 | **$2-5** |
+| **Normal usage** (regular dashboard views) | 50-75 | **$10-15** |
+| **Heavy usage** (all FIs, multiple date ranges) | 200 | **$30-40** |
 
 ### Key cost properties
 - **Zero base cost** — No subscription, no minimum. Zero usage = $0.
 - **Pay per call** — Only charged when someone actually views insights.
-- **Caching reduces calls** — Same FI + date range served from cache, not re-generated.
-- **Prompt caching reduces per-call cost** — System prompt charged at 90% discount after first call.
+- **Caching reduces calls** — Same FI + date range + access level + integration context served from cache for 24h.
+- **Prompt caching reduces per-call cost** — System prompt charged at 90% discount after first call within 5-minute window.
 
 ---
 
@@ -224,51 +284,48 @@ The access level is passed as part of the per-call input. The system prompt inst
 
 ---
 
-## Account Setup
+## Account Setup — Complete
 
-### Decision: Use business account from the start
-- Sign up at **console.anthropic.com** with work email
-- Business billing from day one (no personal account to clean up later)
-- Prototype costs will be minimal ($1-5 total during development)
-
-### Steps
-1. Create account at console.anthropic.com (work email)
-2. Add business payment method
-3. Generate API key
-4. Save to `secrets/anthropic.json`:
-   ```json
-   {
-     "api_key": "sk-ant-..."
-   }
-   ```
-5. Ready to build
+- Anthropic business account created at console.anthropic.com
+- API key generated and saved to `secrets/anthropic.json` (local + server)
+- `@anthropic-ai/sdk` installed (local + server via `npm install`)
+- Key verified working with test call to Haiku 4.5
 
 ---
 
 ## Implementation Plan
 
-### Phase 1: Prototype (alongside existing engine)
-- [ ] API key setup (`secrets/anthropic.json`)
-- [ ] New endpoint: `GET /api/ai-insights` in `serve-funnel.mjs`
-- [ ] System prompt construction (frameworks + ACTION_LIBRARY + tone directives)
-- [ ] Claude API integration (Anthropic SDK)
-- [ ] Response caching (in-memory, module-level)
-- [ ] JSON schema for structured output
-- [ ] Test with 2-3 FIs, compare AI output vs rule-based output side by side
+### Phase 1: Prototype (alongside existing engine) — COMPLETE
 
-### Phase 2: Dashboard integration
-- [ ] Add AI insights rendering to `funnel-customer.html`
-- [ ] Toggle: rule-based vs AI-powered (admin setting or A/B)
-- [ ] Admin overlay shows both for comparison
-- [ ] Adjust prompt based on real-world output quality
-- [ ] Tune system prompt with edge cases (low volume, non-SSO, declining trends)
+- [x] API key setup (`secrets/anthropic.json`)
+- [x] `@anthropic-ai/sdk` installed locally and on server
+- [x] New module: `scripts/ai-insights.mjs` — system prompt, caching, API call wrapper
+- [x] New endpoint: `POST /api/ai-insights` in `serve-funnel.mjs`
+- [x] Admin endpoints: `GET /api/ai-insights/cache` (stats), `POST /api/ai-insights/cache/clear`
+- [x] System prompt construction (product context, motivation spectrum, tone directives, action library, output schema)
+- [x] Claude API integration via Anthropic SDK with prompt caching (`cache_control: ephemeral`)
+- [x] Response caching (in-memory Map, 24h TTL, eviction at >200 entries)
+- [x] JSON schema for structured output (narratives, spectrum, actions, projections, admin_notes)
+- [x] Tested with Tier 3 FI (2.24% rate → correct classification) and Tier 1 FI (24.9% rate → correct classification)
+- [x] Output quality validated — nuanced, personalized, references actual data
 
-### Phase 3: Full replacement
-- [ ] AI insights become the default
+### Phase 2: Dashboard integration — IN PROGRESS
+
+- [x] Add AI insights rendering to `funnel-customer.html` (admin-only via `admin-overlay` CSS pattern)
+- [x] Purple "Generate AI Insights" button with loading spinner
+- [x] Rendering: color-coded narratives (by sentiment), spectrum diagnosis, prioritized actions (with impact/channel badges), projections, admin notes (dark panel), metadata footer
+- [ ] Toggle: rule-based vs AI-powered comparison view (side-by-side or tabbed)
+- [ ] Tune system prompt based on real-world output quality (see Prompt Tuning Workflow below)
+- [ ] Test with edge cases (low volume <30 sessions, non-SSO only, declining trends, new FI)
+- [ ] Add to `funnel.html` (internal FI page)
+
+### Phase 3: Partner rollout
+- [ ] AI insights become available to partners (remove admin-only gate)
 - [ ] Rule-based engine kept as fallback (if API is down/slow)
+- [ ] Fallback UX: serve cached results if available, show "generating..." spinner, timeout after 30s
 - [ ] AI-generated playbook content (personalized per FI)
 - [ ] PDF export with AI-generated narratives
-- [ ] Monitor costs and cache hit rates
+- [ ] Monitor costs and cache hit rates via admin dashboard
 
 ### Phase 4: Advanced features (future)
 - [ ] Cross-FI network analysis ("FIs similar to yours are seeing...")
@@ -279,13 +336,70 @@ The access level is passed as part of the per-call input. The system prompt inst
 
 ---
 
-## Open Questions
+## Prompt Tuning Workflow
 
-1. **Fallback behavior** — If Claude API is down or slow (>5s), serve cached results? Serve rule-based fallback? Show a "generating insights..." spinner?
-2. **Cache invalidation** — Invalidate on new daily data? On registry changes? Time-based only?
-3. **Output quality bar** — How do we validate AI output before showing to partners? Human review of first N responses? Automated checks?
-4. **Prompt iteration** — How do we version and test prompt changes? A/B testing? Shadow mode?
-5. **Rate limiting** — Cap API calls per day to prevent runaway costs? (Probably unnecessary at this scale but worth considering.)
+The system prompt in `scripts/ai-insights.mjs` (the `SYSTEM_PROMPT` constant) is the primary lever for output quality. Here's the workflow for iterating on it:
+
+### How to tune
+1. **Generate insights** for a specific FI using the dashboard button
+2. **Review the output** — check tone, accuracy, tier classification, action relevance
+3. **Identify issues** — e.g., "too generic", "wrong framing for this tier", "actions don't match situation"
+4. **Edit `SYSTEM_PROMPT`** in `scripts/ai-insights.mjs` — adjust rules, add examples, clarify guidance
+5. **Clear cache** — hit the admin cache clear endpoint or restart PM2
+6. **Re-generate** and compare
+
+### What to tune
+- **Tone calibration** — adjust the 8 framing rules for partner vs admin voice
+- **Tier classification accuracy** — add edge case guidance (e.g., "if rate is exactly at threshold...")
+- **Action specificity** — add more context about which channels work for which tiers
+- **Narrative depth** — control length and detail level
+- **Edge case handling** — low volume disclaimers, non-SSO only FIs, brand new FIs with <1 week of data
+- **Few-shot examples** — add sample input→output pairs to the system prompt for consistent formatting
+
+### Future: A/B testing
+- Run both rule-based and AI side-by-side (Phase 2 comparison view)
+- Version system prompts (e.g., `SYSTEM_PROMPT_V2`) and compare output quality
+- Shadow mode: generate AI insights silently, log but don't display, review offline
+
+---
+
+## UI Implementation Details
+
+### Admin-only section in funnel-customer.html
+- Section has class `admin-overlay` — hidden by default, visible only when Internal View is toggled on
+- Purple "Generate AI Insights" button (`.ai-insights-btn`) triggers `POST /api/ai-insights`
+- Loading state: button disabled + spinner animation
+- Content renders into `#aiInsightsContent` div
+
+### Rendering components
+- **Narratives**: Color-coded by sentiment (positive=green, caution=amber, opportunity=blue, neutral=gray)
+- **Spectrum diagnosis**: Tier number + label + diagnosis text
+- **Actions**: Cards with headline, detail, impact badge (high/medium/low), channel badge
+- **Projections**: Highlighted narrative block
+- **Admin notes**: Dark panel (only when admin/internal access level)
+- **Metadata footer**: Model name, response time, token counts (input/output/cached)
+
+### Data flow
+1. User clicks "Generate AI Insights"
+2. JS reads current filter state (selected FI, date range, integration context)
+3. JS builds `metricsContext` from `buildMetricsContext()` (same data the rule-based engine uses)
+4. `POST /api/ai-insights` with `{ metricsContext, fiName, fiKey, dateRange, accessLevel, integrationContext }`
+5. Server calls Claude API (or returns cached result)
+6. Client renders JSON response into styled HTML
+
+---
+
+## Resolved Questions
+
+1. **Fallback behavior** — Currently admin-only with manual "Generate" trigger, so no fallback needed yet. For Phase 3 partner rollout: serve cached results if available, show spinner, timeout after 30s, fall back to rule-based engine.
+
+2. **Cache invalidation** — Time-based (24h TTL). Cache key includes fi_key + date_range + access_level + integration_context. Admin can manually clear via `POST /api/ai-insights/cache/clear`.
+
+3. **Output quality bar** — Phase 2 is admin-only, so admins validate output quality before partner rollout. Tier classification checked against rule-based engine thresholds.
+
+4. **Prompt iteration** — Edit `SYSTEM_PROMPT` in `ai-insights.mjs`, deploy, clear cache, re-generate. See Prompt Tuning Workflow section above.
+
+5. **Rate limiting** — Not implemented yet. At current usage (~$0.008/call), even 200 calls/day = ~$50/month. Can add if needed.
 
 ---
 
@@ -297,6 +411,6 @@ The AI approach:
 - **Scales with data, not code** — New patterns detected automatically
 - **Always fresh narratives** — No repetitive template text
 - **Personalized** — References the specific FI, their specific numbers, their specific situation
-- **Low cost** — $20-50/month for the entire FI network
+- **Low cost** — $10-40/month for the entire FI network (lower than original estimates)
 - **Low risk** — Server-side only, existing auth, zero PII sent, cached results, rule-based fallback
-- **Incremental** — Can run alongside the existing engine, compare, and switch over gradually
+- **Incremental** — Running alongside the existing engine, admin-only, compare and tune before partner rollout

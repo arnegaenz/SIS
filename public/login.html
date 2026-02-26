@@ -72,20 +72,20 @@
       background: #4b5563;
       cursor: not-allowed;
     }
-    #message {
+    #message, #expired-message {
       margin-top: 16px;
       padding: 12px;
       border-radius: 8px;
       font-size: 14px;
       display: none;
     }
-    #message.success {
+    #message.success, #expired-message.success {
       display: block;
       background: rgba(34, 197, 94, 0.1);
       border: 1px solid rgba(34, 197, 94, 0.3);
       color: #22c55e;
     }
-    #message.error {
+    #message.error, #expired-message.error {
       display: block;
       background: rgba(239, 68, 68, 0.1);
       border: 1px solid rgba(239, 68, 68, 0.3);
@@ -93,6 +93,30 @@
     }
     #verify-status {
       display: none;
+    }
+    #expired-view {
+      display: none;
+    }
+    #expired-view .expired-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+      line-height: 1;
+    }
+    #expired-view h1 {
+      margin: 0 0 8px;
+      font-size: 22px;
+    }
+    #expired-view .expired-sub {
+      color: var(--muted, #8b949e);
+      font-size: 14px;
+      margin: 0 0 24px;
+      line-height: 1.5;
+    }
+    #expired-view .expired-tagline {
+      margin-top: 20px;
+      font-size: 12px;
+      color: var(--muted, #8b949e);
+      opacity: 0.7;
     }
     .spinner {
       display: inline-block;
@@ -136,6 +160,16 @@
       <div class="spinner"></div>
       <h1>Signing In...</h1>
       <p id="verify-message">Verifying your link...</p>
+    </div>
+
+    <div id="expired-view">
+      <div class="expired-icon">&#9203;</div>
+      <h1>That link has expired</h1>
+      <p class="expired-sub">Sign-in links are single-use and expire after 15 minutes.<br/>Enter your email and we'll send a fresh one.</p>
+      <input type="email" id="expired-email" placeholder="you@yourcompany.com" autocomplete="email" />
+      <button type="button" id="expired-btn">Send a New Link</button>
+      <div id="expired-message"></div>
+      <p class="expired-tagline">Unlock insights that move the needle. &#8212; Strivve CardUpdatr&trade;</p>
     </div>
   </div>
 
@@ -186,17 +220,67 @@
               var redirectPage = getRedirectForAccessLevel(data.user.access_level);
               window.location.href = redirectPage;
             } else {
-              document.getElementById("verify-message").textContent =
-                data.error || "Invalid or expired link. Please request a new one.";
-              document.querySelector(".spinner").style.display = "none";
+              showExpiredView();
             }
           })
-          .catch(function(err) {
-            document.getElementById("verify-message").textContent =
-              "Error verifying link. Please try again.";
-            document.querySelector(".spinner").style.display = "none";
+          .catch(function() {
+            showExpiredView();
           });
       }
+
+      function showExpiredView() {
+        document.getElementById("verify-status").style.display = "none";
+        document.getElementById("expired-view").style.display = "block";
+        // Clean token from URL so refresh shows normal login
+        if (window.history.replaceState) {
+          var clean = window.location.pathname;
+          var rp = params.get("redirect");
+          if (rp) clean += "?redirect=" + encodeURIComponent(rp);
+          window.history.replaceState(null, "", clean);
+        }
+      }
+
+      // Expired-view email form
+      function initExpiredForm() {
+        var btn = document.getElementById("expired-btn");
+        var emailInput = document.getElementById("expired-email");
+        var messageEl = document.getElementById("expired-message");
+        if (!btn) return;
+
+        function sendLink() {
+          var email = emailInput.value.trim();
+          if (!email) {
+            messageEl.textContent = "Please enter your email.";
+            messageEl.className = "error";
+            return;
+          }
+          btn.disabled = true;
+          btn.textContent = "Sending...";
+          fetch(API_BASE + "/auth/request-link", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: email })
+          })
+            .then(function(res) { return res.json(); })
+            .then(function(data) {
+              messageEl.textContent = data.message || "Check your email for a sign-in link.";
+              messageEl.className = "success";
+              btn.textContent = "Link Sent";
+            })
+            .catch(function() {
+              messageEl.textContent = "Error sending link. Please try again.";
+              messageEl.className = "error";
+              btn.disabled = false;
+              btn.textContent = "Send a New Link";
+            });
+        }
+
+        btn.addEventListener("click", sendLink);
+        emailInput.addEventListener("keypress", function(e) {
+          if (e.key === "Enter") sendLink();
+        });
+      }
+      initExpiredForm();
 
       function getRedirectForAccessLevel(level) {
         // Check for saved redirect (from "Log in to explore" on shared view)
