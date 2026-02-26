@@ -180,6 +180,11 @@ All partner-facing content follows engagement-positive tone:
 - Useful for traveling users who want to see data bucketed by their FIs' timezone, not their current location
 - Affects: Ops Command Center, Portfolio Dashboard (anywhere `getLocalTimezone()` is called)
 
+### Troubleshooting Site (Backlog — Liam Request)
+- Customer/partner-facing troubleshooting resource for CardUpdatr integration issues
+- Requested by Liam (Feb 26, 2026)
+- Details TBD — scope, format, and hosting to be discussed
+
 ### Card Replacement Reach Math (Discussed, Not Yet Built)
 - ~25% annual portfolio turnover from expirations, ~3-5% lost/stolen = ~28-30% annual (2.3-2.5% monthly)
 - These are Tier 1 motivation cardholders at peak urgency
