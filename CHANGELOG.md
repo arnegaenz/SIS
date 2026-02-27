@@ -20,6 +20,9 @@
 - **Infrastructure**: `/experience` route in serve-funnel.mjs, nav entry in Analysis group, filter dispatch in filters.js.
 - **Light-mode theming**: Uses CSS variables from `sis-shared.css` (`--panel`, `--surface`, `--text`, `--muted`, `--border`, etc.). SVG renders read variables via `svgColors()` helper at render time.
 - **Clickstream timestamp fix**: Server normalizes to `{ url, page_title, at }` — page reads `at || timestamp || time` (matching ux-paths.js pattern).
+- **Job phase label refinement**: Investigated actual timing distributions from 14-day sample (23K+ jobs). Phase 1 (`created_on` → `ready_on`) is VBS infrastructure startup (median 17s, tight clustering) not user input. Relabeled: "Queue + Startup" / "Account Linking" / "Card Placement".
+- **Technical info popover**: "i" button on Journey Overview opens detailed overlay explaining data flow, timestamp meanings, null handling, observed distributions, and CSV format.
+- **PDF technical reference**: `scripts/gen-experience-pdf.mjs` generates `public/exports/experience-technical-reference.pdf` via Puppeteer — shareable with engineering.
 
 ### Job Outcome Breakdown Modal (prior uncommitted work)
 - Click-to-modal on all 5 breakdown cards (`funnel.html`): stats row, top-10 merchant bars, callout insights, 90-day trend section with Daily + Weekly side-by-side charts.

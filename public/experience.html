@@ -119,10 +119,29 @@
     /* Clickstream pill */
     .cs-pill { display: inline-block; border-radius: 4px; padding: 2px 8px; font-size: 0.7rem; font-weight: 500; margin-right: 4px; }
 
+    /* Info popover */
+    .info-btn { background: none; border: 1px solid var(--border); border-radius: 50%; width: 26px; height: 26px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; color: var(--muted); font-size: 0.8rem; font-weight: 700; font-family: Georgia, serif; transition: all 0.15s; flex-shrink: 0; }
+    .info-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .info-overlay { position: fixed; inset: 0; z-index: 1100; background: rgba(15, 23, 42, 0.5); display: none; align-items: center; justify-content: center; }
+    .info-overlay.visible { display: flex; }
+    .info-panel { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; max-width: 720px; width: 92vw; max-height: 85vh; overflow-y: auto; padding: 28px 32px; box-shadow: 0 25px 60px rgba(0,0,0,0.15); }
+    .info-panel h3 { margin: 0 0 16px 0; font-size: 1.1rem; color: var(--text); }
+    .info-panel h4 { margin: 20px 0 8px 0; font-size: 0.88rem; color: var(--text); font-weight: 600; }
+    .info-panel p, .info-panel li { font-size: 0.82rem; color: var(--muted); line-height: 1.6; }
+    .info-panel ul { margin: 6px 0 6px 18px; padding: 0; }
+    .info-panel li { margin-bottom: 4px; }
+    .info-panel code { background: var(--surface); border: 1px solid var(--border); border-radius: 3px; padding: 1px 5px; font-size: 0.78rem; color: var(--text); }
+    .info-panel .flow-diagram { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin: 12px 0; font-family: monospace; font-size: 0.78rem; line-height: 1.8; color: var(--text); white-space: pre-wrap; overflow-x: auto; }
+    .info-panel .phase-line { display: flex; align-items: center; gap: 8px; margin: 4px 0; font-size: 0.82rem; }
+    .info-panel .phase-swatch { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+    .info-close { position: absolute; top: 16px; right: 20px; background: none; border: none; font-size: 1.4rem; color: var(--muted); cursor: pointer; }
+    .info-close:hover { color: var(--text); }
+
     /* Responsive */
     @media (max-width: 768px) {
       .form-grid--dates { grid-template-columns: 1fr 1fr; }
       .metric-cards { grid-template-columns: repeat(2, 1fr); }
+      .info-panel { padding: 20px; }
     }
   </style>
 </head>
@@ -189,7 +208,10 @@
       <!-- Section 1: Journey Overview -->
       <section class="sis-panel" id="journeyOverview">
         <div style="display:flex;justify-content:space-between;align-items:center;">
-          <h2 class="sis-panel-title">Journey Overview</h2>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <h2 class="sis-panel-title">Journey Overview</h2>
+            <button class="info-btn" id="infoBtn" title="Technical details about this data">i</button>
+          </div>
           <button id="csvDownloadBtn" class="form-button" style="font-size:0.75rem;padding:5px 12px;background:var(--muted);opacity:0.7;" title="Download session timing data as CSV">Download CSV</button>
         </div>
         <p class="sis-panel-subtitle">Average time cardholders spend at each step of the CardUpdatr experience</p>
@@ -207,7 +229,7 @@
       <!-- Section 3: Job Timing Analysis -->
       <section class="sis-panel" id="jobTimingSection">
         <h2 class="sis-panel-title">Job Timing Analysis</h2>
-        <p class="sis-panel-subtitle">Per-merchant breakdown of job phases (queue, login, card placement)</p>
+        <p class="sis-panel-subtitle">Per-merchant breakdown of job phases (queue + startup, account linking, card placement)</p>
         <div id="jobTimingCards" class="metric-cards"></div>
         <div id="merchantTableWrap" class="merchant-table-wrap"></div>
       </section>
@@ -243,8 +265,8 @@
       selectMerchants: 'Select Merchants',
       userData:        'User Data',
       credEntry:       'Credential Entry',
-      queue:           'Queue / Startup',
-      login:           'Login & Link',
+      queue:           'Queue + Startup',
+      login:           'Account Linking',
       placement:       'Card Placement'
     };
     const HISTO_BUCKETS = [
@@ -766,9 +788,9 @@
       const slowest = qualified.length ? qualified.reduce((a, b) => a.avgTotal > b.avgTotal ? a : b) : null;
 
       cardsEl.innerHTML = `
-        <div class="metric-card"><div class="label">Avg Queue Time</div><div class="value">${formatShortDuration(phaseStats.queue?.avg)}</div><div class="sub">${(phaseStats.queue?.count || 0).toLocaleString()} jobs</div></div>
-        <div class="metric-card"><div class="label">Avg Login Time</div><div class="value">${formatShortDuration(phaseStats.login?.avg)}</div><div class="sub">${(phaseStats.login?.count || 0).toLocaleString()} jobs</div></div>
-        <div class="metric-card"><div class="label">Avg Placement Time</div><div class="value">${formatShortDuration(phaseStats.placement?.avg)}</div><div class="sub">${(phaseStats.placement?.count || 0).toLocaleString()} jobs</div></div>
+        <div class="metric-card"><div class="label">Avg Queue + Startup</div><div class="value">${formatShortDuration(phaseStats.queue?.avg)}</div><div class="sub">${(phaseStats.queue?.count || 0).toLocaleString()} jobs</div></div>
+        <div class="metric-card"><div class="label">Avg Account Linking</div><div class="value">${formatShortDuration(phaseStats.login?.avg)}</div><div class="sub">${(phaseStats.login?.count || 0).toLocaleString()} jobs</div></div>
+        <div class="metric-card"><div class="label">Avg Card Placement</div><div class="value">${formatShortDuration(phaseStats.placement?.avg)}</div><div class="sub">${(phaseStats.placement?.count || 0).toLocaleString()} jobs</div></div>
         <div class="metric-card"><div class="label">Fastest Merchant</div><div class="value" style="font-size:1.1rem">${fastest ? escHtml(fastest.merchant) : '—'}</div><div class="sub">${fastest ? formatShortDuration(fastest.avgTotal) + ' avg' : ''}</div></div>
         <div class="metric-card"><div class="label">Slowest Merchant</div><div class="value" style="font-size:1.1rem">${slowest ? escHtml(slowest.merchant) : '—'}</div><div class="sub">${slowest ? formatShortDuration(slowest.avgTotal) + ' avg' : ''}</div></div>
       `;
@@ -797,7 +819,7 @@
         { key: 'jobs', label: 'Jobs' },
         { key: 'successRate', label: 'Success %' },
         { key: 'avgQueue', label: 'Avg Queue' },
-        { key: 'avgLogin', label: 'Avg Login' },
+        { key: 'avgLogin', label: 'Avg Linking' },
         { key: 'avgPlacement', label: 'Avg Placement' },
         { key: 'avgTotal', label: 'Avg Total' },
         { key: '_visual', label: 'Visual' }
@@ -1110,8 +1132,8 @@
 
       // Mini legend
       svg += `<div class="waterfall-legend" style="margin-top:6px;font-size:0.72rem;">
-        <div class="waterfall-legend-item"><div class="waterfall-legend-swatch" style="background:${PHASE_COLORS.queue};width:10px;height:10px;"></div>Queue</div>
-        <div class="waterfall-legend-item"><div class="waterfall-legend-swatch" style="background:${PHASE_COLORS.login};width:10px;height:10px;"></div>Login</div>
+        <div class="waterfall-legend-item"><div class="waterfall-legend-swatch" style="background:${PHASE_COLORS.queue};width:10px;height:10px;"></div>Queue + Startup</div>
+        <div class="waterfall-legend-item"><div class="waterfall-legend-swatch" style="background:${PHASE_COLORS.login};width:10px;height:10px;"></div>Account Linking</div>
         <div class="waterfall-legend-item"><div class="waterfall-legend-swatch" style="background:${PHASE_COLORS.placement};width:10px;height:10px;"></div>Placement</div>
         <div class="waterfall-legend-item"><svg width="10" height="10"><circle cx="5" cy="5" r="4" fill="#22c55e"/></svg>Success</div>
         <div class="waterfall-legend-item"><svg width="10" height="10"><circle cx="5" cy="5" r="4" fill="#ef4444"/></svg>Failed</div>
@@ -1130,7 +1152,7 @@
         'page_select_merchants_s', 'page_user_data_s', 'page_credential_entry_s',
         'total_jobs', 'successful_jobs', 'failed_jobs',
         'merchant', 'job_status', 'termination',
-        'job_queue_s', 'job_login_s', 'job_placement_s', 'job_total_s'
+        'job_queue_startup_s', 'job_account_linking_s', 'job_card_placement_s', 'job_total_s'
       ];
       const rows = [headers.join(',')];
 
@@ -1334,8 +1356,79 @@
   })();
   </script>
 
+  <!-- Technical Info Popover -->
+  <div class="info-overlay" id="infoOverlay">
+    <div class="info-panel" style="position:relative;">
+      <button class="info-close" id="infoClose">&times;</button>
+      <h3>How This Data Works</h3>
+      <p>This page analyzes the cardholder journey through CardUpdatr by combining two data sources: <strong>clickstream</strong> (page navigation timestamps) and <strong>job placement results</strong> (per-merchant processing timestamps).</p>
+
+      <h4>Data Flow</h4>
+      <div class="flow-diagram">SIS API  &rarr;  /troubleshoot/day endpoint  &rarr;  Raw sessions + placements
+                                               &darr;
+Each session contains:
+  &bull; clickstream[] &mdash; array of { url, page_title, at (timestamp) }
+  &bull; jobs[]        &mdash; array of mapped placements with timing fields</div>
+
+      <h4>Clickstream Phases (Page Timing)</h4>
+      <p>Time-on-page is computed as the gap between consecutive clickstream entries. Each CardUpdatr page is classified by URL pattern:</p>
+      <div style="margin:8px 0;">
+        <div class="phase-line"><div class="phase-swatch" style="background:#3b82f6"></div><code>/select-merchants</code> &mdash; Cardholder picks merchants to update</div>
+        <div class="phase-line"><div class="phase-swatch" style="background:#8b5cf6"></div><code>/user-data-collection</code> &mdash; Enters personal info (skipped in SSO flows)</div>
+        <div class="phase-line"><div class="phase-swatch" style="background:#ec4899"></div><code>/credential-entry</code> &mdash; Enters merchant credentials</div>
+      </div>
+      <p>Duration = next page timestamp &minus; current page timestamp. Capped at 30 minutes (sessions left idle longer are excluded).</p>
+
+      <h4>Job Phases (Per-Merchant Timing)</h4>
+      <p>Each job (merchant placement attempt) has 4 timestamps from the SIS API. Three phases are derived:</p>
+      <div class="flow-diagram">job_created_on &rarr; job_ready_on &rarr; account_linked_on &rarr; completed_on
+     &boxur;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&boxul;    &boxur;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&boxul;    &boxur;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&boxul;
+     Queue + Startup      Account Linking        Card Placement</div>
+      <div style="margin:8px 0;">
+        <div class="phase-line"><div class="phase-swatch" style="background:#f59e0b"></div><strong>Queue + Startup</strong> &mdash; Job queued, VBS (Virtual Browser Session) spins up, navigates to merchant site. Typical: 5&ndash;35s. High variance due to queue depth and site load times.</div>
+        <div class="phase-line"><div class="phase-swatch" style="background:#f97316"></div><strong>Account Linking</strong> &mdash; VBS enters credentials, logs into merchant, confirms account access. Only present on jobs where <code>account_linked_on</code> is non-null (successful logins). Typical: 28&ndash;93s.</div>
+        <div class="phase-line"><div class="phase-swatch" style="background:#22c55e"></div><strong>Card Placement</strong> &mdash; VBS navigates to payment settings and updates the card on file. Only present when account was linked. Typical: 28&ndash;66s.</div>
+      </div>
+
+      <h4>Null Handling</h4>
+      <ul>
+        <li><code>account_linked_on</code> is <strong>null</strong> for failed jobs (login timeout, bad credentials, TFA failure). These jobs only have Queue + Startup timing.</li>
+        <li>When <code>account_linked_on</code> is null but <code>completed_on</code> exists, the entire <code>ready_on &rarr; completed_on</code> span is shown as a single Account Linking segment (since we can't split it).</li>
+        <li>Clickstream may be empty for sessions that drop off before selecting merchants.</li>
+      </ul>
+
+      <h4>Observed Distributions (14-day sample)</h4>
+      <div class="flow-diagram">Phase              Median    P25     P75     P90     Avg     N
+Queue + Startup     17s      9s     36s     74s     32s    23,714
+Account Linking     54s     28s     93s    156s     73s    16,141
+Card Placement      46s     28s     66s    101s     55s    26,904</div>
+
+      <h4>Filters & Toggles</h4>
+      <ul>
+        <li><strong>FI / Partner / Instance / Integration</strong> &mdash; Standard filter bar. Multi-select FI is applied client-side after fetch.</li>
+        <li><strong>Session toggle</strong> &mdash; All / Successful (at least one successful job) / Failed (jobs but none successful) / No Jobs (session had zero job attempts).</li>
+        <li><strong>Integration toggle</strong> &mdash; All / SSO (source integration contains "sso" or "fi_") / Non-SSO.</li>
+        <li>Toggles re-render all sections from the cached session data (no re-fetch).</li>
+      </ul>
+
+      <h4>CSV Export</h4>
+      <p>One row per job (or one row per session if no jobs). Includes: session ID, FI, instance, integration, timestamps, all clickstream page durations, job phase durations, merchant, status, and termination type. Respects current toggle filters.</p>
+    </div>
+  </div>
+
   <script>
     if (window.renderHeaderNav) window.renderHeaderNav({ currentId: "experience" });
+    // Info popover
+    (function() {
+      const overlay = document.getElementById('infoOverlay');
+      const btn = document.getElementById('infoBtn');
+      const close = document.getElementById('infoClose');
+      if (!overlay || !btn) return;
+      btn.addEventListener('click', () => overlay.classList.add('visible'));
+      close.addEventListener('click', () => overlay.classList.remove('visible'));
+      overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.classList.remove('visible'); });
+      document.addEventListener('keydown', (e) => { if (e.key === 'Escape') overlay.classList.remove('visible'); });
+    })();
   </script>
 </body>
 </html>
