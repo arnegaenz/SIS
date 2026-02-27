@@ -151,7 +151,7 @@ section {
 
 @media (min-width: 1024px) {
   .breakdown-grid {
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    grid-template-columns: repeat(5, 1fr);
   }
 }
 

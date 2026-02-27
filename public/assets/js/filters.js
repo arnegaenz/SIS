@@ -1336,6 +1336,10 @@
         window.applyFilters();
         return;
       }
+      if (pageId === "experience" && typeof window.applyFilters === "function") {
+        window.applyFilters();
+        return;
+      }
       if (pageId === "troubleshoot") {
         filterDom(state, ".session-card[data-fi]");
       } else {

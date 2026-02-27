@@ -729,7 +729,8 @@
         min-height: 60px;
       }
       .breakdown-details-wide {
-        margin-top: 16px;
+        grid-column: 1 / -1;
+        margin-top: 6px;
         border: 1px solid var(--border);
         border-radius: 12px;
         background: var(--panel);
@@ -780,6 +781,346 @@
       }
       .breakdown-item.active .breakdown-label {
         color: var(--panel-title);
+      }
+
+      /* -- Breakdown Card Modal Popup -- */
+      .breakdown-item[data-modal-type] {
+        cursor: pointer;
+        transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+      }
+      .breakdown-item[data-modal-type]:hover {
+        border-color: rgba(59, 130, 246, 0.3);
+        box-shadow: 0 8px 22px rgba(15, 23, 42, 0.13);
+        transform: translateY(-1px);
+      }
+      .bkd-modal-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 1100;
+        background: rgba(15, 23, 42, 0.55);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transition: opacity 0.2s ease;
+      }
+      .bkd-modal-overlay.bkd-visible {
+        opacity: 1;
+      }
+      .bkd-modal {
+        background: var(--panel, #1e293b);
+        border: 1px solid var(--border, #334155);
+        border-radius: 16px;
+        width: 92vw;
+        max-width: 660px;
+        max-height: 85vh;
+        overflow-y: auto;
+        box-shadow: 0 25px 60px rgba(0, 0, 0, 0.35);
+        transform: scale(0.92);
+        transition: transform 0.2s ease;
+        padding: 0;
+      }
+      .bkd-modal-overlay.bkd-visible .bkd-modal {
+        transform: scale(1);
+      }
+      .bkd-modal-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 20px 12px;
+        border-bottom: 1px solid var(--border, #334155);
+      }
+      .bkd-modal-title {
+        font-weight: 700;
+        font-size: 1rem;
+        color: var(--panel-title, #f1f5f9);
+      }
+      .bkd-modal-close {
+        background: transparent;
+        border: 1px solid var(--border, #334155);
+        color: var(--muted, #94a3b8);
+        border-radius: 8px;
+        padding: 5px 10px;
+        font-size: 0.8rem;
+        cursor: pointer;
+        transition: color 0.15s, border-color 0.15s;
+      }
+      .bkd-modal-close:hover {
+        color: var(--panel-title, #f1f5f9);
+        border-color: var(--panel-title, #f1f5f9);
+      }
+      .bkd-modal-body {
+        padding: 16px 20px 20px;
+      }
+      .bkd-stats-row {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+        margin-bottom: 18px;
+      }
+      .bkd-stat {
+        text-align: center;
+        padding: 10px 6px;
+        background: rgba(255,255,255,0.03);
+        border-radius: 10px;
+        border: 1px solid var(--border, #334155);
+      }
+      .bkd-stat-value {
+        font-size: 1.35rem;
+        font-weight: 700;
+        line-height: 1.2;
+      }
+      .bkd-stat-label {
+        font-size: 0.72rem;
+        color: var(--muted, #94a3b8);
+        margin-top: 3px;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .bkd-section-title {
+        font-size: 0.78rem;
+        font-weight: 600;
+        color: var(--muted, #94a3b8);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin: 16px 0 8px;
+      }
+      .bkd-section-title:first-of-type {
+        margin-top: 0;
+      }
+      .bkd-bar-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 5px;
+        font-size: 0.82rem;
+      }
+      .bkd-bar-label {
+        width: 120px;
+        flex-shrink: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: var(--panel-title, #f1f5f9);
+        font-size: 0.78rem;
+      }
+      .bkd-bar-track {
+        flex: 1;
+        height: 18px;
+        background: rgba(255,255,255,0.04);
+        border-radius: 4px;
+        overflow: hidden;
+        display: flex;
+      }
+      .bkd-bar-seg {
+        height: 100%;
+        min-width: 0;
+        transition: width 0.3s ease;
+      }
+      .bkd-bar-count {
+        width: 42px;
+        flex-shrink: 0;
+        text-align: right;
+        font-size: 0.75rem;
+        color: var(--muted, #94a3b8);
+        font-variant-numeric: tabular-nums;
+      }
+      .bkd-trend-chart {
+        display: flex;
+        align-items: flex-end;
+        gap: 2px;
+        height: 60px;
+        margin-top: 6px;
+        padding: 0 2px;
+      }
+      .bkd-trend-bar {
+        flex: 1;
+        min-width: 3px;
+        max-width: 14px;
+        border-radius: 2px 2px 0 0;
+        transition: height 0.3s ease;
+        position: relative;
+      }
+      .bkd-trend-bar:hover::after {
+        content: attr(data-tip);
+        position: absolute;
+        bottom: calc(100% + 4px);
+        left: 50%;
+        transform: translateX(-50%);
+        background: #1e293b;
+        border: 1px solid #475569;
+        color: #f1f5f9;
+        padding: 3px 7px;
+        border-radius: 5px;
+        font-size: 0.68rem;
+        white-space: nowrap;
+        z-index: 10;
+        pointer-events: none;
+      }
+      .bkd-callout {
+        margin-top: 14px;
+        padding: 10px 14px;
+        border-radius: 10px;
+        background: rgba(59, 130, 246, 0.08);
+        border: 1px solid rgba(59, 130, 246, 0.2);
+        font-size: 0.82rem;
+        color: var(--panel-title, #f1f5f9);
+        line-height: 1.45;
+      }
+      .bkd-callout strong {
+        color: #60a5fa;
+      }
+      .bkd-callout.bkd-callout-amber {
+        background: rgba(245, 158, 11, 0.08);
+        border-color: rgba(245, 158, 11, 0.2);
+      }
+      .bkd-callout.bkd-callout-amber strong {
+        color: #fbbf24;
+      }
+      .bkd-callout.bkd-callout-red {
+        background: rgba(239, 68, 68, 0.08);
+        border-color: rgba(239, 68, 68, 0.2);
+      }
+      .bkd-callout.bkd-callout-red strong {
+        color: #f87171;
+      }
+      .bkd-callout.bkd-callout-green {
+        background: rgba(34, 197, 94, 0.08);
+        border-color: rgba(34, 197, 94, 0.2);
+      }
+      .bkd-callout.bkd-callout-green strong {
+        color: #4ade80;
+      }
+      .bkd-callout.bkd-callout-purple {
+        background: rgba(139, 92, 246, 0.08);
+        border-color: rgba(139, 92, 246, 0.2);
+      }
+      .bkd-callout.bkd-callout-purple strong {
+        color: #a78bfa;
+      }
+      .bkd-spinner-wrap {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        padding: 40px 0;
+        color: var(--muted, #94a3b8);
+        font-size: 0.85rem;
+      }
+      .bkd-spinner-wrap .spinner {
+        width: 22px;
+        height: 22px;
+        border: 2px solid var(--border, #334155);
+        border-top-color: var(--accent, #3b82f6);
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+      .bkd-empty {
+        text-align: center;
+        padding: 32px 16px;
+        color: var(--muted, #94a3b8);
+        font-size: 0.85rem;
+      }
+      .bkd-error {
+        text-align: center;
+        padding: 24px 16px;
+        color: #ef4444;
+        font-size: 0.85rem;
+      }
+      .bkd-trend-section {
+        margin-top: 16px;
+      }
+      .bkd-trend-row {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 24px;
+      }
+      .bkd-trend-col {
+        min-width: 0;
+        background: rgba(255, 255, 255, 0.025);
+        border: 1px solid var(--border, #334155);
+        border-radius: 10px;
+        padding: 12px 12px 10px;
+        overflow: hidden;
+      }
+      .bkd-trend-col-title {
+        font-size: 0.68rem;
+        font-weight: 600;
+        color: var(--muted, #94a3b8);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        margin-bottom: 8px;
+        text-align: center;
+      }
+      .bkd-trend-wrap {
+        position: relative;
+        overflow: hidden;
+      }
+      .bkd-trend-chart {
+        position: relative;
+        overflow: hidden;
+      }
+      .bkd-trend-legend {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        margin-top: 8px;
+        flex-wrap: wrap;
+      }
+      .bkd-trend-legend-item {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 0.6rem;
+        color: var(--muted, #94a3b8);
+        white-space: nowrap;
+      }
+      .bkd-trend-legend-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
+      .bkd-trend-legend-line {
+        width: 14px;
+        height: 0;
+        border-top: 2.5px dashed;
+        flex-shrink: 0;
+        opacity: 0.85;
+      }
+      .bkd-trend-labels {
+        display: flex;
+        gap: 1px;
+        margin-top: 4px;
+      }
+      .bkd-trend-lbl {
+        flex: 1;
+        min-width: 0;
+        text-align: center;
+        font-size: 0.55rem;
+        color: var(--muted, #94a3b8);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      @media (max-width: 600px) {
+        .bkd-modal {
+          width: 97vw;
+          max-width: none;
+          max-height: 92vh;
+          border-radius: 12px;
+        }
+        .bkd-stats-row {
+          grid-template-columns: repeat(2, 1fr);
+        }
+        .bkd-bar-label {
+          width: 90px;
+          font-size: 0.72rem;
+        }
+        .bkd-trend-row {
+          grid-template-columns: 1fr;
+          gap: 14px;
+        }
       }
 
       .placement-loading {
@@ -1382,7 +1723,7 @@
         <div class="conversion-breakdown">
           <div class="breakdown-header">Job Outcome Breakdown</div>
           <div class="breakdown-grid">
-            <div class="breakdown-item breakdown-sysrate" title="System Success Rate — of all jobs where Strivve's system was fully in play (Successful + System Failures), what percentage succeeded? UX failures (wrong credentials, user canceled, etc.) are excluded from this calculation.">
+            <div class="breakdown-item breakdown-sysrate" data-modal-type="sysrate" title="System Success Rate — of all jobs where Strivve's system was fully in play (Successful + System Failures), what percentage succeeded? UX failures (wrong credentials, user canceled, etc.) are excluded from this calculation.">
               <div class="breakdown-label">◎ System Success Rate</div>
               <div class="breakdown-value" id="convBreakdownSysRate">-</div>
               <div class="breakdown-pct" id="convBreakdownSysRatePct">-</div>
@@ -1403,7 +1744,7 @@
                 </div>
               </details>
             </div>
-            <div class="breakdown-item breakdown-success" title="Card successfully placed on the merchant site. The cardholder's payment method is now updated.">
+            <div class="breakdown-item breakdown-success" data-modal-type="success" title="Card successfully placed on the merchant site. The cardholder's payment method is now updated.">
               <div class="breakdown-label">✓ Successful</div>
               <div class="breakdown-value" id="convBreakdownSuccess">-</div>
               <div class="breakdown-pct" id="convBreakdownSuccessPct">-</div>
@@ -1424,7 +1765,7 @@
                 </div>
               </details>
             </div>
-            <div class="breakdown-item breakdown-system" title="Failures caused by technical issues on Strivve's side that likely need engineering fixes - site changes, API errors, or infrastructure problems.">
+            <div class="breakdown-item breakdown-system" data-modal-type="system" title="Failures caused by technical issues on Strivve's side that likely need engineering fixes - site changes, API errors, or infrastructure problems.">
               <div class="breakdown-label">⚠ System Failures</div>
               <div class="breakdown-value" id="convBreakdownSystem">-</div>
               <div class="breakdown-pct" id="convBreakdownSystemPct">-</div>
@@ -1445,7 +1786,7 @@
                 </div>
               </details>
             </div>
-            <div class="breakdown-item breakdown-ux" title="Failures where the user experience may have contributed - most commonly the cardholder doesn't know or incorrectly enters their merchant credentials.">
+            <div class="breakdown-item breakdown-ux" data-modal-type="ux" title="Failures where the user experience may have contributed - most commonly the cardholder doesn't know or incorrectly enters their merchant credentials.">
               <div class="breakdown-label">⊗ UX Failures</div>
               <div class="breakdown-value" id="convBreakdownUX">-</div>
               <div class="breakdown-pct" id="convBreakdownUXPct">-</div>
@@ -1466,7 +1807,7 @@
                 </div>
               </details>
             </div>
-            <div class="breakdown-item breakdown-overall" id="convBreakdownOverallCard" title="Overall Success Rate — of all job outcomes (Successful + System Failures + UX Failures), what percentage succeeded? This is the end-to-end cardholder success rate regardless of failure cause.">
+            <div class="breakdown-item breakdown-overall" data-modal-type="overall" id="convBreakdownOverallCard" title="Overall Success Rate — of all job outcomes (Successful + System Failures + UX Failures), what percentage succeeded? This is the end-to-end cardholder success rate regardless of failure cause.">
               <div class="breakdown-label">★ Overall Success Rate</div>
               <div class="breakdown-value" id="convBreakdownOverall">-</div>
               <div class="breakdown-pct" id="convBreakdownOverallPct">-</div>
@@ -1487,13 +1828,13 @@
                 </div>
               </details>
             </div>
-          </div>
-          <div class="breakdown-details-wide" id="breakdownDetailsArea" hidden>
-            <div class="breakdown-details-header">
-              <div class="breakdown-details-title" id="breakdownDetailsTitle"></div>
-              <button class="breakdown-details-close" id="breakdownDetailsClose" type="button">Close</button>
+            <div class="breakdown-details-wide" id="breakdownDetailsArea" hidden>
+              <div class="breakdown-details-header">
+                <div class="breakdown-details-title" id="breakdownDetailsTitle"></div>
+                <button class="breakdown-details-close" id="breakdownDetailsClose" type="button">Close</button>
+              </div>
+              <div id="breakdownDetailsBody"></div>
             </div>
-            <div id="breakdownDetailsBody"></div>
           </div>
         </div>
         <div id="ssoBreakdownContainer" class="sso-breakdown-container" style="display: none;">
@@ -4967,6 +5308,728 @@ function applyColumnTitles(root = document) {
         });
       }
 
+      /* ========================================================
+       * Breakdown Card Modal Popups
+       * ======================================================== */
+
+      function initBreakdownCardModals() {
+        document.querySelectorAll('.breakdown-item[data-modal-type]').forEach(card => {
+          card.addEventListener('click', (e) => {
+            // Don't open modal when clicking inside the expandable details section
+            if (e.target.closest('.placement-details')) return;
+            const type = card.getAttribute('data-modal-type');
+            if (type) openBreakdownModal(type);
+          });
+        });
+      }
+
+      function openBreakdownModal(type) {
+        // Remove any existing modal first
+        closeBreakdownModal(true);
+
+        const typeLabels = {
+          sysrate: 'System Success Rate',
+          success: 'Successful Placements',
+          system: 'System Failures',
+          ux: 'UX Failures',
+          overall: 'Overall Success Rate',
+        };
+
+        const overlay = document.createElement('div');
+        overlay.className = 'bkd-modal-overlay';
+        overlay.innerHTML = `
+          <div class="bkd-modal">
+            <div class="bkd-modal-header">
+              <div class="bkd-modal-title">${typeLabels[type] || 'Breakdown'}</div>
+              <button class="bkd-modal-close" type="button">Close</button>
+            </div>
+            <div class="bkd-modal-body">
+              <div class="bkd-spinner-wrap">
+                <div class="spinner"></div>
+                <span>Loading data...</span>
+              </div>
+            </div>
+          </div>
+        `;
+
+        document.body.appendChild(overlay);
+        // Trigger transition
+        requestAnimationFrame(() => overlay.classList.add('bkd-visible'));
+
+        // Close handlers
+        overlay.querySelector('.bkd-modal-close').addEventListener('click', () => closeBreakdownModal());
+        overlay.addEventListener('click', (e) => {
+          if (e.target === overlay) closeBreakdownModal();
+        });
+        const escHandler = (e) => {
+          if (e.key === 'Escape') {
+            closeBreakdownModal();
+            document.removeEventListener('keydown', escHandler);
+          }
+        };
+        document.addEventListener('keydown', escHandler);
+
+        // Fetch data (reuses existing cache)
+        const body = overlay.querySelector('.bkd-modal-body');
+        const cacheKey = getCacheKey(type);
+        if (placementDetailsCache.has(cacheKey)) {
+          renderBreakdownModalBody(body, placementDetailsCache.get(cacheKey), type);
+        } else {
+          fetchPlacementDetails(type).then(data => {
+            placementDetailsCache.set(cacheKey, data);
+            // Guard: overlay might have been closed while loading
+            if (document.body.contains(overlay)) {
+              renderBreakdownModalBody(body, data, type);
+            }
+          }).catch(err => {
+            if (document.body.contains(overlay)) {
+              body.innerHTML = `<div class="bkd-error">Failed to load data: ${err.message}</div>`;
+            }
+          });
+        }
+      }
+
+      function closeBreakdownModal(instant) {
+        const overlay = document.querySelector('.bkd-modal-overlay');
+        if (!overlay) return;
+        if (instant) {
+          overlay.remove();
+          return;
+        }
+        overlay.classList.remove('bkd-visible');
+        setTimeout(() => overlay.remove(), 220);
+      }
+
+      function renderBreakdownModalBody(body, data, type) {
+        if (!data.results || data.results.length === 0) {
+          body.innerHTML = '<div class="bkd-empty">No placement data for the current filters.</div>';
+          return;
+        }
+
+        // Aggregate merchant-level stats from results (uses filter date range)
+        const merchants = data.results.map(g => ({
+          name: g.merchant,
+          success: g.successCount || 0,
+          system: g.systemCount || 0,
+          ux: g.uxCount || 0,
+          total: (g.successCount || 0) + (g.systemCount || 0) + (g.uxCount || 0),
+        }));
+
+        // Render stats + merchant bars (no trend yet — that uses 90-day data)
+        switch (type) {
+          case 'sysrate': renderSysrateModalContent(body, merchants, []); break;
+          case 'success': renderSuccessModalContent(body, merchants, []); break;
+          case 'system':  renderSystemModalContent(body, merchants, []); break;
+          case 'ux':      renderUxModalContent(body, merchants, []); break;
+          case 'overall': renderOverallModalContent(body, merchants, []); break;
+        }
+
+        // Fetch 90-day data for trend section (async, appended when ready)
+        const trendPlaceholder = document.createElement('div');
+        trendPlaceholder.innerHTML = '<div class="bkd-spinner-wrap" style="padding:20px 0"><div class="spinner"></div><span>Loading 90-day trends...</span></div>';
+        body.appendChild(trendPlaceholder);
+
+        fetchPlacementDetailsForTrend(type).then(trendData => {
+          // Guard: modal may have been closed
+          if (!document.body.contains(trendPlaceholder)) return;
+          trendPlaceholder.remove();
+
+          if (!trendData.results || trendData.results.length === 0) return;
+
+          const dailyMap = {};
+          trendData.results.forEach(g => {
+            (g.placements || []).forEach(p => {
+              const d = p.date ? p.date.slice(0, 10) : 'unknown';
+              if (!dailyMap[d]) dailyMap[d] = { date: d, success: 0, system: 0, ux: 0 };
+              if (p.placementType === 'success') dailyMap[d].success++;
+              else if (p.placementType === 'system') dailyMap[d].system++;
+              else if (p.placementType === 'ux') dailyMap[d].ux++;
+            });
+          });
+          const daily = Object.values(dailyMap).sort((a, b) => a.date.localeCompare(b.date));
+
+          // Build the trend config per type
+          const trendConfigs = {
+            sysrate: {
+              title: '90-Day Trend — System Success Rate',
+              segments: [
+                { key: 'success', color: '#22c55e', label: 'Successful' },
+                { key: 'system', color: '#f59e0b', label: 'System Failures' },
+              ],
+              legend: [
+                { type: 'dot', color: '#22c55e', label: 'Successful' },
+                { type: 'dot', color: '#f59e0b', label: 'System' },
+                { type: 'line', color: '#22c55e', label: 'Success trend' },
+                { type: 'line', color: '#f59e0b', label: 'Failure trend' },
+              ],
+            },
+            success: {
+              title: '90-Day Trend — Successful Placements',
+              mode: 'count',
+              getValue: (b) => b.success || null,
+              colorFn: () => '#22c55e',
+              lineColor: '#22c55e',
+              getTip: (b, v) => `${b.label}: ${v}`,
+              legend: [
+                { type: 'dot', color: '#22c55e', label: 'Successful' },
+                { type: 'line', color: '#22c55e', label: 'Trend' },
+              ],
+            },
+            system: {
+              title: '90-Day Trend — System Failures',
+              mode: 'count',
+              getValue: (b) => b.system || null,
+              colorFn: () => '#f59e0b',
+              lineColor: '#f59e0b',
+              getTip: (b, v) => `${b.label}: ${v}`,
+              legend: [
+                { type: 'dot', color: '#f59e0b', label: 'System' },
+                { type: 'line', color: '#f59e0b', label: 'Trend' },
+              ],
+            },
+            ux: {
+              title: '90-Day Trend — UX Failures',
+              mode: 'count',
+              getValue: (b) => b.ux || null,
+              colorFn: () => '#ef4444',
+              lineColor: '#ef4444',
+              getTip: (b, v) => `${b.label}: ${v}`,
+              legend: [
+                { type: 'dot', color: '#ef4444', label: 'UX' },
+                { type: 'line', color: '#ef4444', label: 'Trend' },
+              ],
+            },
+            overall: {
+              title: '90-Day Trend — Overall Success Rate',
+              segments: [
+                { key: 'success', color: '#22c55e', label: 'Successful' },
+                { key: 'system', color: '#f59e0b', label: 'System' },
+                { key: 'ux', color: '#ef4444', label: 'UX' },
+              ],
+              legend: [
+                { type: 'dot', color: '#22c55e', label: 'Success' },
+                { type: 'dot', color: '#f59e0b', label: 'System' },
+                { type: 'dot', color: '#ef4444', label: 'UX' },
+                { type: 'line', color: '#22c55e', label: 'Success trend' },
+                { type: 'line', color: '#ef4444', label: 'Failure trend' },
+              ],
+            },
+          };
+
+          if (trendConfigs[type]) {
+            buildTrendSection(body, daily, trendConfigs[type]);
+          }
+        }).catch(err => {
+          if (document.body.contains(trendPlaceholder)) {
+            trendPlaceholder.innerHTML = '';
+          }
+          console.error('Failed to load 90-day trend data:', err);
+        });
+      }
+
+      /* -- Shared trend chart builder (Daily / Weekly / Monthly + trend line) -- */
+
+      function bucketTrendData(daily, period) {
+        if (period === 'daily') {
+          return daily.map(d => ({
+            label: d.date.slice(5),
+            success: d.success, system: d.system, ux: d.ux,
+          }));
+        }
+        if (period === 'weekly') {
+          const weeks = {};
+          daily.forEach(d => {
+            const dt = new Date(d.date + 'T12:00:00');
+            const day = dt.getDay();
+            const diff = day === 0 ? -6 : 1 - day;
+            const mon = new Date(dt);
+            mon.setDate(dt.getDate() + diff);
+            const key = mon.toISOString().slice(0, 10);
+            if (!weeks[key]) weeks[key] = { label: key.slice(5), success: 0, system: 0, ux: 0 };
+            weeks[key].success += d.success;
+            weeks[key].system += d.system;
+            weeks[key].ux += d.ux;
+          });
+          return Object.values(weeks).sort((a, b) => a.label.localeCompare(b.label));
+        }
+        if (period === 'monthly') {
+          const months = {};
+          const names = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+          daily.forEach(d => {
+            const key = d.date.slice(0, 7);
+            const mi = parseInt(d.date.slice(5, 7), 10) - 1;
+            if (!months[key]) months[key] = { label: names[mi], success: 0, system: 0, ux: 0, _sort: key };
+            months[key].success += d.success;
+            months[key].system += d.system;
+            months[key].ux += d.ux;
+          });
+          return Object.values(months).sort((a, b) => a._sort.localeCompare(b._sort));
+        }
+        return daily;
+      }
+
+      function buildTrendSection(parentEl, dailyData, config) {
+        if (!dailyData || dailyData.length < 2) return;
+
+        const isStacked = !!config.segments;
+
+        const section = document.createElement('div');
+        section.className = 'bkd-trend-section';
+
+        const titleEl = document.createElement('div');
+        titleEl.className = 'bkd-section-title';
+        titleEl.textContent = config.title;
+        section.appendChild(titleEl);
+
+        const row = document.createElement('div');
+        row.className = 'bkd-trend-row';
+        section.appendChild(row);
+
+        const periods = [
+          { key: 'daily', label: 'Daily' },
+          { key: 'weekly', label: 'Weekly' },
+        ];
+
+        const deferredTrends = [];
+
+        periods.forEach(({ key: period, label }) => {
+          const col = document.createElement('div');
+          col.className = 'bkd-trend-col';
+
+          const colTitle = document.createElement('div');
+          colTitle.className = 'bkd-trend-col-title';
+          colTitle.textContent = label;
+          col.appendChild(colTitle);
+
+          const buckets = bucketTrendData(dailyData, period);
+
+          if (buckets.length < 2) {
+            const empty = document.createElement('div');
+            empty.className = 'bkd-empty';
+            empty.style.padding = '12px 0';
+            empty.textContent = 'Not enough data';
+            col.appendChild(empty);
+            row.appendChild(col);
+            return;
+          }
+
+          const wrap = document.createElement('div');
+          wrap.className = 'bkd-trend-wrap';
+          const chart = document.createElement('div');
+          chart.className = 'bkd-trend-chart';
+
+          if (isStacked) {
+            // Stacked bars: each bar has multiple colored segments
+            const maxTotal = Math.max(...buckets.map(b =>
+              config.segments.reduce((s, seg) => s + (b[seg.key] || 0), 0)
+            ), 1);
+
+            buckets.forEach(b => {
+              const total = config.segments.reduce((s, seg) => s + (b[seg.key] || 0), 0);
+              const bar = document.createElement('div');
+              bar.className = 'bkd-trend-bar';
+              bar.style.height = Math.max(4, (total / maxTotal) * 100) + '%';
+              bar.style.display = 'flex';
+              bar.style.flexDirection = 'column-reverse';
+              bar.style.background = 'transparent';
+
+              const parts = config.segments.map(seg => `${seg.label}: ${b[seg.key] || 0}`);
+              bar.setAttribute('data-tip', `${b.label} — ${parts.join(', ')}`);
+
+              config.segments.forEach(seg => {
+                const v = b[seg.key] || 0;
+                if (v > 0 && total > 0) {
+                  const segEl = document.createElement('div');
+                  segEl.style.height = ((v / total) * 100) + '%';
+                  segEl.style.background = seg.color;
+                  segEl.style.borderRadius = '1px';
+                  bar.appendChild(segEl);
+                }
+              });
+
+              chart.appendChild(bar);
+            });
+
+            wrap.appendChild(chart);
+
+            // Deferred: multiple trend lines (one per segment)
+            deferredTrends.push({ chart, buckets, maxTotal, segments: config.segments });
+
+          } else {
+            // Single-value bars
+            const entries = buckets.map(b => {
+              const v = config.getValue(b);
+              return { label: b.label, value: v, tip: config.getTip(b, v) };
+            }).filter(e => e.value !== null);
+
+            if (entries.length < 2) {
+              const empty = document.createElement('div');
+              empty.className = 'bkd-empty';
+              empty.style.padding = '12px 0';
+              empty.textContent = 'Not enough data';
+              col.appendChild(empty);
+              row.appendChild(col);
+              return;
+            }
+
+            const maxVal = config.mode === 'rate' ? 100 : Math.max(...entries.map(e => e.value), 1);
+
+            entries.forEach(e => {
+              const h = Math.max(4, (e.value / maxVal) * 100);
+              const bar = document.createElement('div');
+              bar.className = 'bkd-trend-bar';
+              bar.style.height = h + '%';
+              bar.style.background = config.colorFn(e.value);
+              bar.setAttribute('data-tip', e.tip);
+              chart.appendChild(bar);
+            });
+
+            wrap.appendChild(chart);
+            deferredTrends.push({ chart, entries, maxVal: maxVal, lineColor: config.lineColor });
+          }
+
+          // X-axis labels
+          const labelsDiv = document.createElement('div');
+          labelsDiv.className = 'bkd-trend-labels';
+          const len = buckets.length;
+          const labelIndices = new Set([0, len - 1]);
+          if (period === 'weekly' && len > 4) {
+            const step = Math.ceil(len / 4);
+            for (let j = step; j < len - 1; j += step) labelIndices.add(j);
+          } else if (period === 'daily' && len > 6) {
+            labelIndices.add(Math.floor(len / 2));
+          }
+          buckets.forEach((b, i) => {
+            const lbl = document.createElement('div');
+            lbl.className = 'bkd-trend-lbl';
+            lbl.textContent = labelIndices.has(i) ? b.label : '';
+            if (lbl.textContent) lbl.title = b.label;
+            labelsDiv.appendChild(lbl);
+          });
+          wrap.appendChild(labelsDiv);
+
+          col.appendChild(wrap);
+
+          // Legend
+          if (config.legend && config.legend.length > 0) {
+            const legendDiv = document.createElement('div');
+            legendDiv.className = 'bkd-trend-legend';
+            config.legend.forEach(item => {
+              const el = document.createElement('span');
+              el.className = 'bkd-trend-legend-item';
+              if (item.type === 'line') {
+                el.innerHTML = `<span class="bkd-trend-legend-line" style="border-color:${item.color}"></span>${item.label}`;
+              } else {
+                el.innerHTML = `<span class="bkd-trend-legend-dot" style="background:${item.color}"></span>${item.label}`;
+              }
+              legendDiv.appendChild(el);
+            });
+            col.appendChild(legendDiv);
+          }
+
+          row.appendChild(col);
+        });
+
+        parentEl.appendChild(section);
+
+        // Deferred trend line rendering
+        if (deferredTrends.length > 0) {
+          requestAnimationFrame(() => {
+            deferredTrends.forEach(item => {
+              if (item.segments) {
+                // Stacked: one regression line per segment
+                addStackedTrendLines(item.chart, item.buckets, item.maxTotal, item.segments);
+              } else if (item.entries && item.entries.length >= 3) {
+                // Single: one regression line
+                addTrendLine(item.chart, item.entries, item.maxVal, item.lineColor);
+              }
+            });
+          });
+        }
+      }
+
+      function addTrendLine(chartEl, entries, maxVal, color) {
+        const bars = chartEl.querySelectorAll('.bkd-trend-bar');
+        if (bars.length < 2) return;
+        const chartH = chartEl.offsetHeight;
+        const chartW = chartEl.offsetWidth;
+        if (!chartH || !chartW) return;
+
+        const chartRect = chartEl.getBoundingClientRect();
+        const barXs = [];
+        bars.forEach(bar => {
+          const r = bar.getBoundingClientRect();
+          barXs.push((r.left - chartRect.left) + r.width / 2);
+        });
+
+        const n = entries.length;
+        let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+        for (let i = 0; i < n; i++) {
+          sumX += i; sumY += entries[i].value;
+          sumXY += i * entries[i].value; sumX2 += i * i;
+        }
+        const denom = n * sumX2 - sumX * sumX;
+        const slope = denom ? (n * sumXY - sumX * sumY) / denom : 0;
+        const intercept = (sumY - slope * sumX) / n;
+        const toY = (v) => chartH * (1 - Math.max(4, (v / maxVal) * 100) / 100);
+
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.setAttribute('width', chartW);
+        svg.setAttribute('height', chartH);
+        svg.style.cssText = 'position:absolute;top:0;left:0;pointer-events:none;overflow:visible;';
+
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', barXs[0]);
+        line.setAttribute('y1', toY(Math.max(0, intercept)));
+        line.setAttribute('x2', barXs[n - 1]);
+        line.setAttribute('y2', toY(Math.max(0, intercept + slope * (n - 1))));
+        line.setAttribute('stroke', color);
+        line.setAttribute('stroke-width', '2.5');
+        line.setAttribute('stroke-linecap', 'round');
+        line.setAttribute('stroke-dasharray', '6 4');
+        line.setAttribute('opacity', '0.85');
+        svg.appendChild(line);
+        chartEl.appendChild(svg);
+      }
+
+      function addStackedTrendLines(chartEl, buckets, maxTotal, segments) {
+        const bars = chartEl.querySelectorAll('.bkd-trend-bar');
+        if (bars.length < 3) return;
+        const chartH = chartEl.offsetHeight;
+        const chartW = chartEl.offsetWidth;
+        if (!chartH || !chartW) return;
+
+        const chartRect = chartEl.getBoundingClientRect();
+        const barXs = [];
+        bars.forEach(bar => {
+          const r = bar.getBoundingClientRect();
+          barXs.push((r.left - chartRect.left) + r.width / 2);
+        });
+
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.setAttribute('width', chartW);
+        svg.setAttribute('height', chartH);
+        svg.style.cssText = 'position:absolute;top:0;left:0;pointer-events:none;overflow:visible;';
+
+        const n = buckets.length;
+        const toY = (v) => chartH * (1 - Math.max(2, (v / maxTotal) * 100) / 100);
+
+        segments.forEach(seg => {
+          const values = buckets.map(b => b[seg.key] || 0);
+          let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+          for (let i = 0; i < n; i++) {
+            sumX += i; sumY += values[i];
+            sumXY += i * values[i]; sumX2 += i * i;
+          }
+          const denom = n * sumX2 - sumX * sumX;
+          const slope = denom ? (n * sumXY - sumX * sumY) / denom : 0;
+          const intercept = (sumY - slope * sumX) / n;
+
+          const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+          line.setAttribute('x1', barXs[0]);
+          line.setAttribute('y1', toY(Math.max(0, intercept)));
+          line.setAttribute('x2', barXs[n - 1]);
+          line.setAttribute('y2', toY(Math.max(0, intercept + slope * (n - 1))));
+          line.setAttribute('stroke', seg.color);
+          line.setAttribute('stroke-width', '2.5');
+          line.setAttribute('stroke-linecap', 'round');
+          line.setAttribute('stroke-dasharray', '6 4');
+          line.setAttribute('opacity', '0.9');
+          svg.appendChild(line);
+        });
+
+        chartEl.appendChild(svg);
+      }
+
+      /* -- Per-type renderers -- */
+
+      function renderSysrateModalContent(body, merchants, daily) {
+        const totalSuccess = merchants.reduce((s, m) => s + m.success, 0);
+        const totalSystem = merchants.reduce((s, m) => s + m.system, 0);
+        const sysrateBase = totalSuccess + totalSystem;
+        const sysrate = sysrateBase > 0 ? ((totalSuccess / sysrateBase) * 100) : 0;
+
+        const top = merchants
+          .map(m => ({ ...m, sysTotal: m.success + m.system }))
+          .filter(m => m.sysTotal > 0)
+          .sort((a, b) => b.sysTotal - a.sysTotal)
+          .slice(0, 10);
+        const maxBar = Math.max(...top.map(m => m.sysTotal), 1);
+
+        const failMerchants = merchants.filter(m => m.system > 0).sort((a, b) => b.system - a.system).slice(0, 2);
+        let calloutHtml = '';
+        if (failMerchants.length > 0 && totalSystem > 0) {
+          const lines = failMerchants.map(m => `<strong>${m.name}</strong> (${m.system} failures, ${((m.system / totalSystem) * 100).toFixed(0)}% of system failures)`);
+          calloutHtml = `<div class="bkd-callout bkd-callout-amber">Top system failure sources: ${lines.join(', ')}</div>`;
+        }
+
+        body.innerHTML = `
+          <div class="bkd-stats-row">
+            <div class="bkd-stat"><div class="bkd-stat-value" style="color:#3b82f6">${sysrate.toFixed(1)}%</div><div class="bkd-stat-label">System Rate</div></div>
+            <div class="bkd-stat"><div class="bkd-stat-value" style="color:#22c55e">${totalSuccess.toLocaleString()}</div><div class="bkd-stat-label">Successful</div></div>
+            <div class="bkd-stat"><div class="bkd-stat-value" style="color:#f59e0b">${totalSystem.toLocaleString()}</div><div class="bkd-stat-label">System Failures</div></div>
+          </div>
+          <div class="bkd-section-title">Top Merchants by Volume</div>
+          ${top.map(m => {
+            const successW = (m.success / maxBar) * 100;
+            const systemW = (m.system / maxBar) * 100;
+            return `<div class="bkd-bar-row">
+              <div class="bkd-bar-label" title="${m.name}">${m.name}</div>
+              <div class="bkd-bar-track">
+                <div class="bkd-bar-seg" style="width:${successW}%;background:#22c55e"></div>
+                <div class="bkd-bar-seg" style="width:${systemW}%;background:#f59e0b"></div>
+              </div>
+              <div class="bkd-bar-count">${m.sysTotal}</div>
+            </div>`;
+          }).join('')}
+        `;
+        if (calloutHtml) body.insertAdjacentHTML('beforeend', calloutHtml);
+      }
+
+      function renderSuccessModalContent(body, merchants, daily) {
+        const totalSuccess = merchants.reduce((s, m) => s + m.success, 0);
+        const successMerchants = merchants.filter(m => m.success > 0).sort((a, b) => b.success - a.success);
+        const numMerchants = successMerchants.length;
+        const topMerchant = successMerchants[0];
+        const top = successMerchants.slice(0, 10);
+        const maxBar = Math.max(...top.map(m => m.success), 1);
+
+        let calloutHtml = '';
+        if (topMerchant && totalSuccess > 0) {
+          const share = ((topMerchant.success / totalSuccess) * 100).toFixed(0);
+          calloutHtml = `<div class="bkd-callout bkd-callout-green"><strong>${topMerchant.name}</strong> leads with ${topMerchant.success.toLocaleString()} successful placements (${share}% of total).</div>`;
+        }
+
+        body.innerHTML = `
+          <div class="bkd-stats-row">
+            <div class="bkd-stat"><div class="bkd-stat-value" style="color:#22c55e">${totalSuccess.toLocaleString()}</div><div class="bkd-stat-label">Successful</div></div>
+            <div class="bkd-stat"><div class="bkd-stat-value" style="color:#f1f5f9">${numMerchants}</div><div class="bkd-stat-label">Merchants</div></div>
+            <div class="bkd-stat"><div class="bkd-stat-value" style="color:#60a5fa">${topMerchant ? topMerchant.name : '-'}</div><div class="bkd-stat-label">Top Merchant</div></div>
+          </div>
+          <div class="bkd-section-title">Top Merchants</div>
+          ${top.map(m => `<div class="bkd-bar-row">
+            <div class="bkd-bar-label" title="${m.name}">${m.name}</div>
+            <div class="bkd-bar-track"><div class="bkd-bar-seg" style="width:${(m.success / maxBar) * 100}%;background:#22c55e"></div></div>
+            <div class="bkd-bar-count">${m.success}</div>
+          </div>`).join('')}
+        `;
+        if (calloutHtml) body.insertAdjacentHTML('beforeend', calloutHtml);
+      }
+
+      function renderSystemModalContent(body, merchants, daily) {
+        const totalSystem = merchants.reduce((s, m) => s + m.system, 0);
+        const systemMerchants = merchants.filter(m => m.system > 0).sort((a, b) => b.system - a.system);
+        const numMerchants = systemMerchants.length;
+        const topMerchant = systemMerchants[0];
+        const top = systemMerchants.slice(0, 10);
+        const maxBar = Math.max(...top.map(m => m.system), 1);
+
+        let calloutHtml = '';
+        if (systemMerchants.length >= 2 && totalSystem > 0) {
+          const top2 = systemMerchants.slice(0, 2);
+          const combinedShare = ((top2[0].system + top2[1].system) / totalSystem) * 100;
+          if (combinedShare > 40) {
+            calloutHtml = `<div class="bkd-callout bkd-callout-amber"><strong>${top2[0].name}</strong> and <strong>${top2[1].name}</strong> account for ${combinedShare.toFixed(0)}% of all system failures. Prioritizing fixes here would have the highest impact.</div>`;
+          }
+        } else if (systemMerchants.length === 1 && totalSystem > 0) {
+          calloutHtml = `<div class="bkd-callout bkd-callout-amber"><strong>${topMerchant.name}</strong> accounts for all ${totalSystem} system failures.</div>`;
+        }
+
+        body.innerHTML = `
+          <div class="bkd-stats-row">
+            <div class="bkd-stat"><div class="bkd-stat-value" style="color:#f59e0b">${totalSystem.toLocaleString()}</div><div class="bkd-stat-label">System Failures</div></div>
+            <div class="bkd-stat"><div class="bkd-stat-value" style="color:#f1f5f9">${numMerchants}</div><div class="bkd-stat-label">Merchants</div></div>
+            <div class="bkd-stat"><div class="bkd-stat-value" style="color:#fbbf24">${topMerchant ? topMerchant.name : '-'}</div><div class="bkd-stat-label">Top Merchant</div></div>
+          </div>
+          <div class="bkd-section-title">Top Merchants</div>
+          ${top.map(m => `<div class="bkd-bar-row">
+            <div class="bkd-bar-label" title="${m.name}">${m.name}</div>
+            <div class="bkd-bar-track"><div class="bkd-bar-seg" style="width:${(m.system / maxBar) * 100}%;background:#f59e0b"></div></div>
+            <div class="bkd-bar-count">${m.system}</div>
+          </div>`).join('')}
+        `;
+        if (calloutHtml) body.insertAdjacentHTML('beforeend', calloutHtml);
+      }
+
+      function renderUxModalContent(body, merchants, daily) {
+        const totalUx = merchants.reduce((s, m) => s + m.ux, 0);
+        const uxMerchants = merchants.filter(m => m.ux > 0).sort((a, b) => b.ux - a.ux);
+        const numMerchants = uxMerchants.length;
+        const top = uxMerchants.slice(0, 10);
+        const maxBar = Math.max(...top.map(m => m.ux), 1);
+        const topMerchant = uxMerchants[0];
+
+        let calloutHtml = '';
+        if (topMerchant && totalUx > 0) {
+          const share = ((topMerchant.ux / totalUx) * 100).toFixed(0);
+          calloutHtml = `<div class="bkd-callout bkd-callout-red"><strong>${topMerchant.name}</strong> has the most UX failures: ${topMerchant.ux.toLocaleString()} (${share}% of total). Common causes include wrong credentials, user cancellation, and MFA issues.</div>`;
+        }
+
+        body.innerHTML = `
+          <div class="bkd-stats-row">
+            <div class="bkd-stat"><div class="bkd-stat-value" style="color:#ef4444">${totalUx.toLocaleString()}</div><div class="bkd-stat-label">UX Failures</div></div>
+            <div class="bkd-stat"><div class="bkd-stat-value" style="color:#f1f5f9">${numMerchants}</div><div class="bkd-stat-label">Merchants</div></div>
+            <div class="bkd-stat"><div class="bkd-stat-value" style="color:#f87171">${topMerchant ? topMerchant.name : '-'}</div><div class="bkd-stat-label">Top Merchant</div></div>
+          </div>
+          <div class="bkd-section-title">Top Merchants</div>
+          ${top.map(m => `<div class="bkd-bar-row">
+            <div class="bkd-bar-label" title="${m.name}">${m.name}</div>
+            <div class="bkd-bar-track"><div class="bkd-bar-seg" style="width:${(m.ux / maxBar) * 100}%;background:#ef4444"></div></div>
+            <div class="bkd-bar-count">${m.ux}</div>
+          </div>`).join('')}
+        `;
+        if (calloutHtml) body.insertAdjacentHTML('beforeend', calloutHtml);
+      }
+
+      function renderOverallModalContent(body, merchants, daily) {
+        const totalSuccess = merchants.reduce((s, m) => s + m.success, 0);
+        const totalSystem = merchants.reduce((s, m) => s + m.system, 0);
+        const totalUx = merchants.reduce((s, m) => s + m.ux, 0);
+        const totalAll = totalSuccess + totalSystem + totalUx;
+        const overallRate = totalAll > 0 ? ((totalSuccess / totalAll) * 100) : 0;
+        const numMerchants = merchants.filter(m => m.total > 0).length;
+
+        const top = merchants.filter(m => m.total > 0).sort((a, b) => b.total - a.total).slice(0, 10);
+        const maxBar = Math.max(...top.map(m => m.total), 1);
+
+        let calloutHtml = '';
+        if (totalAll > 0) {
+          const systemShare = (totalSystem / totalAll) * 100;
+          const uxShare = (totalUx / totalAll) * 100;
+          if (systemShare > uxShare && totalSystem > 0) {
+            calloutHtml = `<div class="bkd-callout bkd-callout-purple">System failures (${systemShare.toFixed(0)}%) outpace UX failures (${uxShare.toFixed(0)}%). Engineering fixes could improve the overall rate significantly.</div>`;
+          } else if (uxShare > systemShare && totalUx > 0) {
+            calloutHtml = `<div class="bkd-callout bkd-callout-purple">UX failures (${uxShare.toFixed(0)}%) outpace system failures (${systemShare.toFixed(0)}%). Credential and MFA issues are the primary drag on success rate.</div>`;
+          } else if (totalSystem > 0 || totalUx > 0) {
+            calloutHtml = `<div class="bkd-callout bkd-callout-purple">System and UX failures contribute equally. Both engineering fixes and UX improvements are needed.</div>`;
+          }
+        }
+
+        body.innerHTML = `
+          <div class="bkd-stats-row">
+            <div class="bkd-stat"><div class="bkd-stat-value" style="color:#7c3aed">${overallRate.toFixed(1)}%</div><div class="bkd-stat-label">Overall Rate</div></div>
+            <div class="bkd-stat"><div class="bkd-stat-value" style="color:#f1f5f9">${totalAll.toLocaleString()}</div><div class="bkd-stat-label">Total Placements</div></div>
+            <div class="bkd-stat"><div class="bkd-stat-value" style="color:#94a3b8">${numMerchants}</div><div class="bkd-stat-label">Merchants</div></div>
+          </div>
+          <div class="bkd-section-title">Top Merchants by Volume</div>
+          ${top.map(m => {
+            const sW = (m.success / maxBar) * 100;
+            const syW = (m.system / maxBar) * 100;
+            const uW = (m.ux / maxBar) * 100;
+            return `<div class="bkd-bar-row">
+              <div class="bkd-bar-label" title="${m.name}">${m.name}</div>
+              <div class="bkd-bar-track">
+                <div class="bkd-bar-seg" style="width:${sW}%;background:#22c55e"></div>
+                <div class="bkd-bar-seg" style="width:${syW}%;background:#f59e0b"></div>
+                <div class="bkd-bar-seg" style="width:${uW}%;background:#ef4444"></div>
+              </div>
+              <div class="bkd-bar-count">${m.total}</div>
+            </div>`;
+          }).join('')}
+        `;
+        if (calloutHtml) body.insertAdjacentHTML('beforeend', calloutHtml);
+      }
+
       /**
        * Fetch and render placement details for a specific breakdown type
        */
@@ -5091,6 +6154,65 @@ function applyColumnTitles(root = document) {
           throw new Error(error.error || `HTTP ${response.status}`);
         }
 
+        return response.json();
+      }
+
+      /**
+       * Fetch placement details with 90-day lookback for trend charts (ignores filter date range)
+       */
+      async function fetchPlacementDetailsForTrend(type) {
+        const shared = window.__FILTER_STATE;
+
+        let fiParam = '__all__';
+        if (shared && shared.page === 'funnel' && shared.fis && shared.fis.size > 0) {
+          fiParam = Array.from(shared.fis).join(',');
+        } else if (fiFilterSelect?.value && fiFilterSelect.value !== '__all__') {
+          fiParam = fiFilterSelect.value;
+        }
+
+        let partnerParam = '__all_partners__';
+        if (shared && shared.partner && shared.partner !== 'All') {
+          partnerParam = shared.partner;
+        } else if (partnerSelect?.value && partnerSelect.value !== '__all_partners__') {
+          partnerParam = partnerSelect.value;
+        }
+
+        let integrationParam = '(all)';
+        if (shared && shared.integration && shared.integration !== 'All') {
+          integrationParam = shared.integration;
+        } else if (integrationSelect?.value && integrationSelect.value !== '(all)') {
+          integrationParam = integrationSelect.value;
+        }
+
+        let instanceParam = 'All';
+        if (shared && shared.instance && shared.instance !== 'All') {
+          instanceParam = shared.instance;
+        }
+
+        // 90-day lookback from today
+        const endDate = new Date();
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() - 90);
+        const fmt = (d) => d.toISOString().slice(0, 10);
+
+        const params = new URLSearchParams({
+          type: type,
+          startDate: fmt(startDate),
+          endDate: fmt(endDate),
+          fi: fiParam,
+          partner: partnerParam,
+          integration: integrationParam,
+          instance: instanceParam,
+          includeTest: includeTestCheckbox?.checked ? 'true' : 'false',
+          limit: '5000',
+          showAll: 'true',
+        });
+
+        const response = await fetch(`/api/placement-details?${params}`);
+        if (!response.ok) {
+          const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+          throw new Error(error.error || `HTTP ${response.status}`);
+        }
         return response.json();
       }
 
@@ -5773,6 +6895,7 @@ function applyColumnTitles(root = document) {
        */
       function clearPlacementDetailsCache() {
         placementDetailsCache.clear();
+        closeBreakdownModal(true);
 
         // Close all open details
         const detailsElements = document.querySelectorAll('.placement-details');
@@ -6804,6 +7927,7 @@ function applyColumnTitles(root = document) {
 
           // Initialize placement details handlers
           initPlacementDetailsHandlers();
+          initBreakdownCardModals();
 
           // Hide Overall Success Rate card for limited users and view mode
           try {

@@ -2736,6 +2736,7 @@ function mapPlacementToJob(placement, fiFallback, instanceFallback) {
     status_message: placement.status_message || "",
     created_on: created || null,
     ready_on: placement.job_ready_on || null,
+    account_linked_on: placement.account_linked_on || null,
     completed_on: completed,
     duration_ms: durationMs,
     instance: formatInstanceDisplay(instance),
@@ -7663,6 +7664,11 @@ const server = http.createServer(async (req, res) => {
 
   if (pathname === "/supported-sites" || pathname === "/supported-sites.html") {
     const fp = path.join(PUBLIC_DIR, "supported-sites.html");
+    if (await fileExists(fp)) return serveFile(res, fp);
+  }
+
+  if (pathname === "/experience" || pathname === "/experience.html") {
+    const fp = path.join(PUBLIC_DIR, "experience.html");
     if (await fileExists(fp)) return serveFile(res, fp);
   }
 

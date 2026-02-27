@@ -96,6 +96,7 @@ var GROUPS = [
 { id:"customer-success", label:"Customer Success Dashboard", href:NAV_PREFIX+"dashboards/customer-success.html" },
 { id:"sources", label:"Sources", href:NAV_PREFIX+"sources.html" },
 { id:"ux-paths", label:"UX Paths", href:NAV_PREFIX+"ux-paths.html" },
+{ id:"experience", label:"Cardholder Experience", href:NAV_PREFIX+"experience.html" },
 { id:"placement-outcomes", label:"Placement Outcomes", href:NAV_PREFIX+"placement-outcomes.html" },
 { id:"fi-api", label:"FI API", href:NAV_PREFIX+"fi-api.html" }
 ]},

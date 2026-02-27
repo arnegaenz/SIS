@@ -6,6 +6,28 @@
 
 # Build History
 
+## Feb 27, 2026 (Session 12)
+
+### Cardholder Experience Page (NEW)
+- **New page**: `public/experience.html` — full timing analysis of the CardUpdatr cardholder journey. Admin/internal only (Analysis nav group).
+- **4 sections**:
+  1. **Journey Overview**: 4 metric cards (sessions analyzed, avg duration, sessions with jobs %, avg jobs/session) + horizontal waterfall SVG showing 6 color-coded phases proportionally (Select Merchants → User Data → Credential Entry → Queue/Startup → Login & Link → Card Placement). CSV download button exports one row per job with all timing phases.
+  2. **Page Timing Deep-Dive**: 3 sub-panels (one per clickstream page) each with stats row (median/avg/P25/P75/P90/N), histogram SVG distribution, and insight callout.
+  3. **Job Timing Analysis**: Aggregate stat cards (avg queue/login/placement, fastest/slowest merchant) + sortable top-30 merchant table with inline stacked bar visuals.
+  4. **Session Explorer**: Search/filter/sort controls, paginated session table (25/page), click-to-expand with full timeline SVG (clickstream pills + per-job phase bars on time axis with success/fail indicators).
+- **Toggles**: Session outcome (All/Successful/Failed/No Jobs) + Integration (All/SSO/Non-SSO) — recalculate everything live.
+- **Server change**: Added `account_linked_on` to `mapPlacementToJob()` return object (additive, non-breaking). Enables queue→login→placement phase decomposition per job.
+- **Infrastructure**: `/experience` route in serve-funnel.mjs, nav entry in Analysis group, filter dispatch in filters.js.
+- **Light-mode theming**: Uses CSS variables from `sis-shared.css` (`--panel`, `--surface`, `--text`, `--muted`, `--border`, etc.). SVG renders read variables via `svgColors()` helper at render time.
+- **Clickstream timestamp fix**: Server normalizes to `{ url, page_title, at }` — page reads `at || timestamp || time` (matching ux-paths.js pattern).
+
+### Job Outcome Breakdown Modal (prior uncommitted work)
+- Click-to-modal on all 5 breakdown cards (`funnel.html`): stats row, top-10 merchant bars, callout insights, 90-day trend section with Daily + Weekly side-by-side charts.
+- Stacked bars for sysrate/overall, single-color bars for success/system/ux. Linear regression trend lines per series.
+- Mobile CSS fix: breakdown grid uses `repeat(5, 1fr)` on desktop.
+
+---
+
 ## Feb 27, 2026 (Session 11)
 
 ### Customer-Facing Support Lookup Page (NEW)

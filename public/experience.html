@@ -1,0 +1,1341 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Cardholder Experience • Strivve Insights</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <link rel="stylesheet" href="./sis-shared.css?v=navfix" />
+  <link rel="stylesheet" href="./assets/css/sis.css">
+  <link rel="stylesheet" href="./assets/css/mobile.css">
+  <link rel="stylesheet" href="./assets/css/filters.css">
+  <script src="./assets/js/passcode-gate.js"></script>
+  <script defer src="./assets/js/sis.js"></script>
+  <script defer src="./assets/js/filters.js?v=shared"></script>
+  <script src="./assets/js/config.js"></script>
+  <script defer src="./assets/js/nav.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); }
+    .sis-content { max-width: 1400px; margin: 0 auto; padding: 16px; }
+    .sis-main { display: flex; flex-direction: column; gap: 16px; }
+    .sis-panel { background: var(--panel); border-radius: 12px; padding: 20px; border: 1px solid var(--border); }
+    .sis-panel-title { margin: 0 0 4px 0; font-size: 1.15rem; font-weight: 600; color: var(--text); }
+    .sis-panel-subtitle { margin: 0 0 16px 0; font-size: 0.85rem; color: var(--muted); }
+
+    /* Filter bar styles */
+    .funnel-header { margin-top: 12px; }
+    .form-grid { display: flex; gap: 12px; flex-wrap: wrap; align-items: end; }
+    .form-grid--dates { display: grid; grid-template-columns: 160px 150px 150px auto; gap: 12px; align-items: end; }
+    .form-field { display: flex; flex-direction: column; gap: 4px; }
+    .form-field label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+    .form-select, .form-input { background: var(--input-bg); color: var(--text); border: 1px solid var(--input-border); border-radius: 6px; padding: 7px 10px; font-size: 0.85rem; }
+    .form-actions { display: flex; gap: 8px; }
+    .form-button { background: var(--accent); color: #fff; border: none; border-radius: 6px; padding: 7px 16px; font-size: 0.85rem; cursor: pointer; white-space: nowrap; }
+    .form-button:hover { opacity: 0.9; }
+
+    /* Toggle buttons */
+    .toggle-row { display: flex; gap: 16px; margin-top: 12px; flex-wrap: wrap; align-items: center; }
+    .toggle-group { display: flex; gap: 0; border-radius: 6px; overflow: hidden; border: 1px solid var(--border); }
+    .toggle-group label { font-size: 0.75rem; color: var(--muted); margin-right: 8px; align-self: center; }
+    .toggle-btn { background: var(--surface); color: var(--muted); border: none; padding: 5px 12px; font-size: 0.78rem; cursor: pointer; transition: all 0.15s; }
+    .toggle-btn.active { background: var(--accent); color: #fff; }
+    .toggle-btn:hover:not(.active) { background: var(--hover-bg); color: var(--text); }
+
+    /* Metric cards grid */
+    .metric-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 20px; }
+    .metric-card { background: var(--surface); border-radius: 8px; padding: 14px 16px; border: 1px solid var(--border); }
+    .metric-card .label { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+    .metric-card .value { font-size: 1.5rem; font-weight: 700; color: var(--text); }
+    .metric-card .sub { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+
+    /* Waterfall */
+    .waterfall-container { margin-top: 8px; }
+    .waterfall-svg { width: 100%; overflow: visible; }
+    .waterfall-legend { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 12px; font-size: 0.78rem; color: var(--muted); }
+    .waterfall-legend-item { display: flex; align-items: center; gap: 6px; }
+    .waterfall-legend-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+
+    /* Stats row */
+    .stats-row { display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 12px; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 6px 12px; font-size: 0.78rem; }
+    .stat-pill .stat-label { color: var(--muted); margin-right: 4px; }
+    .stat-pill .stat-value { color: var(--text); font-weight: 600; }
+
+    /* Histogram */
+    .histogram-container { margin-top: 8px; }
+    .histogram-svg { width: 100%; }
+
+    /* Insight callout */
+    .insight-callout { background: rgba(37, 99, 235, 0.06); border-left: 3px solid var(--accent); border-radius: 0 6px 6px 0; padding: 10px 14px; margin-top: 12px; font-size: 0.82rem; color: var(--text); }
+
+    /* Page timing sub-panels */
+    .timing-panels { display: flex; flex-direction: column; gap: 16px; }
+    .timing-panel { background: var(--surface); border-radius: 8px; padding: 16px; border: 1px solid var(--border); }
+    .timing-panel-title { margin: 0 0 10px 0; font-size: 0.95rem; font-weight: 600; }
+    .timing-panel-title .phase-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; }
+
+    /* Merchant table */
+    .merchant-table-wrap { overflow-x: auto; }
+    .merchant-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+    .merchant-table th { text-align: left; padding: 8px 10px; color: var(--muted); font-weight: 500; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border); cursor: pointer; user-select: none; white-space: nowrap; }
+    .merchant-table th:hover { color: var(--text); }
+    .merchant-table th .sort-arrow { font-size: 0.65rem; margin-left: 3px; opacity: 0.5; }
+    .merchant-table th .sort-arrow.active { opacity: 1; color: var(--accent); }
+    .merchant-table td { padding: 7px 10px; border-bottom: 1px solid var(--border); color: var(--text); }
+    .merchant-table tr:hover td { background: var(--hover-bg); }
+    .stacked-bar-cell { min-width: 160px; }
+    .stacked-bar-cell svg { display: block; }
+
+    /* Session Explorer */
+    .explorer-controls { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+    .explorer-search { background: var(--input-bg); color: var(--text); border: 1px solid var(--input-border); border-radius: 6px; padding: 7px 10px; font-size: 0.82rem; min-width: 200px; }
+    .explorer-select { background: var(--input-bg); color: var(--text); border: 1px solid var(--input-border); border-radius: 6px; padding: 7px 10px; font-size: 0.82rem; }
+    .session-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+    .session-table th { text-align: left; padding: 8px 10px; color: var(--muted); font-weight: 500; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border); }
+    .session-table td { padding: 7px 10px; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: top; }
+    .session-table tr.session-row { cursor: pointer; }
+    .session-table tr.session-row:hover td { background: var(--hover-bg); }
+    .session-table tr.expanded-row td { padding: 0; background: var(--surface); }
+    .timeline-container { padding: 16px; }
+    .timeline-svg { width: 100%; overflow: visible; }
+    .timeline-label { font-size: 0.72rem; fill: var(--muted); }
+    .timeline-bar-label { font-size: 0.68rem; fill: #fff; font-weight: 500; }
+
+    /* Pagination */
+    .pagination { display: flex; gap: 6px; justify-content: center; margin-top: 12px; align-items: center; }
+    .pagination button { background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 4px 10px; font-size: 0.78rem; cursor: pointer; }
+    .pagination button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .pagination button:disabled { opacity: 0.4; cursor: default; }
+    .pagination .page-info { font-size: 0.78rem; color: var(--muted); }
+
+    /* No data state */
+    .no-data { text-align: center; padding: 40px 20px; color: var(--muted); font-size: 0.9rem; }
+
+    /* Loading */
+    .loading-indicator { text-align: center; padding: 40px 20px; color: var(--muted); }
+    .loading-indicator::after { content: ''; display: inline-block; width: 20px; height: 20px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin-left: 8px; vertical-align: middle; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Clickstream pill */
+    .cs-pill { display: inline-block; border-radius: 4px; padding: 2px 8px; font-size: 0.7rem; font-weight: 500; margin-right: 4px; }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .form-grid--dates { grid-template-columns: 1fr 1fr; }
+      .metric-cards { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+  <div id="sis-header"></div>
+
+  <div class="sis-content">
+    <main class="sis-main">
+
+      <!-- Filter Panel -->
+      <section class="sis-panel">
+        <div id="filter-bar"></div>
+        <div class="funnel-header">
+          <div class="form-grid form-grid--dates">
+            <div class="form-field">
+              <label for="datePreset">Range preset</label>
+              <select id="datePreset" class="form-select">
+                <option value="last7" selected>Last 7 days</option>
+                <option value="last14">Last 14 days</option>
+                <option value="last30">Last 30 days</option>
+                <option value="last60">Last 60 days</option>
+                <option value="last90">Last 90 days</option>
+                <option value="ytd">Year to date</option>
+                <option value="">Custom</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label for="startDate">Start date</label>
+              <input id="startDate" type="date" class="form-input" />
+            </div>
+            <div class="form-field">
+              <label for="endDate">End date</label>
+              <input id="endDate" type="date" class="form-input" />
+            </div>
+            <div class="form-field">
+              <label for="applyBtn">Actions</label>
+              <div class="form-actions">
+                <button id="applyBtn" class="form-button">Apply filters</button>
+              </div>
+            </div>
+          </div>
+          <div class="toggle-row">
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span class="stat-label" style="font-size:0.75rem;color:var(--muted);">Sessions:</span>
+              <div class="toggle-group" id="sessionToggle">
+                <button class="toggle-btn active" data-val="all">All</button>
+                <button class="toggle-btn" data-val="success">Successful</button>
+                <button class="toggle-btn" data-val="failed">Failed</button>
+                <button class="toggle-btn" data-val="nojobs">No Jobs</button>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span class="stat-label" style="font-size:0.75rem;color:var(--muted);">Integration:</span>
+              <div class="toggle-group" id="integrationToggle">
+                <button class="toggle-btn active" data-val="all">All</button>
+                <button class="toggle-btn" data-val="sso">SSO</button>
+                <button class="toggle-btn" data-val="nonsso">Non-SSO</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 1: Journey Overview -->
+      <section class="sis-panel" id="journeyOverview">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <h2 class="sis-panel-title">Journey Overview</h2>
+          <button id="csvDownloadBtn" class="form-button" style="font-size:0.75rem;padding:5px 12px;background:var(--muted);opacity:0.7;" title="Download session timing data as CSV">Download CSV</button>
+        </div>
+        <p class="sis-panel-subtitle">Average time cardholders spend at each step of the CardUpdatr experience</p>
+        <div id="overviewCards" class="metric-cards"></div>
+        <div id="waterfallChart" class="waterfall-container"></div>
+      </section>
+
+      <!-- Section 2: Page Timing Deep-Dive -->
+      <section class="sis-panel" id="pageTimingSection">
+        <h2 class="sis-panel-title">Page Timing Deep-Dive</h2>
+        <p class="sis-panel-subtitle">Distribution of time spent on each clickstream page</p>
+        <div id="pageTimingPanels" class="timing-panels"></div>
+      </section>
+
+      <!-- Section 3: Job Timing Analysis -->
+      <section class="sis-panel" id="jobTimingSection">
+        <h2 class="sis-panel-title">Job Timing Analysis</h2>
+        <p class="sis-panel-subtitle">Per-merchant breakdown of job phases (queue, login, card placement)</p>
+        <div id="jobTimingCards" class="metric-cards"></div>
+        <div id="merchantTableWrap" class="merchant-table-wrap"></div>
+      </section>
+
+      <!-- Section 4: Session Explorer -->
+      <section class="sis-panel" id="sessionExplorerSection">
+        <h2 class="sis-panel-title">Session Explorer</h2>
+        <p class="sis-panel-subtitle">Browse individual sessions with full timing breakdown</p>
+        <div id="explorerControls" class="explorer-controls"></div>
+        <div id="sessionTableWrap"></div>
+        <div id="sessionPagination" class="pagination"></div>
+      </section>
+
+    </main>
+  </div>
+
+  <script>
+  (function() {
+    'use strict';
+
+    /* ────────────────────────────────────────────────────────────
+       CONSTANTS & STATE
+    ──────────────────────────────────────────────────────────── */
+    const PHASE_COLORS = {
+      selectMerchants: '#3b82f6',
+      userData:        '#8b5cf6',
+      credEntry:       '#ec4899',
+      queue:           '#f59e0b',
+      login:           '#f97316',
+      placement:       '#22c55e'
+    };
+    const PHASE_LABELS = {
+      selectMerchants: 'Select Merchants',
+      userData:        'User Data',
+      credEntry:       'Credential Entry',
+      queue:           'Queue / Startup',
+      login:           'Login & Link',
+      placement:       'Card Placement'
+    };
+    const HISTO_BUCKETS = [
+      { label: '0-5s',  min: 0, max: 5 },
+      { label: '5-10s', min: 5, max: 10 },
+      { label: '10-20s', min: 10, max: 20 },
+      { label: '20-30s', min: 20, max: 30 },
+      { label: '30-60s', min: 30, max: 60 },
+      { label: '1-2m',  min: 60, max: 120 },
+      { label: '2-5m',  min: 120, max: 300 },
+      { label: '5m+',   min: 300, max: Infinity }
+    ];
+
+    // Read CSS variables for use in inline SVGs
+    function cssVar(name) {
+      return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    }
+    function svgColors() {
+      return {
+        muted: cssVar('--muted') || '#475569',
+        text: cssVar('--text') || '#0f172a',
+        border: cssVar('--border') || '#d7deea',
+        accent: cssVar('--accent') || '#2563eb',
+        surface: cssVar('--surface') || '#f8fafc',
+      };
+    }
+
+    let allSessions = [];
+    let currentSort = { col: 'jobs', dir: 'desc' };
+    let explorerState = { search: '', status: 'all', sort: 'newest', page: 0, perPage: 25, expanded: new Set() };
+
+    /* ────────────────────────────────────────────────────────────
+       UTILITIES
+    ──────────────────────────────────────────────────────────── */
+    function normalizeKey(v) { return (v || '').toString().trim().toLowerCase(); }
+
+    function formatDuration(seconds) {
+      if (seconds == null || isNaN(seconds)) return '—';
+      const s = Math.round(seconds);
+      if (s < 60) return s + 's';
+      if (s < 3600) { const m = Math.floor(s / 60); const r = s % 60; return r ? m + 'm ' + r + 's' : m + 'm'; }
+      const h = Math.floor(s / 3600); const m = Math.floor((s % 3600) / 60);
+      return m ? h + 'h ' + m + 'm' : h + 'h';
+    }
+
+    function formatShortDuration(seconds) {
+      if (seconds == null || isNaN(seconds)) return '—';
+      const s = Math.round(seconds);
+      if (s < 60) return s + 's';
+      const m = Math.floor(s / 60); const r = s % 60;
+      return r ? m + 'm' + r + 's' : m + 'm';
+    }
+
+    function median(arr) {
+      if (!arr.length) return 0;
+      const s = arr.slice().sort((a, b) => a - b);
+      const mid = Math.floor(s.length / 2);
+      return s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
+    }
+
+    function percentile(arr, p) {
+      if (!arr.length) return 0;
+      const s = arr.slice().sort((a, b) => a - b);
+      const idx = (p / 100) * (s.length - 1);
+      const lo = Math.floor(idx); const hi = Math.ceil(idx);
+      return lo === hi ? s[lo] : s[lo] + (s[hi] - s[lo]) * (idx - lo);
+    }
+
+    function avg(arr) {
+      return arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
+    }
+
+    function escHtml(str) {
+      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function formatDate(dateStr) {
+      if (!dateStr) return '—';
+      try { const d = new Date(dateStr); return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }); } catch { return dateStr; }
+    }
+
+    function formatDateForInput(d) {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    }
+
+    function getDefaultDateRange() {
+      const end = new Date(); end.setHours(0, 0, 0, 0);
+      const start = new Date(end); start.setDate(start.getDate() - 7);
+      return { startDate: start, endDate: end };
+    }
+
+    function applyDatePreset(preset) {
+      const end = new Date(); end.setHours(0, 0, 0, 0);
+      const start = new Date(end);
+      switch (preset) {
+        case 'last7': start.setDate(start.getDate() - 7); break;
+        case 'last14': start.setDate(start.getDate() - 14); break;
+        case 'last30': start.setDate(start.getDate() - 30); break;
+        case 'last60': start.setDate(start.getDate() - 60); break;
+        case 'last90': start.setDate(start.getDate() - 90); break;
+        case 'ytd': start.setMonth(0, 1); break;
+        default: return null;
+      }
+      return { startDate: start, endDate: end };
+    }
+
+    function pickSessionId(s) {
+      return s?.id ?? s?.agent_session_id ?? s?.session_id ?? s?.cuid ?? null;
+    }
+
+    /* ────────────────────────────────────────────────────────────
+       DATA FETCHING
+    ──────────────────────────────────────────────────────────── */
+    async function fetchSessionData(dateRange, filterState) {
+      const qs = new URLSearchParams();
+      qs.set('start', formatDateForInput(dateRange.startDate));
+      qs.set('end', formatDateForInput(dateRange.endDate));
+      qs.set('includeTests', 'true');
+
+      const shared = filterState || null;
+      const fis = shared && shared.fis ? Array.from(shared.fis) : [];
+      qs.set('fi', fis.length === 1 ? fis[0] : '__all__');
+      qs.set('partner', shared && shared.partner && shared.partner !== 'All' ? shared.partner : '__all_partners__');
+      qs.set('integration', shared && shared.integration && shared.integration !== 'All' ? shared.integration : '(all)');
+      qs.set('instance', shared && shared.instance && shared.instance !== 'All' ? shared.instance : '__all_instances__');
+
+      const resp = await fetch('/troubleshoot/day?' + qs.toString());
+      if (!resp.ok) throw new Error('Failed to fetch: ' + resp.status);
+      const data = await resp.json();
+      let sessions = Array.isArray(data.sessions) ? data.sessions : [];
+
+      // Client-side multi-select filtering
+      const fiSet = shared && shared.fis && shared.fis.size > 0
+        ? new Set(Array.from(shared.fis).map(v => normalizeKey(v)).filter(Boolean)) : null;
+      const instF = shared && shared.instance && shared.instance !== 'All' ? normalizeKey(shared.instance) : '';
+      const partF = shared && shared.partner && shared.partner !== 'All' ? shared.partner : '';
+      const intgF = shared && shared.integration && shared.integration !== 'All' ? shared.integration : '';
+
+      if (fiSet || instF || partF || intgF) {
+        sessions = sessions.filter(s => {
+          if (fiSet && fiSet.size) {
+            const fk = normalizeKey(s.fi_key || s.fi_lookup_key || s.financial_institution_lookup_key || '');
+            if (!fiSet.has(fk)) return false;
+          }
+          if (instF) { const inst = normalizeKey(s.instance || s._instance || ''); if (inst !== instF) return false; }
+          if (partF) { const p = s.partner || ''; if (p !== partF) return false; }
+          if (intgF) { const i = s.integration_display || s.integration || s.integration_type || ''; if (i !== intgF) return false; }
+          return true;
+        });
+      }
+
+      return sessions;
+    }
+
+    /* ────────────────────────────────────────────────────────────
+       SESSION FILTERS (outcome + integration toggles)
+    ──────────────────────────────────────────────────────────── */
+    function getActiveToggle(groupId) {
+      const el = document.getElementById(groupId);
+      if (!el) return 'all';
+      const active = el.querySelector('.toggle-btn.active');
+      return active ? active.dataset.val : 'all';
+    }
+
+    function applySessionFilters(sessions) {
+      let result = sessions;
+      const outcome = getActiveToggle('sessionToggle');
+      if (outcome === 'success') {
+        result = result.filter(s => (s.jobs || []).some(j => j.is_success));
+      } else if (outcome === 'failed') {
+        result = result.filter(s => {
+          const jobs = s.jobs || [];
+          return jobs.length > 0 && !jobs.some(j => j.is_success);
+        });
+      } else if (outcome === 'nojobs') {
+        result = result.filter(s => !(s.jobs || []).length);
+      }
+
+      const intg = getActiveToggle('integrationToggle');
+      if (intg === 'sso') {
+        result = result.filter(s => {
+          const si = (s.source_integration || s.integration || s.integration_type || '').toString().toLowerCase();
+          return si.includes('sso') || si.includes('fi_');
+        });
+      } else if (intg === 'nonsso') {
+        result = result.filter(s => {
+          const si = (s.source_integration || s.integration || s.integration_type || '').toString().toLowerCase();
+          return !si.includes('sso') && !si.includes('fi_');
+        });
+      }
+
+      return result;
+    }
+
+    /* ────────────────────────────────────────────────────────────
+       PHASE COMPUTATION
+    ──────────────────────────────────────────────────────────── */
+    function parseClickstream(session) {
+      const cs = session.clickstream;
+      if (!Array.isArray(cs) || !cs.length) return [];
+      return cs.map(entry => {
+        const at = entry.at || entry.timestamp || entry.time || null;
+        return {
+          url: entry.url || '',
+          page: entry.page_title || entry.url || '',
+          ts: at ? new Date(at).getTime() : 0
+        };
+      }).filter(e => e.ts > 0).sort((a, b) => a.ts - b.ts);
+    }
+
+    function classifyPage(url) {
+      const u = (url || '').toLowerCase();
+      if (u.includes('select-merchant') || u.includes('select_merchant')) return 'selectMerchants';
+      if (u.includes('user-data') || u.includes('user_data') || u.includes('data-collection') || u.includes('data_collection')) return 'userData';
+      if (u.includes('credential') || u.includes('cred-entry') || u.includes('cred_entry')) return 'credEntry';
+      return null;
+    }
+
+    function computeClickstreamPhases(session) {
+      const pages = parseClickstream(session);
+      if (!pages.length) return {};
+      const result = {};
+      for (let i = 0; i < pages.length; i++) {
+        const phase = classifyPage(pages[i].url);
+        if (!phase) continue;
+        // Duration = time until next page (or end of clickstream)
+        const nextTs = (i + 1 < pages.length) ? pages[i + 1].ts : null;
+        if (nextTs) {
+          const dur = (nextTs - pages[i].ts) / 1000;
+          // Clamp to 0-1800s (30 min max, same as ux-paths)
+          if (dur > 0 && dur <= 1800) {
+            // If there are multiple visits to same page, keep first (typical flow)
+            if (!(phase in result)) result[phase] = dur;
+          }
+        }
+      }
+      return result;
+    }
+
+    function computeJobPhases(job) {
+      const created = job.created_on ? new Date(job.created_on).getTime() : 0;
+      const ready = job.ready_on ? new Date(job.ready_on).getTime() : 0;
+      const linked = job.account_linked_on ? new Date(job.account_linked_on).getTime() : 0;
+      const completed = job.completed_on ? new Date(job.completed_on).getTime() : 0;
+
+      const result = { queue: null, login: null, placement: null };
+
+      if (created && ready && ready > created) {
+        const q = (ready - created) / 1000;
+        if (q > 0 && q < 3600) result.queue = q;
+      }
+      if (ready && linked && linked > ready) {
+        const l = (linked - ready) / 1000;
+        if (l > 0 && l < 3600) result.login = l;
+      }
+      if (linked && completed && completed > linked) {
+        const p = (completed - linked) / 1000;
+        if (p > 0 && p < 3600) result.placement = p;
+      }
+      // If no account_linked_on but has ready & completed, combine login+placement
+      if (!linked && ready && completed && completed > ready) {
+        const combined = (completed - ready) / 1000;
+        if (combined > 0 && combined < 3600) result.login = combined;
+      }
+      return result;
+    }
+
+    function computeSessionDuration(session) {
+      // From first clickstream event to last job completion (or last clickstream event)
+      const pages = parseClickstream(session);
+      const jobs = session.jobs || [];
+      let earliest = Infinity, latest = 0;
+      if (pages.length) { earliest = Math.min(earliest, pages[0].ts); latest = Math.max(latest, pages[pages.length - 1].ts); }
+      for (const j of jobs) {
+        if (j.created_on) { const t = new Date(j.created_on).getTime(); earliest = Math.min(earliest, t); latest = Math.max(latest, t); }
+        if (j.completed_on) { const t = new Date(j.completed_on).getTime(); latest = Math.max(latest, t); }
+      }
+      if (earliest === Infinity || latest === 0 || latest <= earliest) return null;
+      const dur = (latest - earliest) / 1000;
+      return dur > 0 && dur < 7200 ? dur : null; // cap at 2hr
+    }
+
+    /* ────────────────────────────────────────────────────────────
+       STATISTICS
+    ──────────────────────────────────────────────────────────── */
+    function aggregatePhaseStats(sessions) {
+      const durations = { selectMerchants: [], userData: [], credEntry: [], queue: [], login: [], placement: [] };
+
+      for (const session of sessions) {
+        const cs = computeClickstreamPhases(session);
+        for (const k of ['selectMerchants', 'userData', 'credEntry']) {
+          if (cs[k] != null) durations[k].push(cs[k]);
+        }
+        for (const job of (session.jobs || [])) {
+          const jp = computeJobPhases(job);
+          for (const k of ['queue', 'login', 'placement']) {
+            if (jp[k] != null) durations[k].push(jp[k]);
+          }
+        }
+      }
+
+      const stats = {};
+      for (const [key, arr] of Object.entries(durations)) {
+        stats[key] = {
+          median: median(arr),
+          avg: avg(arr),
+          p25: percentile(arr, 25),
+          p75: percentile(arr, 75),
+          p90: percentile(arr, 90),
+          count: arr.length,
+          values: arr
+        };
+      }
+      return stats;
+    }
+
+    function computeMerchantStats(sessions) {
+      const merchants = {};
+      for (const session of sessions) {
+        for (const job of (session.jobs || [])) {
+          const m = job.merchant || 'unknown';
+          if (!merchants[m]) merchants[m] = { merchant: m, jobs: 0, successes: 0, queue: [], login: [], placement: [] };
+          merchants[m].jobs++;
+          if (job.is_success) merchants[m].successes++;
+          const phases = computeJobPhases(job);
+          if (phases.queue != null) merchants[m].queue.push(phases.queue);
+          if (phases.login != null) merchants[m].login.push(phases.login);
+          if (phases.placement != null) merchants[m].placement.push(phases.placement);
+        }
+      }
+      return Object.values(merchants).map(m => ({
+        merchant: m.merchant,
+        jobs: m.jobs,
+        successRate: m.jobs ? m.successes / m.jobs : 0,
+        avgQueue: avg(m.queue),
+        avgLogin: avg(m.login),
+        avgPlacement: avg(m.placement),
+        avgTotal: avg(m.queue) + avg(m.login) + avg(m.placement),
+        queueCount: m.queue.length,
+        loginCount: m.login.length,
+        placementCount: m.placement.length
+      }));
+    }
+
+    function bucketize(values, buckets) {
+      const counts = buckets.map(() => 0);
+      for (const v of values) {
+        for (let i = 0; i < buckets.length; i++) {
+          if (v >= buckets[i].min && v < buckets[i].max) { counts[i]++; break; }
+        }
+      }
+      return counts;
+    }
+
+    /* ────────────────────────────────────────────────────────────
+       RENDERING: Section 1 — Journey Overview
+    ──────────────────────────────────────────────────────────── */
+    function renderJourneyOverview(sessions, phaseStats) {
+      const cardsEl = document.getElementById('overviewCards');
+      const waterfallEl = document.getElementById('waterfallChart');
+
+      // Session-level metrics
+      const sessionDurations = sessions.map(computeSessionDuration).filter(d => d != null);
+      const sessionsWithJobs = sessions.filter(s => (s.jobs || []).length > 0);
+      const totalJobs = sessions.reduce((sum, s) => sum + (s.jobs || []).length, 0);
+
+      cardsEl.innerHTML = `
+        <div class="metric-card"><div class="label">Sessions Analyzed</div><div class="value">${sessions.length.toLocaleString()}</div></div>
+        <div class="metric-card"><div class="label">Avg Session Duration</div><div class="value">${formatDuration(avg(sessionDurations))}</div><div class="sub">${sessionDurations.length} with timing data</div></div>
+        <div class="metric-card"><div class="label">Sessions with Jobs</div><div class="value">${sessions.length ? Math.round(sessionsWithJobs.length / sessions.length * 100) : 0}%</div><div class="sub">${sessionsWithJobs.length.toLocaleString()} of ${sessions.length.toLocaleString()}</div></div>
+        <div class="metric-card"><div class="label">Avg Jobs / Session</div><div class="value">${sessionsWithJobs.length ? (totalJobs / sessionsWithJobs.length).toFixed(1) : '0'}</div><div class="sub">${totalJobs.toLocaleString()} total jobs</div></div>
+      `;
+
+      // Waterfall
+      const phases = ['selectMerchants', 'userData', 'credEntry', 'queue', 'login', 'placement'];
+      const avgTimes = phases.map(k => phaseStats[k] ? phaseStats[k].avg : 0);
+      const total = avgTimes.reduce((a, b) => a + b, 0);
+
+      if (total === 0) {
+        waterfallEl.innerHTML = '<div class="no-data">No timing data available for the selected filters.</div>';
+        return;
+      }
+
+      const c = svgColors();
+      const svgW = 900, barH = 44, padTop = 10, padBot = 60, labelH = 20;
+      const svgH = padTop + barH + padBot + labelH;
+      let svg = `<svg class="waterfall-svg" viewBox="0 0 ${svgW} ${svgH}" preserveAspectRatio="xMidYMid meet">`;
+
+      let x = 0;
+      for (let i = 0; i < phases.length; i++) {
+        const w = total > 0 ? (avgTimes[i] / total) * svgW : 0;
+        if (w < 1) { x += w; continue; }
+        const color = PHASE_COLORS[phases[i]];
+        const label = PHASE_LABELS[phases[i]];
+        const durStr = formatShortDuration(avgTimes[i]);
+        svg += `<rect x="${x}" y="${padTop}" width="${w}" height="${barH}" fill="${color}" rx="3"/>`;
+        // Label inside bar if wide enough, otherwise above
+        if (w > 70) {
+          svg += `<text x="${x + w / 2}" y="${padTop + barH / 2 - 5}" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">${label}</text>`;
+          svg += `<text x="${x + w / 2}" y="${padTop + barH / 2 + 11}" text-anchor="middle" fill="rgba(255,255,255,0.8)" font-size="10">${durStr}</text>`;
+        } else if (w > 30) {
+          svg += `<text x="${x + w / 2}" y="${padTop + barH / 2 + 4}" text-anchor="middle" fill="#fff" font-size="9" font-weight="500">${durStr}</text>`;
+        }
+        // Angled label below for narrow segments
+        if (w <= 70) {
+          svg += `<text x="${x + w / 2}" y="${padTop + barH + 16}" text-anchor="middle" fill="${c.muted}" font-size="9">${label}</text>`;
+          svg += `<text x="${x + w / 2}" y="${padTop + barH + 28}" text-anchor="middle" fill="${c.muted}" font-size="8">${durStr}</text>`;
+        }
+        x += w;
+      }
+      // Total duration label
+      svg += `<text x="${svgW / 2}" y="${svgH - 4}" text-anchor="middle" fill="${c.muted}" font-size="11">Total average: ${formatDuration(total)}</text>`;
+      svg += '</svg>';
+
+      // Legend
+      let legend = '<div class="waterfall-legend">';
+      for (const phase of phases) {
+        legend += `<div class="waterfall-legend-item"><div class="waterfall-legend-swatch" style="background:${PHASE_COLORS[phase]}"></div>${PHASE_LABELS[phase]}</div>`;
+      }
+      legend += '</div>';
+
+      waterfallEl.innerHTML = svg + legend;
+    }
+
+    /* ────────────────────────────────────────────────────────────
+       RENDERING: Section 2 — Page Timing Histograms
+    ──────────────────────────────────────────────────────────── */
+    function renderPageTimingPanels(phaseStats) {
+      const container = document.getElementById('pageTimingPanels');
+      const pages = [
+        { key: 'selectMerchants', label: 'Select Merchants', color: PHASE_COLORS.selectMerchants },
+        { key: 'userData', label: 'User Data Collection', color: PHASE_COLORS.userData },
+        { key: 'credEntry', label: 'Credential Entry', color: PHASE_COLORS.credEntry }
+      ];
+
+      let html = '';
+      for (const page of pages) {
+        const stats = phaseStats[page.key];
+        if (!stats || !stats.count) {
+          html += `<div class="timing-panel"><h3 class="timing-panel-title"><span class="phase-dot" style="background:${page.color}"></span>${page.label}</h3><div class="no-data" style="padding:20px 0;">No timing data available</div></div>`;
+          continue;
+        }
+
+        // Stats row
+        html += `<div class="timing-panel"><h3 class="timing-panel-title"><span class="phase-dot" style="background:${page.color}"></span>${page.label}</h3>`;
+        html += `<div class="stats-row">
+          <div class="stat-pill"><span class="stat-label">Median</span><span class="stat-value">${formatShortDuration(stats.median)}</span></div>
+          <div class="stat-pill"><span class="stat-label">Avg</span><span class="stat-value">${formatShortDuration(stats.avg)}</span></div>
+          <div class="stat-pill"><span class="stat-label">P25</span><span class="stat-value">${formatShortDuration(stats.p25)}</span></div>
+          <div class="stat-pill"><span class="stat-label">P75</span><span class="stat-value">${formatShortDuration(stats.p75)}</span></div>
+          <div class="stat-pill"><span class="stat-label">P90</span><span class="stat-value">${formatShortDuration(stats.p90)}</span></div>
+          <div class="stat-pill"><span class="stat-label">N</span><span class="stat-value">${stats.count.toLocaleString()}</span></div>
+        </div>`;
+
+        // Histogram
+        html += renderHistogram(stats.values, page.color);
+
+        // Insight callout
+        const medSec = stats.median;
+        const pctUnder30 = stats.values.filter(v => v <= 30).length / stats.values.length * 100;
+        html += `<div class="insight-callout">${Math.round(pctUnder30)}% of sessions complete ${page.label} in under 30 seconds. Median: ${formatShortDuration(medSec)}.</div>`;
+
+        html += '</div>';
+      }
+      container.innerHTML = html;
+    }
+
+    function renderHistogram(values, color) {
+      const counts = bucketize(values, HISTO_BUCKETS);
+      const maxCount = Math.max(...counts, 1);
+      const c = svgColors();
+      const svgW = 700, svgH = 180, padL = 45, padR = 10, padT = 10, padB = 40;
+      const chartW = svgW - padL - padR, chartH = svgH - padT - padB;
+      const barW = chartW / HISTO_BUCKETS.length;
+      const barGap = 4;
+
+      let svg = `<div class="histogram-container"><svg class="histogram-svg" viewBox="0 0 ${svgW} ${svgH}" preserveAspectRatio="xMidYMid meet">`;
+
+      // Y axis gridlines
+      for (let i = 0; i <= 4; i++) {
+        const y = padT + chartH - (i / 4) * chartH;
+        const val = Math.round((i / 4) * maxCount);
+        svg += `<line x1="${padL}" y1="${y}" x2="${svgW - padR}" y2="${y}" stroke="${c.border}" stroke-width="0.5"/>`;
+        svg += `<text x="${padL - 6}" y="${y + 3}" text-anchor="end" fill="${c.muted}" font-size="9">${val}</text>`;
+      }
+
+      // Bars
+      for (let i = 0; i < counts.length; i++) {
+        const bx = padL + i * barW + barGap / 2;
+        const bw = barW - barGap;
+        const bh = maxCount > 0 ? (counts[i] / maxCount) * chartH : 0;
+        const by = padT + chartH - bh;
+        svg += `<rect x="${bx}" y="${by}" width="${bw}" height="${bh}" fill="${color}" rx="2" opacity="0.85"/>`;
+        // Count on top
+        if (counts[i] > 0) {
+          svg += `<text x="${bx + bw / 2}" y="${by - 4}" text-anchor="middle" fill="${c.text}" font-size="9">${counts[i]}</text>`;
+        }
+        // X label
+        svg += `<text x="${bx + bw / 2}" y="${padT + chartH + 16}" text-anchor="middle" fill="${c.muted}" font-size="8.5">${HISTO_BUCKETS[i].label}</text>`;
+      }
+
+      svg += '</svg></div>';
+      return svg;
+    }
+
+    /* ────────────────────────────────────────────────────────────
+       RENDERING: Section 3 — Job Timing Analysis
+    ──────────────────────────────────────────────────────────── */
+    function renderJobTimingSection(sessions, phaseStats, merchantStats) {
+      const cardsEl = document.getElementById('jobTimingCards');
+      const tableEl = document.getElementById('merchantTableWrap');
+
+      // Find fastest/slowest (min 5 jobs)
+      const qualified = merchantStats.filter(m => m.jobs >= 5 && m.avgTotal > 0);
+      const fastest = qualified.length ? qualified.reduce((a, b) => a.avgTotal < b.avgTotal ? a : b) : null;
+      const slowest = qualified.length ? qualified.reduce((a, b) => a.avgTotal > b.avgTotal ? a : b) : null;
+
+      cardsEl.innerHTML = `
+        <div class="metric-card"><div class="label">Avg Queue Time</div><div class="value">${formatShortDuration(phaseStats.queue?.avg)}</div><div class="sub">${(phaseStats.queue?.count || 0).toLocaleString()} jobs</div></div>
+        <div class="metric-card"><div class="label">Avg Login Time</div><div class="value">${formatShortDuration(phaseStats.login?.avg)}</div><div class="sub">${(phaseStats.login?.count || 0).toLocaleString()} jobs</div></div>
+        <div class="metric-card"><div class="label">Avg Placement Time</div><div class="value">${formatShortDuration(phaseStats.placement?.avg)}</div><div class="sub">${(phaseStats.placement?.count || 0).toLocaleString()} jobs</div></div>
+        <div class="metric-card"><div class="label">Fastest Merchant</div><div class="value" style="font-size:1.1rem">${fastest ? escHtml(fastest.merchant) : '—'}</div><div class="sub">${fastest ? formatShortDuration(fastest.avgTotal) + ' avg' : ''}</div></div>
+        <div class="metric-card"><div class="label">Slowest Merchant</div><div class="value" style="font-size:1.1rem">${slowest ? escHtml(slowest.merchant) : '—'}</div><div class="sub">${slowest ? formatShortDuration(slowest.avgTotal) + ' avg' : ''}</div></div>
+      `;
+
+      renderMerchantTable(merchantStats, tableEl);
+    }
+
+    function renderMerchantTable(merchantStats, container) {
+      // Sort
+      let sorted = merchantStats.slice();
+      const { col, dir } = currentSort;
+      sorted.sort((a, b) => {
+        let va = a[col], vb = b[col];
+        if (typeof va === 'string') { va = va.toLowerCase(); vb = vb.toLowerCase(); }
+        return dir === 'asc' ? (va > vb ? 1 : va < vb ? -1 : 0) : (va < vb ? 1 : va > vb ? -1 : 0);
+      });
+
+      // Top 30
+      const top = sorted.slice(0, 30);
+      if (!top.length) { container.innerHTML = '<div class="no-data">No job data available.</div>'; return; }
+
+      const maxTotal = Math.max(...top.map(m => m.avgTotal), 1);
+
+      const cols = [
+        { key: 'merchant', label: 'Merchant' },
+        { key: 'jobs', label: 'Jobs' },
+        { key: 'successRate', label: 'Success %' },
+        { key: 'avgQueue', label: 'Avg Queue' },
+        { key: 'avgLogin', label: 'Avg Login' },
+        { key: 'avgPlacement', label: 'Avg Placement' },
+        { key: 'avgTotal', label: 'Avg Total' },
+        { key: '_visual', label: 'Visual' }
+      ];
+
+      let html = '<table class="merchant-table"><thead><tr>';
+      for (const c of cols) {
+        const arrow = c.key === col ? (dir === 'asc' ? '&#9650;' : '&#9660;') : '&#9650;';
+        const cls = c.key === col ? 'active' : '';
+        const sortable = c.key !== '_visual' ? `data-sort="${c.key}"` : '';
+        html += `<th ${sortable}>${c.label}${c.key !== '_visual' ? ` <span class="sort-arrow ${cls}">${arrow}</span>` : ''}</th>`;
+      }
+      html += '</tr></thead><tbody>';
+
+      for (const m of top) {
+        const barW = 150;
+        const qW = maxTotal > 0 ? (m.avgQueue / maxTotal) * barW : 0;
+        const lW = maxTotal > 0 ? (m.avgLogin / maxTotal) * barW : 0;
+        const pW = maxTotal > 0 ? (m.avgPlacement / maxTotal) * barW : 0;
+        const barSvg = `<svg width="${barW}" height="18">
+          <rect x="0" y="2" width="${qW}" height="14" fill="${PHASE_COLORS.queue}" rx="2"/>
+          <rect x="${qW}" y="2" width="${lW}" height="14" fill="${PHASE_COLORS.login}" rx="0"/>
+          <rect x="${qW + lW}" y="2" width="${pW}" height="14" fill="${PHASE_COLORS.placement}" rx="2"/>
+        </svg>`;
+
+        html += `<tr>
+          <td>${escHtml(m.merchant)}</td>
+          <td>${m.jobs.toLocaleString()}</td>
+          <td>${Math.round(m.successRate * 100)}%</td>
+          <td>${formatShortDuration(m.avgQueue)}</td>
+          <td>${m.avgLogin > 0 ? formatShortDuration(m.avgLogin) : '—'}</td>
+          <td>${m.avgPlacement > 0 ? formatShortDuration(m.avgPlacement) : '—'}</td>
+          <td>${formatShortDuration(m.avgTotal)}</td>
+          <td class="stacked-bar-cell">${barSvg}</td>
+        </tr>`;
+      }
+      html += '</tbody></table>';
+      container.innerHTML = html;
+
+      // Wire up sort clicks
+      container.querySelectorAll('th[data-sort]').forEach(th => {
+        th.addEventListener('click', () => {
+          const sortKey = th.dataset.sort;
+          if (currentSort.col === sortKey) {
+            currentSort.dir = currentSort.dir === 'asc' ? 'desc' : 'asc';
+          } else {
+            currentSort = { col: sortKey, dir: sortKey === 'merchant' ? 'asc' : 'desc' };
+          }
+          renderMerchantTable(merchantStats, container);
+        });
+      });
+    }
+
+    /* ────────────────────────────────────────────────────────────
+       RENDERING: Section 4 — Session Explorer
+    ──────────────────────────────────────────────────────────── */
+    function renderSessionExplorer(sessions) {
+      renderExplorerControls();
+      renderSessionTable(sessions);
+    }
+
+    function renderExplorerControls() {
+      const el = document.getElementById('explorerControls');
+      el.innerHTML = `
+        <input type="text" class="explorer-search" id="explorerSearch" placeholder="Search merchant..." value="${escHtml(explorerState.search)}" />
+        <select class="explorer-select" id="explorerStatus">
+          <option value="all"${explorerState.status === 'all' ? ' selected' : ''}>All Sessions</option>
+          <option value="success"${explorerState.status === 'success' ? ' selected' : ''}>Successful</option>
+          <option value="failed"${explorerState.status === 'failed' ? ' selected' : ''}>Failed</option>
+          <option value="nojobs"${explorerState.status === 'nojobs' ? ' selected' : ''}>No Jobs</option>
+        </select>
+        <select class="explorer-select" id="explorerSort">
+          <option value="newest"${explorerState.sort === 'newest' ? ' selected' : ''}>Newest First</option>
+          <option value="oldest"${explorerState.sort === 'oldest' ? ' selected' : ''}>Oldest First</option>
+          <option value="longest"${explorerState.sort === 'longest' ? ' selected' : ''}>Longest Duration</option>
+          <option value="mostjobs"${explorerState.sort === 'mostjobs' ? ' selected' : ''}>Most Jobs</option>
+        </select>
+      `;
+
+      // Wire events (use debounced search)
+      let searchTimer;
+      el.querySelector('#explorerSearch').addEventListener('input', e => {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(() => { explorerState.search = e.target.value; explorerState.page = 0; renderSessionTable(allSessions); }, 250);
+      });
+      el.querySelector('#explorerStatus').addEventListener('change', e => { explorerState.status = e.target.value; explorerState.page = 0; renderSessionTable(allSessions); });
+      el.querySelector('#explorerSort').addEventListener('change', e => { explorerState.sort = e.target.value; explorerState.page = 0; renderSessionTable(allSessions); });
+    }
+
+    function getFilteredExplorerSessions(sessions) {
+      let filtered = applySessionFilters(sessions);
+
+      // Explorer-specific status filter
+      if (explorerState.status === 'success') {
+        filtered = filtered.filter(s => (s.jobs || []).some(j => j.is_success));
+      } else if (explorerState.status === 'failed') {
+        filtered = filtered.filter(s => { const jobs = s.jobs || []; return jobs.length > 0 && !jobs.some(j => j.is_success); });
+      } else if (explorerState.status === 'nojobs') {
+        filtered = filtered.filter(s => !(s.jobs || []).length);
+      }
+
+      // Search by merchant
+      if (explorerState.search) {
+        const q = explorerState.search.toLowerCase();
+        filtered = filtered.filter(s => (s.jobs || []).some(j => (j.merchant || '').toLowerCase().includes(q)));
+      }
+
+      // Sort
+      filtered.sort((a, b) => {
+        switch (explorerState.sort) {
+          case 'oldest': return new Date(a.created_on || 0) - new Date(b.created_on || 0);
+          case 'longest': return (computeSessionDuration(b) || 0) - (computeSessionDuration(a) || 0);
+          case 'mostjobs': return (b.jobs || []).length - (a.jobs || []).length;
+          default: return new Date(b.created_on || 0) - new Date(a.created_on || 0);
+        }
+      });
+
+      return filtered;
+    }
+
+    function renderSessionTable(sessions) {
+      const container = document.getElementById('sessionTableWrap');
+      const pagEl = document.getElementById('sessionPagination');
+      const filtered = getFilteredExplorerSessions(sessions);
+
+      if (!filtered.length) {
+        container.innerHTML = '<div class="no-data">No sessions match the current filters.</div>';
+        pagEl.innerHTML = '';
+        return;
+      }
+
+      const totalPages = Math.ceil(filtered.length / explorerState.perPage);
+      explorerState.page = Math.min(explorerState.page, totalPages - 1);
+      const start = explorerState.page * explorerState.perPage;
+      const pageItems = filtered.slice(start, start + explorerState.perPage);
+
+      let html = `<table class="session-table"><thead><tr>
+        <th style="width:30px"></th>
+        <th>Session</th>
+        <th>FI</th>
+        <th>Created</th>
+        <th>Duration</th>
+        <th>Jobs (S/F)</th>
+        <th>Path</th>
+      </tr></thead><tbody>`;
+
+      for (const s of pageItems) {
+        const sid = pickSessionId(s);
+        const jobs = s.jobs || [];
+        const successes = jobs.filter(j => j.is_success).length;
+        const failures = jobs.length - successes;
+        const dur = computeSessionDuration(s);
+        const pages = parseClickstream(s);
+        const pathPills = pages.slice(0, 5).map(p => {
+          const phase = classifyPage(p.url);
+          const color = phase ? PHASE_COLORS[phase] : '#94a3b8';
+          const label = phase ? PHASE_LABELS[phase].split(' ')[0] : 'Other';
+          return `<span class="cs-pill" style="background:${color};color:#fff;">${label}</span>`;
+        }).join('');
+        const isExpanded = explorerState.expanded.has(sid);
+        const arrow = isExpanded ? '&#9660;' : '&#9654;';
+
+        html += `<tr class="session-row" data-sid="${escHtml(sid)}">
+          <td style="color:var(--muted)">${arrow}</td>
+          <td style="font-family:monospace;font-size:0.75rem;">${escHtml(String(sid).slice(0, 12))}${String(sid).length > 12 ? '...' : ''}</td>
+          <td>${escHtml(s.fi_key || s.fi_lookup_key || '—')}</td>
+          <td>${formatDate(s.created_on)}</td>
+          <td>${dur != null ? formatDuration(dur) : '—'}</td>
+          <td>${jobs.length ? `${successes}<span style="color:#22c55e">&#10003;</span> ${failures}<span style="color:#ef4444">&#10005;</span>` : '<span style="color:var(--muted)">—</span>'}</td>
+          <td>${pathPills || '<span style="color:var(--muted)">—</span>'}</td>
+        </tr>`;
+
+        // Expanded timeline row
+        if (isExpanded) {
+          html += `<tr class="expanded-row" data-sid-detail="${escHtml(sid)}"><td colspan="7"><div class="timeline-container">${renderSessionTimeline(s)}</div></td></tr>`;
+        }
+      }
+
+      html += '</tbody></table>';
+      container.innerHTML = html;
+
+      // Wire row click
+      container.querySelectorAll('.session-row').forEach(row => {
+        row.addEventListener('click', () => {
+          const sid = row.dataset.sid;
+          if (explorerState.expanded.has(sid)) {
+            explorerState.expanded.delete(sid);
+          } else {
+            explorerState.expanded.add(sid);
+          }
+          renderSessionTable(sessions);
+        });
+      });
+
+      // Pagination
+      let pagHtml = '';
+      if (totalPages > 1) {
+        pagHtml += `<button ${explorerState.page === 0 ? 'disabled' : ''} data-page="${explorerState.page - 1}">&laquo; Prev</button>`;
+        pagHtml += `<span class="page-info">${explorerState.page + 1} of ${totalPages} (${filtered.length} sessions)</span>`;
+        pagHtml += `<button ${explorerState.page >= totalPages - 1 ? 'disabled' : ''} data-page="${explorerState.page + 1}">Next &raquo;</button>`;
+      } else {
+        pagHtml = `<span class="page-info">${filtered.length} session${filtered.length !== 1 ? 's' : ''}</span>`;
+      }
+      pagEl.innerHTML = pagHtml;
+      pagEl.querySelectorAll('button[data-page]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          explorerState.page = parseInt(btn.dataset.page);
+          renderSessionTable(sessions);
+        });
+      });
+    }
+
+    /* ────────────────────────────────────────────────────────────
+       RENDERING: Session Timeline (expanded row)
+    ──────────────────────────────────────────────────────────── */
+    function renderSessionTimeline(session) {
+      const pages = parseClickstream(session);
+      const jobs = session.jobs || [];
+      if (!pages.length && !jobs.length) return '<div class="no-data" style="padding:10px">No timeline data</div>';
+
+      // Find time bounds
+      let tMin = Infinity, tMax = 0;
+      for (const p of pages) { tMin = Math.min(tMin, p.ts); tMax = Math.max(tMax, p.ts); }
+      for (const j of jobs) {
+        if (j.created_on) { const t = new Date(j.created_on).getTime(); tMin = Math.min(tMin, t); tMax = Math.max(tMax, t); }
+        if (j.completed_on) { const t = new Date(j.completed_on).getTime(); tMax = Math.max(tMax, t); }
+      }
+      if (tMin === Infinity) return '<div class="no-data" style="padding:10px">No timing data</div>';
+
+      const c = svgColors();
+      const totalMs = Math.max(tMax - tMin, 1000); // at least 1s
+      const svgW = 800, padL = 100, padR = 20;
+      const chartW = svgW - padL - padR;
+      const rowH = 28, gapH = 4;
+      const clickstreamY = 10;
+      const jobsStartY = clickstreamY + rowH + 12;
+      const svgH = jobsStartY + (jobs.length || 1) * (rowH + gapH) + 40;
+
+      function timeToX(ts) { return padL + ((ts - tMin) / totalMs) * chartW; }
+
+      let svg = `<svg class="timeline-svg" viewBox="0 0 ${svgW} ${svgH}" preserveAspectRatio="xMidYMid meet">`;
+
+      // Clickstream row
+      svg += `<text x="4" y="${clickstreamY + rowH / 2 + 4}" class="timeline-label" font-size="10">Pages</text>`;
+      for (let i = 0; i < pages.length; i++) {
+        const phase = classifyPage(pages[i].url);
+        const color = phase ? PHASE_COLORS[phase] : c.muted;
+        const label = phase ? PHASE_LABELS[phase].split(' ')[0] : 'Page';
+        const x1 = timeToX(pages[i].ts);
+        const x2 = (i + 1 < pages.length) ? timeToX(pages[i + 1].ts) : x1 + 20;
+        const w = Math.max(x2 - x1, 8);
+        svg += `<rect x="${x1}" y="${clickstreamY}" width="${w}" height="${rowH}" fill="${color}" rx="4" opacity="0.85"/>`;
+        if (w > 30) {
+          svg += `<text x="${x1 + w / 2}" y="${clickstreamY + rowH / 2 + 4}" text-anchor="middle" class="timeline-bar-label">${label}</text>`;
+        }
+      }
+
+      // Job rows
+      for (let j = 0; j < jobs.length; j++) {
+        const job = jobs[j];
+        const y = jobsStartY + j * (rowH + gapH);
+        const label = (job.merchant || 'unknown').slice(0, 15);
+        svg += `<text x="4" y="${y + rowH / 2 + 4}" class="timeline-label" font-size="10">${escHtml(label)}</text>`;
+
+        const phases = computeJobPhases(job);
+        const created = job.created_on ? new Date(job.created_on).getTime() : 0;
+        const ready = job.ready_on ? new Date(job.ready_on).getTime() : 0;
+        const linked = job.account_linked_on ? new Date(job.account_linked_on).getTime() : 0;
+        const completed = job.completed_on ? new Date(job.completed_on).getTime() : 0;
+
+        // Queue segment
+        if (created && ready) {
+          const x1 = timeToX(created), x2 = timeToX(ready);
+          svg += `<rect x="${x1}" y="${y}" width="${Math.max(x2 - x1, 3)}" height="${rowH}" fill="${PHASE_COLORS.queue}" rx="4"/>`;
+        }
+        // Login segment
+        if (ready && linked) {
+          const x1 = timeToX(ready), x2 = timeToX(linked);
+          svg += `<rect x="${x1}" y="${y}" width="${Math.max(x2 - x1, 3)}" height="${rowH}" fill="${PHASE_COLORS.login}" rx="0"/>`;
+        } else if (ready && completed && !linked) {
+          // Combined login+placement when no account_linked_on
+          const x1 = timeToX(ready), x2 = timeToX(completed);
+          svg += `<rect x="${x1}" y="${y}" width="${Math.max(x2 - x1, 3)}" height="${rowH}" fill="${PHASE_COLORS.login}" rx="0"/>`;
+        }
+        // Placement segment
+        if (linked && completed) {
+          const x1 = timeToX(linked), x2 = timeToX(completed);
+          svg += `<rect x="${x1}" y="${y}" width="${Math.max(x2 - x1, 3)}" height="${rowH}" fill="${PHASE_COLORS.placement}" rx="4"/>`;
+        }
+
+        // Success/fail indicator
+        const statusColor = job.is_success ? '#22c55e' : '#ef4444';
+        const endX = completed ? timeToX(completed) : (ready ? timeToX(ready) : (created ? timeToX(created) : padL));
+        svg += `<circle cx="${endX + 10}" cy="${y + rowH / 2}" r="4" fill="${statusColor}"/>`;
+      }
+
+      // Time axis
+      const axisY = svgH - 12;
+      svg += `<line x1="${padL}" y1="${axisY}" x2="${svgW - padR}" y2="${axisY}" stroke="${c.border}" stroke-width="1"/>`;
+      const tickCount = Math.min(8, Math.max(2, Math.floor(chartW / 80)));
+      for (let i = 0; i <= tickCount; i++) {
+        const frac = i / tickCount;
+        const x = padL + frac * chartW;
+        const sec = (frac * totalMs) / 1000;
+        svg += `<line x1="${x}" y1="${axisY - 3}" x2="${x}" y2="${axisY + 3}" stroke="${c.muted}" stroke-width="1"/>`;
+        svg += `<text x="${x}" y="${axisY - 6}" text-anchor="middle" fill="${c.muted}" font-size="8">${formatShortDuration(sec)}</text>`;
+      }
+
+      svg += '</svg>';
+
+      // Mini legend
+      svg += `<div class="waterfall-legend" style="margin-top:6px;font-size:0.72rem;">
+        <div class="waterfall-legend-item"><div class="waterfall-legend-swatch" style="background:${PHASE_COLORS.queue};width:10px;height:10px;"></div>Queue</div>
+        <div class="waterfall-legend-item"><div class="waterfall-legend-swatch" style="background:${PHASE_COLORS.login};width:10px;height:10px;"></div>Login</div>
+        <div class="waterfall-legend-item"><div class="waterfall-legend-swatch" style="background:${PHASE_COLORS.placement};width:10px;height:10px;"></div>Placement</div>
+        <div class="waterfall-legend-item"><svg width="10" height="10"><circle cx="5" cy="5" r="4" fill="#22c55e"/></svg>Success</div>
+        <div class="waterfall-legend-item"><svg width="10" height="10"><circle cx="5" cy="5" r="4" fill="#ef4444"/></svg>Failed</div>
+      </div>`;
+
+      return svg;
+    }
+
+    /* ────────────────────────────────────────────────────────────
+       CSV EXPORT
+    ──────────────────────────────────────────────────────────── */
+    function generateCSV(sessions) {
+      const headers = [
+        'session_id', 'fi_key', 'instance', 'integration', 'created_on',
+        'session_duration_s',
+        'page_select_merchants_s', 'page_user_data_s', 'page_credential_entry_s',
+        'total_jobs', 'successful_jobs', 'failed_jobs',
+        'merchant', 'job_status', 'termination',
+        'job_queue_s', 'job_login_s', 'job_placement_s', 'job_total_s'
+      ];
+      const rows = [headers.join(',')];
+
+      for (const s of sessions) {
+        const sid = pickSessionId(s) || '';
+        const fi = s.fi_key || s.fi_lookup_key || '';
+        const inst = s.instance || s._instance || '';
+        const intg = s.integration_display || s.integration || s.integration_type || '';
+        const created = s.created_on || '';
+        const dur = computeSessionDuration(s);
+        const cs = computeClickstreamPhases(s);
+        const jobs = s.jobs || [];
+        const successes = jobs.filter(j => j.is_success).length;
+        const failures = jobs.length - successes;
+
+        if (jobs.length === 0) {
+          // One row per session when no jobs
+          rows.push([
+            csvEsc(sid), csvEsc(fi), csvEsc(inst), csvEsc(intg), csvEsc(created),
+            dur != null ? dur.toFixed(1) : '',
+            cs.selectMerchants != null ? cs.selectMerchants.toFixed(1) : '',
+            cs.userData != null ? cs.userData.toFixed(1) : '',
+            cs.credEntry != null ? cs.credEntry.toFixed(1) : '',
+            '0', '0', '0',
+            '', '', '', '', '', '', ''
+          ].join(','));
+        } else {
+          // One row per job
+          for (const job of jobs) {
+            const jp = computeJobPhases(job);
+            const jTotal = (jp.queue || 0) + (jp.login || 0) + (jp.placement || 0);
+            rows.push([
+              csvEsc(sid), csvEsc(fi), csvEsc(inst), csvEsc(intg), csvEsc(created),
+              dur != null ? dur.toFixed(1) : '',
+              cs.selectMerchants != null ? cs.selectMerchants.toFixed(1) : '',
+              cs.userData != null ? cs.userData.toFixed(1) : '',
+              cs.credEntry != null ? cs.credEntry.toFixed(1) : '',
+              String(jobs.length), String(successes), String(failures),
+              csvEsc(job.merchant || ''), job.is_success ? 'success' : 'failed', csvEsc(job.termination || ''),
+              jp.queue != null ? jp.queue.toFixed(1) : '',
+              jp.login != null ? jp.login.toFixed(1) : '',
+              jp.placement != null ? jp.placement.toFixed(1) : '',
+              jTotal > 0 ? jTotal.toFixed(1) : ''
+            ].join(','));
+          }
+        }
+      }
+      return rows.join('\n');
+    }
+
+    function csvEsc(val) {
+      const s = String(val);
+      return s.includes(',') || s.includes('"') || s.includes('\n') ? '"' + s.replace(/"/g, '""') + '"' : s;
+    }
+
+    function downloadCSV(sessions) {
+      const filtered = applySessionFilters(sessions);
+      const csv = generateCSV(filtered);
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const startInput = document.getElementById('startDate');
+      const endInput = document.getElementById('endDate');
+      const dateStr = (startInput?.value || 'unknown') + '_to_' + (endInput?.value || 'unknown');
+      a.href = url;
+      a.download = `cardholder-experience_${dateStr}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    /* ────────────────────────────────────────────────────────────
+       MAIN RENDER PIPELINE
+    ──────────────────────────────────────────────────────────── */
+    function renderAll(sessions) {
+      const filtered = applySessionFilters(sessions);
+
+      if (!filtered.length) {
+        document.getElementById('overviewCards').innerHTML = '';
+        document.getElementById('waterfallChart').innerHTML = '<div class="no-data">No sessions found for the selected date range and filters.</div>';
+        document.getElementById('pageTimingPanels').innerHTML = '<div class="no-data">No data</div>';
+        document.getElementById('jobTimingCards').innerHTML = '';
+        document.getElementById('merchantTableWrap').innerHTML = '<div class="no-data">No data</div>';
+        renderSessionExplorer([]);
+        return;
+      }
+
+      const phaseStats = aggregatePhaseStats(filtered);
+      const merchantStats = computeMerchantStats(filtered);
+
+      renderJourneyOverview(filtered, phaseStats);
+      renderPageTimingPanels(phaseStats);
+      renderJobTimingSection(filtered, phaseStats, merchantStats);
+      renderSessionExplorer(filtered);
+    }
+
+    /* ────────────────────────────────────────────────────────────
+       DATA REFRESH
+    ──────────────────────────────────────────────────────────── */
+    async function refreshData(dateRange, filterState) {
+      console.log('[Experience] Refreshing data...', dateRange);
+
+      // Show loading
+      document.getElementById('overviewCards').innerHTML = '';
+      document.getElementById('waterfallChart').innerHTML = '<div class="loading-indicator">Loading session data</div>';
+      document.getElementById('pageTimingPanels').innerHTML = '';
+      document.getElementById('jobTimingCards').innerHTML = '';
+      document.getElementById('merchantTableWrap').innerHTML = '';
+      document.getElementById('sessionTableWrap').innerHTML = '';
+      document.getElementById('sessionPagination').innerHTML = '';
+
+      try {
+        allSessions = await fetchSessionData(dateRange, filterState);
+        console.log(`[Experience] Loaded ${allSessions.length} sessions`);
+        renderAll(allSessions);
+      } catch (err) {
+        console.error('[Experience] Error:', err);
+        document.getElementById('waterfallChart').innerHTML = '<div class="no-data" style="color:var(--error,#ef4444);">Error loading data. Please try again.</div>';
+      }
+    }
+
+    /* ────────────────────────────────────────────────────────────
+       FILTER INTEGRATION
+    ──────────────────────────────────────────────────────────── */
+    window.applyFilters = function() {
+      console.log('[Experience] Filter change');
+      const filterState = window.__FILTER_STATE || null;
+      const startInput = document.getElementById('startDate');
+      const endInput = document.getElementById('endDate');
+      if (startInput && endInput && startInput.value && endInput.value) {
+        refreshData({ startDate: new Date(startInput.value + 'T00:00:00'), endDate: new Date(endInput.value + 'T00:00:00') }, filterState);
+      } else {
+        refreshData(getDefaultDateRange(), filterState);
+      }
+    };
+
+    /* ────────────────────────────────────────────────────────────
+       INITIALIZATION
+    ──────────────────────────────────────────────────────────── */
+    function init() {
+      console.log('[Experience] Initializing Cardholder Experience page');
+
+      if (window.initFilters) window.initFilters('experience');
+
+      const startInput = document.getElementById('startDate');
+      const endInput = document.getElementById('endDate');
+      const presetSel = document.getElementById('datePreset');
+      const applyBtn = document.getElementById('applyBtn');
+
+      if (startInput && endInput && applyBtn) {
+        const def = getDefaultDateRange();
+        startInput.value = formatDateForInput(def.startDate);
+        endInput.value = formatDateForInput(def.endDate);
+
+        if (presetSel) {
+          presetSel.addEventListener('change', e => {
+            if (e.target.value) {
+              const r = applyDatePreset(e.target.value);
+              if (r) { startInput.value = formatDateForInput(r.startDate); endInput.value = formatDateForInput(r.endDate); }
+            }
+          });
+        }
+
+        applyBtn.addEventListener('click', () => {
+          refreshData({ startDate: new Date(startInput.value + 'T00:00:00'), endDate: new Date(endInput.value + 'T00:00:00') }, window.__FILTER_STATE || null);
+        });
+
+        const onEnter = e => { if (e.key === 'Enter') applyBtn.click(); };
+        startInput.addEventListener('keydown', onEnter);
+        endInput.addEventListener('keydown', onEnter);
+
+        const onManual = () => { if (presetSel) presetSel.value = ''; };
+        startInput.addEventListener('change', onManual);
+        endInput.addEventListener('change', onManual);
+      }
+
+      // CSV download button
+      const csvBtn = document.getElementById('csvDownloadBtn');
+      if (csvBtn) csvBtn.addEventListener('click', () => downloadCSV(allSessions));
+
+      // Toggle buttons
+      document.querySelectorAll('.toggle-group').forEach(group => {
+        group.querySelectorAll('.toggle-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            group.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            // Re-render with current data
+            renderAll(allSessions);
+          });
+        });
+      });
+
+      // Initial data load
+      refreshData(getDefaultDateRange(), window.__FILTER_STATE || null);
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
+  })();
+  </script>
+
+  <script>
+    if (window.renderHeaderNav) window.renderHeaderNav({ currentId: "experience" });
+  </script>
+</body>
+</html>

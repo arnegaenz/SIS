@@ -183,6 +183,19 @@ All partner-facing content follows engagement-positive tone:
 - **Phase 2 ideas**: Session search by reference ID, FI picker for multi-FI users, date range calendar, export/print, FAQ/help section
 - Originally requested by Liam (Feb 26, 2026) as "Troubleshooting Site"
 
+### Job Outcome Breakdown Modal Polish (Low Priority)
+- **Phase 1 COMPLETE**: Click-to-modal on all 5 breakdown cards (`funnel.html`). Stats row, top-10 merchant bars, callout insights, 90-day trend section with Daily + Weekly side-by-side charts.
+- **Current state**: Stacked bars for sysrate/overall (green success + amber system + red UX segments), single-color bars for success/system/ux. Separate linear regression trend lines per series. Legends, x-axis labels, 90-day independent data fetch.
+- **Known issues / future improvements**:
+  - Daily chart with 90 bars is dense — consider aggregating to every-other-day or showing only last 60 days
+  - Weekly labels can still truncate on narrow screens — explore shorter date formats or rotating labels
+  - Trend lines use linear regression which can be misleading with non-linear patterns — consider adding trend direction arrows/labels (e.g. "Success +12%") as a simpler alternative
+  - Monthly view was dropped (only ~3 bars over 90 days) — revisit if lookback window extends to 6+ months
+  - 90-day trend data is not cached separately — hitting the API each time the modal opens. Could use a dedicated cache key
+  - Tooltips on stacked bars show text but can be hard to hover on narrow daily bars — consider a shared tooltip panel on hover
+  - Legend has 4 items on stacked charts — could be simplified to just the bar colors if trend line meaning is made more obvious
+  - Could add the modal to `funnel-customer.html` (customer-facing page) if partners find it useful
+
 ### Card Replacement Reach Math (Discussed, Not Yet Built)
 - ~25% annual portfolio turnover from expirations, ~3-5% lost/stolen = ~28-30% annual (2.3-2.5% monthly)
 - These are Tier 1 motivation cardholders at peak urgency
