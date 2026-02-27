@@ -88,7 +88,8 @@ var GROUPS = [
 { id:"heatmap", label:"Merchant Heatmap", href:NAV_PREFIX+"heatmap.html" },
 { id:"watchlist", label:"Alerts & Watchlist", href:NAV_PREFIX+"watchlist.html" },
 { id:"realtime", label:"Real-Time", href:NAV_PREFIX+"realtime.html" },
-{ id:"troubleshoot", label:"Troubleshoot", href:NAV_PREFIX+"troubleshoot.html" }
+{ id:"troubleshoot", label:"Troubleshoot", href:NAV_PREFIX+"troubleshoot.html" },
+{ id:"troubleshoot-customer", label:"Support Lookup", href:NAV_PREFIX+"troubleshoot-customer.html" }
 ]},
 { label: "Analysis", items: [
 { id:"funnel", label:"FI Funnel", href:NAV_PREFIX+"funnel.html" },
@@ -161,7 +162,8 @@ function getGroupsForAccess() {
       { label: "Dashboards", items: [
         { id:"executive", label:"Executive Summary", href:NAV_PREFIX+"dashboards/executive.html" },
         { id:"funnel-customer", label:"Cardholder Engagement", href:NAV_PREFIX+"funnel-customer.html" },
-        { id:"supported-sites", label:"Supported Sites", href:NAV_PREFIX+"supported-sites.html" }
+        { id:"supported-sites", label:"Supported Sites", href:NAV_PREFIX+"supported-sites.html" },
+        { id:"troubleshoot-customer", label:"Support Lookup", href:NAV_PREFIX+"troubleshoot-customer.html" }
       ]}
     ];
   }

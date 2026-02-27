@@ -470,11 +470,11 @@ function renderTierDistribution(fis) {
   if (!container) return;
 
   const buckets = [
-    { key: "1", label: "Tier 1", color: "#22c55e", count: 0 },
-    { key: "1.5", label: "Tier 1.5", color: "#84cc16", count: 0 },
-    { key: "2", label: "Tier 2", color: "#f59e0b", count: 0 },
-    { key: "2.5", label: "Tier 2.5", color: "#f97316", count: 0 },
-    { key: "3", label: "Tier 3", color: "#ef4444", count: 0 },
+    { key: "1", label: "Activation", color: "#22c55e", count: 0 },
+    { key: "1.5", label: "Cmpn\u2192Act", color: "#84cc16", count: 0 },
+    { key: "2", label: "Campaign", color: "#f59e0b", count: 0 },
+    { key: "2.5", label: "Disc\u2192Cmpn", color: "#f97316", count: 0 },
+    { key: "3", label: "Discovery", color: "#ef4444", count: 0 },
   ];
 
   fis.forEach((fi) => {

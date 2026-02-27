@@ -1331,6 +1331,47 @@
       background: var(--panel); border-color: var(--border); color: var(--muted);
     }
     [data-theme="dark"] .admin-benchmark-refs .ref-title { color: #f87171; }
+
+    /* ── Reach Math Calculator ── */
+    .reach-math-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
+      margin-bottom: 16px;
+    }
+    .reach-math-stat {
+      text-align: center; padding: 16px 12px;
+      background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px;
+    }
+    .reach-math-value {
+      font-size: 1.6rem; font-weight: 800; color: #0f172a; line-height: 1.2;
+    }
+    .reach-math-label {
+      font-size: 0.78rem; color: #64748b; margin-top: 4px;
+    }
+    .reach-math-note {
+      font-size: 0.7rem; color: #94a3b8; margin-top: 2px;
+    }
+    .reach-math-narrative {
+      font-size: 0.88rem; line-height: 1.65; color: #334155;
+    }
+    .reach-math-gap {
+      margin-top: 12px; padding: 10px 14px;
+      background: linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%);
+      border: 1px solid #bfdbfe; border-radius: 8px;
+      font-size: 0.85rem; color: #1e40af; font-weight: 600;
+    }
+    @media (max-width: 600px) {
+      .reach-math-grid { grid-template-columns: 1fr; }
+    }
+    [data-theme="dark"] .reach-math-stat {
+      background: var(--panel); border-color: var(--border);
+    }
+    [data-theme="dark"] .reach-math-value { color: var(--text); }
+    [data-theme="dark"] .reach-math-label { color: #64748b; }
+    [data-theme="dark"] .reach-math-note { color: #475569; }
+    [data-theme="dark"] .reach-math-narrative { color: #cbd5e1; }
+    [data-theme="dark"] .reach-math-gap {
+      background: rgba(37,99,235,0.08); border-color: rgba(37,99,235,0.2); color: #93c5fd;
+    }
   </style>
 </head>
 <body>
@@ -1596,9 +1637,9 @@
           <div class="spectrum-gauge" id="spectrumGauge"></div>
           <div class="spectrum-labels">
             <span>0%</span>
-            <span>Incidental Discovery</span>
-            <span>Campaigns</span>
-            <span>Activation Flow</span>
+            <span>Discovery</span>
+            <span>Campaign</span>
+            <span>Activation</span>
             <span>27%+</span>
           </div>
           <div class="spectrum-diagnosis" id="spectrumDiagnosis"></div>
@@ -1631,6 +1672,15 @@
           <span class="section-badge">Projection</span>
         </div>
         <div id="projectionContent"></div>
+      </div>
+
+      <!-- Card Replacement Reach Math -->
+      <div id="reachMathSection" class="insights-section" style="display:none;">
+        <div class="insights-section-title">
+          Card Replacement Opportunity
+          <span class="section-badge">Reach Math</span>
+        </div>
+        <div id="reachMathContent"></div>
       </div>
 
       <!-- ═══ AI-Powered Insights (Admin Only) ═══ -->
@@ -1666,8 +1716,8 @@
             <div class="spectrum-gauge" id="ssoSpectrumGauge"></div>
             <div class="spectrum-labels">
               <span>0%</span>
-              <span>Incidental</span>
-              <span>Campaigns</span>
+              <span>Discovery</span>
+              <span>Campaign</span>
               <span>Activation</span>
               <span>27%+</span>
             </div>
@@ -1688,8 +1738,8 @@
             <div class="spectrum-gauge" id="nonssoSpectrumGauge"></div>
             <div class="spectrum-labels">
               <span>0%</span>
-              <span>Organic</span>
-              <span>Campaigns</span>
+              <span>Discovery</span>
+              <span>Campaign</span>
               <span>Activation</span>
               <span>50%+</span>
             </div>
@@ -3538,6 +3588,7 @@
       renderSpectrum(insightsCtx);
       renderActions(insightsCtx);
       renderProjections(insightsCtx);
+      renderReachMath(insightsCtx, visibleRows);
 
       // Integration type breakdown (SSO vs Non-SSO)
       try {
@@ -3558,7 +3609,7 @@
     }
 
     function hideInsightsSections() {
-      ['funnelVizSection', 'narrativeSection', 'spectrumSection', 'actionsSection', 'projectionSection', 'integrationBreakdownSection', 'qbrTrendSection', 'qbrNarrativeSection', 'qbrYoySection', 'qbrMonthlySection', 'qbrSummarySection', 'adminObjectionsSection', 'adminBenchmarkRefsSection'].forEach(id => {
+      ['funnelVizSection', 'narrativeSection', 'spectrumSection', 'actionsSection', 'projectionSection', 'reachMathSection', 'integrationBreakdownSection', 'qbrTrendSection', 'qbrNarrativeSection', 'qbrYoySection', 'qbrMonthlySection', 'qbrSummarySection', 'adminObjectionsSection', 'adminBenchmarkRefsSection'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.style.display = 'none';
       });
@@ -3975,11 +4026,11 @@
       // Build gauge zones (proportional widths on a 0–30% scale)
       const maxScale = 30;
       const zones = [
-        { label: 'Tier 3: Incidental', min: 0, max: 3, color: '#ef4444' },
-        { label: '⟶', min: 3, max: 8, color: '#f97316' },
-        { label: 'Tier 2: Campaigns', min: 8, max: 12, color: '#eab308' },
-        { label: '⟶', min: 12, max: 21, color: '#84cc16' },
-        { label: 'Tier 1: Activation', min: 21, max: 30, color: '#22c55e' },
+        { label: 'Discovery', min: 0, max: 3, color: '#ef4444' },
+        { label: '\u27F6', min: 3, max: 8, color: '#f97316' },
+        { label: 'Campaign', min: 8, max: 12, color: '#eab308' },
+        { label: '\u27F6', min: 12, max: 21, color: '#84cc16' },
+        { label: 'Activation', min: 21, max: 30, color: '#22c55e' },
       ];
 
       let gaugeHtml = '';
@@ -4203,6 +4254,76 @@
       section.style.display = '';
     }
 
+    // ── Card Replacement Reach Math ────────────────────────────────────────
+
+    const MONTHLY_TURNOVER_RATE = 0.025; // ~2.5% of cardholders replace their card each month
+    const ACTIVATION_CONVERSION_RATE = 0.21; // 21% success rate at Activation level
+
+    function renderReachMath(ctx, visibleRows) {
+      const section = document.getElementById('reachMathSection');
+      const container = document.getElementById('reachMathContent');
+      if (!section || !container) return;
+
+      // Sum cardholder totals across visible rows
+      let totalCardholders = 0;
+      let hasCardholderData = false;
+      const seen = new Set();
+      for (const row of visibleRows) {
+        const ch = Number(row.cardholders);
+        if (Number.isFinite(ch) && ch > 0 && !seen.has(row.fi)) {
+          totalCardholders += ch;
+          hasCardholderData = true;
+          seen.add(row.fi);
+        }
+      }
+
+      if (!hasCardholderData) {
+        section.style.display = 'none';
+        return;
+      }
+
+      const monthlyPool = Math.round(totalCardholders * MONTHLY_TURNOVER_RATE);
+      const currentReach = ctx.totalSessions || 0;
+      const currentDays = ctx.daySpan || 30;
+      const monthlyReach = Math.round(currentReach * (30 / currentDays));
+      const potentialPlacements = Math.round(monthlyPool * ACTIVATION_CONVERSION_RATE);
+      const gap = Math.max(0, monthlyPool - monthlyReach);
+
+      const fN = EI.fmtN;
+
+      let html = `<div class="reach-math-grid">
+        <div class="reach-math-stat">
+          <div class="reach-math-value">${fN(monthlyPool)}</div>
+          <div class="reach-math-label">Cards replaced monthly</div>
+          <div class="reach-math-note">~2.5% of ${fN(totalCardholders)} cardholders</div>
+        </div>
+        <div class="reach-math-stat">
+          <div class="reach-math-value">${fN(monthlyReach)}</div>
+          <div class="reach-math-label">Currently reaching CardUpdatr</div>
+          <div class="reach-math-note">~${fN(currentReach)} visits over ${currentDays} days</div>
+        </div>
+        <div class="reach-math-stat">
+          <div class="reach-math-value">${fN(potentialPlacements)}</div>
+          <div class="reach-math-label">Potential placements/month</div>
+          <div class="reach-math-note">At Activation-level (21%) conversion</div>
+        </div>
+      </div>`;
+
+      html += `<div class="reach-math-narrative">Every month, approximately <strong>${fN(monthlyPool)}</strong> of your cardholders receive a replacement card — from expirations, lost/stolen, or reissues. These are <strong>Activation-level</strong> cardholders at peak motivation. `;
+
+      if (gap > 0 && monthlyPool > 0) {
+        const pctReached = Math.min(100, Math.round((monthlyReach / monthlyPool) * 100));
+        html += `Currently, CardUpdatr is reaching about <strong>${pctReached}%</strong> of this natural pool. `;
+        html += `Connecting with more of these motivated cardholders at the moment of card activation is the highest-leverage opportunity available.</div>`;
+        html += `<div class="reach-math-gap">Opportunity: <strong>${fN(gap)}</strong> additional motivated cardholders/month could be reached through activation flow integration and card issuance touchpoints.</div>`;
+      } else {
+        html += `Your current reach is strong — you're connecting with cardholders at or above the natural replacement rate. Focus on maintaining this momentum and optimizing conversion quality.</div>`;
+      }
+
+      container.innerHTML = html;
+      section.style.display = '';
+    }
+
     // ── Integration Breakdown (SSO vs Non-SSO) ────────────────────────────
 
     /**
@@ -4358,19 +4479,19 @@
       var zones;
       if (isNonSSO && !hasCalibration) {
         zones = [
-          { label: 'Tier 3: Organic', min: 0, max: 8, color: '#ef4444' },
+          { label: 'Discovery', min: 0, max: 8, color: '#ef4444' },
           { label: '\u27F6', min: 8, max: 15, color: '#f97316' },
-          { label: 'Tier 2: Campaigns', min: 15, max: 25, color: '#eab308' },
+          { label: 'Campaign', min: 15, max: 25, color: '#eab308' },
           { label: '\u27F6', min: 25, max: 35, color: '#84cc16' },
-          { label: 'Tier 1: Activation', min: 35, max: 50, color: '#22c55e' },
+          { label: 'Activation', min: 35, max: 50, color: '#22c55e' },
         ];
       } else {
         zones = [
-          { label: 'Tier 3: Incidental', min: 0, max: 3, color: '#ef4444' },
+          { label: 'Discovery', min: 0, max: 3, color: '#ef4444' },
           { label: '\u27F6', min: 3, max: 8, color: '#f97316' },
-          { label: 'Tier 2: Campaigns', min: 8, max: 12, color: '#eab308' },
+          { label: 'Campaign', min: 8, max: 12, color: '#eab308' },
           { label: '\u27F6', min: 12, max: 21, color: '#84cc16' },
-          { label: 'Tier 1: Activation', min: 21, max: 30, color: '#22c55e' },
+          { label: 'Activation', min: 21, max: 30, color: '#22c55e' },
         ];
       }
 
@@ -4378,7 +4499,7 @@
       if (hasCalibration) {
         var labelsEl = gauge.parentElement ? gauge.parentElement.querySelector('.spectrum-labels') : null;
         if (labelsEl) {
-          labelsEl.innerHTML = '<span>0%</span><span>Incidental</span><span>Campaigns</span><span>Activation</span><span>30%+</span>';
+          labelsEl.innerHTML = '<span>0%</span><span>Discovery</span><span>Campaign</span><span>Activation</span><span>30%+</span>';
         }
       }
 
@@ -6074,6 +6195,32 @@
               { label: 'Successful', value: ctx.sessionsWithSuccess, color: '#dbeafe', borderColor: '#93c5fd', textColor: '#1e40af' },
               { label: 'Cards Updated', value: ctx.successfulPlacements, color: '#dcfce7', borderColor: '#86efac', textColor: '#166534' },
             ];
+            // Build reach math for PDF
+            let reachMathPayload = null;
+            try {
+              const pdfVisibleRows = getVisibleRows(lastAggregated || {});
+              let rmTotal = 0; let rmHasData = false; const rmSeen = new Set();
+              for (const row of pdfVisibleRows) {
+                const ch = Number(row.cardholders);
+                if (Number.isFinite(ch) && ch > 0 && !rmSeen.has(row.fi)) {
+                  rmTotal += ch; rmHasData = true; rmSeen.add(row.fi);
+                }
+              }
+              if (rmHasData) {
+                const rmPool = Math.round(rmTotal * 0.025);
+                const rmReach = Math.round((ctx.totalSessions || 0) * (30 / (ctx.daySpan || 30)));
+                const rmGap = Math.max(0, rmPool - rmReach);
+                reachMathPayload = {
+                  totalCardholders: rmTotal,
+                  monthlyPool: rmPool,
+                  monthlyReach: rmReach,
+                  potentialPlacements: Math.round(rmPool * 0.21),
+                  gap: rmGap,
+                  pctReached: rmPool > 0 ? Math.min(100, Math.round((rmReach / rmPool) * 100)) : 0,
+                };
+              }
+            } catch (e) { console.warn('[pdf] reachMath error:', e); }
+
             insightsPayload = {
               funnel: pdfFunnelStages,
               narratives: narrativeResults.map(n => ({
@@ -6089,6 +6236,7 @@
               actions: actions,
               libraryMeta: (EI.ACTION_LIBRARY && EI.ACTION_LIBRARY._meta) || {},
               projection: projections,
+              reachMath: reachMathPayload,
             };
             // Add QBR data if in QBR mode
             if (document.body.classList.contains('qbr-mode') && window.__qbrQuartersData) {

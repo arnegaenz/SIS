@@ -88,11 +88,11 @@ const tierSelect = createMultiSelect(document.getElementById("tierSelect"), {
 
 // Populate tier filter options
 tierSelect.setOptions([
-  { value: "1", label: "Tier 1 - Activation" },
-  { value: "1.5", label: "Tier 1.5 - Campaign>Activation" },
-  { value: "2", label: "Tier 2 - Campaigns" },
-  { value: "2.5", label: "Tier 2.5 - Discovery>Campaign" },
-  { value: "3", label: "Tier 3 - Incidental" },
+  { value: "1", label: "Activation (\u226521%)" },
+  { value: "1.5", label: "Campaign \u2192 Activation (12-21%)" },
+  { value: "2", label: "Campaign (8-12%)" },
+  { value: "2.5", label: "Discovery \u2192 Campaign (3-8%)" },
+  { value: "3", label: "Discovery (<3%)" },
 ]);
 
 /* ── Time Windows ── */
@@ -328,7 +328,7 @@ function healthDotTooltip(rate) {
   const pct = (rate * 100).toFixed(1);
   if (rate >= 0.15) return `Engagement Health: GREEN (${pct}% success rate). This FI is performing well — success rate is at or above 15%. The 15% threshold separates healthy engagement from areas needing attention.`;
   if (rate >= 0.05) return `Engagement Health: AMBER (${pct}% success rate). This FI's success rate is between 5-15%. There is room for improvement — consider reviewing traffic sources and whether activation flow is enabled.`;
-  return `Engagement Health: RED (${pct}% success rate). This FI's success rate is below 5%. This typically indicates Tier 3 (incidental) traffic with no activation flow or campaign outreach. Immediate attention recommended.`;
+  return `Engagement Health: RED (${pct}% success rate). This FI's success rate is below 5%. This typically indicates Discovery-level traffic with no activation flow or campaign outreach. Immediate attention recommended.`;
 }
 
 function systemFlagTooltip(fi) {
@@ -587,11 +587,11 @@ function renderTierDistribution(fis) {
   if (!container) return;
 
   const buckets = [
-    { key: "1", label: "Tier 1", color: "#22c55e", count: 0, desc: "Card Activation Flow (>=21% success). Peak cardholder motivation." },
-    { key: "1.5", label: "Tier 1.5", color: "#84cc16", count: 0, desc: "Campaign-to-Activation transition (12-21%). Mix of prompted and motivated." },
-    { key: "2", label: "Tier 2", color: "#f59e0b", count: 0, desc: "SMS & Targeted Campaigns (8-12%). Manufactured motivation via outreach." },
-    { key: "2.5", label: "Tier 2.5", color: "#f97316", count: 0, desc: "Discovery-to-Campaign transition (3-8%). Some outreach, not consistent." },
-    { key: "3", label: "Tier 3", color: "#ef4444", count: 0, desc: "Incidental Discovery (<3%). Browsing only, no prompt or urgency." },
+    { key: "1", label: "Activation", color: "#22c55e", count: 0, desc: "Activation (>=21% success). Peak cardholder motivation — card activation flows." },
+    { key: "1.5", label: "Cmpn\u2192Act", color: "#84cc16", count: 0, desc: "Campaign-to-Activation transition (12-21%). Mix of prompted and motivated." },
+    { key: "2", label: "Campaign", color: "#f59e0b", count: 0, desc: "Campaign (8-12%). Manufactured motivation via SMS, email, and targeted outreach." },
+    { key: "2.5", label: "Disc\u2192Cmpn", color: "#f97316", count: 0, desc: "Discovery-to-Campaign transition (3-8%). Some outreach, not consistent." },
+    { key: "3", label: "Discovery", color: "#ef4444", count: 0, desc: "Discovery (<3%). Browsing only, no prompt or urgency." },
   ];
 
   fis.forEach((fi) => {
@@ -630,10 +630,10 @@ function renderScoreDistribution(fis) {
   if (!container) return;
 
   const buckets = [
-    { label: "0-24", color: "#ef4444", count: 0, desc: "Critical — these FIs have very low conversion, minimal volume, and/or declining trends. Likely Tier 3 incidental traffic with no activation strategy." },
+    { label: "0-24", color: "#ef4444", count: 0, desc: "Critical — these FIs have very low conversion, minimal volume, and/or declining trends. Likely Discovery-level traffic with no activation strategy." },
     { label: "25-49", color: "#f97316", count: 0, desc: "Needs attention — below-average engagement. May have some campaign activity but not consistent, or decent volume but poor conversion." },
-    { label: "50-74", color: "#f59e0b", count: 0, desc: "Moderate engagement — performing reasonably but with clear room to grow. Typically Tier 2 FIs with active campaigns or Tier 3 FIs with high volume." },
-    { label: "75-100", color: "#22c55e", count: 0, desc: "Strong engagement — high conversion rate, positive trends, good reach. Typically Tier 1 or strong Tier 2 FIs with activation flow or effective campaigns." },
+    { label: "50-74", color: "#f59e0b", count: 0, desc: "Moderate engagement — performing reasonably but with clear room to grow. Typically Campaign-level FIs with active outreach or Discovery-level FIs with high volume." },
+    { label: "75-100", color: "#22c55e", count: 0, desc: "Strong engagement — high conversion rate, positive trends, good reach. Typically Activation or strong Campaign-level FIs with effective engagement strategies." },
   ];
 
   fis.forEach((fi) => {
@@ -755,12 +755,12 @@ function trendArrow(trend) {
 }
 
 const TIER_TOOLTIPS = {
-  tier1: "Tier 1 — Card Activation Flow (>=21% success rate). These cardholders just received a new card and have urgent motivation to update their payment info. 1 in 4 completes. This is the gold standard.",
-  tier2to1: "Tier 1.5 — Campaign-to-Activation Transition (12-21% success rate). This FI is between campaign-driven and activation-driven traffic. Likely has a mix of motivated and prompted cardholders. Push toward activation flow integration to reach Tier 1.",
-  tier2: "Tier 2 — SMS & Targeted Campaigns (8-12% success rate). Cardholders are prompted via SMS, email, or targeted campaigns. Manufactured motivation. ~1 in 10 acts. Good engagement but room to grow by adding activation flow triggers.",
-  tier3to2: "Tier 2.5 — Discovery-to-Campaign Transition (3-8% success rate). This FI is between incidental discovery and campaign-driven traffic. Some outreach is happening but not consistently. Recommend structured campaign cadence to reach Tier 2.",
-  tier3: "Tier 3 — Incidental Discovery (<3% success rate). Cardholders are browsing online banking with no specific prompt or urgency. Curiosity-only traffic. <1 in 33 completes. This is the starting line — not a verdict. Every FI can move up with the right activation strategy.",
-  unknown: "Tier data unavailable. Insufficient session data to classify this FI's motivation tier.",
+  tier1: "Activation (>=21% success rate). These cardholders just received a new card and have urgent motivation to update their payment info. 1 in 4 completes. This is the gold standard.",
+  tier2to1: "Campaign \u2192 Activation (12-21% success rate). This FI is between campaign-driven and activation-driven traffic. Likely has a mix of motivated and prompted cardholders. Push toward activation flow integration to reach Activation level.",
+  tier2: "Campaign (8-12% success rate). Cardholders are prompted via SMS, email, or targeted campaigns. Manufactured motivation. ~1 in 10 acts. Good engagement but room to grow by adding activation flow triggers.",
+  tier3to2: "Discovery \u2192 Campaign (3-8% success rate). This FI is between discovery and campaign-driven traffic. Some outreach is happening but not consistently. Recommend structured campaign cadence to reach Campaign level.",
+  tier3: "Discovery (<3% success rate). Cardholders are browsing online banking with no specific prompt or urgency. Curiosity-only traffic. <1 in 33 completes. This is the starting line — not a verdict. Every FI can move up with the right activation strategy.",
+  unknown: "Tier data unavailable. Insufficient session data to classify this FI's motivation level.",
 };
 
 function tierBadgeHtml(tierInfo) {
@@ -776,8 +776,8 @@ function integrationBadge(fi) {
   const label = isSSO ? "SSO" : "Non-SSO";
   const cls = isSSO ? "badge-sso" : "badge-nonsso";
   const tooltip = isSSO
-    ? "SSO Integration: CardUpdatr is embedded in online banking with Single Sign-On. The cardholder is pre-authenticated — no need to enter card details. This reduces friction dramatically and enables Tier 1 (activation flow) conversion rates of 21%+."
-    : "Non-SSO Integration: CardUpdatr runs standalone or without pre-authentication. The cardholder must manually enter their card number and details. Higher friction typically results in Tier 2-3 conversion rates. Consider SSO integration to unlock Tier 1 potential.";
+    ? "SSO Integration: CardUpdatr is embedded in online banking with Single Sign-On. The cardholder is pre-authenticated — no need to enter card details. This reduces friction dramatically and enables Activation-level conversion rates of 21%+."
+    : "Non-SSO Integration: CardUpdatr runs standalone or without pre-authentication. The cardholder must manually enter their card number and details. Higher friction typically results in Campaign or Discovery-level conversion rates. Consider SSO integration to unlock Activation-level potential.";
   return `<span class="integration-badge ${cls}" title="${tooltip}">${label}</span>`;
 }
 
@@ -983,13 +983,54 @@ function renderDetailModal(fi) {
 
   // Tier diagnosis
   const tierHtml = `
-    <div class="detail-modal__section-title" title="The Motivation Spectrum classifies FI traffic by cardholder motivation at the moment of encounter. Tier is determined by Session Success Rate — not product quality. The core thesis: conversion rate is determined by cardholder motivation, and there is a validated 7.7x gap between Tier 1 (activation) and Tier 3 (incidental) traffic. Every FI can move up tiers with the right strategy.">Tier Diagnosis</div>
+    <div class="detail-modal__section-title" title="The Motivation Spectrum classifies FI traffic by cardholder motivation at the moment of encounter. Level is determined by Session Success Rate — not product quality. The core thesis: conversion rate is determined by cardholder motivation, and there is a validated 7.7x gap between Activation and Discovery traffic. Every FI can move up with the right strategy.">Motivation Diagnosis</div>
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
       ${tierBadgeHtml(fi.tierInfo)}
       <span style="font-weight:600;">${fi.tierInfo.label}</span>
     </div>
-    <div style="font-size:0.78rem;color:var(--muted);" title="Session Success Rate determines tier classification. This rate measures what percentage of CardUpdatr sessions result in at least one successful card placement. Tiers: >=21% = Tier 1, >=12% = Tier 1.5, >=8% = Tier 2, >=3% = Tier 2.5, <3% = Tier 3.">Based on ${formatPercent(fi.successRate)} session success rate</div>
+    <div style="font-size:0.78rem;color:var(--muted);" title="Session Success Rate determines motivation level. This rate measures what percentage of CardUpdatr sessions result in at least one successful card placement. Levels: >=21% = Activation, >=12% = Campaign→Activation, >=8% = Campaign, >=3% = Discovery→Campaign, <3% = Discovery.">Based on ${formatPercent(fi.successRate)} session success rate</div>
   `;
+
+  // Reach math
+  let reachMathHtml = "";
+  const chTotal = fi.cardholder_total;
+  if (chTotal && chTotal > 0) {
+    const rmPool = Math.round(chTotal * 0.025);
+    const rmReach = Math.round(sm * (30 / (state.windowDays || 30)));
+    const rmPotential = Math.round(rmPool * 0.21);
+    const rmGap = Math.max(0, rmPool - rmReach);
+    const rmPctReached = rmPool > 0 ? Math.min(100, Math.round((rmReach / rmPool) * 100)) : 0;
+    const gapLine = rmGap > 0
+      ? `<div style="margin-top:6px;padding:6px 10px;background:rgba(37,99,235,0.06);border:1px solid rgba(37,99,235,0.15);border-radius:6px;font-size:0.75rem;color:#1e40af;font-weight:600;">Gap: ${formatNumber(rmGap)} motivated cardholders/month not yet reached (${rmPctReached}% of pool reached)</div>`
+      : "";
+    reachMathHtml = `
+      <div class="detail-modal__section-title" title="Card Replacement Reach Math: ~2.5% of cardholders replace their card each month (expirations + lost/stolen). These are Activation-level cardholders at peak motivation. This section shows how many you're currently reaching.">Card Replacement Opportunity</div>
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:6px;">
+        <div style="text-align:center;padding:8px;background:var(--panel,#f8fafc);border:1px solid var(--border,#e2e8f0);border-radius:8px;">
+          <div style="font-size:1.1rem;font-weight:800;">${formatNumber(rmPool)}</div>
+          <div style="font-size:0.7rem;color:var(--muted,#64748b);">Cards replaced/mo</div>
+        </div>
+        <div style="text-align:center;padding:8px;background:var(--panel,#f8fafc);border:1px solid var(--border,#e2e8f0);border-radius:8px;">
+          <div style="font-size:1.1rem;font-weight:800;">${formatNumber(rmReach)}</div>
+          <div style="font-size:0.7rem;color:var(--muted,#64748b);">Reaching CU/mo</div>
+        </div>
+        <div style="text-align:center;padding:8px;background:var(--panel,#f8fafc);border:1px solid var(--border,#e2e8f0);border-radius:8px;">
+          <div style="font-size:1.1rem;font-weight:800;">${rmPctReached}%</div>
+          <div style="font-size:0.7rem;color:var(--muted,#64748b);">Pool reached</div>
+        </div>
+        <div style="text-align:center;padding:8px;background:var(--panel,#f8fafc);border:1px solid var(--border,#e2e8f0);border-radius:8px;">
+          <div style="font-size:1.1rem;font-weight:800;">${formatNumber(rmPotential)}</div>
+          <div style="font-size:0.7rem;color:var(--muted,#64748b);">Potential placements/mo</div>
+        </div>
+      </div>
+      ${gapLine}
+    `;
+  } else {
+    reachMathHtml = `
+      <div class="detail-modal__section-title">Card Replacement Opportunity</div>
+      <div style="font-size:0.78rem;color:var(--muted,#64748b);">No cardholder data on file for this FI.</div>
+    `;
+  }
 
   // Recommended actions
   let actionsHtml = "";
@@ -1056,7 +1097,7 @@ function renderDetailModal(fi) {
           <span class="partner-detail-panel__stat-value">${formatNumber(success)}</span>
           <span class="partner-detail-panel__stat-label">Successes</span>
         </div>
-        <div class="partner-detail-panel__stat" title="Session Success Rate: ${formatRate(success, sm)} of sessions resulted in at least one successful card placement. This is the primary conversion quality metric. Tier 1 FIs achieve >=21%, Tier 2 achieves 8-12%, Tier 3 is <3%.">
+        <div class="partner-detail-panel__stat" title="Session Success Rate: ${formatRate(success, sm)} of sessions resulted in at least one successful card placement. This is the primary conversion quality metric. Activation-level FIs achieve >=21%, Campaign-level achieves 8-12%, Discovery-level is <3%.">
           <span class="partner-detail-panel__stat-value">${formatRate(success, sm)}</span>
           <span class="partner-detail-panel__stat-label">Success Rate</span>
         </div>
@@ -1080,6 +1121,7 @@ function renderDetailModal(fi) {
       ${weeklyHtml}
       ${systemHtml}
       ${tierHtml}
+      ${reachMathHtml}
       ${actionsHtml}
     </div>
   `;

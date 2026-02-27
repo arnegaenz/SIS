@@ -18,9 +18,9 @@ const LOW_VOLUME_THRESHOLD = 30;
 // ─── Tier Boundaries ────────────────────────────────────────────────────────
 
 const TIER_BOUNDARIES = {
-  tier1: { min: 21, max: 27, label: 'Card Activation Flow', color: '#22c55e' },
-  tier2: { min: 8, max: 12, label: 'SMS & Targeted Campaigns', color: '#eab308' },
-  tier3: { min: 0, max: 3, label: 'Incidental Discovery', color: '#ef4444' },
+  tier1: { min: 21, max: 27, label: 'Activation', color: '#22c55e' },
+  tier2: { min: 8, max: 12, label: 'Campaign', color: '#eab308' },
+  tier3: { min: 0, max: 3, label: 'Discovery', color: '#ef4444' },
   // Transition zones
   tier2to1: { min: 12, max: 21, label: 'Campaign → Activation', color: '#84cc16' },
   tier3to2: { min: 3, max: 8, label: 'Discovery → Campaign', color: '#f97316' },
@@ -29,9 +29,9 @@ const TIER_BOUNDARIES = {
 // Non-SSO tiers: post-commitment traffic has higher baselines
 // Every non-SSO "visit" already represents a cardholder who entered card data manually.
 const NONSSO_TIER_BOUNDARIES = {
-  tier1: { min: 35, max: 67, label: 'Card Activation Flow', color: '#22c55e' },
-  tier2: { min: 15, max: 25, label: 'Targeted Campaigns', color: '#eab308' },
-  tier3: { min: 0, max: 8, label: 'Organic Discovery', color: '#ef4444' },
+  tier1: { min: 35, max: 67, label: 'Activation', color: '#22c55e' },
+  tier2: { min: 15, max: 25, label: 'Campaign', color: '#eab308' },
+  tier3: { min: 0, max: 8, label: 'Discovery', color: '#ef4444' },
   tier2to1: { min: 25, max: 35, label: 'Campaign → Activation', color: '#84cc16' },
   tier3to2: { min: 8, max: 15, label: 'Discovery → Campaign', color: '#f97316' },
 };
@@ -575,7 +575,7 @@ const ADMIN_OBJECTIONS = [
     objection: '"We don\'t have the resources for campaigns"',
     response: (m) => {
       const multiplier = m.sessionSuccessPct > 0 ? fmt(8 / m.sessionSuccessPct) : '?';
-      return `Even a single SMS push during card reissuance can shift your traffic from Tier 3 to Tier 2. Partners running modest campaigns see 8–12% — that's ${multiplier}× your current rate with the same cardholder base.`;
+      return `Even a single SMS push during card reissuance can shift your traffic from Discovery to Campaign level. Partners running modest campaigns see 8–12% — that's ${multiplier}× your current rate with the same cardholder base.`;
     },
   },
   {
@@ -807,11 +807,11 @@ function findBestWeekEntry(best) {
  */
 function classifyTier(rate) {
   if (rate === null || rate === undefined) return { tier: 0, label: 'Insufficient Data', color: '#94a3b8', zone: 'unknown' };
-  if (rate >= 21) return { tier: 1, label: 'Card Activation Flow', color: TIER_BOUNDARIES.tier1.color, zone: 'tier1' };
+  if (rate >= 21) return { tier: 1, label: 'Activation', color: TIER_BOUNDARIES.tier1.color, zone: 'tier1' };
   if (rate >= 12) return { tier: 1.5, label: 'Campaign → Activation', color: TIER_BOUNDARIES.tier2to1.color, zone: 'tier2to1' };
-  if (rate >= 8) return { tier: 2, label: 'SMS & Targeted Campaigns', color: TIER_BOUNDARIES.tier2.color, zone: 'tier2' };
+  if (rate >= 8) return { tier: 2, label: 'Campaign', color: TIER_BOUNDARIES.tier2.color, zone: 'tier2' };
   if (rate >= 3) return { tier: 2.5, label: 'Discovery → Campaign', color: TIER_BOUNDARIES.tier3to2.color, zone: 'tier3to2' };
-  return { tier: 3, label: 'Incidental Discovery', color: TIER_BOUNDARIES.tier3.color, zone: 'tier3' };
+  return { tier: 3, label: 'Discovery', color: TIER_BOUNDARIES.tier3.color, zone: 'tier3' };
 }
 
 /**
@@ -823,11 +823,11 @@ function classifyTier(rate) {
  */
 function classifyNonSSOTier(rate) {
   if (rate === null || rate === undefined) return { tier: 0, label: 'Insufficient Data', color: '#94a3b8', zone: 'unknown' };
-  if (rate >= 35) return { tier: 1, label: 'Card Activation Flow', color: NONSSO_TIER_BOUNDARIES.tier1.color, zone: 'tier1' };
+  if (rate >= 35) return { tier: 1, label: 'Activation', color: NONSSO_TIER_BOUNDARIES.tier1.color, zone: 'tier1' };
   if (rate >= 25) return { tier: 1.5, label: 'Campaign → Activation', color: NONSSO_TIER_BOUNDARIES.tier2to1.color, zone: 'tier2to1' };
-  if (rate >= 15) return { tier: 2, label: 'Targeted Campaigns', color: NONSSO_TIER_BOUNDARIES.tier2.color, zone: 'tier2' };
+  if (rate >= 15) return { tier: 2, label: 'Campaign', color: NONSSO_TIER_BOUNDARIES.tier2.color, zone: 'tier2' };
   if (rate >= 8) return { tier: 2.5, label: 'Discovery → Campaign', color: NONSSO_TIER_BOUNDARIES.tier3to2.color, zone: 'tier3to2' };
-  return { tier: 3, label: 'Organic Discovery', color: NONSSO_TIER_BOUNDARIES.tier3.color, zone: 'tier3' };
+  return { tier: 3, label: 'Discovery', color: NONSSO_TIER_BOUNDARIES.tier3.color, zone: 'tier3' };
 }
 
 /**
@@ -1134,15 +1134,15 @@ function buildSpectrumDiagnosis(metricsCtx) {
   if (rate === null) {
     html = 'Insufficient data to classify your current traffic pattern.';
   } else if (rate < 3) {
-    html = `You're currently in the <strong>Incidental Discovery</strong> tier — which means your cardholders are finding and trying CardUpdatr on their own, without any targeted push. That's a solid foundation of organic demand. Partners who add activation flows or campaign touchpoints to this existing base typically see a 3–7× improvement, moving from the 1–3% range into 8–12% and beyond.`;
+    html = `You're currently in the <strong>Discovery</strong> tier — which means your cardholders are finding and trying CardUpdatr on their own, without any targeted push. That's a solid foundation of organic demand. Partners who add activation flows or campaign touchpoints to this existing base typically see a 3–7× improvement, moving from the 1–3% range into 8–12% and beyond.`;
   } else if (rate <= 8) {
     html = `Your traffic is performing between the <strong>Campaign</strong> and <strong>Discovery</strong> tiers — a promising mix that includes motivated cardholders responding to how they're encountering CardUpdatr. Building on this momentum with sustained campaign cadence or activation touchpoints is the path to consistently reaching 8–12% and above.`;
   } else if (rate <= 12) {
-    html = `Strong performance — your traffic is at <strong>campaign-tier levels (Tier 2)</strong>, showing meaningful cardholder motivation. Your cardholders are responding well to how they're encountering CardUpdatr. The next tier up — activation-flow performance at 21–27% — is achieved by embedding CardUpdatr directly in card activation and reissuance moments.`;
+    html = `Strong performance — your traffic is at <strong>Campaign</strong> level, showing meaningful cardholder motivation. Your cardholders are responding well to how they're encountering CardUpdatr. The next level up — Activation performance at 21–27% — is achieved by embedding CardUpdatr directly in card activation and reissuance moments.`;
   } else if (rate <= 21) {
-    html = `You're approaching <strong>activation-flow territory</strong> — your traffic is performing above campaign-tier levels, which means a meaningful share of your cardholders are encountering CardUpdatr with strong motivation. You're in the transition zone between Campaign (Tier 2) and Activation Flow (Tier 1). Embedding CardUpdatr directly in card activation and reissuance moments is the step that bridges this gap to the 21–27% tier.`;
+    html = `You're approaching <strong>Activation</strong> territory — your traffic is performing above Campaign levels, which means a meaningful share of your cardholders are encountering CardUpdatr with strong motivation. You're in the transition zone between Campaign and Activation. Embedding CardUpdatr directly in card activation and reissuance moments is the step that bridges this gap to the 21–27% range.`;
   } else {
-    html = `Outstanding — your traffic is in the <strong>activation-flow tier (Tier 1)</strong>, the highest performance bracket across the network. Your cardholders are reaching CardUpdatr at the optimal moment with strong motivation. This is what best-in-class looks like.`;
+    html = `Outstanding — your traffic is at the <strong>Activation</strong> level, the highest performance bracket across the network. Your cardholders are reaching CardUpdatr at the optimal moment with strong motivation. This is what best-in-class looks like.`;
   }
 
   if (bestTier && metricsCtx.bestWeekRate && metricsCtx.bestWeekRate > (rate || 0) * 1.3) {
@@ -1184,15 +1184,15 @@ function buildNonSSOSpectrumDiagnosis(metricsCtx) {
     if (rate === null) {
       html = 'Insufficient data to classify your current non-SSO traffic pattern.';
     } else if (rate < 3) {
-      html = `Your non-SSO launch-to-completion conversion is <strong>${fmt(rate)}%</strong> — in the <strong>Incidental Discovery</strong> tier. Among cardholders who entered their card details, <strong>${fmt(sessRate)}%</strong> completed, showing solid post-commitment engagement. The gap reflects cardholders who browse but don't enter card data — timing outreach to card activation moments is the fastest path to improving launch conversion.${launchNote}`;
+      html = `Your non-SSO launch-to-completion conversion is <strong>${fmt(rate)}%</strong> — at the <strong>Discovery</strong> level. Among cardholders who entered their card details, <strong>${fmt(sessRate)}%</strong> completed, showing solid post-commitment engagement. The gap reflects cardholders who browse but don't enter card data — timing outreach to card activation moments is the fastest path to improving launch conversion.${launchNote}`;
     } else if (rate <= 8) {
       html = `Your non-SSO launch-to-completion rate is <strong>${fmt(rate)}%</strong>, in the transition zone between <strong>Discovery</strong> and <strong>Campaign</strong> tiers. Post-commitment conversion is <strong>${fmt(sessRate)}%</strong>. Sustaining campaign cadence and targeting card activation windows is the path to pushing above 8%.${launchNote}`;
     } else if (rate <= 12) {
-      html = `Strong performance — <strong>${fmt(rate)}%</strong> launch-to-completion puts your non-SSO traffic at <strong>campaign-tier levels (Tier 2)</strong>. Post-commitment conversion of <strong>${fmt(sessRate)}%</strong> confirms engaged cardholders. The next tier up — activation-flow performance at 21–27% — is achieved by embedding CardUpdatr directly in card activation and reissuance moments.${launchNote}`;
+      html = `Strong performance — <strong>${fmt(rate)}%</strong> launch-to-completion puts your non-SSO traffic at <strong>Campaign</strong> level. Post-commitment conversion of <strong>${fmt(sessRate)}%</strong> confirms engaged cardholders. The next level up — Activation performance at 21–27% — is achieved by embedding CardUpdatr directly in card activation and reissuance moments.${launchNote}`;
     } else if (rate <= 21) {
-      html = `You're approaching <strong>activation-flow territory</strong> — <strong>${fmt(rate)}%</strong> launch-to-completion conversion, with <strong>${fmt(sessRate)}%</strong> post-commitment success. You're in the transition zone between Campaign (Tier 2) and Activation Flow (Tier 1). Embedding CardUpdatr in card activation moments bridges this gap.${launchNote}`;
+      html = `You're approaching <strong>Activation</strong> territory — <strong>${fmt(rate)}%</strong> launch-to-completion conversion, with <strong>${fmt(sessRate)}%</strong> post-commitment success. You're in the transition zone between Campaign and Activation. Embedding CardUpdatr in card activation moments bridges this gap.${launchNote}`;
     } else {
-      html = `Outstanding — <strong>${fmt(rate)}%</strong> launch-to-completion conversion puts your non-SSO traffic in the <strong>activation-flow tier (Tier 1)</strong>. Post-commitment success of <strong>${fmt(sessRate)}%</strong> confirms exceptional follow-through. This is best-in-class performance.${launchNote}`;
+      html = `Outstanding — <strong>${fmt(rate)}%</strong> launch-to-completion conversion puts your non-SSO traffic at the <strong>Activation</strong> level. Post-commitment success of <strong>${fmt(sessRate)}%</strong> confirms exceptional follow-through. This is best-in-class performance.${launchNote}`;
     }
 
     if (bestTier && metricsCtx.bestWeekRate && metricsCtx.bestWeekRate > (rate || 0) * 1.3) {
@@ -1212,7 +1212,7 @@ function buildNonSSOSpectrumDiagnosis(metricsCtx) {
   if (rate === null) {
     html = 'Insufficient data to classify your current non-SSO traffic pattern.';
   } else if (rate < 8) {
-    html = `Your non-SSO cardholders are converting at <strong>${fmt(rate)}%</strong> — in the <strong>Organic Discovery</strong> tier. Because every non-SSO visitor has already committed by entering their card details, even this baseline represents genuine engagement. Partners who time outreach to card activation moments see conversion climb to 15–25% with this same committed audience. <em>Note: GA metrics may undercount by 15–30% — server-side calibration data not yet available for this partner.</em>`;
+    html = `Your non-SSO cardholders are converting at <strong>${fmt(rate)}%</strong> — at the <strong>Discovery</strong> level. Because every non-SSO visitor has already committed by entering their card details, even this baseline represents genuine engagement. Partners who time outreach to card activation moments see conversion climb to 15–25% with this same committed audience. <em>Note: GA metrics may undercount by 15–30% — server-side calibration data not yet available for this partner.</em>`;
   } else if (rate <= 15) {
     html = `At <strong>${fmt(rate)}%</strong>, your non-SSO traffic is in the transition zone between <strong>Discovery</strong> and <strong>Campaign</strong> tiers. These cardholders have already entered their card details — they're committed. Sustaining campaign cadence and targeting card activation windows is the path to pushing above 15%.`;
   } else if (rate <= 25) {

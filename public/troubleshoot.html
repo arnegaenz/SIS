@@ -425,6 +425,11 @@
       const FI_ALL_VALUE = "__all__";
       const PARTNER_ALL_VALUE = "__all_partners__";
       const INSTANCE_ALL_VALUE = "__all_instances__";
+
+      function authHeaders() {
+        const t = window.sisAuth?.getToken?.() || "";
+        return t ? { Authorization: "Bearer " + t } : {};
+      }
       const els = {
         // filter bar comes from assets/js/filters.js
         preset: document.getElementById("datePreset"),
@@ -818,7 +823,7 @@
       async function loadOptions() {
         setStatus("Loading filter options…");
         try {
-          const res = await fetch("/troubleshoot/options");
+          const res = await fetch("/troubleshoot/options", { headers: authHeaders() });
           if (!res.ok) throw new Error("Options request failed");
           const data = await res.json();
           state.options = data;
@@ -1424,7 +1429,7 @@
         try {
           const query = buildQuery();
           console.log("[troubleshoot] fetching", `/troubleshoot/day?${query}`);
-          const res = await fetch(`/troubleshoot/day?${query}`);
+          const res = await fetch(`/troubleshoot/day?${query}`, { headers: authHeaders() });
           if (!res.ok) {
             const err = await res.json().catch(() => ({}));
             console.error("[troubleshoot] fetch failed", res.status, err);

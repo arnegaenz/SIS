@@ -186,11 +186,11 @@ export function buildCustomerReportHtml(data) {
     const sp = ins.spectrum;
     const maxScale = 30;
     const zones = [
-      { label: "Tier 3", min: 0, max: 3, color: "#ef4444" },
+      { label: "Discovery", min: 0, max: 3, color: "#ef4444" },
       { label: "", min: 3, max: 8, color: "#f97316" },
-      { label: "Tier 2", min: 8, max: 12, color: "#eab308" },
+      { label: "Campaign", min: 8, max: 12, color: "#eab308" },
       { label: "", min: 12, max: 21, color: "#84cc16" },
-      { label: "Tier 1", min: 21, max: 30, color: "#22c55e" },
+      { label: "Activation", min: 21, max: 30, color: "#22c55e" },
     ];
     const zoneHtml = zones.map(z => {
       const w = ((z.max - z.min) / maxScale) * 100;
@@ -215,7 +215,7 @@ export function buildCustomerReportHtml(data) {
       ${markers}
     </div>
     <div style="display:flex;justify-content:space-between;font-size:8px;color:#94a3b8;margin-bottom:6px;">
-      <span>0%</span><span>Incidental Discovery</span><span>Campaigns</span><span>Activation Flow</span><span>27%+</span>
+      <span>0%</span><span>Discovery</span><span>Campaign</span><span>Activation</span><span>27%+</span>
     </div>
     ${sp.diagnosisHtml ? `<div style="font-size:11px;line-height:1.6;color:#334155;margin-bottom:4px;">${sp.diagnosisHtml}</div>` : ""}
     </div>`;
@@ -287,6 +287,37 @@ export function buildCustomerReportHtml(data) {
       </tbody>
     </table>
     <div style="font-size:8px;color:#94a3b8;font-style:italic;">Projections based on current volume of ${fmt(proj.current.sessions)} CardUpdatr visits over ${proj.current.days} days.</div>
+    </div>`;
+  }
+
+  // ── Card Replacement Reach Math ──
+  let reachMathHtml = "";
+  if (ins.reachMath && ins.reachMath.totalCardholders > 0) {
+    const rm = ins.reachMath;
+    const gapLine = rm.gap > 0
+      ? `<div style="margin-top:8px;padding:6px 10px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;font-size:9px;color:#1e40af;font-weight:600;">Opportunity: ${fmt(rm.gap)} additional motivated cardholders/month could be reached through activation flow integration.</div>`
+      : "";
+    reachMathHtml = `
+    <div class="page-section">
+    <div class="section-title">Card Replacement Opportunity</div>
+    <div style="display:flex;gap:12px;margin-bottom:10px;">
+      <div style="flex:1;text-align:center;padding:10px 8px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;">
+        <div style="font-size:16px;font-weight:800;color:#0f172a;">${fmt(rm.monthlyPool)}</div>
+        <div style="font-size:8px;color:#64748b;">Cards replaced/month</div>
+        <div style="font-size:7px;color:#94a3b8;">~2.5% of ${fmt(rm.totalCardholders)}</div>
+      </div>
+      <div style="flex:1;text-align:center;padding:10px 8px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;">
+        <div style="font-size:16px;font-weight:800;color:#0f172a;">${fmt(rm.monthlyReach)}</div>
+        <div style="font-size:8px;color:#64748b;">Currently reaching CU</div>
+      </div>
+      <div style="flex:1;text-align:center;padding:10px 8px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;">
+        <div style="font-size:16px;font-weight:800;color:#0f172a;">${fmt(rm.potentialPlacements)}</div>
+        <div style="font-size:8px;color:#64748b;">Potential placements/mo</div>
+        <div style="font-size:7px;color:#94a3b8;">At Activation (21%)</div>
+      </div>
+    </div>
+    <div style="font-size:9px;line-height:1.5;color:#334155;">Every month, ~${fmt(rm.monthlyPool)} cardholders receive a replacement card at peak motivation. ${rm.gap > 0 ? `Currently reaching about ${rm.pctReached}% of this natural pool.` : "Your current reach is strong."}</div>
+    ${gapLine}
     </div>`;
   }
 
@@ -888,6 +919,8 @@ export function buildCustomerReportHtml(data) {
     ${actionsHtml}
 
     ${projectionHtml}
+
+    ${reachMathHtml}
 
     ${highlightsHtml}
 

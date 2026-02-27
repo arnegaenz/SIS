@@ -1,0 +1,676 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <script>try{var t=localStorage.getItem('sis-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+  <title>Support Lookup</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <link rel="stylesheet" href="./sis-shared.css?v=navfix" />
+  <link rel="stylesheet" href="./assets/css/sis.css">
+  <link rel="stylesheet" href="./assets/css/mobile.css">
+  <script src="./assets/js/config.js"></script>
+  <script src="./assets/js/passcode-gate.js"></script>
+  <script defer src="./assets/js/sis.js"></script>
+  <script defer src="./assets/js/nav.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function(){
+      if (window.renderHeaderNav && !window.__sisHeaderNav_troubleshoot_customer) {
+        window.__sisHeaderNav_troubleshoot_customer = true;
+        window.renderHeaderNav({
+          currentId: "troubleshoot-customer",
+          title: "Support Lookup",
+          subtitle: "Look up cardholder sessions and share details with Strivve support."
+        });
+      }
+    });
+  </script>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; padding: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 16px;
+    }
+    .sl-wrap {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 24px 20px 60px;
+    }
+
+    /* Context badge */
+    .sl-context {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--panel-bg, var(--panel));
+      border: 1px solid var(--panel-border, var(--border));
+      border-radius: 10px;
+      padding: 8px 16px;
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin-bottom: 18px;
+    }
+    .sl-context strong { color: var(--text); font-weight: 600; }
+
+    /* Filter row */
+    .sl-filters {
+      display: flex; flex-wrap: wrap; gap: 10px;
+      align-items: flex-end;
+      margin-bottom: 20px;
+    }
+    .sl-field {
+      display: flex; flex-direction: column; gap: 5px;
+    }
+    .sl-field label {
+      font-size: 0.78rem; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.04em;
+      padding-left: 2px;
+    }
+    .sl-select, .sl-input {
+      background: var(--input-bg, var(--panel-bg, #fff));
+      border: 1px solid var(--input-border, var(--border, #cbd5e1));
+      border-radius: 10px;
+      color: var(--text);
+      padding: 9px 12px;
+      font-size: 0.9rem;
+      height: 40px;
+      min-width: 140px;
+    }
+    .sl-select:focus, .sl-input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(37,99,235,0.15);
+    }
+    .sl-btn {
+      background: linear-gradient(120deg, var(--accent), var(--accent-2));
+      color: #fff; border: none; border-radius: 10px;
+      padding: 9px 20px; font-size: 0.9rem; font-weight: 600;
+      cursor: pointer; height: 40px; white-space: nowrap;
+    }
+    .sl-btn:hover { opacity: 0.9; }
+    .sl-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* Summary cards */
+    .sl-summary {
+      display: flex; gap: 12px; flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+    .sl-stat {
+      flex: 1 1 140px;
+      background: var(--panel-bg, var(--panel));
+      border: 1px solid var(--panel-border, var(--border));
+      border-radius: 12px;
+      padding: 14px 18px;
+      text-align: center;
+      min-width: 120px;
+    }
+    .sl-stat-value {
+      font-size: 1.8rem; font-weight: 700; line-height: 1.2;
+      color: var(--text);
+    }
+    .sl-stat-label {
+      font-size: 0.78rem; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.04em;
+      margin-top: 4px;
+    }
+    .sl-stat--success .sl-stat-value { color: #22c55e; }
+    .sl-stat--issues .sl-stat-value { color: #f59e0b; }
+
+    /* Session cards */
+    .sl-cards { display: flex; flex-direction: column; gap: 12px; }
+    .sl-card {
+      background: var(--panel-bg, var(--panel));
+      border: 1px solid var(--panel-border, var(--border));
+      border-radius: 12px;
+      padding: 18px 20px;
+      position: relative;
+    }
+    .sl-card-header {
+      display: flex; justify-content: space-between; align-items: flex-start;
+      gap: 12px; margin-bottom: 10px;
+    }
+    .sl-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 0.82rem; font-weight: 600;
+      padding: 4px 10px; border-radius: 20px;
+      white-space: nowrap;
+    }
+    .sl-badge--success { background: rgba(34,197,94,0.12); color: #22c55e; }
+    .sl-badge--warning { background: rgba(245,158,11,0.12); color: #f59e0b; }
+    .sl-badge--error   { background: rgba(239,68,68,0.12);  color: #ef4444; }
+    .sl-badge-dot {
+      width: 8px; height: 8px; border-radius: 50%; display: inline-block;
+    }
+    .sl-badge--success .sl-badge-dot { background: #22c55e; }
+    .sl-badge--warning .sl-badge-dot { background: #f59e0b; }
+    .sl-badge--error   .sl-badge-dot { background: #ef4444; }
+
+    .sl-card-time {
+      font-size: 0.82rem; color: var(--muted);
+      white-space: nowrap; flex-shrink: 0;
+    }
+    .sl-merchant {
+      font-size: 1.1rem; font-weight: 600;
+      margin-bottom: 8px;
+    }
+    .sl-action {
+      font-size: 0.92rem; color: var(--muted);
+      margin-bottom: 12px; line-height: 1.45;
+    }
+    .sl-action strong {
+      color: var(--text); font-weight: 500;
+    }
+    .sl-card-footer {
+      display: flex; justify-content: space-between; align-items: center;
+      gap: 12px;
+    }
+    .sl-ref {
+      font-size: 0.78rem; color: var(--muted);
+      font-family: "SF Mono", "Fira Code", "Cascadia Code", monospace;
+      cursor: default;
+    }
+    .sl-copy-btn {
+      background: transparent;
+      border: 1px solid var(--border, #334155);
+      border-radius: 8px;
+      color: var(--accent);
+      font-size: 0.78rem; font-weight: 600;
+      padding: 5px 12px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.15s, color 0.15s;
+    }
+    .sl-copy-btn:hover {
+      background: var(--accent);
+      color: #fff;
+    }
+    .sl-copy-btn.copied {
+      background: #22c55e;
+      border-color: #22c55e;
+      color: #fff;
+    }
+
+    /* Zero-job session */
+    .sl-card--empty {
+      border-style: dashed;
+      opacity: 0.7;
+    }
+    .sl-empty-msg {
+      font-size: 0.9rem; color: var(--muted);
+      font-style: italic;
+    }
+
+    /* Admin overlay link */
+    .sl-admin-link {
+      display: none;
+      margin-top: 24px;
+      font-size: 0.82rem;
+    }
+    body.show-admin-overlay .sl-admin-link { display: block; }
+    .sl-admin-link a { color: var(--accent); text-decoration: none; }
+    .sl-admin-link a:hover { text-decoration: underline; }
+
+    /* Status / empty state */
+    .sl-status {
+      text-align: center; padding: 40px 20px;
+      color: var(--muted); font-size: 0.95rem;
+    }
+    .sl-status--error { color: #ef4444; }
+
+    /* Loading */
+    .sl-loading {
+      display: none;
+      text-align: center;
+      padding: 20px;
+      color: var(--muted);
+    }
+    .sl-loading.active { display: block; }
+
+    /* Mobile */
+    @media (max-width: 768px) {
+      .sl-wrap { padding: 16px 12px 40px; }
+      .sl-filters { flex-direction: column; }
+      .sl-field { width: 100%; }
+      .sl-select, .sl-input { width: 100%; min-width: 0; }
+      .sl-btn { width: 100%; }
+      .sl-card-header { flex-direction: column; gap: 6px; }
+      .sl-card-footer { flex-direction: column; align-items: flex-start; gap: 8px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="sis-header"></div>
+  <div class="sl-wrap">
+    <div id="contextBadge" class="sl-context" style="display:none;"></div>
+
+    <div class="sl-filters">
+      <div class="sl-field">
+        <label>Date Range</label>
+        <select id="datePreset" class="sl-select">
+          <option value="7" selected>Last 7 days</option>
+          <option value="0">Today</option>
+          <option value="3">Last 3 days</option>
+          <option value="14">Last 14 days</option>
+          <option value="30">Last 30 days</option>
+        </select>
+      </div>
+      <div class="sl-field">
+        <label>Merchant</label>
+        <input type="text" id="merchantSearch" class="sl-input" placeholder="Search merchant..." />
+      </div>
+      <div class="sl-field">
+        <label>Status</label>
+        <select id="statusFilter" class="sl-select">
+          <option value="all">All</option>
+          <option value="issues">Issues only</option>
+          <option value="success">Successful only</option>
+        </select>
+      </div>
+      <div class="sl-field" style="justify-content:flex-end;">
+        <button id="searchBtn" class="sl-btn">Search</button>
+      </div>
+    </div>
+
+    <div id="summaryArea" class="sl-summary" style="display:none;"></div>
+    <div id="loadingArea" class="sl-loading">Loading sessions...</div>
+    <div id="statusArea" class="sl-status">Select a date range and search to view sessions.</div>
+    <div id="cardsArea" class="sl-cards"></div>
+
+    <div class="sl-admin-link admin-overlay">
+      Need raw data? <a href="./troubleshoot.html">Open admin troubleshoot</a>
+    </div>
+  </div>
+
+  <script>
+  (function() {
+    "use strict";
+
+    // ── Helpers ─────────────────────────────────────────────────
+    function authHeaders() {
+      var t = window.sisAuth && window.sisAuth.getToken ? window.sisAuth.getToken() : "";
+      return t ? { Authorization: "Bearer " + t } : {};
+    }
+
+    function todayISO() {
+      return new Date().toISOString().slice(0, 10);
+    }
+
+    function isoAddDays(iso, days) {
+      var d = new Date(iso + "T12:00:00Z");
+      d.setUTCDate(d.getUTCDate() + days);
+      return d.toISOString().slice(0, 10);
+    }
+
+    // Timezone-aware date/time formatting using sis-timezone localStorage key
+    function getUserTimezone() {
+      try {
+        var stored = localStorage.getItem("sis-timezone");
+        if (stored && stored !== "auto") return stored;
+      } catch (e) {}
+      return Intl.DateTimeFormat().resolvedOptions().timeZone || "America/New_York";
+    }
+
+    function formatDateTimeLocal(utcString) {
+      if (!utcString) return "—";
+      try {
+        var tz = getUserTimezone();
+        var d = new Date(utcString);
+        if (isNaN(d.getTime())) return utcString;
+        return d.toLocaleString("en-US", {
+          timeZone: tz,
+          month: "short", day: "numeric",
+          hour: "numeric", minute: "2-digit",
+          hour12: true
+        });
+      } catch (e) {
+        return utcString;
+      }
+    }
+
+    function formatDateTimeFull(utcString) {
+      if (!utcString) return "—";
+      try {
+        var tz = getUserTimezone();
+        var d = new Date(utcString);
+        if (isNaN(d.getTime())) return utcString;
+        var local = d.toLocaleString("en-US", {
+          timeZone: tz,
+          year: "numeric", month: "short", day: "numeric",
+          hour: "numeric", minute: "2-digit",
+          hour12: true, timeZoneName: "short"
+        });
+        var utcStr = d.toLocaleString("en-US", {
+          timeZone: "UTC",
+          hour: "numeric", minute: "2-digit",
+          hour12: false
+        });
+        return local + " (" + utcStr + " UTC)";
+      } catch (e) {
+        return utcString;
+      }
+    }
+
+    function truncateRef(ref) {
+      if (!ref) return "—";
+      return ref.length > 14 ? ref.slice(0, 14) : ref;
+    }
+
+    // ── State ───────────────────────────────────────────────────
+    var state = {
+      options: null,
+      sessions: [],
+      isAdmin: false
+    };
+
+    var els = {
+      contextBadge: document.getElementById("contextBadge"),
+      datePreset: document.getElementById("datePreset"),
+      merchantSearch: document.getElementById("merchantSearch"),
+      statusFilter: document.getElementById("statusFilter"),
+      searchBtn: document.getElementById("searchBtn"),
+      summaryArea: document.getElementById("summaryArea"),
+      loadingArea: document.getElementById("loadingArea"),
+      statusArea: document.getElementById("statusArea"),
+      cardsArea: document.getElementById("cardsArea")
+    };
+
+    // ── Options / Init ──────────────────────────────────────────
+    function loadOptions() {
+      fetch("/troubleshoot/options", { headers: authHeaders() })
+        .then(function(res) {
+          if (!res.ok) throw new Error("Failed to load options");
+          return res.json();
+        })
+        .then(function(data) {
+          state.options = data;
+          state.isAdmin = !!data.isAdmin;
+          renderContextBadge(data);
+          // Auto-search on load
+          doSearch();
+        })
+        .catch(function(err) {
+          console.error("[support-lookup] options error", err);
+          showStatus("Unable to load — please refresh and try again.", true);
+        });
+    }
+
+    function renderContextBadge(data) {
+      if (!data || !data.fi || !data.fi.length) {
+        els.contextBadge.style.display = "none";
+        return;
+      }
+      var fiNames = data.fi.map(function(f) { return f.label || f.key; });
+      var label = fiNames.length <= 3
+        ? fiNames.join(", ")
+        : fiNames.slice(0, 3).join(", ") + " + " + (fiNames.length - 3) + " more";
+      els.contextBadge.innerHTML = "Showing data for <strong>" + escHtml(label) + "</strong>";
+      els.contextBadge.style.display = "inline-flex";
+    }
+
+    // ── Search ──────────────────────────────────────────────────
+    function doSearch() {
+      var preset = parseInt(els.datePreset.value, 10) || 0;
+      var end = todayISO();
+      var start = preset > 0 ? isoAddDays(end, -preset) : end;
+
+      els.searchBtn.disabled = true;
+      els.loadingArea.classList.add("active");
+      els.statusArea.style.display = "none";
+      els.summaryArea.style.display = "none";
+      els.cardsArea.innerHTML = "";
+
+      var url = "/troubleshoot/day?customer=true&start=" + start + "&end=" + end;
+      fetch(url, { headers: authHeaders() })
+        .then(function(res) {
+          if (res.status === 404) return { sessions: [], totals: null };
+          if (!res.ok) throw new Error("Search failed (" + res.status + ")");
+          return res.json();
+        })
+        .then(function(data) {
+          state.sessions = data.sessions || [];
+          renderAll();
+        })
+        .catch(function(err) {
+          console.error("[support-lookup] search error", err);
+          showStatus("Unable to load sessions. " + (err.message || ""), true);
+        })
+        .finally(function() {
+          els.searchBtn.disabled = false;
+          els.loadingArea.classList.remove("active");
+        });
+    }
+
+    // ── Filtering (client-side) ─────────────────────────────────
+    function getFilteredJobs() {
+      var merchantQ = (els.merchantSearch.value || "").toLowerCase().trim();
+      var statusF = els.statusFilter.value;
+      var results = [];
+
+      for (var i = 0; i < state.sessions.length; i++) {
+        var session = state.sessions[i];
+        var jobs = session.jobs || [];
+
+        if (jobs.length === 0) {
+          // Zero-job session
+          if (statusF === "success") continue; // skip when filtering successful only
+          if (!merchantQ) {
+            results.push({
+              type: "empty",
+              session: session,
+              job: null
+            });
+          }
+          continue;
+        }
+
+        for (var j = 0; j < jobs.length; j++) {
+          var job = jobs[j];
+          // Merchant filter
+          if (merchantQ && (job.merchant || "").toLowerCase().indexOf(merchantQ) === -1) continue;
+          // Status filter
+          if (statusF === "success" && !job.is_success) continue;
+          if (statusF === "issues" && job.is_success) continue;
+          results.push({
+            type: "job",
+            session: session,
+            job: job
+          });
+        }
+      }
+      return results;
+    }
+
+    // ── Render ──────────────────────────────────────────────────
+    function renderAll() {
+      var items = getFilteredJobs();
+      renderSummary(items);
+      renderCards(items);
+    }
+
+    function renderSummary(items) {
+      var total = 0, success = 0, issues = 0;
+      for (var i = 0; i < items.length; i++) {
+        total++;
+        if (items[i].type === "empty") { issues++; continue; }
+        if (items[i].job && items[i].job.is_success) success++;
+        else issues++;
+      }
+      els.summaryArea.style.display = "flex";
+      els.summaryArea.innerHTML =
+        '<div class="sl-stat"><div class="sl-stat-value">' + total + '</div><div class="sl-stat-label">Total</div></div>' +
+        '<div class="sl-stat sl-stat--success"><div class="sl-stat-value">' + success + '</div><div class="sl-stat-label">Successful</div></div>' +
+        '<div class="sl-stat sl-stat--issues"><div class="sl-stat-value">' + issues + '</div><div class="sl-stat-label">Issues</div></div>';
+    }
+
+    function renderCards(items) {
+      els.cardsArea.innerHTML = "";
+      if (items.length === 0) {
+        showStatus("No sessions found for this date range.");
+        return;
+      }
+      els.statusArea.style.display = "none";
+
+      for (var i = 0; i < items.length; i++) {
+        var item = items[i];
+        if (item.type === "empty") {
+          els.cardsArea.appendChild(buildEmptyCard(item.session));
+        } else {
+          els.cardsArea.appendChild(buildJobCard(item.session, item.job));
+        }
+      }
+    }
+
+    function buildJobCard(session, job) {
+      var severity = job.customer_severity || job.severity || "warning";
+      var severityClass = severity === "success" ? "sl-badge--success"
+        : severity === "error" ? "sl-badge--error" : "sl-badge--warning";
+      var explanation = job.customer_explanation || job.termination_label || job.termination || "Unknown";
+      var action = job.customer_action || "";
+      var merchant = cleanMerchant(job.merchant || "Unknown");
+      var ref = session.agent_session_id || "—";
+      var time = formatDateTimeLocal(job.created_on || session.created_on);
+
+      var card = document.createElement("div");
+      card.className = "sl-card";
+      card.innerHTML =
+        '<div class="sl-card-header">' +
+          '<span class="sl-badge ' + severityClass + '"><span class="sl-badge-dot"></span> ' + escHtml(explanation) + '</span>' +
+          '<span class="sl-card-time">' + escHtml(time) + '</span>' +
+        '</div>' +
+        '<div class="sl-merchant">' + escHtml(merchant) + '</div>' +
+        (action ? '<div class="sl-action"><strong>What to tell the cardholder:</strong> ' + escHtml(action) + '</div>' : '') +
+        '<div class="sl-card-footer">' +
+          '<span class="sl-ref" title="' + escHtml(ref) + '">Ref: ' + escHtml(truncateRef(ref)) + '</span>' +
+          '<button class="sl-copy-btn" data-ref="' + escHtml(ref) + '" data-merchant="' + escHtml(merchant) + '" data-fi="' + escHtml(session.fi_name || "") + '" data-time="' + escHtml(job.created_on || session.created_on || "") + '" data-issue="' + escHtml(explanation) + '">Copy for Strivve Support</button>' +
+        '</div>';
+
+      var btn = card.querySelector(".sl-copy-btn");
+      btn.addEventListener("click", function() { handleCopy(this); });
+      return card;
+    }
+
+    function buildEmptyCard(session) {
+      var ref = session.agent_session_id || "—";
+      var time = formatDateTimeLocal(session.created_on);
+
+      var card = document.createElement("div");
+      card.className = "sl-card sl-card--empty";
+      card.innerHTML =
+        '<div class="sl-card-header">' +
+          '<span class="sl-badge sl-badge--warning"><span class="sl-badge-dot"></span> Session started</span>' +
+          '<span class="sl-card-time">' + escHtml(time) + '</span>' +
+        '</div>' +
+        '<div class="sl-empty-msg">The cardholder opened CardUpdatr but didn\'t select any merchants.</div>' +
+        '<div class="sl-card-footer">' +
+          '<span class="sl-ref" title="' + escHtml(ref) + '">Ref: ' + escHtml(truncateRef(ref)) + '</span>' +
+          '<button class="sl-copy-btn" data-ref="' + escHtml(ref) + '" data-merchant="" data-fi="' + escHtml(session.fi_name || "") + '" data-time="' + escHtml(session.created_on || "") + '" data-issue="No merchants selected">Copy for Strivve Support</button>' +
+        '</div>';
+
+      var btn = card.querySelector(".sl-copy-btn");
+      btn.addEventListener("click", function() { handleCopy(this); });
+      return card;
+    }
+
+    // ── Copy for Support ────────────────────────────────────────
+    function handleCopy(btn) {
+      var ref = btn.getAttribute("data-ref") || "—";
+      var fi = btn.getAttribute("data-fi") || "—";
+      var rawTime = btn.getAttribute("data-time") || "";
+      var merchant = btn.getAttribute("data-merchant") || "—";
+      var issue = btn.getAttribute("data-issue") || "—";
+      var timeFull = rawTime ? formatDateTimeFull(rawTime) : "—";
+
+      var block =
+        "CardUpdatr Support Reference\n" +
+        "-------------------------------\n" +
+        "Reference: " + ref + "\n" +
+        "FI: " + fi + "\n" +
+        "Date: " + timeFull + "\n" +
+        "Merchant: " + (merchant || "No merchant selected") + "\n" +
+        "Issue: " + issue + "\n";
+
+      copyToClipboard(block, btn);
+    }
+
+    function copyToClipboard(text, btn) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function() {
+          flashCopied(btn);
+        }).catch(function() {
+          fallbackCopy(text, btn);
+        });
+      } else {
+        fallbackCopy(text, btn);
+      }
+    }
+
+    function fallbackCopy(text, btn) {
+      var ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.left = "-9999px";
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand("copy"); flashCopied(btn); }
+      catch (e) { /* ignore */ }
+      document.body.removeChild(ta);
+    }
+
+    function flashCopied(btn) {
+      var orig = btn.textContent;
+      btn.textContent = "Copied!";
+      btn.classList.add("copied");
+      setTimeout(function() {
+        btn.textContent = orig;
+        btn.classList.remove("copied");
+      }, 1800);
+    }
+
+    // ── Utilities ───────────────────────────────────────────────
+    function showStatus(msg, isError) {
+      els.statusArea.style.display = "block";
+      els.statusArea.textContent = msg;
+      els.statusArea.className = "sl-status" + (isError ? " sl-status--error" : "");
+    }
+
+    function escHtml(str) {
+      if (!str) return "";
+      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    }
+
+    function cleanMerchant(m) {
+      if (!m || m === "unknown") return "Unknown merchant";
+      // Remove common suffixes like .com, .co.uk, www.
+      return m.replace(/^www\./, "").replace(/\.[a-z]{2,}$/i, "")
+        .split(/[.\-_]/).map(function(w) {
+          return w.charAt(0).toUpperCase() + w.slice(1);
+        }).join(" ");
+    }
+
+    // ── Event Bindings ──────────────────────────────────────────
+    els.searchBtn.addEventListener("click", doSearch);
+    els.merchantSearch.addEventListener("input", renderAll);
+    els.statusFilter.addEventListener("change", renderAll);
+    els.merchantSearch.addEventListener("keydown", function(e) {
+      if (e.key === "Enter") { e.preventDefault(); doSearch(); }
+    });
+
+    // ── Init ────────────────────────────────────────────────────
+    // Wait for passcode-gate to complete auth before loading
+    function init() {
+      if (window.sisAuth && window.sisAuth.getToken && window.sisAuth.getToken()) {
+        loadOptions();
+      } else {
+        // Auth not ready yet, retry shortly
+        setTimeout(init, 200);
+      }
+    }
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", init);
+    } else {
+      init();
+    }
+  })();
+  </script>
+</body>
+</html>

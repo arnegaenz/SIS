@@ -33,6 +33,7 @@ At the end of each working session, briefly discuss:
 ## Key Files
 - `scripts/serve-funnel.mjs` - Main server (very large, ~6100+ lines)
 - `public/assets/js/passcode-gate.js` - Auth, session, activity logging
+- `scripts/ai-insights.mjs` - AI-powered insights module (Claude Haiku, caching, prompt construction)
 - `public/assets/js/engagement-insights.js` - Insights engine (narratives, spectrum, actions, projections)
 - `public/assets/js/action-library.js` - ACTION_LIBRARY data + lookup helpers (loaded before engagement-insights.js)
 - `public/assets/js/filters.js` - Filter bar, multi-select dropdowns, scope logic
@@ -44,7 +45,8 @@ At the end of each working session, briefly discuss:
 - `public/assets/js/portfolio-dashboard.js` - Portfolio dashboard module (ES6, ~750 lines)
 - `templates/funnel-report-template.mjs` - Internal PDF template
 - `templates/funnel-customer-report-template.mjs` - Customer PDF template
-- `src/config/terminationMap.mjs` - Termination type definitions with labels
+- `src/config/terminationMap.mjs` - Termination type definitions with labels + CUSTOMER_TERMINATION_MAP
+- `public/troubleshoot-customer.html` - Customer-facing Support Lookup page (IIFE, ~350 lines)
 - `public/login.html` - Magic link login page
 - `secrets/users.json` - User data with access levels, login stats
 - `fi_registry.json` - FI registry (fi_lookup_key, instance, partner, integration_type)
@@ -69,12 +71,13 @@ At the end of each working session, briefly discuss:
 
 ## Access Control System
 - **Admin pages**: users.html, synthetic-traffic.html, maintenance.html, activity-log.html, shared-views.html, logs.html
-- **Executive user pages**: funnel-customer.html, executive.html, supported-sites.html (redirects elsewhere → executive dashboard)
+- **Executive user pages**: funnel-customer.html, executive.html, supported-sites.html, troubleshoot-customer.html
 - **Executive user redirect**: → dashboards/executive.html
-- **Executive user nav**: "Dashboards" group with Executive Summary + Cardholder Engagement
+- **Executive user nav**: "Dashboards" group with Executive Summary + Cardholder Engagement + Support Lookup
 - **Limited user pages**: funnel.html, funnel-customer.html, campaign-builder.html, supported-sites.html
 - **Limited user redirect**: → funnel-customer.html (NOT funnel.html)
 - **Limited user nav**: "Dashboards" group with Cardholder Engagement + Campaign URL Builder
+- **Support Lookup access**: Currently admin/internal + executive only. Limited users intentionally gated. Enable by adding `troubleshoot-customer.html` to `LIMITED_PAGES` in passcode-gate.js and to limited nav in nav.js.
 - **Limited user filters**: Partner + FI visible; Instance + Integration hidden
 - Access levels: admin, full (legacy=admin), internal (all except admin pages), executive, limited
 - **View-as switcher**: Admin/full users can preview other roles. Uses `sisAuth.getRealAccessLevel()` to check true level (not overridden). Switching navigates to role's default page.
@@ -164,26 +167,21 @@ All partner-facing content follows engagement-positive tone:
 
 # What's Pending / Queued
 
-### AI-Powered Insights Engine (Planned, Awaiting API Key)
-- Replace rule-based insights (50+ hardcoded rules in `engagement-insights.js`) with Claude API-generated insights
-- Server-side only, on-demand with caching, existing auth gates access
-- System prompt includes: motivation spectrum, tone directives, ACTION_LIBRARY, benchmarking philosophy
-- Model: Haiku 4.5, estimated $20-50/mo at normal usage, $0 when idle
-- Business Anthropic API account (console.anthropic.com), key in `secrets/anthropic.json`
+### AI-Powered Insights Engine (Phase 2 — Admin Testing)
+- **Phase 1 COMPLETE**: API key configured, `scripts/ai-insights.mjs` module built, 3 endpoints live (`POST /api/ai-insights`, `GET /api/ai-insights/cache`, `POST /api/ai-insights/cache/clear`)
+- **Phase 2 IN PROGRESS**: Purple "Generate" button on `funnel-customer.html` (admin-only via `.admin-overlay`), color-coded rendering working
+- Model: `claude-haiku-4-5-20251001`, ~17-21s first call, prompt caching (90% discount), ~$0.005-0.008/call
+- 24hr in-memory cache, evicts at >200 entries
 - Full plan: `docs/ai-insights-plan.md`
-- **Blocker**: Need business API key before building prototype
+- **Remaining Phase 2**: Rule-based vs AI comparison view, prompt tuning, edge case testing, add to `funnel.html`
+- **Phase 3**: Partner rollout (remove admin-only gate, fallback logic)
+- **Phase 4**: Cross-FI analysis, anomaly detection, predictive insights
 
-### Timezone Selector for Dashboards (Backlog)
-- Currently auto-detects browser timezone via `Intl.DateTimeFormat().resolvedOptions().timeZone`
-- Add a timezone picker (dropdown or setting) so users can pin to a specific timezone (e.g., `America/Los_Angeles`) regardless of where they are
-- Store preference in localStorage, send to server instead of auto-detected tz
-- Useful for traveling users who want to see data bucketed by their FIs' timezone, not their current location
-- Affects: Ops Command Center, Portfolio Dashboard (anywhere `getLocalTimezone()` is called)
-
-### Troubleshooting Site (Backlog — Liam Request)
-- Customer/partner-facing troubleshooting resource for CardUpdatr integration issues
-- Requested by Liam (Feb 26, 2026)
-- Details TBD — scope, format, and hosting to be discussed
+### Support Lookup Page (Phase 1 COMPLETE — Gating for Review)
+- **Phase 1 DONE**: `troubleshoot-customer.html` — customer-facing session lookup with plain-English explanations, copy-for-support, FI scoping, field stripping
+- Currently visible to admin/internal + executive. **Limited users intentionally gated** pending review.
+- **Phase 2 ideas**: Session search by reference ID, FI picker for multi-FI users, date range calendar, export/print, FAQ/help section
+- Originally requested by Liam (Feb 26, 2026) as "Troubleshooting Site"
 
 ### Card Replacement Reach Math (Discussed, Not Yet Built)
 - ~25% annual portfolio turnover from expirations, ~3-5% lost/stolen = ~28-30% annual (2.3-2.5% monthly)

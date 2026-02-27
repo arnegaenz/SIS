@@ -6,7 +6,7 @@ import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import url from "url";
 import { generateAIInsights, clearInsightsCache, getInsightsCacheStats } from "./ai-insights.mjs";
-import { TERMINATION_RULES } from "../src/config/terminationMap.mjs";
+import { TERMINATION_RULES, CUSTOMER_TERMINATION_MAP } from "../src/config/terminationMap.mjs";
 import { isTestInstanceName } from "../src/config/testInstances.mjs";
 import { loadSsoFis } from "../src/utils/config.mjs";
 import { fetchRawRange } from "./fetch-raw.mjs";
@@ -5079,7 +5079,28 @@ const server = http.createServer(async (req, res) => {
   }
   if (pathname === "/troubleshoot/options") {
     try {
+      const sessionInfo = await validateSession(req, queryParams);
+      if (!sessionInfo) return send(res, 401, { error: "Authentication required" });
+      const userAccess = sessionInfo.user.access_level;
+      const isAdminUser = userAccess === "admin" || userAccess === "full" || userAccess === "internal";
       const opts = await buildTroubleshootOptions();
+      // Scope FI list to user's allowed FIs
+      const fiRegistry = await loadFiRegistrySafe();
+      const allowedFis = computeAllowedFis(sessionInfo.user, fiRegistry);
+      if (allowedFis !== null) {
+        opts.fi = opts.fi.filter((entry) => allowedFis.has(normalizeFiKey(entry.key)));
+        const allowedPartners = new Set(opts.fi.map((f) => f.partner || "Unknown"));
+        const allowedInstances = new Set();
+        for (const entry of opts.fi) {
+          const regEntry = Object.values(fiRegistry).find(
+            (r) => normalizeFiKey(r.fi_lookup_key || r.key) === normalizeFiKey(entry.key)
+          );
+          if (regEntry?.instance) allowedInstances.add(formatInstanceDisplay(regEntry.instance));
+        }
+        opts.partners = opts.partners.filter((p) => allowedPartners.has(p));
+        opts.instances = opts.instances.filter((i) => allowedInstances.has(i));
+      }
+      opts.isAdmin = isAdminUser;
       return send(res, 200, opts);
     } catch (err) {
       const status = err?.status || 500;
@@ -5087,6 +5108,12 @@ const server = http.createServer(async (req, res) => {
     }
   }
   if (pathname === "/troubleshoot/day") {
+    const sessionInfo = await validateSession(req, queryParams);
+    if (!sessionInfo) return send(res, 401, { error: "Authentication required" });
+    const userAccess = sessionInfo.user.access_level;
+    const isAdminUser = userAccess === "admin" || userAccess === "full" || userAccess === "internal";
+    const isCustomerMode = queryParams.get("customer") === "true";
+
     const startParam =
       queryParams.get("start") ||
       queryParams.get("startDate") ||
@@ -5105,7 +5132,8 @@ const server = http.createServer(async (req, res) => {
     if (new Date(`${startDate}T00:00:00Z`) > new Date(`${endDate}T00:00:00Z`)) {
       return send(res, 400, { error: "start date must be on or before end date" });
     }
-    const includeTests = queryParams.get("includeTests") === "true";
+    // Non-admin: force includeTests = false
+    const includeTests = isAdminUser ? queryParams.get("includeTests") === "true" : false;
     const fiFilter = queryParams.get("fi") || FI_ALL_VALUE;
     const partnerFilter = queryParams.get("partner") || PARTNER_ALL_VALUE;
     const instanceFilter = queryParams.get("instance") || INSTANCE_ALL_VALUE;
@@ -5122,6 +5150,8 @@ const server = http.createServer(async (req, res) => {
         return send(res, 404, { error: "No raw data found for date range", startDate, endDate });
       }
       const fiMeta = buildFiMetaMap(fiRegistry);
+      // Compute allowed FIs for user scoping
+      const allowedFis = computeAllowedFis(sessionInfo.user, fiRegistry);
       const payload = buildTroubleshootPayload(
         `${startDate} → ${endDate}`,
         { sessions: rangeData.sessions },
@@ -5131,6 +5161,8 @@ const server = http.createServer(async (req, res) => {
       );
       const filteredSessions = payload.sessions.filter((row) => {
         if (!includeTests && row.is_test) return false;
+        // Enforce user FI scoping
+        if (allowedFis !== null && !allowedFis.has(normalizeFiKey(row.fi_key))) return false;
         if (fiFilter && fiFilter !== FI_ALL_VALUE) {
           if (normalizeFiKey(row.fi_key) !== normalizeFiKey(fiFilter)) return false;
         }
@@ -5151,6 +5183,28 @@ const server = http.createServer(async (req, res) => {
         const bTime = b.created_on || b.closed_on || '';
         return bTime.localeCompare(aTime);
       });
+
+      // Customer mode: strip sensitive fields, enrich with customer explanations
+      if (isCustomerMode && !isAdminUser) {
+        for (const session of filteredSessions) {
+          delete session.clickstream;
+          delete session.placements_raw;
+          delete session.cuid;
+          delete session.source;
+          delete session.id;
+          delete session.fi_lookup_key;
+          delete session.integration_raw;
+          for (const job of (session.jobs || [])) {
+            const custMap = CUSTOMER_TERMINATION_MAP[job.termination] || CUSTOMER_TERMINATION_MAP.UNKNOWN;
+            job.customer_explanation = custMap.explanation;
+            job.customer_action = custMap.action;
+            job.customer_severity = custMap.severity;
+            delete job.status_message;
+            delete job.source_integration;
+          }
+        }
+      }
+
       const totals = summarizeTroubleshootSessions(filteredSessions);
       return send(res, 200, {
         date: payload.date,
@@ -7561,6 +7615,11 @@ const server = http.createServer(async (req, res) => {
 
   if (pathname === "/troubleshoot" || pathname === "/troubleshoot.html") {
     const fp = path.join(PUBLIC_DIR, "troubleshoot.html");
+    if (await fileExists(fp)) return serveFile(res, fp);
+  }
+
+  if (pathname === "/troubleshoot-customer" || pathname === "/troubleshoot-customer.html") {
+    const fp = path.join(PUBLIC_DIR, "troubleshoot-customer.html");
     if (await fileExists(fp)) return serveFile(res, fp);
   }
 

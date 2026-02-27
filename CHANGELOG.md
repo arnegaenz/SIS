@@ -6,6 +6,57 @@
 
 # Build History
 
+## Feb 27, 2026 (Session 11)
+
+### Customer-Facing Support Lookup Page (NEW)
+- **Goal**: FI support staff receive calls from cardholders ("I tried to update my card at Netflix and it didn't work"). They need to look up the session, see a plain-English explanation, know what to tell the cardholder, and copy a reference block for Strivve's helpdesk. The existing troubleshoot page is admin-only and exposes raw data — too complex and not safe for partners.
+- **New page**: `public/troubleshoot-customer.html` — IIFE-wrapped, dark mode, mobile responsive
+  - Date preset filters (Today, 3, 7, 14, 30 days), merchant text search, status filter (All/Issues/Success)
+  - Context badge auto-populated with user's scoped FI names
+  - Summary stat cards (Total / Successful / Issues)
+  - Session cards with color-coded severity badges (green/amber/red), merchant name, plain-English explanation, suggested cardholder action
+  - "Copy for Strivve Support" button generates formatted reference block with local + UTC time
+  - Zero-job sessions shown with "cardholder didn't select any merchants" message
+  - Admin overlay link to raw troubleshoot page (`.admin-overlay` pattern)
+  - Timezone-aware via `sis-timezone` localStorage key
+
+- **New export**: `CUSTOMER_TERMINATION_MAP` in `src/config/terminationMap.mjs`
+  - 15 termination codes mapped to `explanation` (plain English), `action` (what to tell cardholder), `severity` (success/warning/error)
+  - Separate from admin-facing `TERMINATION_RULES` — customer-safe language only
+
+- **Server-side security** (`scripts/serve-funnel.mjs`):
+  - `/troubleshoot/options`: Now requires auth (was open). Scopes FI list via `computeAllowedFis`. Returns `isAdmin` flag.
+  - `/troubleshoot/day`: Now requires auth. Enforces FI scoping. Non-admin: `includeTests` forced false.
+  - `?customer=true` field stripping (non-admin only): Strips `clickstream`, `placements_raw`, `cuid`, `source`, `id`, `fi_lookup_key`, `integration_raw`, `status_message`, `source_integration`. Enriches jobs with `customer_explanation`, `customer_action`, `customer_severity`.
+  - Route added: `/troubleshoot-customer` → `troubleshoot-customer.html`
+
+- **Admin troubleshoot backward compat**: Added `authHeaders()` helper and Bearer token to both fetch calls in `troubleshoot.html` (was missing — worked before because endpoints didn't require auth)
+
+- **Access control**:
+  - `passcode-gate.js`: Added to `EXECUTIVE_PAGES` (NOT `LIMITED_PAGES` — intentionally held back from limited users for now)
+  - `nav.js`: "Support Lookup" in Monitoring group (admin/internal) and Dashboards group (executive)
+  - **Decision**: Limited users gated for now — can be enabled by adding to `LIMITED_PAGES` and limited nav array
+
+- **Design decisions**:
+  - One card per job (not per session) — each merchant attempt gets its own card with its own explanation
+  - Client-side merchant search and status filtering for instant feedback
+  - No FI picker — context auto-determined from user's scoped FIs
+  - Reference ID shown truncated (14 chars), full on hover, full in clipboard block
+  - Copy block format: structured text with Reference, FI, Date (local + UTC), Merchant, Issue
+
+## Feb 26, 2026 (Session 10)
+
+### Fix Small-N Best-Week Inflation in Insights + Projections
+- **Problem**: NASA FCU QBR cited 33.3% as aspirational baseline — but that came from a 6-session week (2/6). The credible "Best Success Rate at Scale" entry (24.3% on 37 sessions) was already computed but not used for narratives or projections.
+- **Fix** (`engagement-insights.js`): `findBestWeekEntry()` now prefers the "Best Success Rate at Scale" highlight entry (above-median volume). Falls back to highest-rate entry only if no at-scale entry exists.
+- **Fix** (`funnel-customer.html`): PDF export in QBR mode now passes `qbrBestQuarterRate` to `computeProjections()`, matching the on-screen QBR summary behavior. Previously, PDF projections always used raw best-week rate even in QBR mode.
+- **Impact**: NASA QBR now shows 24.3% (37 sessions) instead of 33.3% (6 sessions) as the best-week baseline; growth projections become credible instead of inflated.
+
+### FI-Key Scoping for Limited/Executive Users
+- **Refactor**: Extracted scoping helpers into `src/lib/scoping.mjs` (normalizeFiKey, canonicalInstance, parseListParam, normalizeUserAccessFields, computeAllowedFis)
+- **Fix**: `getVisibleRows()` on both `funnel.html` and `funnel-customer.html` now enforces `user.fi_keys` scoping in addition to existing instance_keys/partner_keys scoping
+- **Tests**: Added `scripts/smoke-test-scoping.mjs` and `scripts/smoke-test-api-scoping.mjs`
+
 ## Feb 26, 2026 (Session 9)
 
 ### Ops Dashboard — Projected Baseline Label Clarity

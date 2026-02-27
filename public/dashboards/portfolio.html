@@ -37,7 +37,7 @@
           <label>Time Window</label>
           <div class="segmented" id="timeWindow"></div>
         </div>
-        <div class="filter-group" title="Filter by integration type. SSO FIs have CardUpdatr embedded in online banking with single sign-on (higher conversion, Tier 1 potential). Non-SSO FIs use standalone CardUpdatr (cardholder enters card details manually, typically Tier 2-3).">
+        <div class="filter-group" title="Filter by integration type. SSO FIs have CardUpdatr embedded in online banking with single sign-on (higher conversion, Activation-level potential). Non-SSO FIs use standalone CardUpdatr (cardholder enters card details manually, typically Campaign or Discovery level).">
           <label>FI Scope</label>
           <select id="fiScope">
             <option value="all">All FIs</option>
@@ -55,7 +55,7 @@
             </div>
           </div>
         </div>
-        <div class="filter-group" title="Filter by Motivation Spectrum tier. Tier 1 = Card Activation (>=21% success). Tier 2 = Campaigns (>=8%). Tier 3 = Incidental (<3%). Useful for focusing on FIs that need the most attention (Tier 3) or celebrating top performers (Tier 1).">
+        <div class="filter-group" title="Filter by Motivation Spectrum level. Activation = Card Activation (>=21% success). Campaign = Targeted Outreach (>=8%). Discovery = Organic Browsing (<3%). Useful for focusing on FIs that need the most attention (Discovery) or celebrating top performers (Activation).">
           <label>Tier</label>
           <div class="multi-select" id="tierSelect">
             <button type="button" class="multi-select__button">All tiers</button>
@@ -107,7 +107,7 @@
 
     <!-- Tier Distribution + Score Distribution -->
     <section class="portfolio-distributions">
-      <div class="card" title="Motivation Spectrum classification for each FI based on their Session Success Rate. Tier 1 (>=21%): Card Activation Flow — cardholder just got a new card, peak motivation. Tier 1.5 (>=12%): Transitioning from campaigns to activation. Tier 2 (>=8%): SMS & Targeted Campaigns — manufactured motivation via outreach. Tier 2.5 (>=3%): Transitioning from discovery to campaigns. Tier 3 (<3%): Incidental Discovery — cardholder browsing online banking, no prompt. There is a validated 7.7x conversion gap between Tier 1 and Tier 3.">
+      <div class="card" title="Motivation Spectrum classification for each FI based on their Session Success Rate. Activation (>=21%): Cardholder just got a new card, peak motivation. Campaign→Activation (>=12%): Transitioning from campaigns to activation. Campaign (>=8%): Targeted outreach — manufactured motivation via SMS/email. Discovery→Campaign (>=3%): Transitioning from discovery to campaigns. Discovery (<3%): Cardholder browsing online banking, no prompt. There is a validated 7.7x conversion gap between Activation and Discovery.">
         <h3>Tier Distribution</h3>
         <div id="tierDistribution"></div>
       </div>
@@ -136,7 +136,7 @@
           <thead>
             <tr>
               <th data-key="fi_name" title="Financial institution name from the FI registry. Click to sort alphabetically.">FI Name</th>
-              <th data-key="tier" title="Motivation Spectrum tier based on Session Success Rate. T1 (>=21%) = Activation, T1.5 (>=12%) = Campaign-to-Activation transition, T2 (>=8%) = Campaigns, T2.5 (>=3%) = Discovery-to-Campaign transition, T3 (<3%) = Incidental. Click to sort.">Tier</th>
+              <th data-key="tier" title="Motivation Spectrum level based on Session Success Rate. T1 (>=21%) = Activation, T1.5 (>=12%) = Campaign→Activation, T2 (>=8%) = Campaign, T2.5 (>=3%) = Discovery→Campaign, T3 (<3%) = Discovery. Click to sort.">Tier</th>
               <th data-key="score" title="Composite engagement score (0-100). Weights: 40% success rate (vs 27% ceiling), 20% week-over-week trend, 20% monthly reach (vs 2.5% ceiling), 20% session volume (log-scaled). Click to sort.">Score</th>
               <th data-key="SM_Sessions" title="Select Merchant (SM) sessions — the number of times cardholders opened CardUpdatr and reached the merchant selection page. This is the top-of-funnel metric. Click to sort.">Sessions</th>
               <th data-key="successRate" title="Session Success Rate = sessions with at least one successful card placement / total SM sessions. This is the primary conversion quality metric. Click to sort.">Success Rate</th>
