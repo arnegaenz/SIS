@@ -23,7 +23,7 @@
         window.renderHeaderNav({
           currentId: "executive",
           title: "Executive Summary",
-          subtitle: "Network health, KPIs, trends, and early warnings at a glance."
+          subtitle: "Network Overview — All Partners, Last 30 Days"
         });
       }
     });
@@ -154,6 +154,58 @@
       }
     }
 
+    /* Network Narrative */
+    .exec-narrative {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .narrative-col {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px 20px;
+    }
+    .narrative-col--wins { border-left: 3px solid #22c55e; }
+    .narrative-col--focus { border-left: 3px solid #f59e0b; }
+    .narrative-heading {
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      margin-bottom: 12px;
+    }
+    .narrative-col--wins .narrative-heading { color: #22c55e; }
+    .narrative-col--focus .narrative-heading { color: #f59e0b; }
+    .narrative-list {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .narrative-list li {
+      font-size: 0.875rem;
+      color: var(--text);
+      line-height: 1.45;
+      padding-left: 14px;
+      position: relative;
+    }
+    .narrative-list li::before {
+      content: "•";
+      position: absolute;
+      left: 0;
+      color: var(--muted);
+    }
+    .narrative-list .narrative-fi {
+      font-weight: 600;
+    }
+    @media (max-width: 700px) {
+      .exec-narrative { grid-template-columns: 1fr; }
+    }
+
     /* Kiosk overrides */
     body.kiosk-mode .dashboard-shell {
       padding-top: 70px;
@@ -176,9 +228,10 @@
         <h3>Active FIs</h3>
         <div class="kpi-value" id="kpiActiveFis">-</div>
       </div>
-      <div class="card">
-        <h3>Network Success Rate</h3>
+      <div class="card" title="System Success Rate excludes cardholder-caused failures (wrong credentials, timeouts, cancellations). Overall rate is shown in parentheses.">
+        <h3>System Success Rate</h3>
         <div class="kpi-value" id="kpiNetworkRate">-</div>
+        <div style="font-size:0.72rem;color:var(--muted);margin-top:2px;" id="kpiNetworkRateOverall"></div>
       </div>
       <div class="card">
         <h3>Successful Placements</h3>
@@ -191,6 +244,18 @@
       <div class="card exec-attention">
         <h3>FIs Needing Attention</h3>
         <div class="kpi-value" id="kpiAttention">-</div>
+      </div>
+    </section>
+
+    <!-- Network Narrative -->
+    <section class="exec-narrative" id="execNarrative" style="display:none;">
+      <div class="narrative-col narrative-col--wins">
+        <div class="narrative-heading">What's Working</div>
+        <ul class="narrative-list" id="narrativeWins"></ul>
+      </div>
+      <div class="narrative-col narrative-col--focus">
+        <div class="narrative-heading">Where to Focus</div>
+        <ul class="narrative-list" id="narrativeFocus"></ul>
       </div>
     </section>
 
@@ -212,10 +277,10 @@
       <div id="warningsList"></div>
     </div>
 
-    <!-- Bottom Row: Tier Distribution -->
+    <!-- Bottom Row: Motivation Distribution -->
     <section class="exec-bottom-row">
       <div class="card">
-        <h3>Tier Distribution</h3>
+        <h3>Motivation Distribution</h3>
         <div id="tierDistribution"></div>
       </div>
       <div class="card">

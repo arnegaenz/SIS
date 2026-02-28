@@ -1427,7 +1427,7 @@ function renderKioskDistributions(fis) {
 
   container.innerHTML = `
     <div class="kiosk-dist-section">
-      <div class="kiosk-dist-section__label">Tier Distribution</div>
+      <div class="kiosk-dist-section__label">Motivation Distribution</div>
       <div class="kiosk-dist-bar">${tierBarHtml}</div>
       <div class="kiosk-dist-legend">${tierLegendHtml}</div>
     </div>

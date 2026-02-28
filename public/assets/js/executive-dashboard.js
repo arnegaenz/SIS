@@ -18,6 +18,7 @@ const els = {
   verdict: document.getElementById("execVerdict"),
   kpiActiveFis: document.getElementById("kpiActiveFis"),
   kpiNetworkRate: document.getElementById("kpiNetworkRate"),
+  kpiNetworkRateOverall: document.getElementById("kpiNetworkRateOverall"),
   kpiPlacements: document.getElementById("kpiPlacements"),
   kpiAvgScore: document.getElementById("kpiAvgScore"),
   kpiAttention: document.getElementById("kpiAttention"),
@@ -26,6 +27,9 @@ const els = {
   warningsList: document.getElementById("warningsList"),
   tierDistribution: document.getElementById("tierDistribution"),
   scoreDistribution: document.getElementById("scoreDistribution"),
+  execNarrative: document.getElementById("execNarrative"),
+  narrativeWins: document.getElementById("narrativeWins"),
+  narrativeFocus: document.getElementById("narrativeFocus"),
 };
 
 /* ── State ── */
@@ -235,6 +239,8 @@ function enrichAndRender() {
       sm,
       success,
       successRate,
+      udfSessions: row.UDF_Sessions || 0,
+      cardholders,
       monthlyReachPct,
       tier: tierInfo.tier,
       tierInfo,
@@ -270,10 +276,103 @@ function enrichAndRender() {
 
   renderVerdict(enriched, allWarnings);
   renderKpis(enriched, attentionFis);
+  renderNarrative(enriched, allWarnings);
   renderTrendChart();
   renderWarnings(allWarnings);
   renderTierDistribution(enriched);
   renderScoreDistribution(enriched);
+}
+
+/* ── Network Narrative ── */
+function renderNarrative(fis, allWarnings) {
+  const narrative = els.execNarrative;
+  const winsEl = els.narrativeWins;
+  const focusEl = els.narrativeFocus;
+  if (!narrative || !winsEl || !focusEl) return;
+
+  const activeFis = fis.filter((fi) => fi.sm > 0);
+  const totalSm = activeFis.reduce((s, fi) => s + fi.sm, 0);
+  const totalSuccess = activeFis.reduce((s, fi) => s + fi.success, 0);
+  const networkRate = totalSm > 0 ? totalSuccess / totalSm : 0;
+
+  // Tier buckets
+  const activationFis = activeFis.filter((fi) => fi.tier === 1 || fi.tier === 1.5);
+  const campaignFis = activeFis.filter((fi) => fi.tier === 2 || fi.tier === 2.5);
+  const discoveryFis = activeFis.filter((fi) => fi.tier === 3);
+  const totalPlacements = funnelData?.overall?.Jobs_Success || 0;
+
+  // Card replacement reach math: ~2.5% monthly turnover (expirations + lost/stolen)
+  const totalCardholders = fis.reduce((s, fi) => s + (fi.cardholders || 0), 0);
+  const monthlyReplacement = totalCardholders > 0 ? Math.round(totalCardholders * 0.025) : 0;
+
+  // Network rate trend
+  let rateTrendLabel = null;
+  if (weeklyBuckets.length >= 2) {
+    const delta = weeklyBuckets[0].rate - weeklyBuckets[1].rate;
+    if (delta > 0.015) rateTrendLabel = "up";
+    else if (delta < -0.015) rateTrendLabel = "down";
+  }
+
+  // Top FI by success rate (min 20 sessions)
+  const topFi = activeFis
+    .filter((fi) => fi.sm >= 20)
+    .sort((a, b) => b.successRate - a.successRate)[0];
+
+  // Highest volume FI at Discovery (biggest opportunity)
+  const bigDiscovery = discoveryFis.sort((a, b) => b.sm - a.sm)[0];
+
+  // FIs needing attention
+  const attentionFis = activeFis.filter((fi) => fi.score < 25 || fi.jobFailRate > 0.30);
+  const dangerCount = allWarnings.filter((w) => w.type === "danger").length;
+
+  // Build wins bullets
+  const wins = [];
+  if (activationFis.length > 0) {
+    wins.push(`<span class="narrative-fi">${activationFis.length} FI${activationFis.length !== 1 ? "s" : ""}</span> running at Activation level — cardholders converting at 1 in 4`);
+  }
+  if (campaignFis.length > 0) {
+    wins.push(`<span class="narrative-fi">${campaignFis.length} FI${campaignFis.length !== 1 ? "s" : ""}</span> at Campaign level with active outreach traffic`);
+  }
+  if (rateTrendLabel === "up") {
+    wins.push(`Network success rate is trending up — ${formatPercent(networkRate)} across all active FIs`);
+  } else if (rateTrendLabel === null || rateTrendLabel === "flat") {
+    wins.push(`Network success rate holding at ${formatPercent(networkRate)} across ${activeFis.length} active FIs`);
+  }
+  if (totalPlacements > 0) {
+    wins.push(`<span class="narrative-fi">${formatNumber(totalPlacements)}</span> successful card updates delivered in the last 30 days`);
+  }
+  if (monthlyReplacement > 0) {
+    wins.push(`~<span class="narrative-fi">${formatNumber(monthlyReplacement)}</span> cardholders are replacing their card this month — Activation-level prospects at peak motivation`);
+  }
+  if (topFi) {
+    wins.push(`Top performer: <span class="narrative-fi">${topFi.name}</span> at ${formatPercent(topFi.successRate)} success rate`);
+  }
+
+  // Build focus bullets
+  const focus = [];
+  if (rateTrendLabel === "down") {
+    focus.push(`Network success rate is trending down — worth a closer look at recent session quality`);
+  }
+  if (discoveryFis.length > 0) {
+    focus.push(`<span class="narrative-fi">${discoveryFis.length} FI${discoveryFis.length !== 1 ? "s" : ""}</span> at Discovery level — biggest opportunity to move the network rate`);
+  }
+  if (bigDiscovery) {
+    focus.push(`Highest-volume Discovery FI: <span class="narrative-fi">${bigDiscovery.name}</span> (${formatNumber(bigDiscovery.sm)} sessions) — adding an activation flow could 7x their conversion`);
+  }
+  if (attentionFis.length > 0) {
+    focus.push(`<span class="narrative-fi">${attentionFis.length} FI${attentionFis.length !== 1 ? "s" : ""}</span> flagged for attention — low engagement scores or elevated failure rates`);
+  }
+  if (dangerCount > 0) {
+    focus.push(`${dangerCount} critical warning${dangerCount !== 1 ? "s" : ""} require immediate review — see Early Warnings below`);
+  }
+  if (focus.length === 0) {
+    focus.push("No major concerns — network is performing well across all active FIs");
+  }
+
+  const li = (html) => `<li>${html}</li>`;
+  winsEl.innerHTML = wins.map(li).join("");
+  focusEl.innerHTML = focus.map(li).join("");
+  narrative.style.display = "";
 }
 
 function renderEmpty() {
@@ -320,6 +419,10 @@ function renderKpis(fis, attentionFis) {
   const totalSm = fis.reduce((s, fi) => s + fi.sm, 0);
   const totalSuccess = fis.reduce((s, fi) => s + fi.success, 0);
   const networkRate = totalSm > 0 ? totalSuccess / totalSm : 0;
+  // System Success Rate: excludes UDF-only sessions from denominator
+  const totalUdf = fis.reduce((s, fi) => s + (fi.udfSessions || 0), 0);
+  const systemDenom = Math.max(totalSuccess, totalSm - totalUdf);
+  const systemRate = systemDenom > 0 ? totalSuccess / systemDenom : networkRate;
   const totalPlacements = funnelData?.overall?.Jobs_Success || 0;
 
   // Average engagement score
@@ -345,7 +448,10 @@ function renderKpis(fis, attentionFis) {
   }
 
   els.kpiActiveFis.textContent = formatNumber(activeFis);
-  els.kpiNetworkRate.innerHTML = formatPercent(networkRate) + rateTrend;
+  els.kpiNetworkRate.innerHTML = formatPercent(systemRate) + rateTrend;
+  if (els.kpiNetworkRateOverall && totalUdf > 0) {
+    els.kpiNetworkRateOverall.textContent = `${formatPercent(networkRate)} overall (incl. cardholder errors)`;
+  }
   els.kpiPlacements.innerHTML = formatNumber(totalPlacements) + placementTrend;
   els.kpiAvgScore.textContent = avgScore;
   els.kpiAttention.textContent = attentionFis.length;
@@ -464,7 +570,7 @@ function renderWarnings(warnings) {
   }
 }
 
-/* ── Tier Distribution ── */
+/* ── Motivation Distribution ── */
 function renderTierDistribution(fis) {
   const container = els.tierDistribution;
   if (!container) return;

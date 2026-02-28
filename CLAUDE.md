@@ -7,6 +7,35 @@
 - **PM2 Process**: `sis-api` (NOT sis-metrics)
 - **Deploy command**: `scp -i ~/.ssh/LightsailDefaultKey-us-west-2.pem <local-file> ubuntu@34.220.57.7:/home/ubuntu/strivve-metrics/<path> && ssh -i ~/.ssh/LightsailDefaultKey-us-west-2.pem ubuntu@34.220.57.7 "pm2 restart sis-api"`
 
+## ⛔ Production Data File SOP — NEVER SKIP THESE STEPS
+
+These rules apply to ANY file on the production server that is not in git (fi_registry.json, users.json, any .json data file):
+
+### Before editing a production data file:
+1. **ALWAYS pull from server first** — never assume local is in sync:
+   ```
+   scp -i ~/.ssh/LightsailDefaultKey-us-west-2.pem ubuntu@34.220.57.7:/home/ubuntu/strivve-metrics/<file> /Users/arg/development/strivve-metrics/<file>
+   ```
+2. **ALWAYS create a timestamped backup on the server first**:
+   ```
+   ssh -i ~/.ssh/LightsailDefaultKey-us-west-2.pem ubuntu@34.220.57.7 "cp /home/ubuntu/strivve-metrics/<file> /home/ubuntu/strivve-metrics/<file>.bak.$(date +%Y%m%d_%H%M%S)"
+   ```
+
+### Before deploying back to the server:
+3. **ALWAYS ask the user explicitly** — "Ready to deploy?" — never auto-deploy data files
+4. **NEVER deploy without confirming a backup exists** on the server
+
+## ⛔ Production Server — Cardinal Rule
+
+**NEVER execute any command on the production server (34.220.57.7) without explicitly asking the user first and receiving a clear yes.**
+
+This includes: scp, ssh commands, pm2 restarts, file edits, script runs — ANYTHING. No exceptions. No assumptions. Ask first, every time.
+
+### Why this matters:
+- `fi_registry.json` is gitignored — there is NO git rollback if it gets overwritten
+- It contains manually curated metadata (cardholder totals, core vendors, processors) that cannot be reconstructed automatically
+- Overwriting it without a backup is permanent and unrecoverable
+
 ## End-of-Session Protocol ("lock it down")
 When the user says "lock it down", "end the session", or similar — run this checklist before signing off:
 1. **Commit & push all changes**: `git status`, stage relevant files, commit with a clear message, then `git push` to origin. Verify `git log --oneline origin/main..HEAD` shows nothing.
@@ -167,40 +196,61 @@ All partner-facing content follows engagement-positive tone:
 
 # What's Pending / Queued
 
-### AI-Powered Insights Engine (Phase 2 — Admin Testing)
-- **Phase 1 COMPLETE**: API key configured, `scripts/ai-insights.mjs` module built, 3 endpoints live (`POST /api/ai-insights`, `GET /api/ai-insights/cache`, `POST /api/ai-insights/cache/clear`)
-- **Phase 2 IN PROGRESS**: Purple "Generate" button on `funnel-customer.html` (admin-only via `.admin-overlay`), color-coded rendering working
-- Model: `claude-haiku-4-5-20251001`, ~17-21s first call, prompt caching (90% discount), ~$0.005-0.008/call
-- 24hr in-memory cache, evicts at >200 entries
-- Full plan: `docs/ai-insights-plan.md`
-- **Remaining Phase 2**: Rule-based vs AI comparison view, prompt tuning, edge case testing, add to `funnel.html`
+## 🟡 Medium (Real work, approach clear)
+
+### Filter Bar Visibility Debug
+- Bryan sees partner filter only on Cardholder Engagement — may be role/login rendering issue
+- Filter IS global (filters.js) and should show instance → partner → integration → FI left to right
+- Debug: verify filter bar renders consistently across all access levels and all pages that include it
+
+### Admin-Only Nav Visibility Flag for WIP Pages
+- WIP pages (Sources, UX Paths, Customer Success Dashboard) should not appear in nav for non-admin users
+- Add flag or config to hide unready pages from partner-facing nav
+- Admin/internal users can still see and access them
+
+### Job Outcome Breakdown Modal Polish
+- Phase 1 COMPLETE: click-to-modal on all 5 breakdown cards (funnel.html), 90-day trend charts
+- Known improvements: dense daily chart (90 bars), truncating weekly labels, linear regression misleading, missing per-cache key, tooltip hover issues on narrow bars
+- Low priority — functional, just not polished
+
+### Support Lookup Phase 2
+- Phase 1 DONE: troubleshoot-customer.html with plain-English explanations, FI scoping, copy block
+- Phase 2 ideas: session search by reference ID, FI picker for multi-FI users, date range calendar, export/print
+
+---
+
+## 🔴 Needs Discussion (Strategic decision or architectural)
+
+### System Success Rate as Default
+- Current default includes user_data_failures → looks worse than it is
+- Bryan + Mark want "System Success Rate" (UDF excluded) as default, with toggle to include UDF
+- Strategic question: show partners a number that excludes cardholder-caused failures?
+- **Decision needed before any code change**
+
+### Global Partner/Instance Filter
+- Bryan mentioned 4 times: filter should be consistent across all views
+- Ops Dashboard, Portfolio, Executive Summary all have ad-hoc or no partner filtering
+- Long-term: unified filter component persisting across navigation
+- Near-term: add partner dropdown to Operations Dashboard at minimum
+- **Architectural decision needed**
+
+### Card Replacement Reach Math
+- ~28-30% annual card turnover (exp + lost/stolen) = ~2.3-2.5% monthly at Tier 1 motivation
+- Framing: "You have ~1,000 cardholders/month at peak motivation — how many encounter CardUpdatr?"
+- Could become a calculator widget or narrative rule
+- **Needs data validation + design decision**
+
+---
+
+## 🔵 Ongoing / Phased
+
+### AI-Powered Insights Engine
+- **Phase 1 COMPLETE**: API key, ai-insights.mjs module, 3 endpoints live
+- **Phase 2 IN PROGRESS**: Purple "Generate" button (admin-only), color-coded rendering working
+  - Remaining: rule-based vs AI comparison view, prompt tuning, edge case testing, add to funnel.html
 - **Phase 3**: Partner rollout (remove admin-only gate, fallback logic)
 - **Phase 4**: Cross-FI analysis, anomaly detection, predictive insights
-
-### Support Lookup Page (Phase 1 COMPLETE — Gating for Review)
-- **Phase 1 DONE**: `troubleshoot-customer.html` — customer-facing session lookup with plain-English explanations, copy-for-support, FI scoping, field stripping
-- Currently visible to admin/internal + executive. **Limited users intentionally gated** pending review.
-- **Phase 2 ideas**: Session search by reference ID, FI picker for multi-FI users, date range calendar, export/print, FAQ/help section
-- Originally requested by Liam (Feb 26, 2026) as "Troubleshooting Site"
-
-### Job Outcome Breakdown Modal Polish (Low Priority)
-- **Phase 1 COMPLETE**: Click-to-modal on all 5 breakdown cards (`funnel.html`). Stats row, top-10 merchant bars, callout insights, 90-day trend section with Daily + Weekly side-by-side charts.
-- **Current state**: Stacked bars for sysrate/overall (green success + amber system + red UX segments), single-color bars for success/system/ux. Separate linear regression trend lines per series. Legends, x-axis labels, 90-day independent data fetch.
-- **Known issues / future improvements**:
-  - Daily chart with 90 bars is dense — consider aggregating to every-other-day or showing only last 60 days
-  - Weekly labels can still truncate on narrow screens — explore shorter date formats or rotating labels
-  - Trend lines use linear regression which can be misleading with non-linear patterns — consider adding trend direction arrows/labels (e.g. "Success +12%") as a simpler alternative
-  - Monthly view was dropped (only ~3 bars over 90 days) — revisit if lookback window extends to 6+ months
-  - 90-day trend data is not cached separately — hitting the API each time the modal opens. Could use a dedicated cache key
-  - Tooltips on stacked bars show text but can be hard to hover on narrow daily bars — consider a shared tooltip panel on hover
-  - Legend has 4 items on stacked charts — could be simplified to just the bar colors if trend line meaning is made more obvious
-  - Could add the modal to `funnel-customer.html` (customer-facing page) if partners find it useful
-
-### Card Replacement Reach Math (Discussed, Not Yet Built)
-- ~25% annual portfolio turnover from expirations, ~3-5% lost/stolen = ~28-30% annual (2.3-2.5% monthly)
-- These are Tier 1 motivation cardholders at peak urgency
-- Framing: "You have ~1,000 cardholders per month at peak motivation. How many encounter CardUpdatr at that moment?"
-- Could become a calculator widget or narrative rule
+- Model: claude-haiku-4-5-20251001, ~$0.005-0.008/call, 24hr cache. Full plan: docs/ai-insights-plan.md
 
 
 ---

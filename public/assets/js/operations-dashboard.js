@@ -65,6 +65,7 @@ const state = {
   windowDays: 30,
   fiScope: "all",
   fiList: [],
+  partnerList: [],
   instanceList: [],
   merchantList: [],
   data: null,
@@ -89,6 +90,13 @@ const fiSelect = createMultiSelect(document.getElementById("fiSelect"), {
   placeholder: "All FIs",
   onChange: (values) => {
     state.fiList = values;
+    fetchMetrics();
+  },
+});
+const partnerSelect = createMultiSelect(document.getElementById("partnerSelect"), {
+  placeholder: "All partners",
+  onChange: (values) => {
+    state.partnerList = values;
     fetchMetrics();
   },
 });
@@ -316,19 +324,21 @@ async function loadFiRegistry() {
       if (!res.ok) continue;
       const json = await res.json();
       const values = Array.isArray(json) ? json : Object.values(json || {});
-      const map = new Map();
+      const fiMap = new Map();
+      const partnerSet = new Set();
       values.forEach((entry) => {
         if (!entry) return;
         const key = (entry.fi_lookup_key || entry.fi_name || "").toString().trim();
-        if (!key) return;
-        if (map.has(key)) return;
-        map.set(key, {
-          value: key,
-          label: entry.fi_name || key,
-        });
+        if (key) {
+          if (!fiMap.has(key)) fiMap.set(key, { value: key, label: entry.fi_name || key });
+        }
+        const partner = (entry.partner || "").toString().trim();
+        if (partner && partner !== "Unknown" && partner !== "null") partnerSet.add(partner);
       });
-      const options = Array.from(map.values()).sort((a, b) => a.label.localeCompare(b.label));
-      fiSelect.setOptions(options);
+      const fiOptions = Array.from(fiMap.values()).sort((a, b) => a.label.localeCompare(b.label));
+      fiSelect.setOptions(fiOptions);
+      const partnerOptions = Array.from(partnerSet).sort().map(p => ({ value: p, label: p }));
+      if (partnerOptions.length) partnerSelect.setOptions(partnerOptions);
       return;
     } catch (err) {
       // continue
@@ -346,6 +356,7 @@ async function fetchMetrics() {
     date_to,
     fi_scope: state.fiScope,
     fi_list: state.fiList,
+    partner_list: state.partnerList,
     instance_list: state.instanceList,
     merchant_list: state.merchantList,
     includeTests: state.includeTests,

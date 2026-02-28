@@ -226,10 +226,21 @@
     }
     .sl-loading.active { display: block; }
 
+    /* Custom date range row */
+    .sl-custom-dates {
+      display: none;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .sl-custom-dates.visible { display: flex; }
+    .sl-input[type="date"] { min-width: 150px; }
+
     /* Mobile */
     @media (max-width: 768px) {
       .sl-wrap { padding: 16px 12px 40px; }
       .sl-filters { flex-direction: column; }
+      .sl-custom-dates { flex-direction: column; }
       .sl-field { width: 100%; }
       .sl-select, .sl-input { width: 100%; min-width: 0; }
       .sl-btn { width: 100%; }
@@ -252,11 +263,16 @@
           <option value="3">Last 3 days</option>
           <option value="14">Last 14 days</option>
           <option value="30">Last 30 days</option>
+          <option value="custom">Custom range...</option>
         </select>
       </div>
       <div class="sl-field">
         <label>Merchant</label>
         <input type="text" id="merchantSearch" class="sl-input" placeholder="Search merchant..." />
+      </div>
+      <div class="sl-field">
+        <label>Reference ID</label>
+        <input type="text" id="refSearch" class="sl-input" placeholder="Search ref ID..." style="min-width:160px;" />
       </div>
       <div class="sl-field">
         <label>Status</label>
@@ -268,6 +284,16 @@
       </div>
       <div class="sl-field" style="justify-content:flex-end;">
         <button id="searchBtn" class="sl-btn">Search</button>
+      </div>
+    </div>
+    <div id="customDateRange" class="sl-custom-dates">
+      <div class="sl-field">
+        <label>From</label>
+        <input type="date" id="customDateFrom" class="sl-input" />
+      </div>
+      <div class="sl-field">
+        <label>To</label>
+        <input type="date" id="customDateTo" class="sl-input" />
       </div>
     </div>
 
@@ -365,7 +391,11 @@
     var els = {
       contextBadge: document.getElementById("contextBadge"),
       datePreset: document.getElementById("datePreset"),
+      customDateRange: document.getElementById("customDateRange"),
+      customDateFrom: document.getElementById("customDateFrom"),
+      customDateTo: document.getElementById("customDateTo"),
       merchantSearch: document.getElementById("merchantSearch"),
+      refSearch: document.getElementById("refSearch"),
       statusFilter: document.getElementById("statusFilter"),
       searchBtn: document.getElementById("searchBtn"),
       summaryArea: document.getElementById("summaryArea"),
@@ -409,9 +439,17 @@
 
     // ── Search ──────────────────────────────────────────────────
     function doSearch() {
-      var preset = parseInt(els.datePreset.value, 10) || 0;
-      var end = todayISO();
-      var start = preset > 0 ? isoAddDays(end, -preset) : end;
+      var preset = els.datePreset.value;
+      var end, start;
+      if (preset === "custom") {
+        start = els.customDateFrom.value || todayISO();
+        end = els.customDateTo.value || todayISO();
+        if (start > end) { end = start; els.customDateTo.value = end; }
+      } else {
+        var days = parseInt(preset, 10) || 0;
+        end = todayISO();
+        start = days > 0 ? isoAddDays(end, -days) : end;
+      }
 
       els.searchBtn.disabled = true;
       els.loadingArea.classList.add("active");
@@ -443,22 +481,23 @@
     // ── Filtering (client-side) ─────────────────────────────────
     function getFilteredJobs() {
       var merchantQ = (els.merchantSearch.value || "").toLowerCase().trim();
+      var refQ = (els.refSearch.value || "").toLowerCase().trim();
       var statusF = els.statusFilter.value;
       var results = [];
 
       for (var i = 0; i < state.sessions.length; i++) {
         var session = state.sessions[i];
         var jobs = session.jobs || [];
+        var sessionRef = (session.agent_session_id || "").toLowerCase();
+
+        // Reference ID filter — applies at session level
+        if (refQ && sessionRef.indexOf(refQ) === -1) continue;
 
         if (jobs.length === 0) {
           // Zero-job session
-          if (statusF === "success") continue; // skip when filtering successful only
+          if (statusF === "success") continue;
           if (!merchantQ) {
-            results.push({
-              type: "empty",
-              session: session,
-              job: null
-            });
+            results.push({ type: "empty", session: session, job: null });
           }
           continue;
         }
@@ -470,11 +509,7 @@
           // Status filter
           if (statusF === "success" && !job.is_success) continue;
           if (statusF === "issues" && job.is_success) continue;
-          results.push({
-            type: "job",
-            session: session,
-            job: job
-          });
+          results.push({ type: "job", session: session, job: job });
         }
       }
       return results;
@@ -650,9 +685,23 @@
     // ── Event Bindings ──────────────────────────────────────────
     els.searchBtn.addEventListener("click", doSearch);
     els.merchantSearch.addEventListener("input", renderAll);
+    els.refSearch.addEventListener("input", renderAll);
     els.statusFilter.addEventListener("change", renderAll);
     els.merchantSearch.addEventListener("keydown", function(e) {
       if (e.key === "Enter") { e.preventDefault(); doSearch(); }
+    });
+    els.refSearch.addEventListener("keydown", function(e) {
+      if (e.key === "Enter") { e.preventDefault(); doSearch(); }
+    });
+    els.datePreset.addEventListener("change", function() {
+      if (els.datePreset.value === "custom") {
+        // Pre-fill dates if empty
+        if (!els.customDateFrom.value) els.customDateFrom.value = isoAddDays(todayISO(), -7);
+        if (!els.customDateTo.value) els.customDateTo.value = todayISO();
+        els.customDateRange.classList.add("visible");
+      } else {
+        els.customDateRange.classList.remove("visible");
+      }
     });
 
     // ── Init ────────────────────────────────────────────────────

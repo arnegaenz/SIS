@@ -1417,7 +1417,9 @@ Card Placement      46s     28s     66s    101s     55s    26,904</div>
   </div>
 
   <script>
-    if (window.renderHeaderNav) window.renderHeaderNav({ currentId: "experience" });
+    document.addEventListener("DOMContentLoaded", function() {
+      if (window.renderHeaderNav) window.renderHeaderNav({ currentId: "experience", title: "Cardholder Experience", subtitle: "Session timing and journey analysis" });
+    });
     // Info popover
     (function() {
       const overlay = document.getElementById('infoOverlay');

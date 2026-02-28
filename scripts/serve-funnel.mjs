@@ -2409,6 +2409,25 @@ function parseMetricsFilters(queryParams, payload = null, userContext = null, fi
   const merchantList = parseListParam(
     body.merchant_list || body.merchantList || query.merchant_list || query.merchantList
   );
+  const partnerList = parseListParam(
+    body.partner_list || body.partnerList || query.partner_list || query.partnerList
+  );
+
+  // If partner_list specified, translate to fi_keys and intersect with fiList
+  if (partnerList.length > 0) {
+    const normalizedPartners = new Set(partnerList.map(p => (p || "").toString().toLowerCase().trim()));
+    const partnerFiKeys = Object.values(fiRegistry)
+      .filter(entry => entry && normalizedPartners.has((entry.partner || "").toLowerCase().trim()))
+      .map(entry => normalizeFiKey(entry.fi_lookup_key || entry.fi_name || ""))
+      .filter(Boolean);
+    if (fiList.length === 0) {
+      fiList = partnerFiKeys;
+    } else {
+      const pSet = new Set(partnerFiKeys);
+      fiList = fiList.filter(fi => pSet.has(fi));
+    }
+    if (fiList.length === 0) fiList = ["__no_access__"];
+  }
 
   // ENFORCE USER FI RESTRICTIONS (instance, partner, or specific FIs)
   const allowedFis = computeAllowedFis(userContext, fiRegistry);
@@ -2561,6 +2580,12 @@ function formatSourceKey(sourceType, sourceCategory) {
 }
 
 const CANCELLED_TERMINATIONS = new Set(["CANCELED", "CANCELLED"]);
+// UX-type terminations: cardholder-caused failures (excluded from System Success Rate)
+const UX_TERMINATIONS = new Set([
+  "USER_DATA_FAILURE", "NEVER_STARTED", "TIMEOUT_CREDENTIALS", "TIMEOUT_TFA",
+  "ABANDONED_QUICKSTART", "CANCELED", "CANCELLED", "ACCOUNT_SETUP_INCOMPLETE",
+  "TOO_MANY_LOGIN_FAILURES", "ACCOUNT_LOCKED", "PASSWORD_RESET_REQUIRED", "INVALID_CARD_DETAILS",
+]);
 const ABANDON_TERMINATIONS = new Set([
   "NEVER_STARTED",
   "TIMEOUT_CREDENTIALS",
@@ -5882,6 +5907,7 @@ const server = http.createServer(async (req, res) => {
         SM_Sessions: 0,
         CE_Sessions: 0,
         Success_Sessions: 0,
+        UDF_Sessions: 0,
         Jobs_Total: 0,
         Jobs_Success: 0,
         Jobs_Failed: 0,
@@ -5890,6 +5916,7 @@ const server = http.createServer(async (req, res) => {
         target.SM_Sessions += delta.SM_Sessions;
         target.CE_Sessions += delta.CE_Sessions;
         target.Success_Sessions += delta.Success_Sessions;
+        target.UDF_Sessions += delta.UDF_Sessions || 0;
         target.Jobs_Total += delta.Jobs_Total;
         target.Jobs_Success += delta.Jobs_Success;
         target.Jobs_Failed += delta.Jobs_Failed;
@@ -5909,6 +5936,7 @@ const server = http.createServer(async (req, res) => {
         if (!sessionsRaw || sessionsRaw.error) continue;
         const sessions = Array.isArray(sessionsRaw.sessions) ? sessionsRaw.sessions : [];
         const placementSourceMap = new Map();
+        const sessionTerminationsMap = new Map(); // sessionId → Set of termination codes
         const placements = Array.isArray(placementsRaw?.placements) ? placementsRaw.placements : [];
         for (const placement of placements) {
           const key =
@@ -5918,9 +5946,16 @@ const server = http.createServer(async (req, res) => {
             placement.cuid ||
             null;
           if (!key) continue;
-          if (placementSourceMap.has(key)) continue;
-          const sourceInfo = extractSourceFromPlacement(placement);
-          if (sourceInfo) placementSourceMap.set(key, sourceInfo);
+          if (!placementSourceMap.has(key)) {
+            const sourceInfo = extractSourceFromPlacement(placement);
+            if (sourceInfo) placementSourceMap.set(key, sourceInfo);
+          }
+          // Track termination codes per session for UDF detection
+          const term = (placement.termination || "").toString().trim().toUpperCase();
+          if (term) {
+            if (!sessionTerminationsMap.has(key)) sessionTerminationsMap.set(key, new Set());
+            sessionTerminationsMap.get(key).add(term);
+          }
         }
 
         for (const session of sessions) {
@@ -5968,10 +6003,20 @@ const server = http.createServer(async (req, res) => {
           const jobs = resolveSessionJobCounts(session);
           const dayKey = dateKeyFromValue(session.created_on, day);
 
+          // UDF_Sessions: session where all job attempts were UX-type failures (cardholder-caused)
+          let udfSession = 0;
+          if (flags.successfulJobs === 0 && jobs.total > 0 && agentId) {
+            const terms = sessionTerminationsMap.get(agentId);
+            if (terms && terms.size > 0 && [...terms].every(t => UX_TERMINATIONS.has(t))) {
+              udfSession = 1;
+            }
+          }
+
           const row = {
             SM_Sessions: flags.reachedSelectMerchant ? 1 : 0,
             CE_Sessions: flags.reachedCredentialEntry ? 1 : 0,
             Success_Sessions: flags.successfulJobs > 0 ? 1 : 0,
+            UDF_Sessions: udfSession,
             Jobs_Total: clampNonNegative(jobs.total),
             Jobs_Success: clampNonNegative(jobs.success),
             Jobs_Failed: clampNonNegative(jobs.failed),

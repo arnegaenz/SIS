@@ -874,6 +874,9 @@
                     <th data-column="partner" class="sortable">
                       Partner <span class="sort-indicator">↕</span>
                     </th>
+                    <th data-column="status" class="sortable">
+                      Status <span class="sort-indicator">↕</span>
+                    </th>
                   </tr>
                 </thead>
                 <tbody id="registryTableBody">
@@ -919,10 +922,20 @@
                       <option value="PSCU"></option>
                       <option value="Marquis"></option>
                       <option value="MSU"></option>
-                      <option value="CardSavr"></option>
-                      <option value="Direct ss01"></option>
-                      <option value="Advancial"></option>
+                      <option value="OnDot"></option>
+                      <option value="Swaystack"></option>
+                      <option value="Direct"></option>
+                      <option value="Test"></option>
                     </datalist>
+                  </label>
+                  <label>
+                    Status
+                    <select id="editorFiStatus">
+                      <option value="active">active</option>
+                      <option value="former">former</option>
+                      <option value="test">test</option>
+                      <option value="prospect">prospect</option>
+                    </select>
                   </label>
                   <label>
                     Core Vendor
@@ -1941,6 +1954,7 @@
         cardholders: document.getElementById("editorCardholders"),
         source: document.getElementById("editorSource"),
         asOf: document.getElementById("editorAsOf"),
+        status: document.getElementById("editorFiStatus"),
       };
       const partnerFilter = document.getElementById("registryPartnerFilter");
       const registryTable = document.getElementById("registryTable");
@@ -2049,6 +2063,7 @@
           core_product: entry.core_product || "",
           debit_processor: entry.debit_processor || "",
           credit_processor: entry.credit_processor || "",
+          status: entry.status || "",
         };
       }
 
@@ -2288,6 +2303,7 @@
             <td>${entry.instance || "—"}</td>
             <td>${entry.integration_type}</td>
             <td>${entry.partner || "—"}</td>
+            <td>${entry.status || "—"}</td>
           `;
           tableBody.appendChild(tr);
         });
@@ -2304,6 +2320,7 @@
         inputs.trafficLastSeen.value = "";
         inputs.integration.value = "NON-SSO";
         inputs.partner.value = "";
+        inputs.status.value = "active";
         inputs.coreVendor.value = "";
           inputs.coreProduct.value = "";
           inputs.debitProcessor.value = "";
@@ -2327,6 +2344,7 @@
           entry.traffic_last_seen || entry.last_seen || "";
         inputs.integration.value = entry.integration_type || "NON-SSO";
         inputs.partner.value = entry.partner || "";
+        inputs.status.value = entry.status || "active";
         inputs.coreVendor.value = entry.core_vendor || "";
         inputs.coreProduct.value = entry.core_product || "";
         inputs.debitProcessor.value = entry.debit_processor || "";
@@ -2615,6 +2633,7 @@
           fi_lookup_key: inputs.fiLookup.value.trim(),
           integration_type: inputs.integration.value,
           partner: inputs.partner.value.trim(),
+          status: inputs.status.value || "active",
           core_vendor: inputs.coreVendor.value.trim(),
           core_product: inputs.coreProduct.value.trim(),
           debit_processor: inputs.debitProcessor.value.trim(),
