@@ -198,11 +198,6 @@ All partner-facing content follows engagement-positive tone:
 
 ## 🟡 Medium (Real work, approach clear)
 
-### Filter Bar Visibility Debug
-- Bryan sees partner filter only on Cardholder Engagement — may be role/login rendering issue
-- Filter IS global (filters.js) and should show instance → partner → integration → FI left to right
-- Debug: verify filter bar renders consistently across all access levels and all pages that include it
-
 ### Admin-Only Nav Visibility Flag for WIP Pages
 - WIP pages (Sources, UX Paths, Customer Success Dashboard) should not appear in nav for non-admin users
 - Add flag or config to hide unready pages from partner-facing nav
@@ -226,13 +221,6 @@ All partner-facing content follows engagement-positive tone:
 - Bryan + Mark want "System Success Rate" (UDF excluded) as default, with toggle to include UDF
 - Strategic question: show partners a number that excludes cardholder-caused failures?
 - **Decision needed before any code change**
-
-### Global Partner/Instance Filter
-- Bryan mentioned 4 times: filter should be consistent across all views
-- Ops Dashboard, Portfolio, Executive Summary all have ad-hoc or no partner filtering
-- Long-term: unified filter component persisting across navigation
-- Near-term: add partner dropdown to Operations Dashboard at minimum
-- **Architectural decision needed**
 
 ### Card Replacement Reach Math
 - ~28-30% annual card turnover (exp + lost/stolen) = ~2.3-2.5% monthly at Tier 1 motivation
