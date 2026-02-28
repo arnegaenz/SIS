@@ -6,6 +6,26 @@
 
 # Build History
 
+## Feb 28, 2026 (Session 13)
+
+### fi_registry.json — Full Partner & Status Cleanup
+- Audited all 301 FI entries across all instances; assigned correct partners to previously blank/Unknown FIs
+- New partners introduced: `Swaystack`, `Direct`, `Test` (in addition to existing Alkami, DigitalOnboarding, PSCU, Marquis, MSU, OnDot)
+- Discovered 3 unlabeled Swaystack FIs: `ovb` (Ohio Valley Bank), `ukfcu` (University of Kentucky FCU), `ontap` (On Tap)
+- Added `status` field: `active`, `former`, `test`, `prospect` — human reference only, not used in data filtering
+- Corrected fi_names: Soarion (formerly AFFCU), Ohio Valley Bank, University of Kentucky FCU
+- Marked former/dropped FIs (Direct and Alkami) with `status: "former"`
+- **SOP rule added**: Always pull from server before editing, always create timestamped backup before deploying, always ask before any production server action
+
+### Maintenance Page — Registry Editor Updates
+- Added **Status column** to FI registry table
+- Added **Status dropdown** to editor form (active, former, test, prospect)
+- Updated **partner datalist** with all current partners (Swaystack, Direct, OnDot, Test; removed stale "Direct ss01" and "Advancial" entries)
+
+### CLAUDE.md / MEMORY.md
+- Cleaned up completed backlog items (Motivation Distribution label, nav on Experience page, Playbook removed from nav, Executive Narrative)
+- Added production server Cardinal Rule and data file SOP to both files
+
 ## Feb 27, 2026 (Session 12)
 
 ### Cardholder Experience Page (NEW)
