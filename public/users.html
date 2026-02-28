@@ -1373,8 +1373,9 @@
         fi_keys: user.fi_keys || []
       };
       // Set impersonation before opening — new tab inherits sessionStorage snapshot
+      // Always clear view-as first so it never leaks into the impersonated tab
+      try { sessionStorage.removeItem("sis_view_as"); } catch (e) {}
       if (window.sisAuth && window.sisAuth.setImpersonation) {
-        try { sessionStorage.removeItem("sis_view_as"); } catch (e) {}
         window.sisAuth.setImpersonation(profile);
       }
       var level = profile.access_level;

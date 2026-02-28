@@ -79,7 +79,6 @@ var GROUPS = [
 { id:"executive", label:"Executive Summary", href:NAV_PREFIX+"dashboards/executive.html" },
 { id:"funnel-customer", label:"Cardholder Engagement", href:NAV_PREFIX+"funnel-customer.html" },
 { id:"portfolio", label:"CS Portfolio", href:NAV_PREFIX+"dashboards/portfolio.html" },
-{ id:"engagement-playbook", label:"Engagement Playbook", href:NAV_PREFIX+"resources/engagement-playbook.html" },
 { id:"supported-sites", label:"Supported Sites", href:NAV_PREFIX+"supported-sites.html" },
 { id:"campaign-builder", label:"Campaign URL Builder", href:NAV_PREFIX+"campaign-builder.html" }
 ]},
@@ -93,11 +92,11 @@ var GROUPS = [
 ]},
 { label: "Analysis", items: [
 { id:"funnel", label:"FI Funnel", href:NAV_PREFIX+"funnel.html" },
-{ id:"customer-success", label:"Customer Success Dashboard", href:NAV_PREFIX+"dashboards/customer-success.html" },
-{ id:"sources", label:"Sources", href:NAV_PREFIX+"sources.html" },
-{ id:"ux-paths", label:"UX Paths", href:NAV_PREFIX+"ux-paths.html" },
+{ id:"customer-success", label:"Customer Success Dashboard", href:NAV_PREFIX+"dashboards/customer-success.html", adminOnly: true },
+{ id:"sources", label:"Sources", href:NAV_PREFIX+"sources.html", adminOnly: true },
+{ id:"ux-paths", label:"UX Paths", href:NAV_PREFIX+"ux-paths.html", adminOnly: true },
 { id:"experience", label:"Cardholder Experience", href:NAV_PREFIX+"experience.html" },
-{ id:"placement-outcomes", label:"Placement Outcomes", href:NAV_PREFIX+"placement-outcomes.html" },
+{ id:"placement-outcomes", label:"Placement Outcomes", href:NAV_PREFIX+"placement-outcomes.html", adminOnly: true },
 { id:"fi-api", label:"FI API", href:NAV_PREFIX+"fi-api.html" }
 ]},
 { label: "Admin", fullAccessOnly: true, items: [
@@ -495,7 +494,8 @@ if (_isImpersonating) {
   impBanner.appendChild(impIcon);
   impBanner.appendChild(impText);
   impBanner.appendChild(impExit);
-  mount.appendChild(impBanner);
+  // Insert banner BEFORE the nav header so dropdowns don't open into it
+  mount.insertBefore(impBanner, header);
 }
 
 // Minimal styles fallback (only if classes not found). Harmless if CSS already exists.
