@@ -74,40 +74,93 @@ return el;
 // Prefix for relative links - "../" if in subdirectory, "./" if at root
 var NAV_PREFIX = (window.location.pathname.indexOf("/dashboards/") !== -1 || window.location.pathname.indexOf("/resources/") !== -1) ? "../" : "./";
 
+// ── Master nav item definitions (referenced by id) ──────────────────
+var ITEMS = {
+  "executive":          { id:"executive", label:"Executive Summary", href:NAV_PREFIX+"dashboards/executive.html" },
+  "funnel-customer":    { id:"funnel-customer", label:"Cardholder Engagement", href:NAV_PREFIX+"funnel-customer.html" },
+  "portfolio":          { id:"portfolio", label:"CS Portfolio", href:NAV_PREFIX+"dashboards/portfolio.html" },
+  "supported-sites":    { id:"supported-sites", label:"Supported Sites", href:NAV_PREFIX+"supported-sites.html" },
+  "campaign-builder":   { id:"campaign-builder", label:"Campaign URL Builder", href:NAV_PREFIX+"campaign-builder.html" },
+  "operations":         { id:"operations", label:"Operations Dashboard", href:NAV_PREFIX+"dashboards/operations.html" },
+  "heatmap":            { id:"heatmap", label:"Merchant Heatmap", href:NAV_PREFIX+"heatmap.html" },
+  "watchlist":          { id:"watchlist", label:"Alerts & Watchlist", href:NAV_PREFIX+"watchlist.html" },
+  "realtime":           { id:"realtime", label:"Real-Time", href:NAV_PREFIX+"realtime.html" },
+  "troubleshoot":       { id:"troubleshoot", label:"Troubleshoot", href:NAV_PREFIX+"troubleshoot.html" },
+  "troubleshoot-customer": { id:"troubleshoot-customer", label:"Support Lookup", href:NAV_PREFIX+"troubleshoot-customer.html" },
+  "funnel":             { id:"funnel", label:"FI Funnel", href:NAV_PREFIX+"funnel.html" },
+  "customer-success":   { id:"customer-success", label:"Customer Success Dashboard", href:NAV_PREFIX+"dashboards/customer-success.html" },
+  "sources":            { id:"sources", label:"Sources", href:NAV_PREFIX+"sources.html" },
+  "ux-paths":           { id:"ux-paths", label:"UX Paths", href:NAV_PREFIX+"ux-paths.html" },
+  "experience":         { id:"experience", label:"Cardholder Experience", href:NAV_PREFIX+"experience.html" },
+  "placement-outcomes": { id:"placement-outcomes", label:"Placement Outcomes", href:NAV_PREFIX+"placement-outcomes.html" },
+  "fi-api":             { id:"fi-api", label:"FI API", href:NAV_PREFIX+"fi-api.html" },
+  "playbook":           { id:"playbook", label:"Engagement Playbook", href:NAV_PREFIX+"resources/engagement-playbook.html" },
+  "maintenance":        { id:"maintenance", label:"Data & Config", href:NAV_PREFIX+"maintenance.html" },
+  "users":              { id:"users", label:"Users", href:NAV_PREFIX+"users.html" },
+  "activity-log":       { id:"activity-log", label:"User Activity", href:NAV_PREFIX+"activity-log.html" },
+  "shared-views":       { id:"shared-views", label:"Shared Links", href:NAV_PREFIX+"shared-views.html" },
+  "logs":               { id:"logs", label:"Server Logs", href:NAV_PREFIX+"logs.html" },
+  "synthetic-traffic":  { id:"synthetic-traffic", label:"Synthetic Traffic", href:NAV_PREFIX+"synthetic-traffic.html" }
+};
+
+function grp(label, ids) {
+  var items = [];
+  for (var i = 0; i < ids.length; i++) { if (ITEMS[ids[i]]) items.push(ITEMS[ids[i]]); }
+  return { label: label, items: items };
+}
+
+// Full admin GROUPS (all pages including Admin)
 var GROUPS = [
-{ label: "Partner Analytics", items: [
-{ id:"executive", label:"Executive Summary", href:NAV_PREFIX+"dashboards/executive.html" },
-{ id:"funnel-customer", label:"Cardholder Engagement", href:NAV_PREFIX+"funnel-customer.html" },
-{ id:"portfolio", label:"CS Portfolio", href:NAV_PREFIX+"dashboards/portfolio.html" },
-{ id:"supported-sites", label:"Supported Sites", href:NAV_PREFIX+"supported-sites.html" },
-{ id:"campaign-builder", label:"Campaign URL Builder", href:NAV_PREFIX+"campaign-builder.html" }
-]},
-{ label: "Monitoring", items: [
-{ id:"operations", label:"Operations Dashboard", href:NAV_PREFIX+"dashboards/operations.html" },
-{ id:"heatmap", label:"Merchant Heatmap", href:NAV_PREFIX+"heatmap.html" },
-{ id:"watchlist", label:"Alerts & Watchlist", href:NAV_PREFIX+"watchlist.html" },
-{ id:"realtime", label:"Real-Time", href:NAV_PREFIX+"realtime.html" },
-{ id:"troubleshoot", label:"Troubleshoot", href:NAV_PREFIX+"troubleshoot.html" },
-{ id:"troubleshoot-customer", label:"Support Lookup", href:NAV_PREFIX+"troubleshoot-customer.html" }
-]},
-{ label: "Analysis", items: [
-{ id:"funnel", label:"FI Funnel", href:NAV_PREFIX+"funnel.html" },
-{ id:"customer-success", label:"Customer Success Dashboard", href:NAV_PREFIX+"dashboards/customer-success.html", adminOnly: true },
-{ id:"sources", label:"Sources", href:NAV_PREFIX+"sources.html", adminOnly: true },
-{ id:"ux-paths", label:"UX Paths", href:NAV_PREFIX+"ux-paths.html", adminOnly: true },
-{ id:"experience", label:"Cardholder Experience", href:NAV_PREFIX+"experience.html" },
-{ id:"placement-outcomes", label:"Placement Outcomes", href:NAV_PREFIX+"placement-outcomes.html", adminOnly: true },
-{ id:"fi-api", label:"FI API", href:NAV_PREFIX+"fi-api.html" }
-]},
-{ label: "Admin", fullAccessOnly: true, items: [
-{ id:"maintenance", label:"Data & Config", href:NAV_PREFIX+"maintenance.html" },
-{ id:"users", label:"Users", href:NAV_PREFIX+"users.html" },
-{ id:"activity-log", label:"User Activity", href:NAV_PREFIX+"activity-log.html" },
-{ id:"shared-views", label:"Shared Links", href:NAV_PREFIX+"shared-views.html" },
-{ id:"logs", label:"Server Logs", href:NAV_PREFIX+"logs.html" },
-{ id:"synthetic-traffic", label:"Synthetic Traffic", href:NAV_PREFIX+"synthetic-traffic.html" }
-]}
+  grp("Partner Analytics", ["executive","funnel-customer","portfolio","supported-sites","campaign-builder"]),
+  grp("Monitoring", ["operations","heatmap","watchlist","realtime","troubleshoot","troubleshoot-customer"]),
+  grp("Analysis", ["funnel","customer-success","sources","ux-paths","experience","placement-outcomes","fi-api","playbook"]),
+  grp("Admin", ["maintenance","users","activity-log","shared-views","logs","synthetic-traffic"])
 ];
+
+// ── Per-role nav configs ────────────────────────────────────────────
+var NAV_CONFIGS = {
+  "core": [
+    grp("Partner Analytics", ["executive","funnel-customer","portfolio","supported-sites","campaign-builder"]),
+    grp("Monitoring", ["operations","heatmap","watchlist","realtime","troubleshoot","troubleshoot-customer"]),
+    grp("Analysis", ["funnel","customer-success","sources","ux-paths","experience","placement-outcomes","fi-api","playbook"])
+  ],
+  "internal": [
+    grp("Dashboards", ["portfolio","funnel-customer","executive","supported-sites"]),
+    grp("Monitoring", ["operations","watchlist"]),
+    grp("Analysis", ["funnel","experience","troubleshoot"])
+  ],
+  "siteops": [
+    grp("Monitoring", ["operations","realtime","watchlist"]),
+    grp("Sites", ["supported-sites","heatmap"]),
+    grp("Analysis", ["funnel","troubleshoot"])
+  ],
+  "support": [
+    grp("Support Tools", ["troubleshoot-customer","troubleshoot","realtime","fi-api"]),
+    grp("Reference", ["supported-sites"])
+  ],
+  "cs": [
+    grp("Dashboards", ["portfolio","funnel-customer","customer-success","supported-sites","campaign-builder"]),
+    grp("Monitoring", ["operations","heatmap","realtime","watchlist"]),
+    grp("Analysis", ["funnel","experience"]),
+    grp("Support", ["troubleshoot-customer","troubleshoot","fi-api"])
+  ],
+  "executive": [
+    grp("Dashboards", ["executive","supported-sites"])
+  ],
+  "partner": [
+    grp("Dashboards", ["funnel-customer","supported-sites","campaign-builder"])
+  ],
+  "fi": [
+    grp("Dashboards", ["funnel-customer","supported-sites","campaign-builder"])
+  ]
+};
+
+function normalizeRole(level) {
+  if (global.sisAuth && global.sisAuth.normalizeRole) return global.sisAuth.normalizeRole(level);
+  if (level === "full") return "admin";
+  if (level === "limited") return "fi";
+  return level;
+}
 
 function getRealAccessLevel() {
   if (global.sisAuth && global.sisAuth.getRealAccessLevel) {
@@ -118,8 +171,8 @@ function getRealAccessLevel() {
   }
   try {
     var level = sessionStorage.getItem("sis_access_level");
-    if (level === "admin" || level === "full" || level === "internal" || level === "limited" || level === "executive") return level;
-    if (sessionStorage.getItem("sis_passcode_ok") === "1") return "full";
+    if (level) return normalizeRole(level);
+    if (sessionStorage.getItem("sis_passcode_ok") === "1") return "admin";
   } catch (e) {}
   return "";
 }
@@ -130,11 +183,11 @@ function getAccessLevel() {
     return global.sisAuth.getAccessLevel();
   }
   var real = getRealAccessLevel();
-  // Admin/full users can override their view via "View as" switcher
-  if (real === "admin" || real === "full") {
+  // Admin users can override their view via "View as" switcher
+  if (real === "admin") {
     try {
       var override = sessionStorage.getItem("sis_view_as");
-      if (override === "internal" || override === "limited" || override === "executive") return override;
+      if (override && NAV_CONFIGS[override]) return override;
     } catch (e) {}
   }
   return real;
@@ -152,59 +205,15 @@ function getGroupsForAccess() {
   if (global.__sisViewMode === true) return [];
 
   var access = getAccessLevel();
-  var isAdmin = access === "admin" || access === "full";
-  var isInternal = access === "internal";
-  var isLimited = access === "limited";
 
-  // Executive access: executive summary + cardholder engagement
-  if (access === "executive") {
-    return [
-      { label: "Dashboards", items: [
-        { id:"executive", label:"Executive Summary", href:NAV_PREFIX+"dashboards/executive.html" },
-        { id:"funnel-customer", label:"Cardholder Engagement", href:NAV_PREFIX+"funnel-customer.html" },
-        { id:"supported-sites", label:"Supported Sites", href:NAV_PREFIX+"supported-sites.html" },
-        { id:"troubleshoot-customer", label:"Support Lookup", href:NAV_PREFIX+"troubleshoot-customer.html" }
-      ]}
-    ];
-  }
+  // Admin: full nav including Admin group
+  if (access === "admin") return GROUPS;
 
-  // Limited access: customer-facing pages only
-  if (isLimited) {
-    return [
-      { label: "Dashboards", items: [
-        { id:"funnel-customer", label:"Cardholder Engagement", href:NAV_PREFIX+"funnel-customer.html" },
-        { id:"supported-sites", label:"Supported Sites", href:NAV_PREFIX+"supported-sites.html" },
-        { id:"campaign-builder", label:"Campaign URL Builder", href:NAV_PREFIX+"campaign-builder.html" }
-      ]}
-    ];
-  }
+  // All other roles: look up in NAV_CONFIGS
+  if (NAV_CONFIGS[access]) return NAV_CONFIGS[access];
 
-  // Admin/full access: all groups and items
-  if (isAdmin) return GROUPS;
-
-  // Internal access: all groups except Admin, exclude adminOnly items
-  if (isInternal) {
-    var filtered = [];
-    for (var g = 0; g < GROUPS.length; g++) {
-      var group = GROUPS[g];
-      if (group.fullAccessOnly) continue; // Skip Admin group
-      var items = [];
-      for (var i = 0; i < group.items.length; i++) {
-        var item = group.items[i];
-        if (!item.adminOnly) items.push(item);
-      }
-      if (items.length) filtered.push({ label: group.label, items: items });
-    }
-    return filtered;
-  }
-
-  // Default (non-full): exclude fullAccessOnly groups
-  var filtered = [];
-  for (var g = 0; g < GROUPS.length; g++) {
-    var group = GROUPS[g];
-    if (!group.fullAccessOnly) filtered.push(group);
-  }
-  return filtered;
+  // Fallback: fi nav (covers legacy "limited" and unknown roles)
+  return NAV_CONFIGS["fi"];
 }
 
 function renderHeaderNav(opts){
@@ -362,9 +371,9 @@ if (isViewMode) {
     userSpan.style.marginRight = "8px";
     rightGroup.appendChild(userSpan);
   }
-  // "View as" switcher — admin/full users only, hidden during impersonation
+  // "View as" switcher — admin users only, hidden during impersonation
   var realLevel = getRealAccessLevel();
-  if ((realLevel === "admin" || realLevel === "full") && !_isImpersonating) {
+  if (realLevel === "admin" && !_isImpersonating) {
     var currentOverride = "";
     try { currentOverride = sessionStorage.getItem("sis_view_as") || ""; } catch (e) {}
     var viewAsWrap = h("div", { class: "sis-view-as" }, []);
@@ -398,11 +407,17 @@ if (isViewMode) {
     viewAsMenu.style.minWidth = "140px";
     viewAsMenu.style.boxShadow = "0 8px 24px rgba(0,0,0,0.3)";
 
+    var LANDING = (global.sisAuth && global.sisAuth.LANDING_PAGES) || {};
     var levels = [
       { key: "", label: "Admin (actual)" },
+      { key: "core", label: "Core" },
       { key: "internal", label: "Internal" },
+      { key: "siteops", label: "SiteOps" },
+      { key: "support", label: "Support" },
+      { key: "cs", label: "CS" },
       { key: "executive", label: "Executive" },
-      { key: "limited", label: "Limited" }
+      { key: "partner", label: "Partner" },
+      { key: "fi", label: "FI" }
     ];
     for (var li = 0; li < levels.length; li++) {
       (function(lv) {
@@ -425,10 +440,8 @@ if (isViewMode) {
             else sessionStorage.removeItem("sis_view_as");
           } catch (e) {}
           // Navigate to default page for the selected role
-          var dest = NAV_PREFIX + "dashboards/portfolio.html";
-          if (lv.key === "limited") dest = NAV_PREFIX + "funnel-customer.html";
-          else if (lv.key === "executive") dest = NAV_PREFIX + "dashboards/executive.html";
-          window.location.href = dest;
+          var landing = lv.key ? (LANDING[lv.key] || "funnel-customer.html") : "dashboards/portfolio.html";
+          window.location.href = NAV_PREFIX + landing;
         });
         viewAsMenu.appendChild(opt);
       })(levels[li]);

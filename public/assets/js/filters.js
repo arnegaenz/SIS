@@ -332,7 +332,7 @@
     const partnersList = baseRegistry.map((r) => r.partner);
     try {
       const u = typeof window !== "undefined" && window.sisAuth?.getUser?.();
-      if (!u || u.access_level !== "limited") partnersList.push("Other");
+      if (!u || (u.access_level !== "limited" && u.access_level !== "partner" && u.access_level !== "fi")) partnersList.push("Other");
     } catch (e) { partnersList.push("Other"); }
     const partners = unique(partnersList);
 
@@ -1377,7 +1377,7 @@
     if (scopedOptions && scopedOptions.access && !scopedOptions.access.is_admin) {
       try {
         const user = typeof window !== "undefined" && window.sisAuth && window.sisAuth.getUser ? window.sisAuth.getUser() : null;
-        if (user && user.access_level === "limited") {
+        if (user && (user.access_level === "limited" || user.access_level === "partner" || user.access_level === "fi")) {
           var groups = container.querySelectorAll(".filter-group");
           for (var g = 0; g < groups.length; g++) {
             var grp = groups[g];

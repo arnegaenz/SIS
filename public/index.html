@@ -13,13 +13,20 @@
         }
         var user = JSON.parse(userJson);
         var level = (user && user.access_level) || "";
-        if (level === "limited") {
-          window.location.replace("./funnel-customer.html");
-        } else if (level === "executive") {
-          window.location.replace("./dashboards/executive.html");
-        } else {
-          window.location.replace("./dashboards/portfolio.html");
-        }
+        if (level === "full") level = "admin";
+        if (level === "limited") level = "fi";
+        var landingPages = {
+          "admin":     "./dashboards/portfolio.html",
+          "core":      "./dashboards/portfolio.html",
+          "internal":  "./dashboards/portfolio.html",
+          "siteops":   "./dashboards/operations.html",
+          "support":   "./troubleshoot-customer.html",
+          "cs":        "./dashboards/portfolio.html",
+          "executive": "./dashboards/executive.html",
+          "partner":   "./funnel-customer.html",
+          "fi":        "./funnel-customer.html"
+        };
+        window.location.replace(landingPages[level] || "./funnel-customer.html");
       } catch (e) {
         window.location.replace("./login.html");
       }

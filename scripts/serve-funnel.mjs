@@ -31,6 +31,7 @@ import {
   parseListParam,
   normalizeUserAccessFields,
   computeAllowedFis,
+  UNRESTRICTED_DATA_ROLES,
 } from "../src/lib/scoping.mjs";
 import puppeteer from "puppeteer";
 import { buildReportHtml } from "../templates/funnel-report-template.mjs";
@@ -5108,7 +5109,7 @@ const server = http.createServer(async (req, res) => {
       const sessionInfo = await validateSession(req, queryParams);
       if (!sessionInfo) return send(res, 401, { error: "Authentication required" });
       const userAccess = sessionInfo.user.access_level;
-      const isAdminUser = userAccess === "admin" || userAccess === "full" || userAccess === "internal";
+      const isAdminUser = UNRESTRICTED_DATA_ROLES.has(userAccess);
       const opts = await buildTroubleshootOptions();
       // Scope FI list to user's allowed FIs
       const fiRegistry = await loadFiRegistrySafe();
@@ -5137,7 +5138,7 @@ const server = http.createServer(async (req, res) => {
     const sessionInfo = await validateSession(req, queryParams);
     if (!sessionInfo) return send(res, 401, { error: "Authentication required" });
     const userAccess = sessionInfo.user.access_level;
-    const isAdminUser = userAccess === "admin" || userAccess === "full" || userAccess === "internal";
+    const isAdminUser = UNRESTRICTED_DATA_ROLES.has(userAccess);
     const isCustomerMode = queryParams.get("customer") === "true";
 
     const startParam =
@@ -5587,7 +5588,7 @@ const server = http.createServer(async (req, res) => {
       const userData = {
         email,
         name: user.name || "",
-        access_level: ["admin", "full", "internal", "executive", "limited"].includes(user.access_level) ? user.access_level : "limited",
+        access_level: ["admin", "full", "core", "internal", "siteops", "support", "cs", "executive", "partner", "fi", "limited"].includes(user.access_level) ? user.access_level : "fi",
         instance_keys: normalizeAccessKeys(user.instance_keys),
         partner_keys: normalizeAccessKeys(user.partner_keys),
         fi_keys: normalizeAccessKeys(user.fi_keys),
@@ -5774,7 +5775,7 @@ const server = http.createServer(async (req, res) => {
         : null;
 
       const isUnrestricted = isViewMode ||
-        accessFields.access_level === "admin" || accessFields.access_level === "internal" ||
+        UNRESTRICTED_DATA_ROLES.has(accessFields.access_level) ||
         accessFields.instance_keys === "*" || accessFields.partner_keys === "*" || accessFields.fi_keys === "*";
 
       // Build scoped options
@@ -5816,7 +5817,7 @@ const server = http.createServer(async (req, res) => {
         partners: Array.from(partners).filter((p) => p !== "Unknown").sort().concat(["Unknown"]),
         fis: fis.sort((a, b) => (a.label || "").localeCompare(b.label || "")),
         access: {
-          is_admin: !isViewMode && (userContext.access_level === "admin" || userContext.access_level === "full" || userContext.access_level === "internal"),
+          is_admin: !isViewMode && UNRESTRICTED_DATA_ROLES.has(userContext.access_level),
           is_view_mode: isViewMode,
           instance_keys: userContext.instance_keys,
           partner_keys: userContext.partner_keys,

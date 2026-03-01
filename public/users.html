@@ -118,9 +118,15 @@
     }
     .badge-admin { background: #dcfce7; color: #166534; }
     .badge-full { background: #dcfce7; color: #166534; } /* legacy */
+    .badge-core { background: #d1fae5; color: #065f46; }
     .badge-internal { background: #dbeafe; color: #1e40af; }
+    .badge-siteops { background: #fce7f3; color: #9d174d; }
+    .badge-support { background: #ccfbf1; color: #115e59; }
+    .badge-cs { background: #e0e7ff; color: #3730a3; }
     .badge-executive { background: #ede9fe; color: #5b21b6; }
-    .badge-limited { background: #fef3c7; color: #92400e; }
+    .badge-partner { background: #fef3c7; color: #92400e; }
+    .badge-fi { background: #fed7aa; color: #9a3412; }
+    .badge-limited { background: #fed7aa; color: #9a3412; } /* legacy */
     .badge-disabled { background: #f3f4f6; color: #6b7280; }
     .btn {
       padding: 8px 16px;
@@ -531,9 +537,15 @@
     @media (prefers-color-scheme: dark) {
       .badge-admin { background: #166534; color: #dcfce7; }
       .badge-full { background: #166534; color: #dcfce7; }
+      .badge-core { background: #065f46; color: #d1fae5; }
       .badge-internal { background: #1e40af; color: #dbeafe; }
+      .badge-siteops { background: #9d174d; color: #fce7f3; }
+      .badge-support { background: #115e59; color: #ccfbf1; }
+      .badge-cs { background: #3730a3; color: #e0e7ff; }
       .badge-executive { background: #5b21b6; color: #ede9fe; }
-      .badge-limited { background: #92400e; color: #fef3c7; }
+      .badge-partner { background: #92400e; color: #fef3c7; }
+      .badge-fi { background: #9a3412; color: #fed7aa; }
+      .badge-limited { background: #9a3412; color: #fed7aa; }
       .badge-disabled { background: #374151; color: #9ca3af; }
       .btn-danger { background: #7f1d1d; color: #fecaca; }
       .btn-danger:hover { background: #991b1b; }
@@ -571,9 +583,14 @@
               <select id="filterLevel">
                 <option value="">All</option>
                 <option value="admin">Admin</option>
+                <option value="core">Core</option>
                 <option value="internal">Internal</option>
+                <option value="siteops">SiteOps</option>
+                <option value="support">Support</option>
+                <option value="cs">CS</option>
                 <option value="executive">Executive</option>
-                <option value="limited">Limited</option>
+                <option value="partner">Partner</option>
+                <option value="fi">FI</option>
               </select>
             </label>
             <label>
@@ -627,23 +644,48 @@
             <tbody>
               <tr>
                 <td><span class="badge badge-admin">admin</span></td>
-                <td>Full administrative access</td>
+                <td>ARG — full control</td>
                 <td>All pages including Admin tools. <strong>Always has full data access.</strong></td>
               </tr>
               <tr>
+                <td><span class="badge badge-core">core</span></td>
+                <td>Strivve core team</td>
+                <td>Everything minus Admin pages. Full data access.</td>
+              </tr>
+              <tr>
                 <td><span class="badge badge-internal">internal</span></td>
-                <td>Strivve team (full data, no admin tools)</td>
-                <td>All pages except Admin tools (User Management, Data & Config, Synthetic Traffic). Full data access.</td>
+                <td>Strivve team — curated overview</td>
+                <td>Portfolio, Engagement, Executive, Supported Sites, Operations, Watchlist, FI Funnel, Experience, Troubleshoot. Full data access.</td>
+              </tr>
+              <tr>
+                <td><span class="badge badge-siteops">siteops</span></td>
+                <td>Site support engineer</td>
+                <td>Operations, Real-Time, Watchlist, Supported Sites, Heatmap, FI Funnel, Troubleshoot. Full data access.</td>
+              </tr>
+              <tr>
+                <td><span class="badge badge-support">support</span></td>
+                <td>Customer support</td>
+                <td>Support Lookup, Troubleshoot, Real-Time, FI API, Supported Sites. Full data access.</td>
+              </tr>
+              <tr>
+                <td><span class="badge badge-cs">cs</span></td>
+                <td>Customer Success — FI relationships</td>
+                <td>Portfolio, Engagement, CS Dashboard, Sites, Campaign Builder, Operations, Heatmap, Watchlist, Real-Time, Funnel, Experience, Support Lookup, Troubleshoot, FI API. Full data access.</td>
               </tr>
               <tr>
                 <td><span class="badge badge-executive">executive</span></td>
-                <td>Leadership / executive access</td>
-                <td>Executive Summary, Cardholder Engagement. Data filtered by instance/partner/FI access.</td>
+                <td>Board, C-suite — big picture</td>
+                <td>Executive Summary, Supported Sites. Data filtered by access keys.</td>
               </tr>
               <tr>
-                <td><span class="badge badge-limited">limited</span></td>
-                <td>Partner/customer access</td>
-                <td>Funnel, Troubleshoot, Real-Time. Data filtered by instance/partner/FI access.</td>
+                <td><span class="badge badge-partner">partner</span></td>
+                <td>Integration partners (Alkami, etc.)</td>
+                <td>Cardholder Engagement, Supported Sites, Campaign Builder. Data filtered by partner/instance/FI access.</td>
+              </tr>
+              <tr>
+                <td><span class="badge badge-fi">fi</span></td>
+                <td>Individual FI contacts</td>
+                <td>Cardholder Engagement, Supported Sites, Campaign Builder. Data filtered by FI access keys.</td>
               </tr>
             </tbody>
           </table>
@@ -669,10 +711,15 @@
         <label>
           Access Level
           <select id="userAccessLevel" required>
-            <option value="admin">Admin (all pages + user management)</option>
-            <option value="internal">Internal (all pages, no user management)</option>
-            <option value="executive">Executive (executive summary + cardholder engagement)</option>
-            <option value="limited">Limited (funnel + troubleshoot + realtime)</option>
+            <option value="admin">Admin — full control + user management</option>
+            <option value="core">Core — everything minus admin pages</option>
+            <option value="internal">Internal — curated Strivve overview</option>
+            <option value="siteops">SiteOps — merchant reliability</option>
+            <option value="support">Support — troubleshooting tools</option>
+            <option value="cs">CS — FI relationships + analytics</option>
+            <option value="executive">Executive — big picture dashboards</option>
+            <option value="partner">Partner — engagement + campaigns</option>
+            <option value="fi">FI — engagement + campaigns</option>
           </select>
         </label>
         <div id="dataAccessSection">
@@ -781,8 +828,9 @@
       return `<span class="access-line"><span class="access-type">${typeLabel}:</span>${valuesHtml}</span>`;
     }
 
+    var UNRESTRICTED_ROLES = ["admin","full","core","internal","siteops","support","cs"];
     function formatDataAccess(user) {
-      if (user.access_level === "admin" || user.access_level === "full" || user.access_level === "internal") {
+      if (UNRESTRICTED_ROLES.indexOf(user.access_level) !== -1) {
         return "All FIs";
       }
       const lines = [];
@@ -874,7 +922,9 @@
       // Access level filter
       if (filterLevel) {
         list = list.filter(u => {
-          const lvl = u.access_level === "full" ? "admin" : u.access_level;
+          var lvl = u.access_level;
+          if (lvl === "full") lvl = "admin";
+          if (lvl === "limited") lvl = "fi";
           return lvl === filterLevel;
         });
       }
@@ -889,8 +939,8 @@
       // Data access filter
       if (filterDataAccess.size > 0) {
         list = list.filter(u => {
-          // Admin/internal/full have all access — they match any data access filter
-          if (u.access_level === "admin" || u.access_level === "full" || u.access_level === "internal") {
+          // Unrestricted roles have all access — they match any data access filter
+          if (UNRESTRICTED_ROLES.indexOf(u.access_level) !== -1) {
             return true;
           }
           for (const key of filterDataAccess) {
@@ -905,7 +955,7 @@
 
       // Sort
       const dir = sortDirection === "asc" ? 1 : -1;
-      const accessOrder = { admin: 0, full: 0, internal: 1, executive: 2, limited: 3 };
+      const accessOrder = { admin: 0, full: 0, core: 1, internal: 2, siteops: 3, support: 4, cs: 5, executive: 6, partner: 7, fi: 8, limited: 8 };
 
       list.sort((a, b) => {
         let cmp = 0;
@@ -1057,7 +1107,7 @@
 
     function updateDataAccessVisibility() {
       const level = accessLevelField.value;
-      const hasFullAccess = level === "admin" || level === "internal";
+      const hasFullAccess = UNRESTRICTED_ROLES.indexOf(level) !== -1;
       dataAccessSection.style.display = hasFullAccess ? "none" : "block";
       if (hasFullAccess) {
         previewCount.textContent = `all (${level})`;
@@ -1270,7 +1320,7 @@
         emailField.value = user.email;
         nameField.value = user.name || "";
         // Map legacy "full" to "admin" in the dropdown
-        accessLevelField.value = user.access_level === "full" ? "admin" : (user.access_level || "limited");
+        accessLevelField.value = user.access_level === "full" ? "admin" : (user.access_level === "limited" ? "fi" : (user.access_level || "fi"));
         enabledField.checked = user.enabled !== false;
         notesField.value = user.notes || "";
         sendInviteLabel.style.display = "none";
@@ -1367,7 +1417,7 @@
       const profile = {
         email: user.email,
         name: user.name || "",
-        access_level: user.access_level === "full" ? "admin" : (user.access_level || "limited"),
+        access_level: user.access_level === "full" ? "admin" : (user.access_level === "limited" ? "fi" : (user.access_level || "fi")),
         instance_keys: user.instance_keys || [],
         partner_keys: user.partner_keys || [],
         fi_keys: user.fi_keys || []
@@ -1379,9 +1429,18 @@
         window.sisAuth.setImpersonation(profile);
       }
       var level = profile.access_level;
-      var dest = "./dashboards/portfolio.html";
-      if (level === "executive") dest = "./dashboards/executive.html";
-      else if (level === "limited") dest = "./funnel-customer.html";
+      var landingPages = {
+        "admin": "./dashboards/portfolio.html",
+        "core": "./dashboards/portfolio.html",
+        "internal": "./dashboards/portfolio.html",
+        "siteops": "./dashboards/operations.html",
+        "support": "./troubleshoot-customer.html",
+        "cs": "./dashboards/portfolio.html",
+        "executive": "./dashboards/executive.html",
+        "partner": "./funnel-customer.html",
+        "fi": "./funnel-customer.html"
+      };
+      var dest = landingPages[level] || "./funnel-customer.html";
       window.open(dest, "_blank");
       // Clear impersonation in this tab so users.html stays normal
       setTimeout(function() {

@@ -292,9 +292,20 @@
             if (redir.startsWith("./") || redir.startsWith("/")) return redir;
           }
         } catch (e) {}
-        if (level === "limited") return "./funnel-customer.html";
-        if (level === "executive") return "./dashboards/executive.html";
-        return "./dashboards/portfolio.html";
+        if (level === "full") level = "admin";
+        if (level === "limited") level = "fi";
+        var landingPages = {
+          "admin":     "./dashboards/portfolio.html",
+          "core":      "./dashboards/portfolio.html",
+          "internal":  "./dashboards/portfolio.html",
+          "siteops":   "./dashboards/operations.html",
+          "support":   "./troubleshoot-customer.html",
+          "cs":        "./dashboards/portfolio.html",
+          "executive": "./dashboards/executive.html",
+          "partner":   "./funnel-customer.html",
+          "fi":        "./funnel-customer.html"
+        };
+        return landingPages[level] || "./funnel-customer.html";
       }
 
       // Request link form

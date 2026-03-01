@@ -2474,7 +2474,7 @@
       let allowedFiKeys = null;
       try {
         const user = window.sisAuth?.getUser?.();
-        if (user && (user.access_level === "limited" || user.access_level === "executive")) {
+        if (user && ["limited","fi","partner","executive"].indexOf(user.access_level) !== -1) {
           if (Array.isArray(user.instance_keys) && user.instance_keys.length > 0) {
             allowedInstances = new Set(user.instance_keys.map(k => (k || "").toString().trim().toLowerCase()));
           }
@@ -3550,7 +3550,7 @@
     let insightsCtx = null; // current metrics context for insights engine
     const isAdminUser = () => {
       const level = window.sisAuth?.getAccessLevel?.() || '';
-      return level === 'admin' || level === 'full' || level === 'internal';
+      return ['admin','full','core','internal','cs'].indexOf(level) !== -1;
     };
 
     /**

@@ -1342,7 +1342,7 @@ function renderTrafficHealthBanner(data, bannerEl) {
   if (!bannerEl) return;
   const { dark, low, sleeping } = data.summary;
   const threshold = data.min_volume_threshold || 5;
-  const isAdmin = window.sisAuth && ["admin", "full", "internal"].includes(window.sisAuth.getAccessLevel?.());
+  const isAdmin = window.sisAuth && ["admin", "full", "core", "internal", "siteops", "support", "cs"].includes(window.sisAuth.getAccessLevel?.());
   const thresholdText = isAdmin
     ? `<a href="../maintenance.html#trafficHealthSettingsCard" style="color:inherit;text-decoration:underline;text-decoration-style:dotted;">${threshold}+ sessions/day</a>`
     : `${threshold}+ sessions/day`;

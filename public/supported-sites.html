@@ -776,7 +776,7 @@
 
       // Determine if user should see all tiers or only Tier 1 & 2
       var accessLevel = (window.sisAuth && window.sisAuth.getAccessLevel) ? window.sisAuth.getAccessLevel() : "";
-      var isFullAccess = !window.__sisViewMode && (accessLevel === "admin" || accessLevel === "full" || accessLevel === "internal");
+      var isFullAccess = !window.__sisViewMode && ["admin","full","core","internal","siteops","support","cs"].indexOf(accessLevel) !== -1;
 
       // Admin: all status pills active by default. Limited: Up+Limited only.
       if (isFullAccess) {

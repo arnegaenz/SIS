@@ -3,6 +3,24 @@
  * unit-tested independently and reused across server + test code.
  */
 
+// ── Role definitions ────────────────────────────────────────────────
+
+/**
+ * Roles that have unrestricted data access (see all FIs regardless of scoping).
+ * partner and fi roles are data-scoped by their instance_keys/partner_keys/fi_keys.
+ */
+export const UNRESTRICTED_DATA_ROLES = new Set([
+  "admin", "core", "internal", "siteops", "support", "cs"
+]);
+
+/**
+ * All valid access levels (9 roles + legacy "full")
+ */
+export const VALID_ACCESS_LEVELS = new Set([
+  "admin", "core", "internal", "siteops", "support", "cs",
+  "executive", "partner", "fi", "full"
+]);
+
 // ── Normalization helpers ────────────────────────────────────────────
 
 export function normalizeFiKey(value) {
@@ -41,10 +59,12 @@ export function parseListParam(value) {
  * - Ensures instance_keys, partner_keys, fi_keys exist with proper defaults
  */
 export function normalizeUserAccessFields(user) {
-  // Handle legacy "full" access_level
+  // Handle legacy access_level values
   let accessLevel = user.access_level;
   if (accessLevel === "full") {
     accessLevel = "admin";
+  } else if (accessLevel === "limited") {
+    accessLevel = "fi";
   }
 
   // Handle legacy fi_keys-only format
@@ -88,8 +108,8 @@ export function normalizeUserAccessFields(user) {
 export function computeAllowedFis(userContext, fiRegistry) {
   if (!userContext) return null; // No user context = unrestricted
 
-  // Admin and internal users always have full data access
-  if (userContext.access_level === "admin" || userContext.access_level === "internal") {
+  // Unrestricted roles always have full data access
+  if (UNRESTRICTED_DATA_ROLES.has(userContext.access_level)) {
     return null;
   }
 

@@ -42,10 +42,55 @@
   var LEGACY_STORAGE_KEY = "sis_passcode_ok";
   var LEGACY_ACCESS_KEY = "sis_access_level";
 
-  // Page access restrictions
-  var LIMITED_PAGES = ["funnel.html", "funnel-customer.html", "campaign-builder.html", "supported-sites.html"];
-  var EXECUTIVE_PAGES = ["funnel-customer.html", "executive.html", "supported-sites.html", "troubleshoot-customer.html"];
-  var ADMIN_ONLY_PAGES = ["users.html", "synthetic-traffic.html", "maintenance.html", "activity-log.html", "shared-views.html", "logs.html"]; // Pages only admin can access (not internal)
+  // ── Page Access Matrix ────────────────────────────────────────────
+  // Maps page filename → array of roles that can access it.
+  // admin can access everything (handled separately), so only listed where
+  // it's the ONLY role or for completeness in admin-only pages.
+  var PAGE_ACCESS_MAP = {
+    // Partner Analytics
+    "portfolio.html":          ["admin","core","internal","cs"],
+    "funnel-customer.html":    ["admin","core","internal","cs","partner","fi"],
+    "supported-sites.html":    ["admin","core","internal","siteops","support","cs","executive","partner","fi"],
+    "campaign-builder.html":   ["admin","core","cs","partner","fi"],
+    "executive.html":          ["admin","core","internal","executive"],
+    // Monitoring
+    "operations.html":         ["admin","core","internal","siteops","cs"],
+    "heatmap.html":            ["admin","core","siteops","cs"],
+    "watchlist.html":          ["admin","core","internal","siteops","cs"],
+    "realtime.html":           ["admin","core","siteops","support","cs"],
+    "troubleshoot.html":       ["admin","core","internal","siteops","support","cs"],
+    "troubleshoot-customer.html": ["admin","core","support","cs"],
+    // Analysis
+    "funnel.html":             ["admin","core","internal","siteops","cs"],
+    "customer-success.html":   ["admin","core","cs"],
+    "sources.html":            ["admin","core"],
+    "ux-paths.html":           ["admin","core"],
+    "experience.html":         ["admin","core","internal","cs"],
+    "placement-outcomes.html": ["admin","core"],
+    "fi-api.html":             ["admin","core","support","cs"],
+    // Resources (accessible by all via direct URL)
+    "engagement-playbook.html": ["admin","core","internal","siteops","support","cs","executive","partner","fi"],
+    // Admin
+    "users.html":              ["admin"],
+    "maintenance.html":        ["admin"],
+    "activity-log.html":       ["admin"],
+    "shared-views.html":       ["admin"],
+    "logs.html":               ["admin"],
+    "synthetic-traffic.html":  ["admin"]
+  };
+
+  // ── Landing Pages ────────────────────────────────────────────────
+  var LANDING_PAGES = {
+    "admin":     "dashboards/portfolio.html",
+    "core":      "dashboards/portfolio.html",
+    "internal":  "dashboards/portfolio.html",
+    "siteops":   "dashboards/operations.html",
+    "support":   "troubleshoot-customer.html",
+    "cs":        "dashboards/portfolio.html",
+    "executive": "dashboards/executive.html",
+    "partner":   "funnel-customer.html",
+    "fi":        "funnel-customer.html"
+  };
 
   function getPageName() {
     try {
@@ -60,31 +105,10 @@
     return getPageName().toLowerCase() === "login.html";
   }
 
-  function isLimitedAllowedPage() {
-    var page = getPageName().toLowerCase();
-    if (page === "" || page === "/") page = "index.html";
-    for (var i = 0; i < LIMITED_PAGES.length; i++) {
-      if (page === LIMITED_PAGES[i]) return true;
-    }
-    return false;
-  }
-
-  function isExecutiveAllowedPage() {
-    var page = getPageName().toLowerCase();
-    if (page === "" || page === "/") page = "index.html";
-    for (var i = 0; i < EXECUTIVE_PAGES.length; i++) {
-      if (page === EXECUTIVE_PAGES[i]) return true;
-    }
-    return false;
-  }
-
-  function isAdminOnlyPage() {
-    var page = getPageName().toLowerCase();
-    if (page === "" || page === "/") page = "index.html";
-    for (var i = 0; i < ADMIN_ONLY_PAGES.length; i++) {
-      if (page === ADMIN_ONLY_PAGES[i]) return true;
-    }
-    return false;
+  function normalizeRole(level) {
+    if (level === "full") return "admin";
+    if (level === "limited") return "fi";
+    return level;
   }
 
   function getImpersonatedUser() {
@@ -123,27 +147,30 @@
   function getRealAccessLevel() {
     var user = getStoredUser();
     if (user && user.access_level) {
-      return user.access_level;
+      return normalizeRole(user.access_level);
     }
     try {
       var level = sessionStorage.getItem(LEGACY_ACCESS_KEY);
-      if (level === "full" || level === "admin" || level === "internal" || level === "limited" || level === "executive") return level;
+      if (level) return normalizeRole(level);
       if (sessionStorage.getItem(LEGACY_STORAGE_KEY) === "1") return "admin";
     } catch (e) {}
     return "";
   }
 
+  // All valid role names for view-as override
+  var ALL_ROLES = ["admin","core","internal","siteops","support","cs","executive","partner","fi"];
+
   function getAccessLevel() {
     // Impersonation overrides everything
     var imp = getImpersonatedUser();
-    if (imp && imp.access_level) return imp.access_level;
+    if (imp && imp.access_level) return normalizeRole(imp.access_level);
 
     var real = getRealAccessLevel();
-    // Admin/full users can preview other access levels via "View as" switcher
-    if (real === "admin" || real === "full") {
+    // Admin users can preview other access levels via "View as" switcher
+    if (real === "admin") {
       try {
         var override = sessionStorage.getItem("sis_view_as");
-        if (override === "internal" || override === "limited" || override === "executive") return override;
+        if (override && ALL_ROLES.indexOf(override) !== -1) return override;
       } catch (e) {}
     }
     return real;
@@ -192,8 +219,8 @@
     var pathname = window.location.pathname || "";
     var prefix = (pathname.indexOf("/dashboards/") !== -1 || pathname.indexOf("/resources/") !== -1) ? "../" : "./";
 
-    // admin (and legacy "full") can access everything
-    if (level === "admin" || level === "full") {
+    // admin can access everything
+    if (level === "admin") {
       return true;
     }
 
@@ -202,28 +229,23 @@
       return true;
     }
 
-    // internal can access everything except admin-only pages (users.html)
-    if (level === "internal") {
-      if (isAdminOnlyPage()) {
-        window.location.href = prefix + "dashboards/portfolio.html";
-        return false;
-      }
+    // index.html is always allowed (it handles its own redirect)
+    if (page === "index.html" || page === "" || page === "/") {
       return true;
     }
 
-    // executive can access executive dashboard + cardholder engagement
-    if (level === "executive" && !isExecutiveAllowedPage()) {
-      window.location.href = prefix + "dashboards/executive.html";
-      return false;
+    // Look up page in access map
+    var allowedRoles = PAGE_ACCESS_MAP[page];
+    if (allowedRoles) {
+      for (var i = 0; i < allowedRoles.length; i++) {
+        if (allowedRoles[i] === level) return true;
+      }
     }
 
-    // limited can only access specific pages
-    if (level === "limited" && !isLimitedAllowedPage()) {
-      window.location.href = prefix + "funnel-customer.html";
-      return false;
-    }
-
-    return true;
+    // Page not in map or role not allowed — redirect to landing page
+    var landing = LANDING_PAGES[level] || "funnel-customer.html";
+    window.location.href = prefix + landing;
+    return false;
   }
 
   function validateSessionAsync() {
@@ -373,7 +395,9 @@
     logout: function() {
       clearAuth();
       redirectToLogin();
-    }
+    },
+    LANDING_PAGES: LANDING_PAGES,
+    normalizeRole: normalizeRole
   };
 
   if (document.readyState === "loading") {

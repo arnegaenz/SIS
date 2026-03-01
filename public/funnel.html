@@ -3098,7 +3098,7 @@ function applyColumnTitles(root = document) {
         let allowedFiKeys = null;
         try {
           const user = window.sisAuth?.getUser?.();
-          if (user && user.access_level === "limited") {
+          if (user && ["limited","fi","partner","executive"].indexOf(user.access_level) !== -1) {
             if (Array.isArray(user.instance_keys) && user.instance_keys.length > 0) {
               allowedInstances = new Set(user.instance_keys.map(k => (k || "").toString().trim().toLowerCase()));
             }
@@ -7932,7 +7932,7 @@ function applyColumnTitles(root = document) {
           // Hide Overall Success Rate card for limited users and view mode
           try {
             const _u = window.sisAuth?.getUser?.();
-            if (window.__sisViewMode || (_u && _u.access_level === "limited")) {
+            if (window.__sisViewMode || (_u && ["limited","fi","partner"].indexOf(_u.access_level) !== -1)) {
               const overallCard = document.getElementById("convBreakdownOverallCard");
               if (overallCard) overallCard.style.display = "none";
             }
