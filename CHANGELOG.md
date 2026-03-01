@@ -6,6 +6,25 @@
 
 # Build History
 
+## Feb 28, 2026 (Session 14)
+
+### Access Control Overhaul — 4 Levels → 9 Roles
+- Replaced admin/internal/executive/limited with 9 intentional roles: **admin**, **core**, **internal**, **siteops**, **support**, **cs**, **executive**, **partner**, **fi**
+- Each role has curated page access (PAGE_ACCESS_MAP) and nav structure (NAV_CONFIGS)
+- Per-role landing pages: admin/core/internal/cs → Portfolio, siteops → Operations, support → Support Lookup, executive → Executive Summary, partner/fi → Cardholder Engagement
+- `scoping.mjs`: Added `UNRESTRICTED_DATA_ROLES` set (admin, core, internal, siteops, support, cs), `"limited"` → `"fi"` backward compat normalization
+- `passcode-gate.js`: Replaced 3 page-list arrays with single `PAGE_ACCESS_MAP` object + `LANDING_PAGES` map
+- `nav.js`: Per-role `NAV_CONFIGS` with custom nav groups, view-as switcher expanded to all 9 roles
+- `users.html`: 9-role badge CSS (light+dark), filter dropdown, reference table, modal dropdown, sort order, data access visibility
+- `filters.js`: Extended filter hiding to partner/fi roles
+- Updated admin checks across funnel-customer.html, funnel.html, supported-sites.html, operations-dashboard.js, login.html, index.html
+- `serve-funnel.mjs`: Updated access whitelist, is_admin flag, troubleshoot isAdminUser checks to use `UNRESTRICTED_DATA_ROLES`
+- Deleted `heatmap-demo.html`
+- Added 8 test users (test-core through test-fi) for impersonation testing
+- Backward compat: "full" → "admin", "limited" → "fi" everywhere
+
+---
+
 ## Feb 28, 2026 (Session 13)
 
 ### fi_registry.json — Full Partner & Status Cleanup
