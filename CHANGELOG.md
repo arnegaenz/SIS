@@ -6,6 +6,55 @@
 
 # Build History
 
+## Mar 27, 2026 (Session 15)
+
+### Operations Command Center — Phase 1
+Complete redesign of the ops dashboard kiosk mode into a command center.
+
+**Persistent Header (always visible):**
+- Live GA user count with device split (mobile/desktop/tablet), polled every 5 min
+- 24h funnel KPIs: Sessions → Jobs → Linked → Success Rate → System Rate → Successful
+- Composite health dot (5 signals: instance connectivity, data freshness, success rate, volume anomaly, merchant spikes)
+- 60-second view cycle progress bar, clock, view label badge
+- Detailed hover tooltips on every element
+
+**Butterfly Timeline:**
+- Rolling 24-hour window (left = 24h ago, right = now)
+- Top half: CardSavr sessions/jobs hanging down, colored by status (success/failed/cancelled/abandoned/browse)
+- Bottom half: GA realtime active users growing up (purple)
+- Two data sources, visually distinct, same time axis
+- Midline separator, NOW marker at right edge
+
+**GA Realtime Snapshot Pipeline (new):**
+- Server polls GA4 realtime API every 5 minutes
+- Collects unifiedScreenName, minutesAgo, deviceCategory
+- Stores snapshots in rolling 7-day array, persists to raw/ga-realtime/{date}.json
+- Hydrates from disk on restart
+- New endpoint: GET /api/ga-realtime-timeline (cached, zero API cost)
+
+**Live Sessions Cache (new):**
+- Server polls CardSavr sessions every 15 minutes (parallels existing placements cache)
+- Fixes gap where today's browse-only sessions were invisible until nightly batch
+- 83 sessions cached vs ~35 previously visible
+
+**Health Composite Endpoint (new):**
+- GET /api/ops-health-composite — rolls up 5 signals into green/yellow/red
+- Tracks instance failures per fetch cycle
+- Computes system success rate (excludes UX failures)
+
+**Data Accuracy Fixes:**
+- Session counts now use unique session_ids (deduplicated)
+- Feed summary computed from ALL events before 100-event display cap
+- Timeline receives uncapped allEvents array
+- "Jobs" correctly counts placement attempts, "Linked" counts jobs past credentials
+- System Success Rate excludes cardholder-caused failures (UX_TERMINATIONS)
+
+**Other:**
+- Customer Success kiosk title fixed (was duplicating "CS Portfolio Dashboard")
+- View rotation engine scaffolded for Phase 2 (3-day, 7-day views)
+- KPI count-up animation with 15% minimum swing on each refresh
+- Arrow key manual mode + 2-minute auto-resume
+
 ## Feb 28, 2026 (Session 14)
 
 ### Access Control Overhaul — 4 Levels → 9 Roles
