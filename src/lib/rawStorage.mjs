@@ -17,7 +17,7 @@ function writeFileAtomicSync(targetPath, contents) {
 }
 
 export function ensureRawDirs() {
-  for (const d of ["ga", "ga-test", "sessions", "placements"]) {
+  for (const d of ["ga", "ga-test", "sessions", "placements", "ga-realtime"]) {
     fs.mkdirSync(path.join(RAW_ROOT, d), { recursive: true });
   }
 }

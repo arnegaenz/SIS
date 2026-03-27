@@ -98,24 +98,39 @@ At the end of each working session, briefly discuss:
 - **Customer page `getCardholderMap()` returns `{}`** — cardholders come from registry `total` field fallback
 - **Never trust client-side expiration** — share link `expires` query params can be stripped/edited. Use server-side validation via `GET /api/share-validate?sid=xxx` (checks share log creation time + admin TTL)
 
-## Access Control System
-- **Admin pages**: users.html, synthetic-traffic.html, maintenance.html, activity-log.html, shared-views.html, logs.html
-- **Executive user pages**: funnel-customer.html, executive.html, supported-sites.html, troubleshoot-customer.html
-- **Executive user redirect**: → dashboards/executive.html
-- **Executive user nav**: "Dashboards" group with Executive Summary + Cardholder Engagement + Support Lookup
-- **Limited user pages**: funnel.html, funnel-customer.html, campaign-builder.html, supported-sites.html
-- **Limited user redirect**: → funnel-customer.html (NOT funnel.html)
-- **Limited user nav**: "Dashboards" group with Cardholder Engagement + Campaign URL Builder
-- **Support Lookup access**: Currently admin/internal + executive only. Limited users intentionally gated. Enable by adding `troubleshoot-customer.html` to `LIMITED_PAGES` in passcode-gate.js and to limited nav in nav.js.
-- **Limited user filters**: Partner + FI visible; Instance + Integration hidden
-- Access levels: admin, full (legacy=admin), internal (all except admin pages), executive, limited
-- **View-as switcher**: Admin/full users can preview other roles. Uses `sisAuth.getRealAccessLevel()` to check true level (not overridden). Switching navigates to role's default page.
-- **Homepage (index.html)**: Thin redirect stub — admin/internal→portfolio, limited→funnel-customer, executive→executive dashboard
+## Access Control System — 9 Roles
+> Full reference: `docs/access-control.md`
+
+**Roles**: admin, core, internal, siteops, support, cs, executive, partner, fi
+**Legacy compat**: `"full"` → `"admin"`, `"limited"` → `"fi"` (normalized in scoping.mjs + passcode-gate.js)
+
+| Role | Who | Landing Page | Data Access |
+|---|---|---|---|
+| admin | ARG — full control | Portfolio | All FIs |
+| core | Strivve core team | Portfolio | All FIs |
+| internal | Strivve team — curated | Portfolio | All FIs |
+| siteops | Site support engineer | Operations | All FIs |
+| support | Customer support | Support Lookup | All FIs |
+| cs | Customer Success | Portfolio | All FIs |
+| executive | Board, C-suite | Executive Summary | Scoped |
+| partner | Integration partners | Cardholder Engagement | Scoped |
+| fi | Individual FI contacts | Cardholder Engagement | Scoped |
+
+**Key implementation files**:
+- `src/lib/scoping.mjs` — `UNRESTRICTED_DATA_ROLES` set (admin, core, internal, siteops, support, cs)
+- `public/assets/js/passcode-gate.js` — `PAGE_ACCESS_MAP` (page → allowed roles), `LANDING_PAGES` (role → default page)
+- `public/assets/js/nav.js` — `NAV_CONFIGS` (per-role nav groups), view-as switcher (9 options)
+- `scripts/serve-funnel.mjs` — access whitelist, `is_admin` flag uses `UNRESTRICTED_DATA_ROLES`
+
+**To add/modify a role's page access**: Edit `PAGE_ACCESS_MAP` in passcode-gate.js + `NAV_CONFIGS` in nav.js
+**To add a new page**: Add entry to `PAGE_ACCESS_MAP`, add nav item to `ITEMS` dict + relevant `NAV_CONFIGS` in nav.js
+**View-as switcher**: Admin-only. Uses `sisAuth.getRealAccessLevel()` to check true level. Switching navigates to role's landing page.
+**Partner/FI filter behavior**: Partner + FI dropdowns visible; Instance + Integration hidden
 
 ## Architecture Patterns
 - IIFE wrapper on engine module (avoids global variable collision)
 - Insights computed client-side, sent as `insightsPayload` to server for PDF
-- Admin detection: `window.sisAuth.getAccessLevel()` — admin/full/internal
+- Admin detection: `window.sisAuth.getAccessLevel()` — check against role list, not hardcoded admin/internal
 - Admin visibility: `body.show-admin-overlay .admin-overlay` CSS pattern
 - QBR mode: `body.qbr-mode .qbr-section` CSS pattern
 - Filter hints: `applyInsightFilter()` + `window.__FILTER_SET()`
@@ -212,6 +227,12 @@ All partner-facing content follows engagement-positive tone:
 - Phase 1 DONE: troubleshoot-customer.html with plain-English explanations, FI scoping, copy block
 - Phase 2 ideas: session search by reference ID, FI picker for multi-FI users, date range calendar, export/print
 
+### Initial Data Load Performance
+- Page load pulls ~2,200+ records into local cache, then counts through them for FI funnel
+- East coast user reported very slow load times — counter "took forever"
+- Options to investigate: server-side pre-aggregation, paginated/lazy loading, CDN edge caching, removing the count entirely, or sending pre-computed summaries instead of raw records
+- **Needs profiling** — is it payload size (network) or client-side processing (CPU)?
+
 ---
 
 ## 🔴 Needs Discussion (Strategic decision or architectural)
@@ -231,6 +252,43 @@ All partner-facing content follows engagement-positive tone:
 ---
 
 ## 🔵 Ongoing / Phased
+
+### Operations Command Center — Kiosk Overhaul
+Redesign the ops dashboard kiosk mode into a rotating 3-view command center.
+
+**Persistent header (top ~25%)** — always visible, never transitions:
+- Live session count (realtime GA + CardSavr)
+- Today's totals: sessions, placements, success rate
+- System health indicator (instance connectivity, success rate vs baseline, volume anomaly, merchant failure spikes, data freshness)
+- Clock + next refresh countdown + progress bar
+
+**Three rotating views (bottom ~75%)** — 60s auto-cycle, crossfade + slight slide transition:
+- **7-Day Rhythm**: "How's the week going?" — volume trends, FI activity patterns, merchant health drift, all against 30-day median baseline
+- **3-Day Momentum**: "What's changing?" — momentum shifts, emerging issues, FIs ramping or cooling
+- **1-Day Pulse**: "What's happening now?" — hourly flow, live feed, GA traffic sources, real-time heartbeat
+
+**Interaction model**:
+- Auto-cycles every 60 seconds with progress bar
+- Arrow keys → manual mode, pauses cycle
+- 2 minutes no interaction → auto-cycle resumes
+- View label in corner: "7-DAY RHYTHM" / "3-DAY MOMENTUM" / "1-DAY PULSE"
+
+**Visual details**:
+- Crossfade with subtle left-slide (20px), 500ms — sense of zooming in through time
+- KPI numbers count up on view entry (~300ms)
+- Chart lines draw in (~400ms)
+- Per-view color accent on progress bar
+- 30-day median reference line constant across all views
+
+**GA Realtime Snapshot Collection** (new data pipeline):
+- Poll GA realtime API every 5 minutes, store snapshots
+- Build high-resolution intraday traffic timeline (5-min granularity, near-zero lag)
+- Rolling 7-day retention, trim on write
+- Calibrate against standard GA reports when they catch up
+- Feeds the persistent header live count + 1-day view traffic curves
+- Limitation: no per-FI breakdown on realtime — aggregate only
+
+**Phases**: TBD — storyline details still being refined
 
 ### AI-Powered Insights Engine
 - **Phase 1 COMPLETE**: API key, ai-insights.mjs module, 3 endpoints live

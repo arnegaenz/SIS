@@ -177,46 +177,117 @@
     </section>
 
     <!-- Kiosk mode containers (hidden in normal mode, shown when ?kiosk=1) -->
-    <div id="kioskKpiRow" class="kiosk-kpi-row" style="display:none;margin-top:16px;"></div>
-    <div id="kioskTrafficHealth" style="display:none;">
-      <!-- placeholder: kioskTrafficHealth shown/hidden by JS -->
-    </div>
-    <div id="kioskSplit" class="kiosk-main-split" style="display:none;">
-      <div class="kiosk-main-split__left">
-        <div class="kiosk-section-title">Partner Traffic Health</div>
-        <div id="kioskTrafficBanner"></div>
-        <div id="kioskTrafficGrid" class="traffic-health-grid kiosk-fi-scroll"></div>
-        <div class="kiosk-section-title">Merchant Health</div>
-        <div id="kioskMerchantGrid" class="merchant-health-grid kiosk-merchant-scroll"></div>
+
+    <!-- Persistent header — always visible in kiosk -->
+    <div id="kioskPersistentHeader" class="kiosk-persistent-header" style="display:none;">
+      <div class="kiosk-ph__left" title="GA Realtime — number of people actively on CardUpdatr pages right now. Polled from Google Analytics every 5 minutes. Device breakdown shows mobile vs desktop vs tablet split.">
+        <div class="kiosk-ph__live-pulse">
+          <span class="kiosk-ph__live-dot"></span>
+          <span class="kiosk-ph__live-count" id="phLiveCount">&mdash;</span>
+          <span class="kiosk-ph__live-label">active now</span>
+        </div>
+        <div class="kiosk-ph__device-split" id="phDeviceSplit"></div>
       </div>
-      <div class="kiosk-main-split__right">
-        <div class="kiosk-section-title">Placement Volume (7 days)</div>
-        <div id="kioskVolumeChart" class="kiosk-volume-chart"></div>
-        <div class="kiosk-section-title" style="margin-top:12px;">Live Event Feed</div>
-        <div id="kioskEventFeed" class="event-feed">
-          <div class="event-feed__header" id="feedFilterBar">
-            <div class="feed-status-pills" id="feedStatusPills"></div>
-            <div class="feed-mini-select" id="feedMerchantSelect">
-              <button type="button" class="feed-mini-select__btn">Merchant</button>
-              <div class="feed-mini-select__panel">
-                <input class="feed-mini-select__search" type="text" placeholder="Search…" />
-                <div class="feed-mini-select__options"></div>
-              </div>
-            </div>
-            <div class="feed-mini-select" id="feedFiSelect">
-              <button type="button" class="feed-mini-select__btn">FI</button>
-              <div class="feed-mini-select__panel">
-                <input class="feed-mini-select__search" type="text" placeholder="Search…" />
-                <div class="feed-mini-select__options"></div>
-              </div>
-            </div>
-            <label class="feed-exclude-label" id="feedExcludeDevLabel" title="Hide events from customer-dev instance"><input type="checkbox" id="feedExcludeDev" checked /> Exclude customer-dev</label>
-            <button type="button" class="feed-clear-btn" id="feedClearBtn" style="display:none;">Clear</button>
-          </div>
-          <div class="event-feed__list" id="kioskEventList"></div>
+      <div class="kiosk-ph__center">
+        <div class="kiosk-ph__kpi" id="phSessions" title="Unique cardholder sessions in the last 24 hours. Each session represents one cardholder launching CardUpdatr — whether they completed placements or just browsed.">
+          <div class="kiosk-ph__kpi-value">&mdash;</div>
+          <div class="kiosk-ph__kpi-label">Sessions (24h)</div>
+        </div>
+        <div class="kiosk-ph__kpi" id="phPlacements" title="Total card placement jobs attempted in the last 24 hours. Each job is one cardholder attempting to update their card at one merchant. One session can have multiple jobs if the cardholder selected multiple merchants.">
+          <div class="kiosk-ph__kpi-value">&mdash;</div>
+          <div class="kiosk-ph__kpi-label">Jobs (24h)</div>
+        </div>
+        <div class="kiosk-ph__kpi" id="phLinked" title="Jobs that successfully linked the account (got past credentials). This equals successful placements + system failures. The difference between Jobs and Linked represents cardholder-caused failures (wrong credentials, timeouts, cancellations).">
+          <div class="kiosk-ph__kpi-value">&mdash;</div>
+          <div class="kiosk-ph__kpi-label">Linked (24h)</div>
+        </div>
+        <div class="kiosk-ph__kpi" id="phSuccessRate" title="Overall Success Rate (24h) — successful jobs divided by total jobs (success + failed). Includes all failure types. Green >= 70%, Amber >= 50%, Red < 50%.">
+          <div class="kiosk-ph__kpi-value">&mdash;</div>
+          <div class="kiosk-ph__kpi-label">Success Rate</div>
+        </div>
+        <div class="kiosk-ph__kpi" id="phSystemRate" title="System Success Rate (today) — successful jobs divided by (successful + system failures). Excludes cardholder-caused failures: wrong credentials, timeouts, cancellations, account locked, etc. Answers: when the system was fully in play, how often did it succeed? Green >= 70%, Amber >= 50%, Red < 50%.">
+          <div class="kiosk-ph__kpi-value">&mdash;</div>
+          <div class="kiosk-ph__kpi-label">System Rate</div>
+        </div>
+        <div class="kiosk-ph__kpi" id="phSuccessful" title="Total successful card placements in the last 24 hours. Each one represents a cardholder who successfully updated their card at a merchant.">
+          <div class="kiosk-ph__kpi-value">&mdash;</div>
+          <div class="kiosk-ph__kpi-label">Successful (24h)</div>
         </div>
       </div>
+      <div class="kiosk-ph__right">
+        <div class="kiosk-ph__health" id="phHealth" title="Composite system health — click to expand. Monitors 5 signals: instance connectivity, data freshness, success rate vs baseline, traffic volume anomalies, and merchant failure spikes. Green = all clear, Yellow = warning, Red = critical.">
+          <span class="kiosk-ph__health-dot"></span>
+          <span class="kiosk-ph__health-label">Healthy</span>
+        </div>
+        <div class="kiosk-ph__clock" id="phClock" title="Current local time. Data refreshes every 30 seconds."></div>
+        <div class="kiosk-ph__view-label" id="phViewLabel" title="Current view. Arrow keys to switch views manually. Auto-cycles every 60 seconds. 2 minutes of inactivity resumes auto-cycle.">1-DAY PULSE</div>
+      </div>
+      <div class="kiosk-ph__progress" id="phCycleProgress" title="View cycle progress bar. When full, transitions to the next view. Arrow keys pause auto-cycling.">
+        <div class="kiosk-ph__progress-fill" id="phCycleProgressFill"></div>
+      </div>
+      <!-- Health detail panel -->
+      <div id="kioskHealthPanel" class="kiosk-health-panel" style="display:none;">
+        <div class="kiosk-health-panel__signals" id="phHealthSignals"></div>
+      </div>
     </div>
+
+    <!-- Rotating viewport -->
+    <div id="kioskViewport" class="kiosk-viewport" style="display:none;">
+      <!-- 1-Day Pulse view -->
+      <div id="kioskView1Day" class="kiosk-view kiosk-view--active" data-view="1day">
+        <div class="kiosk-1d__timeline-wrap">
+          <div class="kiosk-section-title" title="Rolling 24-hour activity timeline. Left = 24 hours ago, right = now. Bars show hourly event volume. Confirmed zone (left): colored by job status from CardSavr data. Live edge (right, glowing): device breakdown from GA realtime snapshots. Dashed line marks where confirmed data ends and live data begins.">Activity Timeline &mdash; Today</div>
+          <div class="kiosk-1d__timeline" id="timeline1Day"></div>
+          <div class="kiosk-1d__timeline-legend" id="timeline1DayLegend"></div>
+        </div>
+        <div class="kiosk-1d__bottom">
+          <div class="kiosk-1d__left">
+            <div class="kiosk-section-title">Partner Traffic Health</div>
+            <div id="kioskTrafficBanner"></div>
+            <div id="kioskTrafficGrid" class="traffic-health-grid kiosk-fi-scroll"></div>
+            <div class="kiosk-section-title">Merchant Health</div>
+            <div id="kioskMerchantGrid" class="merchant-health-grid kiosk-merchant-scroll"></div>
+          </div>
+          <div class="kiosk-1d__right">
+            <div class="kiosk-section-title">Placement Volume (7 days)</div>
+            <div id="kioskVolumeChart" class="kiosk-volume-chart"></div>
+            <div class="kiosk-section-title" style="margin-top:12px;">Live Event Feed</div>
+            <div id="kioskEventFeed" class="event-feed">
+              <div class="event-feed__header" id="feedFilterBar">
+                <div class="feed-status-pills" id="feedStatusPills"></div>
+                <div class="feed-mini-select" id="feedMerchantSelect">
+                  <button type="button" class="feed-mini-select__btn">Merchant</button>
+                  <div class="feed-mini-select__panel">
+                    <input class="feed-mini-select__search" type="text" placeholder="Search…" />
+                    <div class="feed-mini-select__options"></div>
+                  </div>
+                </div>
+                <div class="feed-mini-select" id="feedFiSelect">
+                  <button type="button" class="feed-mini-select__btn">FI</button>
+                  <div class="feed-mini-select__panel">
+                    <input class="feed-mini-select__search" type="text" placeholder="Search…" />
+                    <div class="feed-mini-select__options"></div>
+                  </div>
+                </div>
+                <label class="feed-exclude-label" id="feedExcludeDevLabel" title="Hide events from customer-dev instance"><input type="checkbox" id="feedExcludeDev" checked /> Exclude customer-dev</label>
+                <button type="button" class="feed-clear-btn" id="feedClearBtn" style="display:none;">Clear</button>
+              </div>
+              <div class="event-feed__list" id="kioskEventList"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 7-Day Rhythm (Phase 2 placeholder) -->
+      <div id="kioskView7Day" class="kiosk-view" data-view="7day"></div>
+
+      <!-- 3-Day Momentum (Phase 2 placeholder) -->
+      <div id="kioskView3Day" class="kiosk-view" data-view="3day"></div>
+    </div>
+
+    <!-- Legacy kiosk containers (kept for render functions that reference them) -->
+    <div id="kioskKpiRow" class="kiosk-kpi-row" style="display:none;"></div>
+    <div id="kioskTrafficHealth" style="display:none;"></div>
 
     <!-- Traffic Health Detail Modal -->
     <div id="trafficDetailOverlay" class="detail-modal-overlay" style="display:none;">

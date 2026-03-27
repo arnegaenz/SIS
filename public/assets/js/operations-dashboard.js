@@ -84,7 +84,452 @@ const state = {
     fis: new Set(),
     excludeDevInstance: true,
   },
+  // Command center state
+  feedEvents: [],
+  gaTimeline: null,
+  healthData: null,
 };
+
+/* ── Command Center — View Rotation Engine ── */
+
+const VIEW_NAMES = {
+  "1day": "1-DAY PULSE",
+  "3day": "3-DAY MOMENTUM",
+  "7day": "7-DAY RHYTHM",
+};
+
+const viewRotation = {
+  views: ["1day"],  // Phase 1: only 1-day. Phase 2 adds "3day", "7day"
+  currentIndex: 0,
+  mode: "auto",
+  cycleMs: 60000,
+  resumeMs: 120000,
+  cycleTimer: null,
+  resumeTimer: null,
+  progressRaf: null,
+  cycleStartTime: 0,
+};
+
+function startViewCycle() {
+  viewRotation.mode = "auto";
+  viewRotation.cycleStartTime = performance.now();
+  clearTimeout(viewRotation.cycleTimer);
+  cancelAnimationFrame(viewRotation.progressRaf);
+
+  const fillEl = document.getElementById("phCycleProgressFill");
+
+  function animateProgress() {
+    const elapsed = performance.now() - viewRotation.cycleStartTime;
+    const pct = Math.min(100, (elapsed / viewRotation.cycleMs) * 100);
+    if (fillEl) fillEl.style.width = pct + "%";
+    if (pct < 100) {
+      viewRotation.progressRaf = requestAnimationFrame(animateProgress);
+    }
+  }
+  viewRotation.progressRaf = requestAnimationFrame(animateProgress);
+
+  viewRotation.cycleTimer = setTimeout(() => {
+    if (viewRotation.views.length > 1) {
+      const nextIndex = (viewRotation.currentIndex + 1) % viewRotation.views.length;
+      transitionToView(nextIndex);
+    }
+    startViewCycle();
+  }, viewRotation.cycleMs);
+}
+
+function pauseViewCycle() {
+  viewRotation.mode = "manual";
+  clearTimeout(viewRotation.cycleTimer);
+  cancelAnimationFrame(viewRotation.progressRaf);
+  clearTimeout(viewRotation.resumeTimer);
+
+  const fillEl = document.getElementById("phCycleProgressFill");
+  if (fillEl) fillEl.style.width = "0%";
+
+  viewRotation.resumeTimer = setTimeout(() => {
+    startViewCycle();
+  }, viewRotation.resumeMs);
+}
+
+function transitionToView(index) {
+  if (index === viewRotation.currentIndex) return;
+  const views = document.querySelectorAll(".kiosk-view");
+  const current = views[viewRotation.currentIndex];
+  const next = views[index];
+  if (!current || !next) return;
+
+  current.classList.add("kiosk-view--exiting");
+  current.classList.remove("kiosk-view--active");
+
+  next.classList.remove("kiosk-view--exiting");
+  next.classList.add("kiosk-view--active");
+
+  setTimeout(() => {
+    current.classList.remove("kiosk-view--exiting");
+  }, 550);
+
+  viewRotation.currentIndex = index;
+  const viewKey = viewRotation.views[index];
+  const labelEl = document.getElementById("phViewLabel");
+  if (labelEl) labelEl.textContent = VIEW_NAMES[viewKey] || viewKey;
+}
+
+function handleArrowKey(direction) {
+  const len = viewRotation.views.length;
+  if (len <= 1) return;
+  pauseViewCycle();
+  const nextIndex = (viewRotation.currentIndex + direction + len) % len;
+  transitionToView(nextIndex);
+}
+
+/* ── Command Center — Persistent Header ── */
+
+function animateValue(el, target, duration) {
+  duration = duration || 300;
+  const text = el.textContent || "";
+  const isPercent = text.includes("%") || el.closest("[id*='Rate']") || el.closest("[id*='System']");
+  let start = parseFloat(text.replace(/[^0-9.-]/g, "")) || 0;
+  // Always animate at least 15% swing so it feels alive
+  if (Math.abs(target - start) < target * 0.15 && target > 0) {
+    start = target * 0.85;
+  }
+  const startTime = performance.now();
+  function step(now) {
+    const progress = Math.min((now - startTime) / duration, 1);
+    const eased = 1 - Math.pow(1 - progress, 3);
+    const val = start + (target - start) * eased;
+    if (isPercent) {
+      el.textContent = val.toFixed(1) + "%";
+    } else {
+      el.textContent = formatNumber(Math.round(val));
+    }
+    if (progress < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+function renderPersistentHeader(opsData, healthData, gaTimeline) {
+  // Live count from GA realtime
+  const liveCountEl = document.getElementById("phLiveCount");
+  const deviceSplitEl = document.getElementById("phDeviceSplit");
+  if (gaTimeline && gaTimeline.latest) {
+    const latest = gaTimeline.latest;
+    if (liveCountEl) animateValue(liveCountEl, latest.active_users, 400);
+    if (deviceSplitEl && latest.by_device) {
+      const total = latest.active_users || 1;
+      const m = latest.by_device.mobile || 0;
+      const d = latest.by_device.desktop || 0;
+      const t = latest.by_device.tablet || 0;
+      deviceSplitEl.innerHTML = [
+        m > 0 ? `<span>Mobile ${Math.round(m/total*100)}%</span>` : "",
+        d > 0 ? `<span>Desktop ${Math.round(d/total*100)}%</span>` : "",
+        t > 0 ? `<span>Tablet ${Math.round(t/total*100)}%</span>` : "",
+      ].filter(Boolean).join("");
+    }
+  } else {
+    if (liveCountEl) liveCountEl.textContent = "\u2014";
+    if (deviceSplitEl) deviceSplitEl.innerHTML = "";
+  }
+
+  // KPIs from server-computed feed summary (accurate 24h totals)
+  const summary = state.feedSummary;
+  const todaySessions = summary ? summary.unique_sessions : 0;
+  const todayJobs = summary ? summary.total_jobs : 0;
+  const todaySuccess = summary ? summary.jobs_success : 0;
+  const todayFailed = summary ? summary.jobs_failed : 0;
+  const todayTotal = todaySuccess + todayFailed;
+
+  const sessionsEl = document.querySelector("#phSessions .kiosk-ph__kpi-value");
+  const placementsEl = document.querySelector("#phPlacements .kiosk-ph__kpi-value");
+  const successEl = document.querySelector("#phSuccessRate .kiosk-ph__kpi-value");
+
+  if (sessionsEl) animateValue(sessionsEl, todaySessions, 300);
+  if (placementsEl) animateValue(placementsEl, todayJobs, 300);
+
+  const todayLinked = summary ? summary.jobs_linked : 0;
+  const linkedEl = document.querySelector("#phLinked .kiosk-ph__kpi-value");
+  if (linkedEl) animateValue(linkedEl, todayLinked, 300);
+
+  const successRate = todayTotal > 0 ? todaySuccess / todayTotal * 100 : 0;
+  if (successEl) {
+    animateValue(successEl, successRate, 300);
+    successEl.style.color = todayTotal > 0 ? (successRate >= 70 ? "#48bb78" : successRate >= 50 ? "#ecc94b" : "#fc8181") : "var(--muted)";
+  }
+
+  const successfulEl = document.querySelector("#phSuccessful .kiosk-ph__kpi-value");
+  if (successfulEl) {
+    animateValue(successfulEl, todaySuccess, 300);
+    successfulEl.style.color = "#48bb78";
+  }
+
+  // System success rate from health composite (today's data from server)
+  const systemEl = document.querySelector("#phSystemRate .kiosk-ph__kpi-value");
+  if (healthData && healthData.systemSuccessRate !== null && healthData.systemSuccessRate !== undefined) {
+    const sysRate = healthData.systemSuccessRate;
+    if (systemEl) {
+      animateValue(systemEl, sysRate, 300);
+      systemEl.style.color = sysRate >= 70 ? "#48bb78" : sysRate >= 50 ? "#ecc94b" : "#fc8181";
+    }
+  }
+
+  // Health dot
+  if (healthData) {
+    const dot = document.querySelector(".kiosk-ph__health-dot");
+    const label = document.querySelector(".kiosk-ph__health-label");
+    if (dot) {
+      dot.className = "kiosk-ph__health-dot status-" + healthData.overall;
+    }
+    if (label) {
+      const labels = { green: "Healthy", yellow: "Warning", red: "Critical" };
+      label.textContent = labels[healthData.overall] || "Unknown";
+    }
+    renderHealthSignals(healthData.signals || []);
+  }
+
+  // Clock
+  updateCommandCenterClock();
+}
+
+function renderHealthSignals(signals) {
+  const container = document.getElementById("phHealthSignals");
+  if (!container) return;
+  container.innerHTML = signals.map(s => `
+    <div class="kiosk-health-panel__signal">
+      <span class="kiosk-health-panel__signal-dot status-${s.status}" style="background:${
+        s.status === "green" ? "#48bb78" : s.status === "yellow" ? "#ecc94b" : "#fc8181"
+      }"></span>
+      <span class="kiosk-health-panel__signal-name">${s.name}</span>
+      <span class="kiosk-health-panel__signal-detail">${s.detail}</span>
+    </div>
+  `).join("");
+}
+
+function updateCommandCenterClock() {
+  const clockEl = document.getElementById("phClock");
+  if (!clockEl) return;
+  const now = new Date();
+  clockEl.textContent = now.toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true,
+  });
+}
+
+/* ── Command Center — 1-Day Timeline ── */
+
+function render1DayTimeline(feedEvents, gaTimeline) {
+  const container = document.getElementById("timeline1Day");
+  const legendEl = document.getElementById("timeline1DayLegend");
+  if (!container) return;
+
+  const now = new Date();
+  const cutoff = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+  // Build 24 hourly slots as a rolling window: slot 0 = 24h ago, slot 23 = current hour
+  const slots = [];
+  for (let i = 0; i < 24; i++) {
+    const slotTime = new Date(cutoff.getTime() + i * 60 * 60 * 1000);
+    slots.push({
+      start: slotTime,
+      label: slotTime.toLocaleTimeString("en-US", { hour: "numeric", hour12: true }).replace(" ", "").toLowerCase(),
+      // Top: CardSavr sessions/jobs (hangs down from top)
+      cardsavr: { success: 0, failed: 0, cancelled: 0, abandoned: 0, session: 0, total: 0 },
+      // Bottom: GA realtime (grows up from bottom)
+      ga: { active_users: 0, total_views: 0 },
+    });
+  }
+
+  // Bucket CardSavr feed events
+  for (const evt of (feedEvents || [])) {
+    if (!evt.timestamp) continue;
+    const evtTime = new Date(evt.timestamp);
+    if (evtTime < cutoff || evtTime > now) continue;
+    const slotIdx = Math.min(23, Math.floor((evtTime - cutoff) / (60 * 60 * 1000)));
+    if (slots[slotIdx].cardsavr[evt.status] !== undefined) {
+      slots[slotIdx].cardsavr[evt.status]++;
+      slots[slotIdx].cardsavr.total++;
+    }
+  }
+
+  // Bucket GA realtime snapshots
+  if (gaTimeline && gaTimeline.snapshots) {
+    for (const snap of gaTimeline.snapshots) {
+      if (!snap.time) continue;
+      const snapTime = new Date(snap.time);
+      if (snapTime < cutoff || snapTime > now) continue;
+      const slotIdx = Math.min(23, Math.floor((snapTime - cutoff) / (60 * 60 * 1000)));
+      if (snap.summary) {
+        slots[slotIdx].ga.active_users += snap.summary.active_users || 0;
+        slots[slotIdx].ga.total_views += snap.summary.total_views || 0;
+      }
+    }
+  }
+
+  // Find max for each half (independent scaling)
+  let maxCardSavr = 1, maxGa = 1;
+  for (const slot of slots) {
+    if (slot.cardsavr.total > maxCardSavr) maxCardSavr = slot.cardsavr.total;
+    if (slot.ga.active_users > maxGa) maxGa = slot.ga.active_users;
+  }
+
+  // Build HTML
+  let html = '<div class="kiosk-1d__midline"></div>';
+  for (let i = 0; i < 24; i++) {
+    const slot = slots[i];
+    const isFuture = slot.start > now;
+
+    // Top half: CardSavr bars hanging down
+    let topHtml = '<div class="kiosk-1d__bar-top">';
+    if (!isFuture && slot.cardsavr.total > 0) {
+      const cs = slot.cardsavr;
+      const heightPct = (cs.total / maxCardSavr) * 100;
+      for (const s of ["session", "abandoned", "cancelled", "failed", "success"]) {
+        if (cs[s] > 0) {
+          const segPct = (cs[s] / cs.total) * heightPct;
+          topHtml += `<div class="kiosk-1d__bar-segment kiosk-1d__bar-segment--${s}" style="height:${segPct}%" title="${s}: ${cs[s]}"></div>`;
+        }
+      }
+    }
+    topHtml += "</div>";
+
+    // Bottom half: GA bars growing up
+    let bottomHtml = '<div class="kiosk-1d__bar-bottom">';
+    if (!isFuture && slot.ga.active_users > 0) {
+      const heightPct = (slot.ga.active_users / maxGa) * 100;
+      bottomHtml += `<div class="kiosk-1d__bar-segment kiosk-1d__bar-segment--ga" style="height:${heightPct}%" title="GA: ${slot.ga.active_users} active users, ${slot.ga.total_views} views"></div>`;
+    }
+    bottomHtml += "</div>";
+
+    const showLabel = i % 4 === 0 || i === 23;
+    html += `<div class="kiosk-1d__hour" style="${isFuture ? 'opacity:0.15' : ''}">
+      ${topHtml}
+      ${bottomHtml}
+      ${showLabel ? `<span class="kiosk-1d__hour-label">${slot.label}</span>` : ""}
+    </div>`;
+  }
+
+  // "Now" marker at right edge
+  html += `<div class="kiosk-1d__now-marker" style="right:0">
+    <span class="kiosk-1d__now-label">NOW</span>
+  </div>`;
+
+  container.innerHTML = html;
+
+  // Legend
+  if (legendEl) {
+    legendEl.innerHTML = `
+      <span class="kiosk-1d__legend-item" style="font-weight:600;color:var(--text);margin-right:4px">Sessions/Jobs:</span>
+      <span class="kiosk-1d__legend-item"><span class="kiosk-1d__legend-dot" style="background:#48bb78"></span>Success</span>
+      <span class="kiosk-1d__legend-item"><span class="kiosk-1d__legend-dot" style="background:#fc8181"></span>Failed</span>
+      <span class="kiosk-1d__legend-item"><span class="kiosk-1d__legend-dot" style="background:#ecc94b"></span>Cancelled</span>
+      <span class="kiosk-1d__legend-item"><span class="kiosk-1d__legend-dot" style="background:#a0aec0"></span>Abandoned</span>
+      <span class="kiosk-1d__legend-item"><span class="kiosk-1d__legend-dot" style="background:#63b3ed"></span>Browse</span>
+      <span style="margin:0 8px;border-left:1px solid var(--border);height:12px;display:inline-block"></span>
+      <span class="kiosk-1d__legend-item" style="font-weight:600;color:var(--text);margin-right:4px">GA Traffic:</span>
+      <span class="kiosk-1d__legend-item"><span class="kiosk-1d__legend-dot" style="background:#805ad5"></span>Active Users</span>
+    `;
+  }
+}
+
+/* ── Command Center — Data Fetching ── */
+
+async function fetchGaRealtimeTimeline() {
+  try {
+    const res = await fetch("/api/ga-realtime-timeline?hours=24");
+    if (!res.ok) return null;
+    return await res.json();
+  } catch { return null; }
+}
+
+async function fetchHealthComposite() {
+  try {
+    const tz = encodeURIComponent(getLocalTimezone());
+    const res = await fetch(`/api/ops-health-composite?tz=${tz}`);
+    if (!res.ok) return null;
+    return await res.json();
+  } catch { return null; }
+}
+
+/* ── Command Center — Init & Refresh ── */
+
+function initCommandCenter() {
+  // Hide normal dashboard sections
+  const normalSections = document.querySelectorAll(
+    ".dashboard-grid, .dashboard-grid.two, .section-title, .table-wrap, #trafficHealthSection, .dashboard-shell > section"
+  );
+  normalSections.forEach((el) => (el.style.display = "none"));
+
+  // Show command center containers
+  const header = document.getElementById("kioskPersistentHeader");
+  const viewport = document.getElementById("kioskViewport");
+  if (header) header.style.display = "";
+  if (viewport) viewport.style.display = "";
+
+  // Init event feed filters
+  initFeedFilters();
+
+  // Add "Include test data" checkbox to persistent header
+  const headerRight = document.querySelector(".kiosk-ph__right");
+  if (headerRight) {
+    const label = document.createElement("label");
+    label.className = "kiosk-test-toggle";
+    label.style.fontSize = "0.7rem";
+    label.innerHTML = `<input type="checkbox" id="kioskIncludeTests" /> Include test data`;
+    headerRight.insertBefore(label, headerRight.firstChild);
+    document.getElementById("kioskIncludeTests").addEventListener("change", (e) => {
+      state.includeTests = e.target.checked;
+      commandCenterRefresh();
+    });
+  }
+
+  // Health dot click handler
+  const healthEl = document.getElementById("phHealth");
+  const healthPanel = document.getElementById("kioskHealthPanel");
+  if (healthEl && healthPanel) {
+    healthEl.addEventListener("click", (e) => {
+      e.stopPropagation();
+      healthPanel.style.display = healthPanel.style.display === "none" ? "" : "none";
+    });
+    document.addEventListener("click", () => {
+      healthPanel.style.display = "none";
+    });
+  }
+
+  // Arrow key handling
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowRight") { handleArrowKey(1); e.preventDefault(); }
+    if (e.key === "ArrowLeft") { handleArrowKey(-1); e.preventDefault(); }
+  });
+
+  // Clock update interval
+  setInterval(updateCommandCenterClock, 1000);
+}
+
+async function commandCenterRefresh() {
+  await fetchOpsTrends();
+  const [_opsResult, healthData, gaTimeline] = await Promise.all([
+    fetchMetrics(),
+    fetchHealthComposite(),
+    fetchGaRealtimeTimeline(),
+  ]);
+  await Promise.all([fetchEventFeed(), fetchTrafficHealth()]);
+
+  state.gaTimeline = gaTimeline;
+  state.healthData = healthData;
+
+  const opsData = state.data;
+  renderPersistentHeader(opsData, healthData, gaTimeline);
+  render1DayTimeline(state.allFeedEvents, gaTimeline);
+
+  // Render the operational detail (merchant grid, volume chart)
+  if (opsData) {
+    const byMerchant = addFailureRates(opsData.by_merchant || []);
+    const byDay = opsData.by_day || [];
+    renderMerchantHealthGrid(byMerchant);
+    renderVolumeSparkline(byDay);
+  }
+}
 
 const fiSelect = createMultiSelect(document.getElementById("fiSelect"), {
   placeholder: "All FIs",
@@ -1023,12 +1468,15 @@ function renderVolumeSparkline(byDay) {
 }
 
 async function fetchEventFeed() {
-  if (!kioskEls.eventList) return;
+  const eventList = kioskEls.eventList || document.getElementById("kioskEventList");
+  if (!eventList) return;
   try {
     const res = await fetch(`/api/metrics/ops-feed?tz=${encodeURIComponent(getLocalTimezone())}`);
     if (!res.ok) return;
     const data = await res.json();
     state.feedEvents = data.events || [];
+    state.allFeedEvents = data.allEvents || data.events || [];
+    state.feedSummary = data.summary || null;
     updateFeedFilterOptions();
     renderFilteredFeed();
   } catch (err) {
@@ -1037,7 +1485,8 @@ async function fetchEventFeed() {
 }
 
 function renderFilteredFeed() {
-  if (!kioskEls.eventList) return;
+  const feedListEl = kioskEls.eventList || document.getElementById("kioskEventList");
+  if (!feedListEl) return;
   const { statuses, merchants, fis, excludeDevInstance } = state.feedFilters;
   const events = (state.feedEvents || []).filter((evt) => {
     if (excludeDevInstance && evt.instance === "customer-dev") return false;
@@ -1053,10 +1502,10 @@ function renderFilteredFeed() {
     <span class="event-feed__status">Status</span>
   </div>`;
   if (!events.length) {
-    kioskEls.eventList.innerHTML = colHeader + `<div class="empty-state">No events match filters.</div>`;
+    feedListEl.innerHTML = colHeader + `<div class="empty-state">No events match filters.</div>`;
     return;
   }
-  kioskEls.eventList.innerHTML = colHeader + events
+  feedListEl.innerHTML = colHeader + events
     .map((evt) => {
       const s = evt.status || "unknown";
       const statusClass = s === "success" ? "success" : s === "session" ? "session" : s === "cancelled" ? "cancelled" : s === "abandoned" ? "abandoned" : s === "pending" ? "pending" : "failed";
@@ -1636,10 +2085,11 @@ function init() {
 
   if (kiosk) {
     initKioskMode("Operations Command Center", 30);
-    initKioskLayout();
+    initCommandCenter();
     state.windowDays = 8;
     loadFiRegistry();
-    startAutoRefresh(kioskRefresh, 30000); // 30 seconds
+    startViewCycle();
+    startAutoRefresh(commandCenterRefresh, 30000); // 30 seconds
   } else {
     initTimeWindows();
     bindSortHandlers();

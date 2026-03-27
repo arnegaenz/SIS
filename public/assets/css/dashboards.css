@@ -1616,6 +1616,455 @@ body.kiosk-mode .table-scroll th {
   }
 }
 
+/* ── Operations Command Center — Persistent Header ── */
+
+.kiosk-persistent-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 200;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px 20px;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.kiosk-ph__left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 140px;
+}
+
+.kiosk-ph__live-pulse {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.kiosk-ph__live-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #48bb78;
+  animation: kioskPulse 2s ease-in-out infinite;
+}
+
+@keyframes kioskPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(72, 187, 120, 0.5); }
+  50% { box-shadow: 0 0 0 6px rgba(72, 187, 120, 0); }
+}
+
+.kiosk-ph__live-count {
+  font-size: clamp(28px, 3vw, 42px);
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1;
+}
+
+.kiosk-ph__live-label {
+  font-size: 0.75rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.kiosk-ph__device-split {
+  font-size: 0.72rem;
+  color: var(--muted);
+  display: flex;
+  gap: 10px;
+}
+
+.kiosk-ph__device-split span {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.kiosk-ph__center {
+  display: flex;
+  gap: 32px;
+  flex: 1;
+  justify-content: center;
+}
+
+.kiosk-ph__kpi {
+  text-align: center;
+  min-width: 90px;
+}
+
+.kiosk-ph__kpi-value {
+  font-size: clamp(22px, 2.2vw, 34px);
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.1;
+}
+
+.kiosk-ph__kpi-label {
+  font-size: 0.68rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-top: 2px;
+}
+
+.kiosk-ph__right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 200px;
+  justify-content: flex-end;
+}
+
+.kiosk-ph__health {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  position: relative;
+  padding: 4px 10px;
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+
+.kiosk-ph__health:hover {
+  background: var(--panel-light);
+}
+
+.kiosk-ph__health-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #48bb78;
+  flex-shrink: 0;
+}
+
+.kiosk-ph__health-dot.status-green { background: #48bb78; box-shadow: 0 0 6px rgba(72, 187, 120, 0.4); }
+.kiosk-ph__health-dot.status-yellow { background: #ecc94b; box-shadow: 0 0 6px rgba(236, 201, 75, 0.4); }
+.kiosk-ph__health-dot.status-red { background: #fc8181; box-shadow: 0 0 6px rgba(252, 129, 129, 0.5); }
+
+.kiosk-ph__health-label {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.kiosk-ph__clock {
+  font-size: 0.85rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.kiosk-ph__view-label {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--accent, #63b3ed);
+  font-weight: 600;
+  padding: 3px 8px;
+  border: 1px solid var(--accent, #63b3ed);
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.kiosk-ph__progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--border);
+}
+
+.kiosk-ph__progress-fill {
+  height: 100%;
+  width: 0%;
+  background: var(--accent, #63b3ed);
+  transition: width 0.3s linear;
+}
+
+/* Health detail panel */
+.kiosk-health-panel {
+  position: absolute;
+  top: 100%;
+  right: 24px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 16px;
+  min-width: 280px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+  z-index: 210;
+}
+
+.kiosk-health-panel__signal {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.78rem;
+}
+
+.kiosk-health-panel__signal:last-child {
+  border-bottom: none;
+}
+
+.kiosk-health-panel__signal-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.kiosk-health-panel__signal-name {
+  font-weight: 600;
+  color: var(--text);
+  min-width: 120px;
+}
+
+.kiosk-health-panel__signal-detail {
+  color: var(--muted);
+  flex: 1;
+}
+
+/* ── Operations Command Center — Viewport ── */
+
+.kiosk-viewport {
+  position: fixed;
+  top: 110px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+}
+
+.kiosk-view {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transform: translateX(20px);
+  transition: opacity 500ms ease, transform 500ms ease;
+  pointer-events: none;
+  overflow-y: auto;
+  padding: 16px 24px;
+}
+
+.kiosk-view--active {
+  opacity: 1;
+  transform: translateX(0);
+  pointer-events: auto;
+}
+
+.kiosk-view--exiting {
+  opacity: 0;
+  transform: translateX(-20px);
+  pointer-events: none;
+}
+
+/* ── 1-Day Pulse View ── */
+
+.kiosk-1d__timeline-wrap {
+  margin-bottom: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.kiosk-1d__timeline {
+  position: relative;
+  height: 120px;
+  display: flex;
+  gap: 2px;
+  padding: 0 4px;
+}
+
+.kiosk-1d__hour {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+  position: relative;
+}
+
+/* Top half: CardSavr bars anchor at midline, grow upward */
+.kiosk-1d__bar-top {
+  width: 100%;
+  max-width: 40px;
+  margin: 0 auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: stretch;
+}
+
+/* Bottom half: GA bars anchor at midline, grow downward */
+.kiosk-1d__bar-bottom {
+  width: 100%;
+  max-width: 40px;
+  margin: 0 auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: stretch;
+}
+
+/* Midline */
+.kiosk-1d__midline {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+  background: var(--border);
+  z-index: 1;
+  pointer-events: none;
+}
+
+.kiosk-1d__bar-segment {
+  min-height: 0;
+  transition: height 0.4s ease;
+}
+
+.kiosk-1d__bar-top .kiosk-1d__bar-segment {
+  border-radius: 2px 2px 0 0;
+}
+
+.kiosk-1d__bar-bottom .kiosk-1d__bar-segment {
+  border-radius: 0 0 2px 2px;
+}
+
+/* Confirmed zone — solid bars */
+.kiosk-1d__bar-segment--success { background: #48bb78; }
+.kiosk-1d__bar-segment--failed { background: #fc8181; }
+.kiosk-1d__bar-segment--cancelled { background: #ecc94b; }
+.kiosk-1d__bar-segment--abandoned { background: #a0aec0; }
+.kiosk-1d__bar-segment--session { background: #63b3ed; opacity: 0.5; }
+
+/* GA traffic bar */
+.kiosk-1d__bar-segment--ga {
+  background: #805ad5;
+  opacity: 0.7;
+  border-radius: 0 0 2px 2px;
+}
+
+.kiosk-1d__hour-label {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.55rem;
+  color: var(--border);
+  white-space: nowrap;
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* Now marker */
+.kiosk-1d__now-marker {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--accent, #63b3ed);
+  opacity: 0.7;
+  z-index: 5;
+}
+
+.kiosk-1d__now-label {
+  position: absolute;
+  top: -14px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.55rem;
+  text-transform: uppercase;
+  color: var(--accent, #63b3ed);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Seam indicator */
+.kiosk-1d__seam {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  border-left: 1px dashed var(--muted);
+  opacity: 0.3;
+  z-index: 4;
+}
+
+.kiosk-1d__timeline-legend {
+  display: flex;
+  gap: 14px;
+  justify-content: center;
+  margin-top: 6px;
+  font-size: 0.68rem;
+  color: var(--muted);
+}
+
+.kiosk-1d__legend-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.kiosk-1d__legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.kiosk-1d__bottom {
+  display: grid;
+  grid-template-columns: 5fr 2fr;
+  gap: 18px;
+  height: calc(100vh - 110px - 100px - 16px);
+  min-height: 200px;
+}
+
+.kiosk-1d__left {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  gap: 4px;
+}
+
+.kiosk-1d__left .kiosk-merchant-scroll {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.kiosk-1d__right {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.kiosk-1d__right .kiosk-volume-chart {
+  flex-shrink: 0;
+}
+
+.kiosk-1d__right .event-feed {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.kiosk-1d__right .event-feed__list {
+  flex: 1;
+  overflow-y: auto;
+}
+
 /* ── Portfolio Dashboard ── */
 
 /* 5-column KPI row */

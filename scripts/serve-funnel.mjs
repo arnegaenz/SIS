@@ -1294,6 +1294,7 @@ console.log("[traffic-alert] Background monitor started (checks every 15 min)");
 // ============================================================================
 let _livePlacementsCache = null;   // array of placement objects for today
 let _livePlacementsCacheTime = 0;
+let _liveInstanceFailures = [];    // names of instances that failed in last fetch cycle
 
 async function fetchLivePlacementsForToday() {
   try {
@@ -1303,6 +1304,7 @@ async function fetchLivePlacementsForToday() {
     const seenIds = new Set();
     const placements = [];
 
+    const cycleFailures = [];
     console.log(`[live-placements] Fetching today's placements from ${instances.length} instances...`);
     await Promise.allSettled(
       instances.map(async (instConfig) => {
@@ -1357,6 +1359,7 @@ async function fetchLivePlacementsForToday() {
           }
           console.log(`[live-placements]   ${instName}: ${rows.length}+ placements`);
         } catch (err) {
+          cycleFailures.push(instName);
           console.warn(`[live-placements]   ${instName}: FAILED - ${err.message}`);
         }
       })
@@ -1364,6 +1367,7 @@ async function fetchLivePlacementsForToday() {
 
     _livePlacementsCache = placements;
     _livePlacementsCacheTime = Date.now();
+    _liveInstanceFailures = cycleFailures;
     console.log(`[live-placements] Done — ${placements.length} placements cached for ${today}`);
   } catch (err) {
     console.error("[live-placements] fetch failed:", err.message);
@@ -1377,7 +1381,218 @@ setTimeout(fetchLivePlacementsForToday, 30 * 1000); // first fetch 30s after sta
 console.log("[live-placements] Background fetch started (every 15 min)");
 
 // ============================================================================
-// End Traffic Health Alert Monitor + Live Placements
+// Live Sessions Background Fetch (piggybacks on 15-min cycle)
+// ============================================================================
+let _liveSessionsCache = null;   // array of session objects for today
+let _liveSessionsCacheTime = 0;
+
+async function fetchLiveSessionsForToday() {
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    const instancesFile = await readInstancesFile();
+    const instances = instancesFile.entries || [];
+    const seenIds = new Set();
+    const sessions = [];
+
+    console.log(`[live-sessions] Fetching today's sessions from ${instances.length} instances...`);
+    await Promise.allSettled(
+      instances.map(async (instConfig) => {
+        const instName = instConfig.name || "";
+        try {
+          const { session: sdkSession } = await loginWithSdk(instConfig);
+          const resp = await getSessionsPage(sdkSession, today, today, null);
+          const rows = Array.isArray(resp?.body) ? resp.body
+            : Array.isArray(resp?.sessions) ? resp.sessions
+            : Array.isArray(resp?.results) ? resp.results
+            : Array.isArray(resp) ? resp : [];
+          for (const r of rows) {
+            const sid = r.agent_session_id || r.session_id || r.id || r.cuid || "";
+            const dedupeKey = `${instName}:${sid}`;
+            if (sid && seenIds.has(dedupeKey)) continue;
+            if (sid) seenIds.add(dedupeKey);
+            sessions.push({ ...r, _instance: instName });
+          }
+          // Follow pagination
+          const rawPagingHeader = resp?.headers?.get
+            ? resp.headers.get("x-cardsavr-paging")
+            : resp?.headers?.["x-cardsavr-paging"];
+          if (rawPagingHeader) {
+            let pagingMeta = JSON.parse(rawPagingHeader);
+            const pageLength = Number(pagingMeta.page_length) || rows.length || 25;
+            const totalResults = Number(pagingMeta.total_results) || rows.length;
+            const totalPages = pageLength > 0 ? Math.ceil(totalResults / pageLength) : 1;
+            let currentPage = Number(pagingMeta.page) || 1;
+            while (currentPage < totalPages && currentPage < 50) {
+              const nextPage = currentPage + 1;
+              const nextResp = await getSessionsPage(sdkSession, today, today, { ...pagingMeta, page: nextPage });
+              const nextRows = Array.isArray(nextResp?.body) ? nextResp.body
+                : Array.isArray(nextResp?.sessions) ? nextResp.sessions
+                : Array.isArray(nextResp?.results) ? nextResp.results
+                : Array.isArray(nextResp) ? nextResp : [];
+              for (const r of nextRows) {
+                const sid = r.agent_session_id || r.session_id || r.id || r.cuid || "";
+                const dedupeKey = `${instName}:${sid}`;
+                if (sid && seenIds.has(dedupeKey)) continue;
+                if (sid) seenIds.add(dedupeKey);
+                sessions.push({ ...r, _instance: instName });
+              }
+              const nextHeader = nextResp?.headers?.get
+                ? nextResp.headers.get("x-cardsavr-paging")
+                : nextResp?.headers?.["x-cardsavr-paging"];
+              if (!nextHeader) break;
+              try { pagingMeta = JSON.parse(nextHeader); } catch { pagingMeta.page = nextPage; }
+              const reportedPage = Number(pagingMeta.page);
+              if (!Number.isFinite(reportedPage) || reportedPage <= currentPage) break;
+              currentPage = reportedPage;
+            }
+          }
+          console.log(`[live-sessions]   ${instName}: ${rows.length}+ sessions`);
+        } catch (err) {
+          console.warn(`[live-sessions]   ${instName}: FAILED - ${err.message}`);
+        }
+      })
+    );
+
+    _liveSessionsCache = sessions;
+    _liveSessionsCacheTime = Date.now();
+    console.log(`[live-sessions] Done — ${sessions.length} sessions cached for ${today}`);
+  } catch (err) {
+    console.error("[live-sessions] fetch failed:", err.message);
+  }
+}
+
+// Offset by 45s so it doesn't collide with placements (30s) or traffic health (0s)
+setInterval(fetchLiveSessionsForToday, TRAFFIC_ALERT_CHECK_INTERVAL);
+setTimeout(fetchLiveSessionsForToday, 45 * 1000);
+
+console.log("[live-sessions] Background fetch started (every 15 min)");
+
+// ============================================================================
+// GA Realtime Snapshot Collection (5-min cycle)
+// ============================================================================
+const GA_REALTIME_POLL_INTERVAL = 5 * 60 * 1000; // 5 minutes
+let _gaRealtimeSnapshots = []; // rolling array of { time, summary, rows }
+
+async function fetchGaRealtimeSnapshot() {
+  try {
+    const cfg = GA_CREDENTIALS.find(c => c.name === "prod");
+    if (!cfg) return;
+    const credentialExists = await fileExists(cfg.file);
+    if (!credentialExists) return;
+
+    const propertyId = process.env[cfg.envProperty] || cfg.defaultProperty;
+    if (!propertyId) return;
+
+    const { google } = await import("googleapis");
+    const auth = new google.auth.GoogleAuth({
+      keyFile: cfg.file,
+      scopes: ["https://www.googleapis.com/auth/analytics.readonly"],
+    });
+    const analyticsData = google.analyticsdata({ version: "v1beta", auth });
+
+    const response = await analyticsData.properties.runRealtimeReport({
+      property: `properties/${propertyId}`,
+      requestBody: {
+        dimensions: [
+          { name: "unifiedScreenName" },
+          { name: "minutesAgo" },
+          { name: "deviceCategory" },
+        ],
+        metrics: [
+          { name: "screenPageViews" },
+          { name: "activeUsers" },
+        ],
+        limit: 10000,
+      },
+    });
+
+    const rows = (response.data.rows || []).map(row => ({
+      screen_name: row.dimensionValues?.[0]?.value || "",
+      minutes_ago: parseInt(row.dimensionValues?.[1]?.value || "0"),
+      device: row.dimensionValues?.[2]?.value || "unknown",
+      views: Number(row.metricValues?.[0]?.value || "0"),
+      active_users: Number(row.metricValues?.[1]?.value || "0"),
+    }));
+
+    // Aggregate by device
+    const byDevice = { mobile: 0, desktop: 0, tablet: 0 };
+    let totalViews = 0, totalUsers = 0;
+    for (const r of rows) {
+      totalViews += r.views;
+      totalUsers += r.active_users;
+      const d = (r.device || "").toLowerCase();
+      if (d === "mobile") byDevice.mobile += r.active_users;
+      else if (d === "desktop") byDevice.desktop += r.active_users;
+      else if (d === "tablet") byDevice.tablet += r.active_users;
+    }
+
+    const snapshot = {
+      time: new Date().toISOString(),
+      summary: {
+        total_views: totalViews,
+        active_users: totalUsers,
+        by_device: byDevice,
+        unique_screens: new Set(rows.map(r => r.screen_name)).size,
+      },
+      rows,
+    };
+
+    _gaRealtimeSnapshots.push(snapshot);
+
+    // Trim to 7 days
+    const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    _gaRealtimeSnapshots = _gaRealtimeSnapshots.filter(s => s.time >= cutoff);
+
+    // Persist today's snapshots to disk
+    const today = new Date().toISOString().slice(0, 10);
+    const todaySnapshots = _gaRealtimeSnapshots.filter(s => s.time.startsWith(today));
+    const gaRealtimeDir = path.join(RAW_DIR, "ga-realtime");
+    await fs.mkdir(gaRealtimeDir, { recursive: true });
+    const filePath = path.join(gaRealtimeDir, `${today}.json`);
+    await fs.writeFile(filePath, JSON.stringify({ snapshots: todaySnapshots }, null, 2));
+
+    console.log(`[ga-realtime-bg] Snapshot: ${totalViews} views, ${totalUsers} active users (mobile:${byDevice.mobile} desktop:${byDevice.desktop} tablet:${byDevice.tablet})`);
+  } catch (err) {
+    console.error("[ga-realtime-bg] fetch failed:", err.message);
+  }
+}
+
+async function hydrateGaRealtimeSnapshots() {
+  try {
+    const gaRealtimeDir = path.join(RAW_DIR, "ga-realtime");
+    const today = new Date().toISOString().slice(0, 10);
+    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    for (const day of [yesterday, today]) {
+      try {
+        const raw = await fs.readFile(path.join(gaRealtimeDir, `${day}.json`), "utf8");
+        const data = JSON.parse(raw);
+        if (Array.isArray(data.snapshots)) {
+          _gaRealtimeSnapshots.push(...data.snapshots);
+        }
+      } catch { /* file may not exist */ }
+    }
+    // Dedupe by time
+    const seen = new Set();
+    _gaRealtimeSnapshots = _gaRealtimeSnapshots.filter(s => {
+      if (seen.has(s.time)) return false;
+      seen.add(s.time);
+      return true;
+    });
+    _gaRealtimeSnapshots.sort((a, b) => a.time.localeCompare(b.time));
+    console.log(`[ga-realtime-bg] Hydrated ${_gaRealtimeSnapshots.length} snapshots from disk`);
+  } catch (err) {
+    console.warn("[ga-realtime-bg] hydration failed:", err.message);
+  }
+}
+
+// Hydrate on startup, then poll every 5 minutes
+hydrateGaRealtimeSnapshots();
+setInterval(fetchGaRealtimeSnapshot, GA_REALTIME_POLL_INTERVAL);
+setTimeout(fetchGaRealtimeSnapshot, 45 * 1000); // first fetch 45s after startup
+console.log("[ga-realtime-bg] Background fetch started (every 5 min)");
+
+// ============================================================================
+// End Traffic Health Alert Monitor + Live Placements + GA Realtime
 // ============================================================================
 
 let synthState = {
@@ -6355,6 +6570,7 @@ const server = http.createServer(async (req, res) => {
           status,
           termination_type: (job.termination || "").toString(),
           instance: (placement._instance || "").toString(),
+          session_id: (placement.agent_session_id || placement.session_id || placement.cardholder_session_id || placement.cuid || "").toString(),
         };
       });
 
@@ -6366,11 +6582,17 @@ const server = http.createServer(async (req, res) => {
       }
 
       // Read session files for the same days and create events for job-less sessions
+      // For today: use live session cache if available, fall back to batch file
       const sessionEvents = [];
       for (const day of fileDaysToRead) {
-        const dayData = await readSessionDay(day);
-        if (!dayData || !Array.isArray(dayData.sessions)) continue;
-        for (const sess of dayData.sessions) {
+        let daySessions;
+        if (day === utcToday && _liveSessionsCache && _liveSessionsCacheTime > 0) {
+          daySessions = _liveSessionsCache;
+        } else {
+          const dayData = await readSessionDay(day);
+          daySessions = (dayData && Array.isArray(dayData.sessions)) ? dayData.sessions : [];
+        }
+        for (const sess of daySessions) {
           if (sess.total_jobs > 0) continue;
           const sid = sess.agent_session_id || sess.session_id || sess.id || sess.cuid;
           if (sid && sessionsWithJobs.has(sid)) continue;
@@ -6386,18 +6608,207 @@ const server = http.createServer(async (req, res) => {
             status: "session",
             termination_type: "",
             instance: instanceDisplay,
+            session_id: (sid || "").toString(),
           });
         }
       }
 
-      const events = [...jobEvents, ...sessionEvents]
-        .filter((evt) => evt.timestamp >= cutoff24h && (!evt.merchant || !evt.merchant.toLowerCase().includes("vercel")))
-        .sort((a, b) => (b.timestamp || "").localeCompare(a.timestamp || ""))
-        .slice(0, 100);
+      const allFiltered = [...jobEvents, ...sessionEvents]
+        .filter((evt) => evt.timestamp >= cutoff24h && (!evt.merchant || !evt.merchant.toLowerCase().includes("vercel")));
 
-      return send(res, 200, { events });
+      // Compute real totals from ALL filtered events (before the 100-event cap)
+      const uniqueSessionIds = new Set();
+      let totalJobs = 0, totalSuccess = 0, totalFailed = 0, totalCancelled = 0, totalAbandoned = 0, totalBrowseOnly = 0;
+      let totalLinked = 0; // jobs that got past credentials (success + system failures)
+      for (const evt of allFiltered) {
+        if (evt.session_id) uniqueSessionIds.add(evt.session_id);
+        if (evt.status === "success") {
+          totalJobs++; totalSuccess++; totalLinked++;
+        } else if (evt.status === "failed") {
+          totalJobs++; totalFailed++;
+          const term = (evt.termination_type || "").trim().toUpperCase();
+          if (!UX_TERMINATIONS.has(term)) totalLinked++; // system failure = linked but placement failed
+        } else if (evt.status === "cancelled") {
+          totalJobs++; totalCancelled++;
+        } else if (evt.status === "abandoned") {
+          totalJobs++; totalAbandoned++;
+        } else if (evt.status === "session") {
+          totalBrowseOnly++;
+        }
+      }
+
+      const allSorted = allFiltered
+        .sort((a, b) => (b.timestamp || "").localeCompare(a.timestamp || ""));
+      const events = allSorted.slice(0, 100); // feed display cap
+
+      const summary = {
+        unique_sessions: uniqueSessionIds.size,
+        total_jobs: totalJobs,
+        jobs_linked: totalLinked,
+        jobs_success: totalSuccess,
+        jobs_failed: totalFailed,
+        jobs_cancelled: totalCancelled,
+        jobs_abandoned: totalAbandoned,
+        browse_only_sessions: totalBrowseOnly,
+        total_events: allFiltered.length,
+      };
+
+      return send(res, 200, { events, allEvents: allSorted, summary });
     } catch (err) {
       return send(res, 500, { error: err?.message || "Unable to build ops feed" });
+    }
+  }
+
+  // ── GA Realtime Timeline — serves cached snapshots (zero GA API cost) ──
+  if (pathname === "/api/ga-realtime-timeline" && req.method === "GET") {
+    const session = await validateSession(req, queryParams);
+    if (!session) {
+      return send(res, 401, { error: "Authentication required" });
+    }
+    try {
+      const hours = Math.min(168, Math.max(1, parseInt(queryParams.get("hours") || "24")));
+      const cutoff = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
+      const snapshots = _gaRealtimeSnapshots.filter(s => s.time >= cutoff);
+      const latest = snapshots.length > 0 ? snapshots[snapshots.length - 1].summary : null;
+      return send(res, 200, { snapshots, latest, count: snapshots.length });
+    } catch (err) {
+      return send(res, 500, { error: err?.message || "Unable to fetch GA realtime timeline" });
+    }
+  }
+
+  // ── Ops Health Composite — aggregates 5 health signals into single status ──
+  if (pathname === "/api/ops-health-composite" && req.method === "GET") {
+    const session = await validateSession(req, queryParams);
+    if (!session) {
+      return send(res, 401, { error: "Authentication required" });
+    }
+    try {
+      const signals = [];
+
+      // 1. Instance connectivity
+      const instancesFile = await readInstancesFile();
+      const totalInstances = (instancesFile.entries || []).length;
+      const failedCount = _liveInstanceFailures.length;
+      const instanceStatus = failedCount === 0 ? "green"
+        : failedCount <= 2 ? "yellow" : "red";
+      signals.push({
+        name: "Instance Connectivity",
+        status: instanceStatus,
+        detail: failedCount === 0
+          ? `All ${totalInstances} instances responding`
+          : `${failedCount}/${totalInstances} instances failing: ${_liveInstanceFailures.join(", ")}`,
+      });
+
+      // 2. Data freshness
+      const cacheAgeMs = _livePlacementsCacheTime > 0 ? Date.now() - _livePlacementsCacheTime : Infinity;
+      const cacheAgeMins = Math.round(cacheAgeMs / 60000);
+      const freshnessStatus = cacheAgeMs < 20 * 60 * 1000 ? "green"
+        : cacheAgeMs < 30 * 60 * 1000 ? "yellow" : "red";
+      signals.push({
+        name: "Data Freshness",
+        status: freshnessStatus,
+        detail: _livePlacementsCacheTime > 0
+          ? `Cache updated ${cacheAgeMins}m ago`
+          : "No data cached yet",
+      });
+
+      // 3. Success rate vs baseline (use today's placements if available)
+      let successStatus = "green";
+      let successDetail = "No placement data";
+      let systemSuccessRate = null;
+      if (_livePlacementsCache && _livePlacementsCache.length > 0) {
+        let sCount = 0, fCount = 0, uxCount = 0;
+        for (const p of _livePlacementsCache) {
+          const job = mapPlacementToJob(p, p.fi_lookup_key || p.fi, p._instance);
+          const s = categorizeJobStatus(job);
+          const term = (job.termination || "").toString().trim().toUpperCase();
+          if (s === "success") sCount++;
+          else if (s === "failed") {
+            if (UX_TERMINATIONS.has(term)) uxCount++;
+            else fCount++;
+          }
+        }
+        const total = sCount + fCount + uxCount;
+        const systemDenom = sCount + fCount;
+        if (total > 0) {
+          const rate = (sCount / total * 100).toFixed(1);
+          successStatus = rate >= 70 ? "green" : rate >= 50 ? "yellow" : "red";
+          successDetail = `${rate}% success rate today (${sCount}/${total} jobs)`;
+        }
+        if (systemDenom > 0) {
+          systemSuccessRate = parseFloat((sCount / systemDenom * 100).toFixed(1));
+        }
+      }
+      signals.push({
+        name: "Success Rate",
+        status: successStatus,
+        detail: successDetail,
+      });
+
+      // 4. Volume anomaly (compare today's session count to traffic health baseline)
+      let volumeStatus = "green";
+      let volumeDetail = "Checking...";
+      try {
+        const tz = queryParams.get("tz") || null;
+        const thKey = `composite-${tz || "utc"}`;
+        const cached = _trafficHealthCacheMap.get(thKey);
+        if (cached && (Date.now() - cached.time < TRAFFIC_HEALTH_CACHE_TTL)) {
+          const summary = cached.data?.summary || {};
+          const darkCount = summary.dark || 0;
+          const lowCount = summary.low || 0;
+          if (darkCount > 0 || lowCount > 2) {
+            volumeStatus = darkCount > 2 ? "red" : "yellow";
+          }
+          volumeDetail = `${darkCount} dark, ${lowCount} low, ${summary.normal || 0} normal FIs`;
+        } else {
+          volumeDetail = "Baseline not yet computed";
+        }
+      } catch { /* best effort */ }
+      signals.push({
+        name: "Traffic Volume",
+        status: volumeStatus,
+        detail: volumeDetail,
+      });
+
+      // 5. Merchant failure spikes (check today's placements for merchant-level anomalies)
+      let merchantStatus = "green";
+      let merchantDetail = "No anomalies";
+      if (_livePlacementsCache && _livePlacementsCache.length > 5) {
+        const merchantStats = new Map();
+        for (const p of _livePlacementsCache) {
+          const job = mapPlacementToJob(p, p.fi_lookup_key || p.fi, p._instance);
+          const m = (job.merchant || "unknown").toString();
+          const s = categorizeJobStatus(job);
+          if (!merchantStats.has(m)) merchantStats.set(m, { total: 0, failed: 0 });
+          const ms = merchantStats.get(m);
+          ms.total++;
+          if (s === "failed") ms.failed++;
+        }
+        const spiking = [];
+        for (const [m, ms] of merchantStats) {
+          if (ms.total >= 3 && ms.failed / ms.total >= 0.5) {
+            spiking.push(m);
+          }
+        }
+        if (spiking.length > 0) {
+          merchantStatus = spiking.length > 3 ? "red" : "yellow";
+          merchantDetail = `${spiking.length} merchant(s) >50% failure: ${spiking.slice(0, 5).join(", ")}`;
+        }
+      }
+      signals.push({
+        name: "Merchant Health",
+        status: merchantStatus,
+        detail: merchantDetail,
+      });
+
+      // Overall = worst signal
+      const statusOrder = { red: 0, yellow: 1, green: 2 };
+      const overall = signals.reduce((worst, s) =>
+        statusOrder[s.status] < statusOrder[worst] ? s.status : worst, "green");
+
+      return send(res, 200, { overall, signals, systemSuccessRate });
+    } catch (err) {
+      return send(res, 500, { error: err?.message || "Unable to compute health" });
     }
   }
 
