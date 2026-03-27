@@ -288,6 +288,8 @@ Redesign the ops dashboard kiosk mode into a rotating 3-view command center.
 - Feeds the persistent header live count + 1-day view traffic curves
 - Limitation: no per-FI breakdown on realtime — aggregate only
 
+**Next priority**: Stitch standard GA hourly data into the butterfly timeline's bottom half. Standard GA is the foundation; realtime snapshots only fill the recent gap (last ~6 hours) where standard hasn't caught up yet.
+
 **Phases**: TBD — storyline details still being refined
 
 ### AI-Powered Insights Engine
