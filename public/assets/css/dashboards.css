@@ -1905,6 +1905,25 @@ body.kiosk-mode .table-scroll th {
   align-items: stretch;
 }
 
+/* Center label channel */
+.kiosk-1d__label-channel {
+  width: 100%;
+  height: 18px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.kiosk-1d__hour-label {
+  position: static;
+  transform: none;
+  color: var(--muted);
+  font-weight: 500;
+  font-size: 0.6rem;
+}
+
 /* Bottom half: GA bars anchor at midline, grow downward */
 .kiosk-1d__bar-bottom {
   width: 100%;
@@ -1917,17 +1936,19 @@ body.kiosk-mode .table-scroll th {
   align-items: stretch;
 }
 
-/* Midline */
-.kiosk-1d__midline {
+/* Two midlines — above and below the label channel */
+.kiosk-1d__midline-upper,
+.kiosk-1d__midline-lower {
   position: absolute;
   left: 0;
   right: 0;
-  top: 50%;
   height: 1px;
   background: var(--border);
   z-index: 1;
   pointer-events: none;
 }
+.kiosk-1d__midline-upper { top: calc(50% - 9px); }
+.kiosk-1d__midline-lower { top: calc(50% + 9px); }
 
 .kiosk-1d__bar-segment {
   min-height: 0;
@@ -1949,23 +1970,13 @@ body.kiosk-mode .table-scroll th {
 .kiosk-1d__bar-segment--abandoned { background: #a0aec0; }
 .kiosk-1d__bar-segment--session { background: #63b3ed; opacity: 0.5; }
 
-/* GA traffic bar */
-.kiosk-1d__bar-segment--ga {
-  background: #805ad5;
-  opacity: 0.7;
-  border-radius: 0 0 2px 2px;
-}
+/* GA device bars (from realtime snapshots) */
+.kiosk-1d__bar-segment--mobile { background: #63b3ed; }
+.kiosk-1d__bar-segment--desktop { background: #a0aec0; }
+.kiosk-1d__bar-segment--tablet { background: #4fd1c5; }
+/* GA standard (no device breakdown available) */
+.kiosk-1d__bar-segment--ga-standard { background: #805ad5; opacity: 0.6; }
 
-.kiosk-1d__hour-label {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 0.55rem;
-  color: var(--border);
-  white-space: nowrap;
-  z-index: 2;
-  pointer-events: none;
-}
 
 /* Now marker */
 .kiosk-1d__now-marker {

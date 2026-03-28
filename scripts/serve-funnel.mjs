@@ -1592,7 +1592,128 @@ setTimeout(fetchGaRealtimeSnapshot, 45 * 1000); // first fetch 45s after startup
 console.log("[ga-realtime-bg] Background fetch started (every 5 min)");
 
 // ============================================================================
-// End Traffic Health Alert Monitor + Live Placements + GA Realtime
+// GA Standard Hourly Refresh (keeps today's GA file fresh)
+// ============================================================================
+const GA_STANDARD_REFRESH_INTERVAL = 60 * 60 * 1000; // 1 hour
+
+async function refreshTodayGaStandard() {
+  try {
+    const cfg = GA_CREDENTIALS.find(c => c.name === "prod");
+    if (!cfg) return;
+    const credentialExists = await fileExists(cfg.file);
+    if (!credentialExists) return;
+
+    const propertyId = process.env[cfg.envProperty] || cfg.defaultProperty;
+    if (!propertyId) return;
+
+    const today = new Date().toISOString().slice(0, 10);
+
+    // 1. Full page-level fetch (existing format — for other consumers)
+    const rows = await fetchGaRowsForDay({ date: today, propertyId, keyFile: cfg.file });
+    const payload = {
+      date: today,
+      rows: rows.map(r => ({ ...r, is_test: false })),
+      count: rows.length,
+      requests: [{ date: today, propertyId, is_test: false, fetched: rows.length }],
+    };
+    const gaDir = path.join(RAW_DIR, "ga");
+    await fs.mkdir(gaDir, { recursive: true });
+    await fs.writeFile(path.join(gaDir, `${today}.json`), JSON.stringify(payload, null, 2));
+
+    // 2. Hourly unique users query (deduplicated — for timeline)
+    const { google } = await import("googleapis");
+    const auth = new google.auth.GoogleAuth({
+      keyFile: cfg.file,
+      scopes: ["https://www.googleapis.com/auth/analytics.readonly"],
+    });
+    const analyticsData = google.analyticsdata({ version: "v1beta", auth });
+    const uniqueResponse = await analyticsData.properties.runReport({
+      property: `properties/${propertyId}`,
+      requestBody: {
+        dateRanges: [{ startDate: today, endDate: today }],
+        dimensions: [
+          { name: "hour" },
+          { name: "deviceCategory" },
+        ],
+        metrics: [
+          { name: "totalUsers" },
+          { name: "screenPageViews" },
+        ],
+        limit: 1000,
+      },
+    });
+    const uniqueRows = (uniqueResponse.data.rows || []).map(row => ({
+      hour: parseInt(row.dimensionValues?.[0]?.value || "0"),
+      device: row.dimensionValues?.[1]?.value || "",
+      users: Number(row.metricValues?.[0]?.value || "0"),
+      views: Number(row.metricValues?.[1]?.value || "0"),
+    }));
+    // Write hourly uniques file
+    const uniquePayload = { date: today, hourly: uniqueRows };
+    const gaUniquesDir = path.join(RAW_DIR, "ga-hourly-uniques");
+    await fs.mkdir(gaUniquesDir, { recursive: true });
+    await fs.writeFile(path.join(gaUniquesDir, `${today}.json`), JSON.stringify(uniquePayload, null, 2));
+
+    console.log(`[ga-standard-bg] Refreshed today: ${rows.length} page rows, ${uniqueRows.length} hourly unique rows for ${today}`);
+  } catch (err) {
+    console.error("[ga-standard-bg] refresh failed:", err.message);
+  }
+}
+
+async function refreshYesterdayGaUniques() {
+  try {
+    const cfg = GA_CREDENTIALS.find(c => c.name === "prod");
+    if (!cfg) return;
+    const credentialExists = await fileExists(cfg.file);
+    if (!credentialExists) return;
+    const propertyId = process.env[cfg.envProperty] || cfg.defaultProperty;
+    if (!propertyId) return;
+
+    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    const gaUniquesDir = path.join(RAW_DIR, "ga-hourly-uniques");
+    const filePath = path.join(gaUniquesDir, `${yesterday}.json`);
+
+    // Skip if already exists
+    try { await fs.access(filePath); return; } catch { /* doesn't exist, fetch it */ }
+
+    const { google } = await import("googleapis");
+    const auth = new google.auth.GoogleAuth({
+      keyFile: cfg.file,
+      scopes: ["https://www.googleapis.com/auth/analytics.readonly"],
+    });
+    const analyticsData = google.analyticsdata({ version: "v1beta", auth });
+    const response = await analyticsData.properties.runReport({
+      property: `properties/${propertyId}`,
+      requestBody: {
+        dateRanges: [{ startDate: yesterday, endDate: yesterday }],
+        dimensions: [{ name: "hour" }, { name: "deviceCategory" }],
+        metrics: [{ name: "totalUsers" }, { name: "screenPageViews" }],
+        limit: 1000,
+      },
+    });
+    const uniqueRows = (response.data.rows || []).map(row => ({
+      hour: parseInt(row.dimensionValues?.[0]?.value || "0"),
+      device: row.dimensionValues?.[1]?.value || "",
+      users: Number(row.metricValues?.[0]?.value || "0"),
+      views: Number(row.metricValues?.[1]?.value || "0"),
+    }));
+    await fs.mkdir(gaUniquesDir, { recursive: true });
+    await fs.writeFile(filePath, JSON.stringify({ date: yesterday, hourly: uniqueRows }, null, 2));
+    console.log(`[ga-standard-bg] Backfilled yesterday's hourly uniques: ${uniqueRows.length} rows for ${yesterday}`);
+  } catch (err) {
+    console.error("[ga-standard-bg] yesterday backfill failed:", err.message);
+  }
+}
+
+setInterval(refreshTodayGaStandard, GA_STANDARD_REFRESH_INTERVAL);
+setTimeout(async () => {
+  await refreshYesterdayGaUniques();
+  await refreshTodayGaStandard();
+}, 90 * 1000);
+console.log("[ga-standard-bg] Background refresh started (every 1 hour)");
+
+// ============================================================================
+// End Traffic Health Alert Monitor + Live Placements + GA Realtime + GA Standard
 // ============================================================================
 
 let synthState = {
@@ -6673,6 +6794,67 @@ const server = http.createServer(async (req, res) => {
       return send(res, 200, { snapshots, latest, count: snapshots.length });
     } catch (err) {
       return send(res, 500, { error: err?.message || "Unable to fetch GA realtime timeline" });
+    }
+  }
+
+  // ── GA Hourly — standard GA data aggregated by hour for timeline ──
+  if (pathname === "/api/ga-hourly" && req.method === "GET") {
+    const session = await validateSession(req, queryParams);
+    if (!session) {
+      return send(res, 401, { error: "Authentication required" });
+    }
+    try {
+      const now = new Date();
+      const utcToday = now.toISOString().slice(0, 10);
+      const utcYesterday = new Date(now.getTime() - 86400000).toISOString().slice(0, 10);
+
+      // Read hourly unique user files (preferred) or fall back to page-level GA files
+      const hourlyData = [];
+      for (const day of [utcYesterday, utcToday]) {
+        // Try hourly uniques first (deduplicated)
+        try {
+          const uniquesDir = path.join(RAW_DIR, "ga-hourly-uniques");
+          const raw = await fs.readFile(path.join(uniquesDir, `${day}.json`), "utf8");
+          const data = JSON.parse(raw);
+          for (const r of (data.hourly || [])) {
+            const dev = (r.device || "").toLowerCase();
+            hourlyData.push({
+              date: day,
+              hour: r.hour,
+              users: r.users || 0,
+              views: r.views || 0,
+              device: dev,
+            });
+          }
+          continue; // skip fallback
+        } catch { /* no uniques file, fall back to page-level */ }
+
+        // Fallback: page-level GA file (may double-count users across pages)
+        try {
+          const gaDir = path.join(RAW_DIR, "ga");
+          const raw = await fs.readFile(path.join(gaDir, `${day}.json`), "utf8");
+          const data = JSON.parse(raw);
+          const rows = data.rows || [];
+          const hourMap = new Map();
+          for (const r of rows) {
+            if (!r.is_cardupdatr) continue;
+            const h = parseInt(r.hour || "0");
+            const dev = (r.device || "").toLowerCase();
+            const key = `${h}:${dev}`;
+            if (!hourMap.has(key)) hourMap.set(key, { hour: h, device: dev, users: 0, views: 0 });
+            const entry = hourMap.get(key);
+            entry.views += r.views || 0;
+            entry.users += r.active_users || 0;
+          }
+          for (const entry of hourMap.values()) {
+            hourlyData.push({ date: day, ...entry });
+          }
+        } catch { /* file may not exist */ }
+      }
+
+      return send(res, 200, { hourly: hourlyData });
+    } catch (err) {
+      return send(res, 500, { error: err?.message || "Unable to fetch GA hourly" });
     }
   }
 

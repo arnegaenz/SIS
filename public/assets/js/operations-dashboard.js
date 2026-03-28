@@ -237,7 +237,7 @@ function renderPersistentHeader(opsData, healthData, gaTimeline) {
   const todayJobs = summary ? summary.total_jobs : 0;
   const todaySuccess = summary ? summary.jobs_success : 0;
   const todayFailed = summary ? summary.jobs_failed : 0;
-  const todayTotal = todaySuccess + todayFailed;
+  const todayTotal = summary ? summary.total_jobs : 0; // ALL outcomes: success + failed + cancelled + abandoned
 
   const sessionsEl = document.querySelector("#phSessions .kiosk-ph__kpi-value");
   const placementsEl = document.querySelector("#phPlacements .kiosk-ph__kpi-value");
@@ -262,10 +262,10 @@ function renderPersistentHeader(opsData, healthData, gaTimeline) {
     successfulEl.style.color = "#48bb78";
   }
 
-  // System success rate from health composite (today's data from server)
+  // System success rate from feed summary (24h, matches other KPIs)
   const systemEl = document.querySelector("#phSystemRate .kiosk-ph__kpi-value");
-  if (healthData && healthData.systemSuccessRate !== null && healthData.systemSuccessRate !== undefined) {
-    const sysRate = healthData.systemSuccessRate;
+  if (todayLinked > 0) {
+    const sysRate = todaySuccess / todayLinked * 100;
     if (systemEl) {
       animateValue(systemEl, sysRate, 300);
       systemEl.style.color = sysRate >= 70 ? "#48bb78" : sysRate >= 50 ? "#ecc94b" : "#fc8181";
@@ -318,7 +318,7 @@ function updateCommandCenterClock() {
 
 /* ── Command Center — 1-Day Timeline ── */
 
-function render1DayTimeline(feedEvents, gaTimeline) {
+function render1DayTimeline(feedEvents, gaTimeline, gaHourly) {
   const container = document.getElementById("timeline1Day");
   const legendEl = document.getElementById("timeline1DayLegend");
   if (!container) return;
@@ -335,8 +335,8 @@ function render1DayTimeline(feedEvents, gaTimeline) {
       label: slotTime.toLocaleTimeString("en-US", { hour: "numeric", hour12: true }).replace(" ", "").toLowerCase(),
       // Top: CardSavr sessions/jobs (hangs down from top)
       cardsavr: { success: 0, failed: 0, cancelled: 0, abandoned: 0, session: 0, total: 0 },
-      // Bottom: GA realtime (grows up from bottom)
-      ga: { active_users: 0, total_views: 0 },
+      // Bottom: GA data (standard + realtime, grows up from bottom)
+      ga: { active_users: 0, views: 0, mobile: 0, desktop: 0, tablet: 0, source: "" },
     });
   }
 
@@ -352,7 +352,25 @@ function render1DayTimeline(feedEvents, gaTimeline) {
     }
   }
 
-  // Bucket GA realtime snapshots
+  // First: fill GA slots from standard hourly data (priority source)
+  if (gaHourly && gaHourly.hourly) {
+    for (const row of gaHourly.hourly) {
+      // Standard GA hours are in UTC — convert to local for slot matching
+      const utcDate = new Date(row.date + "T" + String(row.hour).padStart(2, "0") + ":30:00Z");
+      if (utcDate < cutoff || utcDate > now) continue;
+      const slotIdx = Math.min(23, Math.floor((utcDate - cutoff) / (60 * 60 * 1000)));
+      const users = row.users || row.active_users || 0;
+      slots[slotIdx].ga.views += row.views || 0;
+      slots[slotIdx].ga.active_users += users;
+      const dev = (row.device || "").toLowerCase();
+      if (dev === "mobile") slots[slotIdx].ga.mobile += users;
+      else if (dev === "desktop") slots[slotIdx].ga.desktop += users;
+      else if (dev === "tablet") slots[slotIdx].ga.tablet += users;
+      if (!slots[slotIdx].ga.source) slots[slotIdx].ga.source = "standard";
+    }
+  }
+
+  // Then: fill remaining empty GA slots from realtime snapshots
   if (gaTimeline && gaTimeline.snapshots) {
     for (const snap of gaTimeline.snapshots) {
       if (!snap.time) continue;
@@ -360,8 +378,17 @@ function render1DayTimeline(feedEvents, gaTimeline) {
       if (snapTime < cutoff || snapTime > now) continue;
       const slotIdx = Math.min(23, Math.floor((snapTime - cutoff) / (60 * 60 * 1000)));
       if (snap.summary) {
-        slots[slotIdx].ga.active_users += snap.summary.active_users || 0;
-        slots[slotIdx].ga.total_views += snap.summary.total_views || 0;
+        // Realtime fills in if standard hasn't covered this slot
+        if (slots[slotIdx].ga.source !== "standard") {
+          slots[slotIdx].ga.active_users += snap.summary.active_users || 0;
+          slots[slotIdx].ga.views += snap.summary.total_views || 0;
+          slots[slotIdx].ga.source = "realtime";
+        }
+        // Device data always comes from realtime (standard doesn't have it)
+        const dev = snap.summary.by_device || {};
+        slots[slotIdx].ga.mobile += dev.mobile || 0;
+        slots[slotIdx].ga.desktop += dev.desktop || 0;
+        slots[slotIdx].ga.tablet += dev.tablet || 0;
       }
     }
   }
@@ -370,42 +397,80 @@ function render1DayTimeline(feedEvents, gaTimeline) {
   let maxCardSavr = 1, maxGa = 1;
   for (const slot of slots) {
     if (slot.cardsavr.total > maxCardSavr) maxCardSavr = slot.cardsavr.total;
-    if (slot.ga.active_users > maxGa) maxGa = slot.ga.active_users;
+    const gaVal = slot.ga.active_users || slot.ga.views || 0;
+    if (gaVal > maxGa) maxGa = gaVal;
   }
 
   // Build HTML
-  let html = '<div class="kiosk-1d__midline"></div>';
+  let html = '<div class="kiosk-1d__midline-upper"></div><div class="kiosk-1d__midline-lower"></div>';
   for (let i = 0; i < 24; i++) {
     const slot = slots[i];
     const isFuture = slot.start > now;
 
+    // Build unified tooltip for the whole column
+    const cs = slot.cardsavr;
+    const ga = slot.ga;
+    const tipParts = [`${slot.label}`];
+    if (cs.total > 0) {
+      tipParts.push(`\nCardSavr: ${cs.total} events`);
+      if (cs.success) tipParts.push(`  Success: ${cs.success}`);
+      if (cs.failed) tipParts.push(`  Failed: ${cs.failed}`);
+      if (cs.cancelled) tipParts.push(`  Cancelled: ${cs.cancelled}`);
+      if (cs.abandoned) tipParts.push(`  Abandoned: ${cs.abandoned}`);
+      if (cs.session) tipParts.push(`  Browse-only: ${cs.session}`);
+    } else if (!isFuture) {
+      tipParts.push(`\nCardSavr: no events`);
+    }
+    if (ga.active_users > 0 || ga.views > 0) {
+      const src = ga.source === "realtime" ? " (realtime)" : ga.source === "standard" ? " (GA)" : "";
+      tipParts.push(`\nGA Traffic${src}: ${ga.active_users} users, ${ga.views} views`);
+      if (ga.mobile || ga.desktop || ga.tablet) {
+        tipParts.push(`  Mobile: ${ga.mobile}  Desktop: ${ga.desktop}  Tablet: ${ga.tablet}`);
+      }
+    } else if (!isFuture) {
+      tipParts.push(`\nGA Traffic: no data`);
+    }
+    const tooltip = tipParts.join("\n").replace(/"/g, "&quot;");
+
     // Top half: CardSavr bars hanging down
     let topHtml = '<div class="kiosk-1d__bar-top">';
-    if (!isFuture && slot.cardsavr.total > 0) {
-      const cs = slot.cardsavr;
+    if (!isFuture && cs.total > 0) {
       const heightPct = (cs.total / maxCardSavr) * 100;
       for (const s of ["session", "abandoned", "cancelled", "failed", "success"]) {
         if (cs[s] > 0) {
           const segPct = (cs[s] / cs.total) * heightPct;
-          topHtml += `<div class="kiosk-1d__bar-segment kiosk-1d__bar-segment--${s}" style="height:${segPct}%" title="${s}: ${cs[s]}"></div>`;
+          topHtml += `<div class="kiosk-1d__bar-segment kiosk-1d__bar-segment--${s}" style="height:${segPct}%"></div>`;
         }
       }
     }
     topHtml += "</div>";
 
-    // Bottom half: GA bars growing up
+    // Bottom half: GA bars growing up, split by device if available
     let bottomHtml = '<div class="kiosk-1d__bar-bottom">';
-    if (!isFuture && slot.ga.active_users > 0) {
-      const heightPct = (slot.ga.active_users / maxGa) * 100;
-      bottomHtml += `<div class="kiosk-1d__bar-segment kiosk-1d__bar-segment--ga" style="height:${heightPct}%" title="GA: ${slot.ga.active_users} active users, ${slot.ga.total_views} views"></div>`;
+    const gaVal = ga.active_users || ga.views || 0;
+    if (!isFuture && gaVal > 0) {
+      const heightPct = (gaVal / maxGa) * 100;
+      const m = ga.mobile || 0, d = ga.desktop || 0, t = ga.tablet || 0;
+      const deviceTotal = m + d + t;
+      if (deviceTotal > 0) {
+        // Device breakdown available (from realtime snapshots)
+        if (m > 0) bottomHtml += `<div class="kiosk-1d__bar-segment kiosk-1d__bar-segment--mobile" style="height:${(m/deviceTotal)*heightPct}%"></div>`;
+        if (d > 0) bottomHtml += `<div class="kiosk-1d__bar-segment kiosk-1d__bar-segment--desktop" style="height:${(d/deviceTotal)*heightPct}%"></div>`;
+        if (t > 0) bottomHtml += `<div class="kiosk-1d__bar-segment kiosk-1d__bar-segment--tablet" style="height:${(t/deviceTotal)*heightPct}%"></div>`;
+      } else {
+        // Standard GA — no device breakdown, use single color
+        bottomHtml += `<div class="kiosk-1d__bar-segment kiosk-1d__bar-segment--ga-standard" style="height:${heightPct}%"></div>`;
+      }
     }
     bottomHtml += "</div>";
 
-    const showLabel = i % 4 === 0 || i === 23;
-    html += `<div class="kiosk-1d__hour" style="${isFuture ? 'opacity:0.15' : ''}">
+    const showLabel = i % 3 === 0 || i === 23;
+    html += `<div class="kiosk-1d__hour" title="${tooltip}" style="${isFuture ? 'opacity:0.15' : ''}">
       ${topHtml}
+      <div class="kiosk-1d__label-channel">
+        ${showLabel ? `<span class="kiosk-1d__hour-label">${slot.label}</span>` : ""}
+      </div>
       ${bottomHtml}
-      ${showLabel ? `<span class="kiosk-1d__hour-label">${slot.label}</span>` : ""}
     </div>`;
   }
 
@@ -427,7 +492,10 @@ function render1DayTimeline(feedEvents, gaTimeline) {
       <span class="kiosk-1d__legend-item"><span class="kiosk-1d__legend-dot" style="background:#63b3ed"></span>Browse</span>
       <span style="margin:0 8px;border-left:1px solid var(--border);height:12px;display:inline-block"></span>
       <span class="kiosk-1d__legend-item" style="font-weight:600;color:var(--text);margin-right:4px">GA Traffic:</span>
-      <span class="kiosk-1d__legend-item"><span class="kiosk-1d__legend-dot" style="background:#805ad5"></span>Active Users</span>
+      <span class="kiosk-1d__legend-item"><span class="kiosk-1d__legend-dot" style="background:#805ad5;opacity:0.6"></span>Standard</span>
+      <span class="kiosk-1d__legend-item"><span class="kiosk-1d__legend-dot" style="background:#63b3ed"></span>Mobile</span>
+      <span class="kiosk-1d__legend-item"><span class="kiosk-1d__legend-dot" style="background:#a0aec0"></span>Desktop</span>
+      <span class="kiosk-1d__legend-item"><span class="kiosk-1d__legend-dot" style="background:#4fd1c5"></span>Tablet</span>
     `;
   }
 }
@@ -437,6 +505,14 @@ function render1DayTimeline(feedEvents, gaTimeline) {
 async function fetchGaRealtimeTimeline() {
   try {
     const res = await fetch("/api/ga-realtime-timeline?hours=24");
+    if (!res.ok) return null;
+    return await res.json();
+  } catch { return null; }
+}
+
+async function fetchGaHourly() {
+  try {
+    const res = await fetch("/api/ga-hourly");
     if (!res.ok) return null;
     return await res.json();
   } catch { return null; }
@@ -508,19 +584,21 @@ function initCommandCenter() {
 
 async function commandCenterRefresh() {
   await fetchOpsTrends();
-  const [_opsResult, healthData, gaTimeline] = await Promise.all([
+  const [_opsResult, healthData, gaTimeline, gaHourly] = await Promise.all([
     fetchMetrics(),
     fetchHealthComposite(),
     fetchGaRealtimeTimeline(),
+    fetchGaHourly(),
   ]);
   await Promise.all([fetchEventFeed(), fetchTrafficHealth()]);
 
   state.gaTimeline = gaTimeline;
+  state.gaHourly = gaHourly;
   state.healthData = healthData;
 
   const opsData = state.data;
   renderPersistentHeader(opsData, healthData, gaTimeline);
-  render1DayTimeline(state.allFeedEvents, gaTimeline);
+  render1DayTimeline(state.allFeedEvents, gaTimeline, gaHourly);
 
   // Render the operational detail (merchant grid, volume chart)
   if (opsData) {
