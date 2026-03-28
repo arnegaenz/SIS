@@ -1761,16 +1761,16 @@ body.kiosk-mode .table-scroll th {
   white-space: nowrap;
 }
 
-.kiosk-ph__view-label {
-  font-size: 0.65rem;
+/* View label — sits below timeline, above rotating content */
+.kiosk-view-label {
+  font-size: 0.7rem;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.12em;
   color: var(--accent, #63b3ed);
   font-weight: 600;
-  padding: 3px 8px;
-  border: 1px solid var(--accent, #63b3ed);
-  border-radius: 4px;
+  padding: 6px 0 4px;
   white-space: nowrap;
+  text-align: center;
 }
 
 .kiosk-ph__progress {
@@ -1783,10 +1783,23 @@ body.kiosk-mode .table-scroll th {
 }
 
 .kiosk-ph__progress-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
   height: 100%;
   width: 0%;
   background: var(--accent, #63b3ed);
-  transition: width 0.3s linear;
+  z-index: 1;
+}
+
+.kiosk-ph__progress-push {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 0%;
+  background: var(--panel);
+  z-index: 2;
 }
 
 /* Health detail panel */
@@ -2042,8 +2055,9 @@ body.kiosk-mode .table-scroll th {
   display: grid;
   grid-template-columns: 5fr 2fr;
   gap: 18px;
-  height: calc(100vh - 110px - 100px - 16px);
+  max-height: calc(100vh - 110px - 100px - 16px);
   min-height: 200px;
+  overflow: hidden;
 }
 
 .kiosk-1d__left {
@@ -2054,12 +2068,13 @@ body.kiosk-mode .table-scroll th {
 }
 
 .kiosk-1d__left .kiosk-fi-scroll {
-  flex-shrink: 0;
+  flex: 0 0 auto;
 }
 
 .kiosk-1d__left .kiosk-merchant-scroll {
-  flex: 1;
+  flex: 1 1 auto;
   overflow-y: auto;
+  min-height: 0;
 }
 
 .kiosk-1d__right {

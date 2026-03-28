@@ -220,9 +220,9 @@
           <span class="kiosk-ph__health-label">Healthy</span>
         </div>
         <div class="kiosk-ph__clock" id="phClock" title="Current local time. Data refreshes every 30 seconds."></div>
-        <div class="kiosk-ph__view-label" id="phViewLabel" title="Current view. Arrow keys to switch views manually. Auto-cycles every 60 seconds. 2 minutes of inactivity resumes auto-cycle.">1-DAY PULSE</div>
       </div>
       <div class="kiosk-ph__progress" id="phCycleProgress" title="View cycle progress bar. When full, transitions to the next view. Arrow keys pause auto-cycling.">
+        <div class="kiosk-ph__progress-push" id="phCycleProgressPush"></div>
         <div class="kiosk-ph__progress-fill" id="phCycleProgressFill"></div>
       </div>
       <!-- Health detail panel -->
@@ -240,6 +240,7 @@
           <div class="kiosk-1d__timeline" id="timeline1Day"></div>
           <div class="kiosk-1d__timeline-legend" id="timeline1DayLegend"></div>
         </div>
+        <div class="kiosk-view-label" id="phViewLabel" title="Current view window. Arrow keys to switch manually. Auto-cycles every 15 seconds.">1-DAY PULSE</div>
         <div class="kiosk-1d__bottom">
           <div class="kiosk-1d__left">
             <div class="kiosk-section-title" id="kioskHealthTitle">Partner Traffic Health</div>

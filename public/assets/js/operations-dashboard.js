@@ -102,8 +102,8 @@ const viewRotation = {
   views: ["1day", "3day", "7day"],
   currentIndex: 0,
   mode: "auto",
-  cycleMs: 30000,
-  resumeMs: 120000,
+  cycleMs: 15000,
+  resumeMs: 60000,
   cycleTimer: null,
   resumeTimer: null,
   progressRaf: null,
@@ -117,11 +117,24 @@ function startViewCycle() {
   cancelAnimationFrame(viewRotation.progressRaf);
 
   const fillEl = document.getElementById("phCycleProgressFill");
+  const pushEl = document.getElementById("phCycleProgressPush");
+  const isFillPhase = viewRotation.phase !== "push";
+  viewRotation.phase = isFillPhase ? "fill" : "push";
+
+  // Reset both bars instantly
+  if (fillEl) { fillEl.style.transition = "none"; fillEl.style.width = isFillPhase ? "0%" : "100%"; }
+  if (pushEl) { pushEl.style.transition = "none"; pushEl.style.width = isFillPhase ? "0%" : "0%"; }
 
   function animateProgress() {
     const elapsed = performance.now() - viewRotation.cycleStartTime;
     const pct = Math.min(100, (elapsed / viewRotation.cycleMs) * 100);
-    if (fillEl) fillEl.style.width = pct + "%";
+    if (isFillPhase) {
+      // Blue fills left to right
+      if (fillEl) fillEl.style.width = pct + "%";
+    } else {
+      // Background pushes left to right over the blue
+      if (pushEl) pushEl.style.width = pct + "%";
+    }
     if (pct < 100) {
       viewRotation.progressRaf = requestAnimationFrame(animateProgress);
     }
@@ -129,9 +142,17 @@ function startViewCycle() {
   viewRotation.progressRaf = requestAnimationFrame(animateProgress);
 
   viewRotation.cycleTimer = setTimeout(() => {
+    // Switch view
     if (viewRotation.views.length > 1) {
       const nextIndex = (viewRotation.currentIndex + 1) % viewRotation.views.length;
       transitionToView(nextIndex);
+    }
+    // Alternate phase for next cycle
+    viewRotation.phase = isFillPhase ? "push" : "fill";
+    // After push phase completes, reset both bars for next fill
+    if (!isFillPhase) {
+      if (fillEl) { fillEl.style.transition = "none"; fillEl.style.width = "0%"; }
+      if (pushEl) { pushEl.style.transition = "none"; pushEl.style.width = "0%"; }
     }
     startViewCycle();
   }, viewRotation.cycleMs);
