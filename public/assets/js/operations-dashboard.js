@@ -584,11 +584,40 @@ function renderViewTiles(viewKey) {
   const opsData = state.data;
 
   if (opsData) {
-    const byDay = opsData.by_day || [];
-    // Filter by_day to the selected window
-    const cutoffDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-    const filteredDays = byDay.filter(d => d.date >= cutoffDate);
-    renderVolumeSparkline(filteredDays);
+    // Volume chart from feed events (same source of truth as header)
+    const now = new Date();
+    const cutoff = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+    const feedJobs = (state.allFeedEvents || []).filter(evt => {
+      if (!evt.timestamp || evt.status === "session") return false;
+      const t = new Date(evt.timestamp);
+      return t >= cutoff && t <= now;
+    });
+
+    if (days === 1) {
+      // 1-day: 4 buckets of 6 hours each, labeled with actual times
+      const fmt = (h) => new Date(now.getTime() - h * 60 * 60 * 1000)
+        .toLocaleTimeString("en-US", { hour: "numeric", hour12: true }).replace(" ", "").toLowerCase();
+      const buckets = [
+        { date: fmt(24) + "-" + fmt(18), Jobs_Total: 0, Jobs_Success: 0, Jobs_Failed: 0 },
+        { date: fmt(18) + "-" + fmt(12), Jobs_Total: 0, Jobs_Success: 0, Jobs_Failed: 0 },
+        { date: fmt(12) + "-" + fmt(6), Jobs_Total: 0, Jobs_Success: 0, Jobs_Failed: 0 },
+        { date: fmt(6) + "-now", Jobs_Total: 0, Jobs_Success: 0, Jobs_Failed: 0 },
+      ];
+      for (const evt of feedJobs) {
+        const hoursAgo = (now - new Date(evt.timestamp)) / (60 * 60 * 1000);
+        const idx = hoursAgo >= 18 ? 0 : hoursAgo >= 12 ? 1 : hoursAgo >= 6 ? 2 : 3;
+        buckets[idx].Jobs_Total++;
+        if (evt.status === "success") buckets[idx].Jobs_Success++;
+        if (evt.status === "failed") buckets[idx].Jobs_Failed++;
+      }
+      renderVolumeSparkline(buckets);
+    } else {
+      // 3-day / 7-day: use ops by_day data (covers full window)
+      const byDay = opsData.by_day || [];
+      const cutoffDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+      const filteredDays = byDay.filter(d => d.date >= cutoffDate);
+      renderVolumeSparkline(filteredDays);
+    }
 
     // Re-render merchant grid filtered by window
     const byMerchantByDay = opsData.by_merchant_by_day || [];
