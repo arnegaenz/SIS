@@ -1974,7 +1974,11 @@ body.kiosk-mode .table-scroll th {
 .kiosk-1d__bar-segment--mobile { background: #63b3ed; }
 .kiosk-1d__bar-segment--desktop { background: #a0aec0; }
 .kiosk-1d__bar-segment--tablet { background: #4fd1c5; }
-/* GA standard (no device breakdown available) */
+/* GA funnel page colors */
+.kiosk-1d__bar-segment--select-merchants { background: #9f7aea; }
+.kiosk-1d__bar-segment--user-data { background: #b794f4; }
+.kiosk-1d__bar-segment--credential-entry { background: #d6bcfa; }
+/* GA standard fallback (no breakdown available) */
 .kiosk-1d__bar-segment--ga-standard { background: #805ad5; opacity: 0.6; }
 
 
@@ -2047,6 +2051,10 @@ body.kiosk-mode .table-scroll th {
   flex-direction: column;
   overflow: hidden;
   gap: 4px;
+}
+
+.kiosk-1d__left .kiosk-fi-scroll {
+  flex-shrink: 0;
 }
 
 .kiosk-1d__left .kiosk-merchant-scroll {

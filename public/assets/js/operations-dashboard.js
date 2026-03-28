@@ -99,10 +99,10 @@ const VIEW_NAMES = {
 };
 
 const viewRotation = {
-  views: ["1day"],  // Phase 1: only 1-day. Phase 2 adds "3day", "7day"
+  views: ["1day", "3day", "7day"],
   currentIndex: 0,
   mode: "auto",
-  cycleMs: 60000,
+  cycleMs: 30000,
   resumeMs: 120000,
   cycleTimer: null,
   resumeTimer: null,
@@ -151,27 +151,40 @@ function pauseViewCycle() {
   }, viewRotation.resumeMs);
 }
 
+const VIEW_WINDOW_DAYS = { "1day": 1, "3day": 3, "7day": 7 };
+
 function transitionToView(index) {
   if (index === viewRotation.currentIndex) return;
-  const views = document.querySelectorAll(".kiosk-view");
-  const current = views[viewRotation.currentIndex];
-  const next = views[index];
-  if (!current || !next) return;
-
-  current.classList.add("kiosk-view--exiting");
-  current.classList.remove("kiosk-view--active");
-
-  next.classList.remove("kiosk-view--exiting");
-  next.classList.add("kiosk-view--active");
-
-  setTimeout(() => {
-    current.classList.remove("kiosk-view--exiting");
-  }, 550);
-
   viewRotation.currentIndex = index;
   const viewKey = viewRotation.views[index];
+
+  // Update view label
   const labelEl = document.getElementById("phViewLabel");
   if (labelEl) labelEl.textContent = VIEW_NAMES[viewKey] || viewKey;
+
+  // Update tile titles
+  const volTitle = document.getElementById("kioskVolTitle");
+  const days = VIEW_WINDOW_DAYS[viewKey] || 7;
+  if (volTitle) volTitle.textContent = `Placement Volume (${days === 1 ? "24 hours" : days + " days"})`;
+
+  const healthTitle = document.getElementById("kioskHealthTitle");
+  if (healthTitle) healthTitle.textContent = `Partner Traffic Health`;
+
+  // Crossfade the content area
+  const bottom = document.querySelector(".kiosk-1d__bottom");
+  if (bottom) {
+    bottom.style.opacity = "0";
+    bottom.style.transform = "translateX(-20px)";
+    setTimeout(() => {
+      renderViewTiles(viewKey);
+      bottom.style.transition = "opacity 500ms ease, transform 500ms ease";
+      bottom.style.opacity = "1";
+      bottom.style.transform = "translateX(0)";
+    }, 50);
+    setTimeout(() => { bottom.style.transition = ""; }, 600);
+  } else {
+    renderViewTiles(viewKey);
+  }
 }
 
 function handleArrowKey(direction) {
@@ -336,7 +349,8 @@ function render1DayTimeline(feedEvents, gaTimeline, gaHourly) {
       // Top: CardSavr sessions/jobs (hangs down from top)
       cardsavr: { success: 0, failed: 0, cancelled: 0, abandoned: 0, session: 0, total: 0 },
       // Bottom: GA data (standard + realtime, grows up from bottom)
-      ga: { active_users: 0, views: 0, mobile: 0, desktop: 0, tablet: 0, source: "" },
+      ga: { active_users: 0, views: 0, mobile: 0, desktop: 0, tablet: 0, source: "",
+            select_merchants: 0, user_data: 0, credential_entry: 0 },
     });
   }
 
@@ -370,25 +384,50 @@ function render1DayTimeline(feedEvents, gaTimeline, gaHourly) {
     }
   }
 
-  // Then: fill remaining empty GA slots from realtime snapshots
+  // Bucket funnel page breakdown from standard GA
+  if (gaHourly && gaHourly.funnel) {
+    for (const row of gaHourly.funnel) {
+      const utcDate = new Date(row.date + "T" + String(row.hour).padStart(2, "0") + ":30:00Z");
+      if (utcDate < cutoff || utcDate > now) continue;
+      const slotIdx = Math.min(23, Math.floor((utcDate - cutoff) / (60 * 60 * 1000)));
+      slots[slotIdx].ga.select_merchants += row.select_merchants || 0;
+      slots[slotIdx].ga.user_data += row.user_data || 0;
+      slots[slotIdx].ga.credential_entry += row.credential_entry || 0;
+    }
+  }
+
+  // Then: fill remaining empty GA slots from realtime snapshots (averaged per hour)
   if (gaTimeline && gaTimeline.snapshots) {
+    const rtBuckets = Array.from({ length: 24 }, () => ({ users: [], views: [], mobile: [], desktop: [], tablet: [] }));
     for (const snap of gaTimeline.snapshots) {
       if (!snap.time) continue;
       const snapTime = new Date(snap.time);
       if (snapTime < cutoff || snapTime > now) continue;
       const slotIdx = Math.min(23, Math.floor((snapTime - cutoff) / (60 * 60 * 1000)));
       if (snap.summary) {
-        // Realtime fills in if standard hasn't covered this slot
-        if (slots[slotIdx].ga.source !== "standard") {
-          slots[slotIdx].ga.active_users += snap.summary.active_users || 0;
-          slots[slotIdx].ga.views += snap.summary.total_views || 0;
-          slots[slotIdx].ga.source = "realtime";
-        }
-        // Device data always comes from realtime (standard doesn't have it)
+        rtBuckets[slotIdx].users.push(snap.summary.active_users || 0);
+        rtBuckets[slotIdx].views.push(snap.summary.total_views || 0);
         const dev = snap.summary.by_device || {};
-        slots[slotIdx].ga.mobile += dev.mobile || 0;
-        slots[slotIdx].ga.desktop += dev.desktop || 0;
-        slots[slotIdx].ga.tablet += dev.tablet || 0;
+        rtBuckets[slotIdx].mobile.push(dev.mobile || 0);
+        rtBuckets[slotIdx].desktop.push(dev.desktop || 0);
+        rtBuckets[slotIdx].tablet.push(dev.tablet || 0);
+      }
+    }
+    const avg = arr => arr.length ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : 0;
+    for (let i = 0; i < 24; i++) {
+      const rt = rtBuckets[i];
+      if (rt.users.length === 0) continue;
+      // Realtime fills in if standard hasn't covered this slot
+      if (slots[i].ga.source !== "standard") {
+        slots[i].ga.active_users = avg(rt.users);
+        slots[i].ga.views = avg(rt.views);
+        slots[i].ga.source = "realtime";
+      }
+      // Device data always comes from realtime (standard doesn't have it yet)
+      if (!slots[i].ga.mobile && !slots[i].ga.desktop && !slots[i].ga.tablet) {
+        slots[i].ga.mobile = avg(rt.mobile);
+        slots[i].ga.desktop = avg(rt.desktop);
+        slots[i].ga.tablet = avg(rt.tablet);
       }
     }
   }
@@ -424,6 +463,9 @@ function render1DayTimeline(feedEvents, gaTimeline, gaHourly) {
     if (ga.active_users > 0 || ga.views > 0) {
       const src = ga.source === "realtime" ? " (realtime)" : ga.source === "standard" ? " (GA)" : "";
       tipParts.push(`\nGA Traffic${src}: ${ga.active_users} users, ${ga.views} views`);
+      if (ga.select_merchants || ga.user_data || ga.credential_entry) {
+        tipParts.push(`  Select Merchants: ${ga.select_merchants}  User Data: ${ga.user_data}  Credentials: ${ga.credential_entry}`);
+      }
       if (ga.mobile || ga.desktop || ga.tablet) {
         tipParts.push(`  Mobile: ${ga.mobile}  Desktop: ${ga.desktop}  Tablet: ${ga.tablet}`);
       }
@@ -450,16 +492,28 @@ function render1DayTimeline(feedEvents, gaTimeline, gaHourly) {
     const gaVal = ga.active_users || ga.views || 0;
     if (!isFuture && gaVal > 0) {
       const heightPct = (gaVal / maxGa) * 100;
-      const m = ga.mobile || 0, d = ga.desktop || 0, t = ga.tablet || 0;
-      const deviceTotal = m + d + t;
-      if (deviceTotal > 0) {
-        // Device breakdown available (from realtime snapshots)
-        if (m > 0) bottomHtml += `<div class="kiosk-1d__bar-segment kiosk-1d__bar-segment--mobile" style="height:${(m/deviceTotal)*heightPct}%"></div>`;
-        if (d > 0) bottomHtml += `<div class="kiosk-1d__bar-segment kiosk-1d__bar-segment--desktop" style="height:${(d/deviceTotal)*heightPct}%"></div>`;
-        if (t > 0) bottomHtml += `<div class="kiosk-1d__bar-segment kiosk-1d__bar-segment--tablet" style="height:${(t/deviceTotal)*heightPct}%"></div>`;
+      const funnelTotal = ga.select_merchants + ga.user_data + ga.credential_entry;
+      if (ga.source === "standard") {
+        // Standard GA — funnel page breakdown if available, purple fallback otherwise
+        if (funnelTotal > 0) {
+          const sm = ga.select_merchants, ud = ga.user_data, ce = ga.credential_entry;
+          if (sm > 0) bottomHtml += `<div class="kiosk-1d__bar-segment kiosk-1d__bar-segment--select-merchants" style="height:${(sm/funnelTotal)*heightPct}%"></div>`;
+          if (ud > 0) bottomHtml += `<div class="kiosk-1d__bar-segment kiosk-1d__bar-segment--user-data" style="height:${(ud/funnelTotal)*heightPct}%"></div>`;
+          if (ce > 0) bottomHtml += `<div class="kiosk-1d__bar-segment kiosk-1d__bar-segment--credential-entry" style="height:${(ce/funnelTotal)*heightPct}%"></div>`;
+        } else {
+          bottomHtml += `<div class="kiosk-1d__bar-segment kiosk-1d__bar-segment--ga-standard" style="height:${heightPct}%"></div>`;
+        }
       } else {
-        // Standard GA — no device breakdown, use single color
-        bottomHtml += `<div class="kiosk-1d__bar-segment kiosk-1d__bar-segment--ga-standard" style="height:${heightPct}%"></div>`;
+        // Realtime — device breakdown
+        const m = ga.mobile || 0, d = ga.desktop || 0, t = ga.tablet || 0;
+        const deviceTotal = m + d + t;
+        if (deviceTotal > 0) {
+          if (m > 0) bottomHtml += `<div class="kiosk-1d__bar-segment kiosk-1d__bar-segment--mobile" style="height:${(m/deviceTotal)*heightPct}%"></div>`;
+          if (d > 0) bottomHtml += `<div class="kiosk-1d__bar-segment kiosk-1d__bar-segment--desktop" style="height:${(d/deviceTotal)*heightPct}%"></div>`;
+          if (t > 0) bottomHtml += `<div class="kiosk-1d__bar-segment kiosk-1d__bar-segment--tablet" style="height:${(t/deviceTotal)*heightPct}%"></div>`;
+        } else {
+          bottomHtml += `<div class="kiosk-1d__bar-segment kiosk-1d__bar-segment--ga-standard" style="height:${heightPct}%"></div>`;
+        }
       }
     }
     bottomHtml += "</div>";
@@ -491,12 +545,55 @@ function render1DayTimeline(feedEvents, gaTimeline, gaHourly) {
       <span class="kiosk-1d__legend-item"><span class="kiosk-1d__legend-dot" style="background:#a0aec0"></span>Abandoned</span>
       <span class="kiosk-1d__legend-item"><span class="kiosk-1d__legend-dot" style="background:#63b3ed"></span>Browse</span>
       <span style="margin:0 8px;border-left:1px solid var(--border);height:12px;display:inline-block"></span>
-      <span class="kiosk-1d__legend-item" style="font-weight:600;color:var(--text);margin-right:4px">GA Traffic:</span>
-      <span class="kiosk-1d__legend-item"><span class="kiosk-1d__legend-dot" style="background:#805ad5;opacity:0.6"></span>Standard</span>
+      <span class="kiosk-1d__legend-item" style="font-weight:600;color:var(--text);margin-right:4px">GA Funnel:</span>
+      <span class="kiosk-1d__legend-item"><span class="kiosk-1d__legend-dot" style="background:#9f7aea"></span>Select</span>
+      <span class="kiosk-1d__legend-item"><span class="kiosk-1d__legend-dot" style="background:#b794f4"></span>User Data</span>
+      <span class="kiosk-1d__legend-item"><span class="kiosk-1d__legend-dot" style="background:#d6bcfa"></span>Credentials</span>
+      <span style="margin:0 4px;border-left:1px solid var(--border);height:12px;display:inline-block"></span>
+      <span class="kiosk-1d__legend-item" style="font-weight:600;color:var(--text);margin-right:4px">Realtime:</span>
       <span class="kiosk-1d__legend-item"><span class="kiosk-1d__legend-dot" style="background:#63b3ed"></span>Mobile</span>
       <span class="kiosk-1d__legend-item"><span class="kiosk-1d__legend-dot" style="background:#a0aec0"></span>Desktop</span>
       <span class="kiosk-1d__legend-item"><span class="kiosk-1d__legend-dot" style="background:#4fd1c5"></span>Tablet</span>
     `;
+  }
+}
+
+function renderViewTiles(viewKey) {
+  const days = VIEW_WINDOW_DAYS[viewKey] || 7;
+  const opsData = state.data;
+
+  if (opsData) {
+    const byDay = opsData.by_day || [];
+    // Filter by_day to the selected window
+    const cutoffDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const filteredDays = byDay.filter(d => d.date >= cutoffDate);
+    renderVolumeSparkline(filteredDays);
+
+    // Re-render merchant grid filtered by window
+    const byMerchantByDay = opsData.by_merchant_by_day || [];
+    if (byMerchantByDay.length > 0) {
+      const cutoffDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+      const filtered = byMerchantByDay.filter(d => d.date >= cutoffDate);
+      // Re-aggregate by merchant
+      const merchantMap = new Map();
+      for (const row of filtered) {
+        const entry = merchantMap.get(row.merchant_name) || {
+          merchant_name: row.merchant_name, Jobs_Total: 0, Jobs_Success: 0, Jobs_Failed: 0,
+        };
+        entry.Jobs_Total += row.Jobs_Total || 0;
+        entry.Jobs_Success += row.Jobs_Success || 0;
+        entry.Jobs_Failed += row.Jobs_Failed || 0;
+        merchantMap.set(row.merchant_name, entry);
+      }
+      renderMerchantHealthGrid(addFailureRates(Array.from(merchantMap.values())));
+    } else {
+      renderMerchantHealthGrid(addFailureRates(opsData.by_merchant || []));
+    }
+  }
+
+  // Traffic health re-render with window context
+  if (state.trafficHealth) {
+    renderKioskTrafficHealth(state.trafficHealth, days);
   }
 }
 
@@ -600,13 +697,9 @@ async function commandCenterRefresh() {
   renderPersistentHeader(opsData, healthData, gaTimeline);
   render1DayTimeline(state.allFeedEvents, gaTimeline, gaHourly);
 
-  // Render the operational detail (merchant grid, volume chart)
-  if (opsData) {
-    const byMerchant = addFailureRates(opsData.by_merchant || []);
-    const byDay = opsData.by_day || [];
-    renderMerchantHealthGrid(byMerchant);
-    renderVolumeSparkline(byDay);
-  }
+  // Render tiles for current view window
+  const currentView = viewRotation.views[viewRotation.currentIndex];
+  renderViewTiles(currentView);
 }
 
 const fiSelect = createMultiSelect(document.getElementById("fiSelect"), {
@@ -1823,7 +1916,8 @@ async function fetchTrafficHealth() {
     const data = await res.json();
     state.trafficHealth = data;
     if (isKioskMode()) {
-      renderKioskTrafficHealth(data);
+      const currentView = viewRotation.views[viewRotation.currentIndex];
+      renderKioskTrafficHealth(data, VIEW_WINDOW_DAYS[currentView] || 7);
     } else {
       renderTrafficHealth(data);
     }
@@ -1832,26 +1926,28 @@ async function fetchTrafficHealth() {
   }
 }
 
-function buildTrafficSparkline(dailyCounts, baseline, status) {
-  const count = dailyCounts.length;
+function buildTrafficSparkline(dailyCounts, baseline, status, windowDays) {
+  const trimmed = dailyCounts.slice(-7);
+  const count = trimmed.length;
   if (!count) return "";
+  const highlightDays = windowDays || 1;
   const maxVal = Math.max(...dailyCounts, baseline, 1);
   const w = 120;
   const h = 32;
   const barW = Math.max(2, (w - (count - 1) * 2) / count);
-  const bars = dailyCounts
+  const bars = trimmed
     .map((val, i) => {
       const barH = Math.max(1, (val / maxVal) * (h - 2));
       const x = i * (barW + 2);
       const y = h - barH;
-      const isToday = i === count - 1;
+      const isInWindow = i >= count - highlightDays;
       let fill;
-      if (isToday) {
+      if (isInWindow) {
         fill = status === "dark" ? "#ef4444" : status === "low" ? "#f59e0b" : status === "sleeping" ? "#818cf8" : "#22c55e";
       } else {
         fill = "var(--muted)";
       }
-      return `<rect x="${x}" y="${y}" width="${barW}" height="${barH}" rx="1" fill="${fill}" opacity="${isToday ? 1 : 0.35}" />`;
+      return `<rect x="${x}" y="${y}" width="${barW}" height="${barH}" rx="1" fill="${fill}" opacity="${isInWindow ? 1 : 0.35}" />`;
     })
     .join("");
 
@@ -1865,8 +1961,9 @@ function buildTrafficSparkline(dailyCounts, baseline, status) {
   return `<svg class="traffic-tile__sparkline" width="${lineW}" height="${h}" viewBox="0 0 ${lineW} ${h}">${bars}${baselineLine}</svg>`;
 }
 
-function renderTrafficHealthBanner(data, bannerEl) {
+function renderTrafficHealthBanner(data, bannerEl, windowDays) {
   if (!bannerEl) return;
+  const days = windowDays || 1;
   const { dark, low, sleeping } = data.summary;
   const threshold = data.min_volume_threshold || 5;
   const isAdmin = window.sisAuth && ["admin", "full", "core", "internal", "siteops", "support", "cs"].includes(window.sisAuth.getAccessLevel?.());
@@ -1875,36 +1972,51 @@ function renderTrafficHealthBanner(data, bannerEl) {
     : `${threshold}+ sessions/day`;
   const sleepingNote = sleeping > 0 ? `, ${sleeping} sleeping` : "";
   const monitorNote = `<span style="font-weight:400;font-size:0.75rem;opacity:0.8;margin-left:6px;">(${data.summary.total_monitored} FIs averaging ${thresholdText}${sleepingNote})</span>`;
+  const windowLabel = days === 1 ? "today" : `last ${days} days`;
 
   if (dark === 0 && low === 0) {
-    bannerEl.innerHTML = `<div class="traffic-health-banner all-clear">All clear — ${data.summary.total_monitored} FIs reporting normal traffic ${monitorNote}</div>`;
+    bannerEl.innerHTML = `<div class="traffic-health-banner all-clear">All clear — ${data.summary.total_monitored} FIs reporting normal traffic ${windowLabel} ${monitorNote}</div>`;
   } else if (dark > 0) {
     const parts = [];
     if (dark > 0) parts.push(`${dark} dark`);
     if (low > 0) parts.push(`${low} low`);
-    bannerEl.innerHTML = `<div class="traffic-health-banner has-issues">${parts.join(", ")} ${monitorNote}</div>`;
+    bannerEl.innerHTML = `<div class="traffic-health-banner has-issues">${parts.join(", ")} ${windowLabel} ${monitorNote}</div>`;
   } else {
-    bannerEl.innerHTML = `<div class="traffic-health-banner has-warnings">${low} low volume ${monitorNote}</div>`;
+    bannerEl.innerHTML = `<div class="traffic-health-banner has-warnings">${low} low volume ${windowLabel} ${monitorNote}</div>`;
   }
 }
 
-function renderTrafficTile(fi) {
-  const sparkline = buildTrafficSparkline(fi.daily_counts, fi.baseline_median, fi.status);
+function renderTrafficTile(fi, windowDays) {
+  const sparkline = buildTrafficSparkline(fi.daily_counts, fi.baseline_median, fi.status, windowDays);
+  const days = windowDays || 1;
+  const dailyCounts = fi.daily_counts || [];
+
+  // Compute session total for the window
+  let windowSessions, windowLabel;
+  if (days === 1) {
+    windowSessions = fi.today_sessions;
+    windowLabel = "Today";
+  } else {
+    windowSessions = dailyCounts.slice(-days).reduce((s, c) => s + c, 0);
+    windowLabel = `${days}d`;
+  }
+
   let statsHtml;
   let zzzIndicator = "";
-  if (fi.status === "dark") {
+  if (fi.status === "dark" && days === 1) {
     const hoursAgo = fi.hours_since_last != null ? `${fi.hours_since_last}h ago` : "unknown";
     statsHtml = `DARK &mdash; last session <strong>${hoursAgo}</strong>`;
-  } else if (fi.status === "low") {
-    statsHtml = `Today: <strong>${fi.today_sessions}</strong> sessions (<strong>${fi.pct_of_baseline}%</strong> of baseline, proj)`;
-  } else if (fi.status === "sleeping") {
+  } else if (fi.status === "sleeping" && days === 1) {
     const tierNote = fi.fingerprint_tier === 1 && fi.expected_cumulative != null
       ? ` (expect ~${fi.expected_cumulative} by now)`
       : "";
     statsHtml = `Quiet period${tierNote}`;
     zzzIndicator = `<span class="zzz-indicator">zzz</span>`;
-  } else {
+  } else if (fi.status === "low" && days === 1) {
     statsHtml = `Today: <strong>${fi.today_sessions}</strong> sessions (<strong>${fi.pct_of_baseline}%</strong> of baseline, proj)`;
+  } else {
+    const pctNote = days === 1 ? ` (<strong>${fi.pct_of_baseline}%</strong> of baseline, proj)` : "";
+    statsHtml = `${windowLabel}: <strong>${windowSessions}</strong> sessions${pctNote}`;
   }
 
   // Build verbose tooltip
@@ -1916,7 +2028,6 @@ function renderTrafficTile(fi) {
     ? "SLEEPING: Expected quiet period — historically near-zero traffic at this hour. No action needed."
     : "NORMAL: Session volume is within expected range based on the 14-day rolling baseline.";
   const lastSessionStr = fi.hours_since_last != null ? `${fi.hours_since_last} hours ago` : "Unknown";
-  const dailyCounts = fi.daily_counts || [];
   const recentDays = dailyCounts.slice(-3).map((c, i) => `Day ${dailyCounts.length - 2 + i}: ${c} sessions`).join("\n  ");
   const tipFi = [
     `${fi.fi_name.toUpperCase()}`,
@@ -1973,12 +2084,12 @@ function renderTrafficHealth(data) {
   const sleeping = sortFisByAvgSessions(data.fis.filter(f => f.status === "sleeping"));
   const normals = sortFisByAvgSessions(data.fis.filter(f => f.status === "normal"));
 
-  let html = anomalies.map(renderTrafficTile).join("");
+  let html = anomalies.map(fi => renderTrafficTile(fi)).join("");
 
   // Show sleeping tiles collapsed by default (not actionable)
   if (sleeping.length > 0) {
     if (state.trafficShowSleeping) {
-      html += sleeping.map(renderTrafficTile).join("");
+      html += sleeping.map(fi => renderTrafficTile(fi)).join("");
       html += `<div class="traffic-health-expand" id="trafficToggleSleeping">Hide ${sleeping.length} sleeping FIs</div>`;
     } else {
       html += `<div class="traffic-health-expand" id="trafficToggleSleeping">Show ${sleeping.length} sleeping FIs</div>`;
@@ -1987,7 +2098,7 @@ function renderTrafficHealth(data) {
 
   if (normals.length > 0) {
     if (state.trafficShowNormal) {
-      html += normals.map(renderTrafficTile).join("");
+      html += normals.map(fi => renderTrafficTile(fi)).join("");
       html += `<div class="traffic-health-expand" id="trafficToggleNormal">Hide ${normals.length} normal FIs</div>`;
     } else {
       html += `<div class="traffic-health-expand" id="trafficToggleNormal">Show ${normals.length} normal FIs</div>`;
@@ -2024,9 +2135,9 @@ function renderTrafficHealth(data) {
   }
 }
 
-function renderKioskTrafficHealth(data) {
+function renderKioskTrafficHealth(data, windowDays) {
   if (!data || !data.fis) return;
-  renderTrafficHealthBanner(data, trafficEls.kioskBanner);
+  renderTrafficHealthBanner(data, trafficEls.kioskBanner, windowDays);
 
   if (trafficEls.kioskGrid) {
     // In kiosk mode, sort: dark → low → normal → sleeping (sleeping last, not actionable)
@@ -2036,7 +2147,8 @@ function renderKioskTrafficHealth(data) {
       if (so !== 0) return so;
       return (b.baseline_avg || 0) - (a.baseline_avg || 0);
     });
-    trafficEls.kioskGrid.innerHTML = sorted.map(renderTrafficTile).join("");
+    const days = windowDays || 1;
+    trafficEls.kioskGrid.innerHTML = sorted.map(fi => renderTrafficTile(fi, days)).join("");
 
     trafficEls.kioskGrid.querySelectorAll(".traffic-tile").forEach(tile => {
       tile.addEventListener("click", () => {

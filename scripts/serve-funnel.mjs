@@ -1660,7 +1660,7 @@ async function refreshTodayGaStandard() {
   }
 }
 
-async function refreshYesterdayGaUniques() {
+async function refreshGaUniquesForDay(dateStr) {
   try {
     const cfg = GA_CREDENTIALS.find(c => c.name === "prod");
     if (!cfg) return;
@@ -1669,12 +1669,15 @@ async function refreshYesterdayGaUniques() {
     const propertyId = process.env[cfg.envProperty] || cfg.defaultProperty;
     if (!propertyId) return;
 
-    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
     const gaUniquesDir = path.join(RAW_DIR, "ga-hourly-uniques");
-    const filePath = path.join(gaUniquesDir, `${yesterday}.json`);
+    const filePath = path.join(gaUniquesDir, `${dateStr}.json`);
 
-    // Skip if already exists
-    try { await fs.access(filePath); return; } catch { /* doesn't exist, fetch it */ }
+    // Skip if file exists AND the date is more than 2 days old (fully settled)
+    try {
+      await fs.access(filePath);
+      const daysAgo = Math.floor((Date.now() - new Date(dateStr + "T00:00:00Z").getTime()) / 86400000);
+      if (daysAgo > 2) return; // data is settled, no need to refresh
+    } catch { /* doesn't exist, fetch it */ }
 
     const { google } = await import("googleapis");
     const auth = new google.auth.GoogleAuth({
@@ -1685,7 +1688,7 @@ async function refreshYesterdayGaUniques() {
     const response = await analyticsData.properties.runReport({
       property: `properties/${propertyId}`,
       requestBody: {
-        dateRanges: [{ startDate: yesterday, endDate: yesterday }],
+        dateRanges: [{ startDate: dateStr, endDate: dateStr }],
         dimensions: [{ name: "hour" }, { name: "deviceCategory" }],
         metrics: [{ name: "totalUsers" }, { name: "screenPageViews" }],
         limit: 1000,
@@ -1698,16 +1701,24 @@ async function refreshYesterdayGaUniques() {
       views: Number(row.metricValues?.[1]?.value || "0"),
     }));
     await fs.mkdir(gaUniquesDir, { recursive: true });
-    await fs.writeFile(filePath, JSON.stringify({ date: yesterday, hourly: uniqueRows }, null, 2));
-    console.log(`[ga-standard-bg] Backfilled yesterday's hourly uniques: ${uniqueRows.length} rows for ${yesterday}`);
+    await fs.writeFile(filePath, JSON.stringify({ date: dateStr, hourly: uniqueRows }, null, 2));
+    console.log(`[ga-standard-bg] Backfilled hourly uniques: ${uniqueRows.length} rows for ${dateStr}`);
   } catch (err) {
-    console.error("[ga-standard-bg] yesterday backfill failed:", err.message);
+    console.error(`[ga-standard-bg] backfill failed for ${dateStr}:`, err.message);
   }
 }
 
-setInterval(refreshTodayGaStandard, GA_STANDARD_REFRESH_INTERVAL);
+async function hourlyGaRefreshCycle() {
+  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  await refreshGaUniquesForDay(yesterday);
+  await refreshTodayGaStandard();
+}
+setInterval(hourlyGaRefreshCycle, GA_STANDARD_REFRESH_INTERVAL);
 setTimeout(async () => {
-  await refreshYesterdayGaUniques();
+  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  const dayBefore = new Date(Date.now() - 2 * 86400000).toISOString().slice(0, 10);
+  await refreshGaUniquesForDay(dayBefore);
+  await refreshGaUniquesForDay(yesterday);
   await refreshTodayGaStandard();
 }, 90 * 1000);
 console.log("[ga-standard-bg] Background refresh started (every 1 hour)");
@@ -6459,6 +6470,7 @@ const server = http.createServer(async (req, res) => {
       ]);
       const byDay = new Map();
       const byMerchant = new Map();
+      const byMerchantByDay = new Map(); // "merchant:date" → { merchant_name, date, Jobs_Total, Jobs_Success, Jobs_Failed }
       const byFiInstance = new Map();
       const errorCodes = new Map();
 
@@ -6522,6 +6534,17 @@ const server = http.createServer(async (req, res) => {
           }
           byMerchant.set(merchant, merchantEntry);
 
+          // Per-day merchant tracking for time-window filtering
+          const mDayKey = `${merchant}:${dayKey}`;
+          const mDayEntry = byMerchantByDay.get(mDayKey) || {
+            merchant_name: merchant, date: dayKey,
+            Jobs_Total: 0, Jobs_Success: 0, Jobs_Failed: 0,
+          };
+          mDayEntry.Jobs_Total += 1;
+          if (status === "success") mDayEntry.Jobs_Success += 1;
+          if (status === "failed") mDayEntry.Jobs_Failed += 1;
+          byMerchantByDay.set(mDayKey, mDayEntry);
+
           const fiName =
             fiMeta.get(fiKey)?.fi ||
             placement.fi_name ||
@@ -6582,6 +6605,7 @@ const server = http.createServer(async (req, res) => {
           .map(d => ({ date: d.date, Jobs_Total: d.Jobs_Total, Jobs_Success: d.Jobs_Success, Jobs_Failed: d.Jobs_Failed, merchants_active: d._merchants ? d._merchants.size : 0 }))
           .sort((a, b) => a.date.localeCompare(b.date)),
         by_merchant: byMerchantRows,
+        by_merchant_by_day: Array.from(byMerchantByDay.values()),
         by_fi_instance: Array.from(byFiInstance.values()),
         top_error_codes: topErrorCodes,
       });
@@ -6809,8 +6833,10 @@ const server = http.createServer(async (req, res) => {
       const utcYesterday = new Date(now.getTime() - 86400000).toISOString().slice(0, 10);
 
       // Read hourly unique user files (preferred) or fall back to page-level GA files
+      // Need 3 UTC days to cover a full 24h rolling window in any timezone
+      const utcDayBefore = new Date(now.getTime() - 2 * 86400000).toISOString().slice(0, 10);
       const hourlyData = [];
-      for (const day of [utcYesterday, utcToday]) {
+      for (const day of [utcDayBefore, utcYesterday, utcToday]) {
         // Try hourly uniques first (deduplicated)
         try {
           const uniquesDir = path.join(RAW_DIR, "ga-hourly-uniques");
@@ -6852,7 +6878,33 @@ const server = http.createServer(async (req, res) => {
         } catch { /* file may not exist */ }
       }
 
-      return send(res, 200, { hourly: hourlyData });
+      // Load funnel page breakdown per hour (for visual stacking)
+      const funnelData = [];
+      for (const day of [utcDayBefore, utcYesterday, utcToday]) {
+        try {
+          const gaDir = path.join(RAW_DIR, "ga");
+          const raw = await fs.readFile(path.join(gaDir, `${day}.json`), "utf8");
+          const data = JSON.parse(raw);
+          const rows = data.rows || [];
+          const hourMap = new Map();
+          for (const r of rows) {
+            if (!r.is_cardupdatr || !r.is_funnel_page) continue;
+            const h = parseInt(r.hour || "0");
+            if (!hourMap.has(h)) hourMap.set(h, { select_merchants: 0, user_data: 0, credential_entry: 0, total: 0 });
+            const entry = hourMap.get(h);
+            const pg = (r.page || "").toLowerCase();
+            if (pg.includes("select-merchant")) entry.select_merchants += r.active_users || 0;
+            else if (pg.includes("user-data")) entry.user_data += r.active_users || 0;
+            else if (pg.includes("credential")) entry.credential_entry += r.active_users || 0;
+            entry.total += r.active_users || 0;
+          }
+          for (const [h, entry] of hourMap) {
+            funnelData.push({ date: day, hour: h, ...entry });
+          }
+        } catch { /* file may not exist */ }
+      }
+
+      return send(res, 200, { hourly: hourlyData, funnel: funnelData });
     } catch (err) {
       return send(res, 500, { error: err?.message || "Unable to fetch GA hourly" });
     }
