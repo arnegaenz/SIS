@@ -42,31 +42,22 @@
       <div class="monitor-banner__text">Checking systems...</div>
     </div>
 
-    <!-- Instance Status Board -->
-    <div class="monitor-section-title">INSTANCES <span class="monitor-help" title="Each CardSavr instance is checked every 5 minutes. Frontend: HTTP request to a live cardupdatr.app page — tests DNS, hosting, SSL, and app serving. Backend: API login via CardSavr SDK — tests authentication and API responsiveness. Response times under 1s are green, 1-3s yellow, over 3s or failed is red. Sparkline shows response time trend over the last hour. Uptime % is based on successful checks in the last hour.">?</span></div>
-    <div class="monitor-instance-strip" id="instanceGrid">
-      <div class="monitor-loading">Checking instances...</div>
-    </div>
-
-    <!-- Data Pipeline -->
-    <div class="monitor-section-title">DATA PIPELINE <span class="monitor-help" title="Monitors the freshness of SIS data caches. Placements Cache: live card placement data, refreshed every 15 minutes from CardSavr API. Sessions Cache: live cardholder session data, refreshed every 15 minutes. GA Realtime: Google Analytics realtime snapshots collected every 5 minutes. Instance Connectivity: tracks which CardSavr instances failed their last API login attempt. Green = fresh (under 15 min), yellow = getting stale (15-30 min), red = stale (over 30 min).">?</span></div>
-    <div class="monitor-pipeline-strip" id="pipelineStatus">
-      <div class="monitor-loading">Checking pipeline...</div>
-    </div>
-
-    <!-- Bottom: Map+Totals (left) | Feed (right) -->
-    <div class="monitor-bottom-split">
-      <div class="monitor-bottom-left">
-        <div class="monitor-section-title">TRAFFIC MAP <span class="monitor-help" title="Live geographic distribution of CardUpdatr traffic across the United States. Dot size indicates number of active users in each city. Data from GA realtime snapshots (last 30 minutes). International traffic shown as a count below the map.">?</span></div>
-        <div class="monitor-map-container" id="trafficMap"></div>
-        <div class="monitor-section-title">SYSTEM TOTALS (TODAY)</div>
-        <div id="monitorTotals" class="monitor-totals-strip"></div>
-      </div>
-      <div class="monitor-bottom-right">
-        <div class="monitor-section-title">LIVE ACTIVITY <span class="monitor-help" title="Real-time feed of recent session and placement events across all CardSavr instances. Shows the last 50 events, refreshed every 30 seconds.">?</span></div>
-        <div class="monitor-feed" id="monitorFeed">
-          <div class="monitor-loading">Loading activity feed...</div>
+    <!-- Top split: Instances (left) | Pipeline + Feed (right) -->
+    <div class="monitor-top-split">
+      <div class="monitor-top-left">
+        <div class="monitor-section-title">INSTANCES <span class="monitor-help" title="Each CardSavr instance is checked every 5 minutes. Frontend: HTTP request to a live cardupdatr.app page. Backend: API login via CardSavr SDK. Response times under 1s are green, 1-3s yellow, over 3s or failed is red. Sparkline shows trend over the last hour.">?</span></div>
+        <div class="monitor-instance-grid" id="instanceGrid">
+          <div class="monitor-loading">Checking instances...</div>
         </div>
+      </div>
+      <div class="monitor-top-right">
+        <div class="monitor-section-title">DATA PIPELINE <span class="monitor-help" title="Monitors the freshness of SIS data caches. Green = fresh (under 15 min), yellow = stale (15-30 min), red = stale (over 30 min).">?</span></div>
+        <div class="monitor-pipeline-strip" id="pipelineStatus">
+          <div class="monitor-loading">Checking pipeline...</div>
+        </div>
+        <div class="monitor-section-title">LIVE TRAFFIC <span class="monitor-help" title="Live geographic distribution of CardUpdatr traffic across the United States. Pulsing dots indicate active users. Data from GA realtime snapshots (last 30 minutes).">?</span></div>
+        <div class="monitor-map-container" id="trafficMap"></div>
+        <div id="monitorTotals" class="monitor-totals-strip"></div>
       </div>
     </div>
 
