@@ -3570,3 +3570,254 @@ body.kiosk-mode .traffic-tile.status-dark {
 .kiosk-mode .monitor-banner {
   margin-bottom: 16px;
 }
+
+/* ── System Totals Strip ── */
+.monitor-totals-strip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-bottom: 8px;
+}
+
+.mon-totals-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 20px 18px;
+  text-align: center;
+  box-shadow: var(--shadow);
+}
+
+.mon-totals-card__value {
+  font-size: clamp(24px, 3vw, 36px);
+  font-weight: 900;
+  color: var(--accent, #63b3ed);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.mon-totals-card__label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin-top: 6px;
+}
+
+.kiosk-mode .monitor-totals-strip {
+  gap: 18px;
+}
+
+.kiosk-mode .mon-totals-card {
+  padding: 28px 22px;
+}
+
+.kiosk-mode .mon-totals-card__value {
+  font-size: clamp(28px, 4vw, 44px);
+}
+
+@media (max-width: 700px) {
+  .monitor-totals-strip {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ── Live Activity Feed ── */
+.monitor-feed {
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--panel);
+  margin-bottom: 8px;
+}
+
+.kiosk-mode .monitor-feed {
+  max-height: calc(100vh - 520px);
+  min-height: 200px;
+}
+
+/* Custom scrollbar for dark theme */
+.monitor-feed::-webkit-scrollbar {
+  width: 6px;
+}
+
+.monitor-feed::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.monitor-feed::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+.monitor-feed::-webkit-scrollbar-thumb:hover {
+  background: var(--muted);
+}
+
+.mon-feed-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.8rem;
+  transition: background 0.1s;
+}
+
+.mon-feed-row:last-child {
+  border-bottom: none;
+}
+
+.mon-feed-row:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.mon-feed-time {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+  min-width: 60px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.mon-inst-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  flex-shrink: 0;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mon-feed-fi {
+  color: var(--text);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 80px;
+  max-width: 180px;
+}
+
+.mon-feed-merchant {
+  color: var(--muted);
+  font-size: 0.78rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 60px;
+  max-width: 160px;
+  flex: 1;
+}
+
+.mon-feed-status {
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  flex-shrink: 0;
+  min-width: 64px;
+  text-align: right;
+}
+
+.mon-feed-status--success { color: #48bb78; }
+.mon-feed-status--failed { color: #fc8181; }
+.mon-feed-status--cancelled { color: #ecc94b; }
+.mon-feed-status--abandoned { color: #a0aec0; }
+.mon-feed-status--session { color: #63b3ed; }
+
+.mon-feed-term {
+  font-family: monospace;
+  font-size: 0.68rem;
+  color: var(--muted);
+  margin-left: 2px;
+  flex-shrink: 0;
+}
+
+.kiosk-mode .mon-feed-row {
+  padding: 10px 18px;
+  font-size: 0.88rem;
+}
+
+.kiosk-mode .mon-feed-time {
+  font-size: 0.78rem;
+  min-width: 70px;
+}
+
+.kiosk-mode .mon-inst-badge {
+  font-size: 0.74rem;
+}
+
+.kiosk-mode .mon-feed-status {
+  font-size: 0.72rem;
+}
+
+/* ── Instance Card Enhancements ── */
+.mon-instance-card:hover {
+  border-color: var(--accent, #63b3ed);
+  box-shadow: 0 0 16px rgba(99, 179, 237, 0.12);
+  transform: translateY(-1px);
+}
+
+.mon-instance-card__footer span[style*="font-size:0.7rem"] {
+  font-size: 0.75rem !important;
+  font-weight: 600;
+}
+
+/* ── Traffic Map ── */
+.monitor-map-container {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px;
+  position: relative;
+  max-width: 100%;
+  margin-bottom: 8px;
+}
+
+.monitor-map-container svg.monitor-map-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.monitor-map-dot {
+  fill: rgba(99, 179, 237, 0.7);
+  filter: drop-shadow(0 0 6px rgba(99, 179, 237, 0.6));
+  animation: mon-map-pulse 2.5s ease-in-out infinite;
+}
+
+@keyframes mon-map-pulse {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
+}
+
+.monitor-map-international {
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin-top: 10px;
+  text-align: center;
+}
+
+.monitor-map-empty {
+  font-size: 0.8rem;
+  color: var(--muted);
+  text-align: center;
+  padding: 8px 0;
+}
+
+.kiosk-mode .monitor-map-container {
+  padding: 24px;
+}
+
+.kiosk-mode .monitor-map-international {
+  font-size: 0.88rem;
+}

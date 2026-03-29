@@ -1526,6 +1526,31 @@ async function fetchGaRealtimeSnapshot() {
       else if (d === "tablet") byDevice.tablet += r.active_users;
     }
 
+    // Second call: city + country breakdown for the map
+    let byCity = [];
+    try {
+      const geoResponse = await analyticsData.properties.runRealtimeReport({
+        property: `properties/${propertyId}`,
+        requestBody: {
+          dimensions: [
+            { name: "city" },
+            { name: "country" },
+          ],
+          metrics: [
+            { name: "activeUsers" },
+          ],
+          limit: 500,
+        },
+      });
+      byCity = (geoResponse.data.rows || []).map(row => ({
+        city: row.dimensionValues?.[0]?.value || "",
+        country: row.dimensionValues?.[1]?.value || "",
+        users: Number(row.metricValues?.[0]?.value || "0"),
+      })).filter(r => r.city && r.city !== "(not set)" && r.users > 0);
+    } catch (err) {
+      console.warn("[ga-realtime-bg] city fetch failed:", err.message);
+    }
+
     const snapshot = {
       time: new Date().toISOString(),
       summary: {
@@ -1533,6 +1558,7 @@ async function fetchGaRealtimeSnapshot() {
         active_users: totalUsers,
         by_device: byDevice,
         unique_screens: new Set(rows.map(r => r.screen_name)).size,
+        by_city: byCity,
       },
       rows,
     };
