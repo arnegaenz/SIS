@@ -2955,3 +2955,574 @@ body.kiosk-mode .traffic-tile.status-dark {
   color: var(--text);
   font-variant-numeric: tabular-nums;
 }
+
+/* ============================================================================
+   System Monitor Dashboard — NOC-Style
+   ============================================================================ */
+
+/* ── Toolbar ── */
+.monitor-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.monitor-last-updated {
+  font-size: 0.8rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Section Titles ── */
+.monitor-section-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  margin: 24px 0 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.kiosk-mode .monitor-section-title {
+  font-size: 0.85rem;
+  margin: 32px 0 14px;
+}
+
+/* ── Badge (count on section titles) ── */
+.monitor-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 10px;
+  background: var(--border);
+  color: var(--text);
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* ── Overall Status Banner ── */
+.monitor-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 20px 24px;
+  border-radius: 14px;
+  margin-bottom: 8px;
+  transition: background 0.3s, border-color 0.3s;
+  border: 1px solid var(--border);
+  background: var(--panel);
+}
+
+.monitor-banner--green {
+  background: rgba(72, 187, 120, 0.08);
+  border-color: rgba(72, 187, 120, 0.3);
+}
+
+.monitor-banner--yellow {
+  background: rgba(236, 201, 75, 0.08);
+  border-color: rgba(236, 201, 75, 0.3);
+}
+
+.monitor-banner--red {
+  background: rgba(252, 129, 129, 0.1);
+  border-color: rgba(252, 129, 129, 0.4);
+}
+
+.monitor-banner__dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.monitor-banner__dot--green {
+  background: #48bb78;
+  box-shadow: 0 0 10px rgba(72, 187, 120, 0.6);
+  animation: mon-pulse-green 2.5s ease-in-out infinite;
+}
+
+.monitor-banner__dot--yellow {
+  background: #ecc94b;
+  box-shadow: 0 0 10px rgba(236, 201, 75, 0.6);
+  animation: mon-pulse-yellow 2s ease-in-out infinite;
+}
+
+.monitor-banner__dot--red {
+  background: #fc8181;
+  box-shadow: 0 0 12px rgba(252, 129, 129, 0.7);
+  animation: mon-pulse-red 1.2s ease-in-out infinite;
+}
+
+.monitor-banner__text {
+  font-size: 1.1rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.monitor-banner--green .monitor-banner__text { color: #48bb78; }
+.monitor-banner--yellow .monitor-banner__text { color: #ecc94b; }
+.monitor-banner--red .monitor-banner__text { color: #fc8181; }
+
+.kiosk-mode .monitor-banner {
+  padding: 28px 32px;
+  border-radius: 18px;
+}
+
+.kiosk-mode .monitor-banner__dot {
+  width: 22px;
+  height: 22px;
+}
+
+.kiosk-mode .monitor-banner__text {
+  font-size: 1.5rem;
+}
+
+/* ── Pulse Animations ── */
+@keyframes mon-pulse-green {
+  0%, 100% { box-shadow: 0 0 8px rgba(72, 187, 120, 0.4); }
+  50% { box-shadow: 0 0 18px rgba(72, 187, 120, 0.7); }
+}
+
+@keyframes mon-pulse-yellow {
+  0%, 100% { box-shadow: 0 0 8px rgba(236, 201, 75, 0.4); }
+  50% { box-shadow: 0 0 16px rgba(236, 201, 75, 0.7); }
+}
+
+@keyframes mon-pulse-red {
+  0%, 100% { box-shadow: 0 0 8px rgba(252, 129, 129, 0.5); }
+  50% { box-shadow: 0 0 20px rgba(252, 129, 129, 0.9); }
+}
+
+/* ── Status Dots ── */
+.mon-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.mon-dot--sm {
+  width: 7px;
+  height: 7px;
+}
+
+.mon-dot--green {
+  background: #48bb78;
+  box-shadow: 0 0 5px rgba(72, 187, 120, 0.5);
+}
+
+.mon-dot--yellow {
+  background: #ecc94b;
+  box-shadow: 0 0 5px rgba(236, 201, 75, 0.5);
+}
+
+.mon-dot--red {
+  background: #fc8181;
+  box-shadow: 0 0 5px rgba(252, 129, 129, 0.5);
+}
+
+.mon-dot--pulse {
+  animation: mon-pulse-red 1.2s ease-in-out infinite;
+}
+
+.kiosk-mode .mon-dot {
+  width: 13px;
+  height: 13px;
+}
+
+.kiosk-mode .mon-dot--sm {
+  width: 9px;
+  height: 9px;
+}
+
+/* ── Instance Status Board ── */
+.monitor-instance-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+  margin-bottom: 8px;
+}
+
+.kiosk-mode .monitor-instance-strip {
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.mon-instance-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px 18px 12px;
+  box-shadow: var(--shadow);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.mon-instance-card--green { border-left: 4px solid #48bb78; }
+.mon-instance-card--yellow { border-left: 4px solid #ecc94b; }
+.mon-instance-card--red {
+  border-left: 4px solid #fc8181;
+  box-shadow: 0 0 12px rgba(252, 129, 129, 0.1);
+}
+
+.mon-instance-card__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.mon-instance-card__name {
+  font-weight: 800;
+  font-size: 1rem;
+  color: var(--text);
+  letter-spacing: 0.01em;
+}
+
+.kiosk-mode .mon-instance-card__name {
+  font-size: 1.15rem;
+}
+
+.mon-instance-card__metrics {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.mon-instance-card__metric {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.mon-instance-card__metric-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+}
+
+.mon-label {
+  color: var(--muted);
+  font-size: 0.78rem;
+  min-width: 58px;
+}
+
+.mon-value {
+  color: var(--text);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.82rem;
+  margin-left: auto;
+}
+
+/* Response time bars */
+.mon-rt-bar {
+  height: 3px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.mon-rt-bar__fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.4s ease;
+}
+
+/* Instance card footer: sparkline + uptime */
+.mon-instance-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.mon-instance-card__sparkline {
+  flex-shrink: 0;
+}
+
+.mon-sparkline {
+  display: block;
+}
+
+.mon-instance-card__uptime {
+  font-weight: 800;
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Pipeline Status Strip ── */
+.monitor-pipeline-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.kiosk-mode .monitor-pipeline-strip {
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.mon-pipeline-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px;
+  box-shadow: var(--shadow);
+}
+
+.mon-pipeline-card--green { border-left: 3px solid #48bb78; }
+.mon-pipeline-card--yellow { border-left: 3px solid #ecc94b; }
+.mon-pipeline-card--red { border-left: 3px solid #fc8181; }
+
+.mon-pipeline-card__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.mon-pipeline-card__label {
+  font-weight: 600;
+  font-size: 0.82rem;
+  color: var(--text);
+}
+
+.mon-pipeline-card__value {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+
+.mon-pipeline-card__sub {
+  font-size: 0.72rem;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+/* Freshness bar */
+.mon-freshness-bar {
+  height: 3px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.mon-freshness-bar__fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.4s ease;
+}
+
+/* ── Alerts Panel (two-column layout) ── */
+.monitor-alerts-panel {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-top: 0;
+}
+
+@media (max-width: 900px) {
+  .monitor-alerts-panel {
+    grid-template-columns: 1fr;
+  }
+}
+
+.monitor-alerts-col {
+  min-width: 0;
+}
+
+.monitor-alert-list {
+  min-height: 40px;
+}
+
+/* ── Alert Rows (shared by traffic + merchant) ── */
+.mon-alert-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-bottom: 5px;
+  background: var(--panel);
+  font-size: 0.82rem;
+  transition: background 0.15s;
+}
+
+.mon-alert-row--red {
+  border-left: 3px solid #fc8181;
+  background: rgba(252, 129, 129, 0.04);
+}
+
+.mon-alert-row--yellow {
+  border-left: 3px solid #ecc94b;
+  background: rgba(236, 201, 75, 0.04);
+}
+
+.mon-alert-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  flex-shrink: 0;
+  min-width: 44px;
+  text-align: center;
+}
+
+.mon-alert-badge--red {
+  background: rgba(252, 129, 129, 0.15);
+  color: #fc8181;
+}
+
+.mon-alert-badge--yellow {
+  background: rgba(236, 201, 75, 0.15);
+  color: #d69e2e;
+}
+
+.mon-alert-name {
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 80px;
+  max-width: 180px;
+}
+
+.mon-alert-partner {
+  color: var(--muted);
+  font-size: 0.78rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100px;
+}
+
+.mon-alert-spark {
+  flex-shrink: 0;
+}
+
+.mon-alert-detail {
+  color: var(--muted);
+  font-size: 0.75rem;
+  margin-left: auto;
+  text-align: right;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ── Merchant-specific ── */
+.mon-merchant-pct {
+  font-weight: 800;
+  font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
+  min-width: 48px;
+  flex-shrink: 0;
+}
+
+.mon-merchant-pct--red { color: #fc8181; }
+.mon-merchant-pct--yellow { color: #ecc94b; }
+
+.mon-merchant-ratio {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Failure bar (proportional green/red) */
+.mon-fail-bar {
+  display: flex;
+  height: 6px;
+  border-radius: 3px;
+  overflow: hidden;
+  width: 60px;
+  flex-shrink: 0;
+  background: var(--border);
+}
+
+.mon-fail-bar__success {
+  height: 100%;
+  background: #48bb78;
+}
+
+.mon-fail-bar__fail {
+  height: 100%;
+  background: #fc8181;
+}
+
+/* ── Empty / Error / All-Clear States ── */
+.mon-empty,
+.mon-error {
+  padding: 20px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.85rem;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  margin-bottom: 8px;
+}
+
+.mon-error {
+  color: #fc8181;
+  border-color: rgba(252, 129, 129, 0.3);
+}
+
+.mon-all-clear {
+  padding: 16px 20px;
+  text-align: center;
+  color: #48bb78;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border: 1px solid rgba(72, 187, 120, 0.2);
+  border-radius: 12px;
+  background: rgba(72, 187, 120, 0.04);
+}
+
+/* Also keep the old class name working */
+.monitor-loading {
+  padding: 20px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.85rem;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+}
+
+/* ── Kiosk Mode Overrides ── */
+.kiosk-mode .mon-instance-card {
+  padding: 20px 22px 16px;
+}
+
+.kiosk-mode .mon-alert-row {
+  padding: 10px 14px;
+  font-size: 0.88rem;
+}
+
+.kiosk-mode .mon-pipeline-card__value {
+  font-size: 1.15rem;
+}
+
+.kiosk-mode .monitor-banner {
+  margin-bottom: 16px;
+}

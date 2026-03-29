@@ -55,6 +55,7 @@
     "executive.html":          ["admin","core","internal","executive"],
     // Monitoring
     "operations.html":         ["admin","core","internal","siteops","cs"],
+    "monitor.html":            ["admin","core","internal","siteops","cs"],
     "heatmap.html":            ["admin","core","siteops","cs"],
     "watchlist.html":          ["admin","core","internal","siteops","cs"],
     "realtime.html":           ["admin","core","siteops","support","cs"],

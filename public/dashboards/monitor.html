@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <script>try{var t=localStorage.getItem('sis-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+  <title>System Monitor</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <link rel="stylesheet" href="../sis-shared.css?v=navfix" />
+  <link rel="stylesheet" href="../assets/css/sis.css" />
+  <link rel="stylesheet" href="../assets/css/dashboards.css" />
+  <link rel="stylesheet" href="../assets/css/mobile.css" />
+  <script src="../assets/js/config.js"></script>
+  <script src="../assets/js/passcode-gate.js"></script>
+  <script defer src="../assets/js/sis.js"></script>
+  <script defer src="../assets/js/nav.js"></script>
+  <script type="module" defer src="../assets/js/monitor-dashboard.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function(){
+      if (window.renderHeaderNav && !window.__sisHeaderNav_monitor) {
+        window.__sisHeaderNav_monitor = true;
+        window.renderHeaderNav({
+          currentId: "monitor",
+          title: "System Monitor",
+          subtitle: "Instance health, traffic anomalies, merchant alerts, pipeline status."
+        });
+      }
+    });
+  </script>
+</head>
+<body>
+  <div id="sis-header"></div>
+  <div class="dashboard-shell">
+    <!-- Non-kiosk toolbar -->
+    <div class="monitor-toolbar" id="monitorToolbar">
+      <button class="btn-secondary" id="kioskEnterBtn" type="button">Kiosk View</button>
+      <span class="monitor-last-updated" id="lastUpdated"></span>
+    </div>
+
+    <!-- Overall Status Banner -->
+    <div class="monitor-banner" id="overallBanner">
+      <div class="monitor-banner__dot"></div>
+      <div class="monitor-banner__text">Checking systems...</div>
+    </div>
+
+    <!-- Instance Status Board -->
+    <div class="monitor-section-title">INSTANCES</div>
+    <div class="monitor-instance-strip" id="instanceGrid">
+      <div class="monitor-loading">Checking instances...</div>
+    </div>
+
+    <!-- Data Pipeline -->
+    <div class="monitor-section-title">DATA PIPELINE</div>
+    <div class="monitor-pipeline-strip" id="pipelineStatus">
+      <div class="monitor-loading">Checking pipeline...</div>
+    </div>
+
+    <!-- Alerts Panel -->
+    <div class="monitor-alerts-panel">
+      <div class="monitor-alerts-col">
+        <div class="monitor-section-title">TRAFFIC ANOMALIES <span class="monitor-badge" id="trafficBadge">0</span></div>
+        <div class="monitor-alert-list" id="trafficAlerts"></div>
+      </div>
+      <div class="monitor-alerts-col">
+        <div class="monitor-section-title">MERCHANT ALERTS <span class="monitor-badge" id="merchantBadge">0</span></div>
+        <div class="monitor-alert-list" id="merchantAlerts"></div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

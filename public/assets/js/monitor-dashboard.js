@@ -1,0 +1,468 @@
+import {
+  isKioskMode,
+  initKioskMode,
+  startAutoRefresh,
+  formatRelativeTime,
+} from "./dashboard-utils.js";
+
+/* ── Constants ── */
+const REFRESH_KIOSK_MS = 30 * 1000;
+const REFRESH_NORMAL_MS = 60 * 1000;
+const RT_THRESHOLDS = { green: 1000, yellow: 3000 }; // ms
+const MERCHANT_FAIL_THRESHOLD = 0.50;
+const MERCHANT_MIN_JOBS = 3;
+
+/* ── DOM Cache ── */
+const els = {
+  toolbar: document.getElementById("monitorToolbar"),
+  kioskEnterBtn: document.getElementById("kioskEnterBtn"),
+  lastUpdated: document.getElementById("lastUpdated"),
+  banner: document.getElementById("overallBanner"),
+  instanceGrid: document.getElementById("instanceGrid"),
+  pipelineStatus: document.getElementById("pipelineStatus"),
+  trafficAlerts: document.getElementById("trafficAlerts"),
+  trafficBadge: document.getElementById("trafficBadge"),
+  merchantAlerts: document.getElementById("merchantAlerts"),
+  merchantBadge: document.getElementById("merchantBadge"),
+};
+
+/* ── Helpers ── */
+function statusColor(ms, failed) {
+  if (failed) return "red";
+  if (ms > RT_THRESHOLDS.yellow) return "red";
+  if (ms > RT_THRESHOLDS.green) return "yellow";
+  return "green";
+}
+
+function escHtml(str) {
+  const d = document.createElement("div");
+  d.textContent = str || "";
+  return d.innerHTML;
+}
+
+function formatMs(ms) {
+  if (!Number.isFinite(ms)) return "-";
+  if (ms < 1000) return `${Math.round(ms)}ms`;
+  return `${(ms / 1000).toFixed(1)}s`;
+}
+
+function pipelineFreshness(ageMs) {
+  if (!Number.isFinite(ageMs) || ageMs < 0) return "red";
+  if (ageMs < 15 * 60 * 1000) return "green";
+  if (ageMs < 30 * 60 * 1000) return "yellow";
+  return "red";
+}
+
+function formatAge(ageMs) {
+  if (!Number.isFinite(ageMs) || ageMs < 0) return "unknown";
+  const mins = Math.floor(ageMs / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 48) return `${hrs}h ${mins % 60}m ago`;
+  return `${(hrs / 24).toFixed(1)}d ago`;
+}
+
+/** Build a tiny SVG sparkline from an array of numbers */
+function sparklineSvg(values, width = 60, height = 20, color = "#48bb78") {
+  if (!values || values.length < 2) return "";
+  const max = Math.max(...values, 1);
+  const min = Math.min(...values, 0);
+  const range = max - min || 1;
+  const step = width / (values.length - 1);
+  const points = values.map((v, i) => {
+    const x = (i * step).toFixed(1);
+    const y = (height - ((v - min) / range) * (height - 2) - 1).toFixed(1);
+    return `${x},${y}`;
+  }).join(" ");
+  return `<svg class="mon-sparkline" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><polyline points="${points}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+}
+
+/** Compute a bar width percentage for a response time relative to threshold */
+function rtBarPct(ms) {
+  if (!Number.isFinite(ms) || ms <= 0) return 0;
+  // Scale: 0-3000ms = 0-100%
+  return Math.min(100, Math.round((ms / 3000) * 100));
+}
+
+function rtBarColor(ms) {
+  if (!Number.isFinite(ms)) return "#fc8181";
+  if (ms <= RT_THRESHOLDS.green) return "#48bb78";
+  if (ms <= RT_THRESHOLDS.yellow) return "#ecc94b";
+  return "#fc8181";
+}
+
+/* ── Data Fetching ── */
+async function fetchJson(url, opts) {
+  const res = await fetch(url, opts);
+  if (!res.ok) throw new Error(`${url}: ${res.status}`);
+  return res.json();
+}
+
+/* ── Global state for banner computation ── */
+let _bannerState = { down: 0, warnings: 0 };
+
+/* ── Render: Overall Status Banner ── */
+function renderBanner() {
+  const el = els.banner;
+  if (!el) return;
+  const { down, warnings } = _bannerState;
+
+  let level, text;
+  if (down > 0) {
+    level = "red";
+    text = `${down} SYSTEM${down > 1 ? "S" : ""} DOWN`;
+  } else if (warnings > 0) {
+    level = "yellow";
+    text = `${warnings} WARNING${warnings > 1 ? "S" : ""} DETECTED`;
+  } else {
+    level = "green";
+    text = "ALL SYSTEMS OPERATIONAL";
+  }
+
+  el.className = `monitor-banner monitor-banner--${level}`;
+  el.innerHTML = `
+    <div class="monitor-banner__dot monitor-banner__dot--${level}"></div>
+    <div class="monitor-banner__text">${text}</div>
+  `;
+}
+
+/* ── Render: Instance Status Board ── */
+function renderInstances(data) {
+  const grid = els.instanceGrid;
+  if (!data || !data.instances || data.instances.length === 0) {
+    grid.innerHTML = `<div class="mon-empty">No instance data available</div>`;
+    return;
+  }
+
+  const history = data.history || [];
+  const uptime = data.uptime || {};
+
+  // Update last-updated timestamp
+  if (data.lastCheck && els.lastUpdated) {
+    els.lastUpdated.textContent = `Last check: ${formatRelativeTime(data.lastCheck)}`;
+  }
+
+  // Count issues for banner
+  let instanceDown = 0;
+  let instanceWarn = 0;
+
+  grid.innerHTML = data.instances.map(inst => {
+    const feColor = inst.frontend ? statusColor(inst.frontend.ms, inst.frontend.status === "red") : "red";
+    const beColor = inst.backend ? statusColor(inst.backend.ms, inst.backend.status === "red") : "red";
+    const overallColor = (feColor === "red" || beColor === "red") ? "red"
+      : (feColor === "yellow" || beColor === "yellow") ? "yellow" : "green";
+
+    if (overallColor === "red") instanceDown++;
+    else if (overallColor === "yellow") instanceWarn++;
+
+    const uptimePct = uptime[inst.name] ?? 100;
+    const uptimeColor = uptimePct >= 100 ? "#48bb78" : uptimePct >= 75 ? "#ecc94b" : "#fc8181";
+
+    // Build sparkline data from history
+    const feHistory = history.map(h => {
+      const found = h.instances.find(i => i.name === inst.name);
+      return found?.frontendMs ?? null;
+    }).filter(v => v !== null);
+    const beHistory = history.map(h => {
+      const found = h.instances.find(i => i.name === inst.name);
+      return found?.backendMs ?? null;
+    }).filter(v => v !== null);
+
+    // Tooltip content
+    const feUrl = inst.frontend?.url || "";
+    const feError = inst.frontend?.error || "";
+    const beError = inst.backend?.error || "";
+    let tooltip = feUrl ? `URL: ${feUrl}` : "";
+    if (feError) tooltip += `\nFE Error: ${feError}`;
+    if (beError) tooltip += `\nBE Error: ${beError}`;
+
+    return `
+      <div class="mon-instance-card mon-instance-card--${overallColor}" title="${escHtml(tooltip)}">
+        <div class="mon-instance-card__top">
+          <span class="mon-instance-card__name">${escHtml(inst.name)}</span>
+          <span class="mon-dot mon-dot--${overallColor} ${overallColor === "red" ? "mon-dot--pulse" : ""}"></span>
+        </div>
+        <div class="mon-instance-card__metrics">
+          <div class="mon-instance-card__metric">
+            <div class="mon-instance-card__metric-header">
+              <span class="mon-dot mon-dot--sm mon-dot--${feColor}"></span>
+              <span class="mon-label">Frontend</span>
+              <span class="mon-value">${formatMs(inst.frontend?.ms)}</span>
+            </div>
+            <div class="mon-rt-bar"><div class="mon-rt-bar__fill" style="width:${rtBarPct(inst.frontend?.ms)}%;background:${rtBarColor(inst.frontend?.ms)}"></div></div>
+          </div>
+          <div class="mon-instance-card__metric">
+            <div class="mon-instance-card__metric-header">
+              <span class="mon-dot mon-dot--sm mon-dot--${beColor}"></span>
+              <span class="mon-label">Backend</span>
+              <span class="mon-value">${formatMs(inst.backend?.ms)}</span>
+            </div>
+            <div class="mon-rt-bar"><div class="mon-rt-bar__fill" style="width:${rtBarPct(inst.backend?.ms)}%;background:${rtBarColor(inst.backend?.ms)}"></div></div>
+          </div>
+        </div>
+        <div class="mon-instance-card__footer">
+          <div class="mon-instance-card__sparkline">
+            ${sparklineSvg(feHistory.length >= 2 ? feHistory : beHistory, 60, 20, overallColor === "green" ? "#48bb78" : overallColor === "yellow" ? "#ecc94b" : "#fc8181")}
+          </div>
+          <span class="mon-instance-card__uptime" style="color:${uptimeColor}">${uptimePct}%</span>
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  _bannerState.down = instanceDown;
+  _bannerState.warnings = instanceWarn;
+}
+
+/* ── Render: Pipeline Status ── */
+function renderPipeline(data) {
+  const el = els.pipelineStatus;
+  if (!data) {
+    el.innerHTML = `<div class="mon-empty">Pipeline status unavailable</div>`;
+    return;
+  }
+
+  const items = [];
+
+  if (data.placements_cache) {
+    const age = data.placements_cache.age_ms;
+    const color = pipelineFreshness(age);
+    const pct = Math.min(100, Math.round((age / (30 * 60 * 1000)) * 100));
+    items.push({ label: "Placements Cache", color, detail: formatAge(age), pct,
+      sub: data.placements_cache.last_update ? new Date(data.placements_cache.last_update).toLocaleTimeString() : "" });
+  }
+
+  if (data.sessions_cache) {
+    const age = data.sessions_cache.age_ms;
+    const color = pipelineFreshness(age);
+    const pct = Math.min(100, Math.round((age / (30 * 60 * 1000)) * 100));
+    items.push({ label: "Sessions Cache", color, detail: formatAge(age), pct,
+      sub: data.sessions_cache.last_update ? new Date(data.sessions_cache.last_update).toLocaleTimeString() : "" });
+  }
+
+  if (data.ga_realtime) {
+    const count = data.ga_realtime.snapshots || 0;
+    const lastSnap = data.ga_realtime.last_snapshot;
+    let age = Infinity;
+    if (lastSnap) age = Date.now() - new Date(lastSnap).getTime();
+    const color = count === 0 ? "red" : pipelineFreshness(age);
+    const pct = count === 0 ? 100 : Math.min(100, Math.round((age / (30 * 60 * 1000)) * 100));
+    items.push({ label: "GA Realtime", color, detail: count > 0 ? `${count} snapshots` : "No snapshots", pct,
+      sub: lastSnap ? formatRelativeTime(lastSnap) : "" });
+  }
+
+  if (data.instance_failures) {
+    const failures = data.instance_failures;
+    const color = failures.length === 0 ? "green" : failures.length <= 2 ? "yellow" : "red";
+    const pct = failures.length === 0 ? 0 : Math.min(100, failures.length * 25);
+    items.push({ label: "Instance Connectivity", color,
+      detail: failures.length === 0 ? "All OK" : `${failures.length} failing`, pct,
+      sub: failures.length > 0 ? failures.join(", ") : "" });
+  }
+
+  if (items.length === 0) {
+    el.innerHTML = `<div class="mon-empty">No pipeline data</div>`;
+    return;
+  }
+
+  const colorHex = { green: "#48bb78", yellow: "#ecc94b", red: "#fc8181" };
+
+  el.innerHTML = items.map(item => `
+    <div class="mon-pipeline-card mon-pipeline-card--${item.color}">
+      <div class="mon-pipeline-card__header">
+        <span class="mon-dot mon-dot--${item.color}"></span>
+        <span class="mon-pipeline-card__label">${escHtml(item.label)}</span>
+      </div>
+      <div class="mon-pipeline-card__value">${escHtml(item.detail)}</div>
+      <div class="mon-freshness-bar"><div class="mon-freshness-bar__fill" style="width:${item.pct}%;background:${colorHex[item.color]}"></div></div>
+      ${item.sub ? `<div class="mon-pipeline-card__sub">${escHtml(item.sub)}</div>` : ""}
+    </div>
+  `).join("");
+}
+
+/* ── Render: Traffic Anomalies ── */
+function renderTrafficAlerts(data) {
+  const el = els.trafficAlerts;
+  if (!data || !data.fis) {
+    el.innerHTML = `<div class="mon-empty">No traffic data available</div>`;
+    if (els.trafficBadge) els.trafficBadge.textContent = "0";
+    return;
+  }
+
+  const anomalies = data.fis.filter(fi =>
+    fi.status === "dark" || fi.status === "low" || fi.status === "declining"
+  );
+
+  if (els.trafficBadge) els.trafficBadge.textContent = String(anomalies.length);
+
+  // Add traffic anomalies to banner warnings
+  _bannerState.warnings += anomalies.filter(f => f.status === "low" || f.status === "declining").length;
+  _bannerState.down += anomalies.filter(f => f.status === "dark").length;
+
+  if (anomalies.length === 0) {
+    el.innerHTML = `<div class="mon-all-clear">All FIs reporting normal traffic</div>`;
+    return;
+  }
+
+  const order = { dark: 0, low: 1, declining: 2 };
+  anomalies.sort((a, b) => (order[a.status] ?? 9) - (order[b.status] ?? 9));
+
+  el.innerHTML = anomalies.map(fi => {
+    const isDark = fi.status === "dark";
+    const color = isDark ? "red" : "yellow";
+    const statusText = isDark ? "DARK" : fi.status === "low" ? "LOW" : "DECLINING";
+    const hoursSince = fi.hours_since_last != null ? `${Math.round(fi.hours_since_last)}h ago` : "";
+    const baselinePct = fi.pct_of_baseline != null ? `${Math.round(fi.pct_of_baseline)}% of baseline` : "";
+
+    // Daily counts sparkline
+    const dailyCounts = fi.daily_counts || [];
+    const sparkColor = isDark ? "#fc8181" : "#ecc94b";
+    const spark = sparklineSvg(dailyCounts.slice(-7), 50, 16, sparkColor);
+
+    return `
+      <div class="mon-alert-row mon-alert-row--${color}">
+        <span class="mon-alert-badge mon-alert-badge--${color}">${statusText}</span>
+        <span class="mon-alert-name">${escHtml(fi.fi_name || fi.fi_key || "")}</span>
+        <span class="mon-alert-partner">${escHtml(fi.partner || "")}</span>
+        <span class="mon-alert-spark">${spark}</span>
+        <span class="mon-alert-detail">${escHtml(hoursSince)}${hoursSince && baselinePct ? " | " : ""}${escHtml(baselinePct)}</span>
+      </div>
+    `;
+  }).join("");
+}
+
+/* ── Render: Merchant Alerts ── */
+function renderMerchantAlerts(opsData) {
+  const el = els.merchantAlerts;
+  if (!opsData || !opsData.by_merchant) {
+    el.innerHTML = `<div class="mon-empty">No merchant data available</div>`;
+    if (els.merchantBadge) els.merchantBadge.textContent = "0";
+    return;
+  }
+
+  const alerts = [];
+  for (const m of opsData.by_merchant) {
+    const total = m.Jobs_Total || 0;
+    if (total < MERCHANT_MIN_JOBS) continue;
+    const failed = m.Jobs_Failed || 0;
+    const failRate = total > 0 ? failed / total : 0;
+    if (failRate < MERCHANT_FAIL_THRESHOLD) continue;
+
+    alerts.push({
+      name: m.merchant_name || "Unknown",
+      failRate,
+      total,
+      failures: failed,
+      success: m.Jobs_Success || 0,
+      topError: m.top_error_code || "-",
+    });
+  }
+
+  alerts.sort((a, b) => b.failRate - a.failRate);
+
+  if (els.merchantBadge) els.merchantBadge.textContent = String(alerts.length);
+
+  // Add merchant alerts to banner
+  _bannerState.warnings += alerts.length;
+
+  if (alerts.length === 0) {
+    el.innerHTML = `<div class="mon-all-clear">No merchants above ${Math.round(MERCHANT_FAIL_THRESHOLD * 100)}% failure rate</div>`;
+    return;
+  }
+
+  el.innerHTML = alerts.slice(0, 20).map(a => {
+    const pct = (a.failRate * 100).toFixed(1);
+    const color = a.failRate >= 0.80 ? "red" : "yellow";
+    const successPct = a.total > 0 ? Math.round((a.success / a.total) * 100) : 0;
+    const failPct = 100 - successPct;
+
+    return `
+      <div class="mon-alert-row mon-alert-row--${color}">
+        <span class="mon-merchant-pct mon-merchant-pct--${color}">${pct}%</span>
+        <span class="mon-alert-name">${escHtml(a.name)}</span>
+        <span class="mon-merchant-ratio">${a.failures}/${a.total}</span>
+        <div class="mon-fail-bar">
+          <div class="mon-fail-bar__success" style="width:${successPct}%"></div>
+          <div class="mon-fail-bar__fail" style="width:${failPct}%"></div>
+        </div>
+        <span class="mon-alert-detail">${escHtml(a.topError)}</span>
+      </div>
+    `;
+  }).join("");
+}
+
+/* ── Main Fetch ── */
+async function fetchAll() {
+  // Reset banner state
+  _bannerState = { down: 0, warnings: 0 };
+
+  const now = new Date();
+  const pad = (n) => String(n).padStart(2, "0");
+  const dateTo = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+  const dateFrom = new Date(now);
+  dateFrom.setDate(dateFrom.getDate() - 7);
+  const dateFromStr = `${dateFrom.getFullYear()}-${pad(dateFrom.getMonth() + 1)}-${pad(dateFrom.getDate())}`;
+
+  const results = await Promise.allSettled([
+    fetchJson("/api/system-health"),
+    fetchJson("/api/pipeline-status"),
+    fetchJson("/api/traffic-health"),
+    fetchJson(`/api/metrics/ops?date_from=${dateFromStr}&date_to=${dateTo}`),
+  ]);
+
+  // Instance health
+  if (results[0].status === "fulfilled") {
+    renderInstances(results[0].value);
+  } else {
+    els.instanceGrid.innerHTML = `<div class="mon-error">Failed to load instance status: ${escHtml(results[0].reason?.message)}</div>`;
+  }
+
+  // Pipeline
+  if (results[1].status === "fulfilled") {
+    renderPipeline(results[1].value);
+  } else {
+    els.pipelineStatus.innerHTML = `<div class="mon-error">Failed to load pipeline: ${escHtml(results[1].reason?.message)}</div>`;
+  }
+
+  // Traffic
+  if (results[2].status === "fulfilled") {
+    renderTrafficAlerts(results[2].value);
+  } else {
+    els.trafficAlerts.innerHTML = `<div class="mon-error">Failed to load traffic: ${escHtml(results[2].reason?.message)}</div>`;
+  }
+
+  // Merchants
+  if (results[3].status === "fulfilled") {
+    renderMerchantAlerts(results[3].value);
+  } else {
+    els.merchantAlerts.innerHTML = `<div class="mon-error">Failed to load merchants: ${escHtml(results[3].reason?.message)}</div>`;
+  }
+
+  // Update banner (after all sections have set their counts)
+  renderBanner();
+
+  // Update timestamp
+  if (els.lastUpdated) {
+    els.lastUpdated.textContent = `Updated: ${now.toLocaleTimeString()}`;
+  }
+}
+
+/* ── Init ── */
+if (isKioskMode()) {
+  if (els.toolbar) els.toolbar.style.display = "none";
+  initKioskMode("System Monitor", 30);
+  startAutoRefresh(fetchAll, REFRESH_KIOSK_MS);
+} else {
+  fetchAll();
+
+  if (els.kioskEnterBtn) {
+    els.kioskEnterBtn.addEventListener("click", () => {
+      const url = new URL(window.location);
+      url.searchParams.set("kiosk", "1");
+      window.location.href = url.toString();
+    });
+  }
+
+  setInterval(fetchAll, REFRESH_NORMAL_MS);
+}

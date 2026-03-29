@@ -1592,6 +1592,91 @@ setTimeout(fetchGaRealtimeSnapshot, 45 * 1000); // first fetch 45s after startup
 console.log("[ga-realtime-bg] Background fetch started (every 5 min)");
 
 // ============================================================================
+// System Health Check (every 5 min — frontend + backend per instance)
+// ============================================================================
+let _systemHealthCache = { instances: [], lastCheck: null, history: [] };
+
+async function checkSystemHealth() {
+  try {
+    const instancesFile = await readInstancesFile();
+    const instances = instancesFile.entries || [];
+    const fiRegistry = await loadFiRegistrySafe();
+    const fis = Object.values(fiRegistry);
+    const results = [];
+
+    for (const inst of instances) {
+      const instName = inst.name || "";
+      const result = { name: instName, frontend: null, backend: null };
+
+      // Find a sample FI for this instance to build a frontend URL
+      // Use recently active FI, extract hostname segment from CARDSAVR_INSTANCE
+      const sampleFi = fis
+        .filter(fi => fi.instance === instName && fi.fi_lookup_key)
+        .sort((a, b) => (b.last_seen || "").localeCompare(a.last_seen || ""))[0];
+      // Extract instance hostname from API URL (handles cases like digital-onboarding → digitalonboarding)
+      const apiUrl = inst.CARDSAVR_INSTANCE || "";
+      const apiHostMatch = apiUrl.match(/api\.([^.]+)\.cardsavr\.io/);
+      const urlInstance = apiHostMatch ? apiHostMatch[1] : instName;
+
+      // Frontend check: HTTP HEAD
+      if (sampleFi) {
+        const url = `https://${sampleFi.fi_lookup_key}.${urlInstance}.cardupdatr.app`;
+        const feStart = Date.now();
+        try {
+          const resp = await fetch(url, { method: "HEAD", signal: AbortSignal.timeout(10000) });
+          const feMs = Date.now() - feStart;
+          result.frontend = {
+            status: resp.ok ? (feMs > 3000 ? "yellow" : "green") : "yellow",
+            code: resp.status,
+            ms: feMs,
+            url,
+          };
+        } catch (err) {
+          result.frontend = { status: "red", error: err.message, ms: Date.now() - feStart, url };
+        }
+      }
+
+      // Backend check: SDK login
+      const beStart = Date.now();
+      try {
+        const { session } = await loginWithSdk(inst);
+        const beMs = Date.now() - beStart;
+        result.backend = {
+          status: beMs > 3000 ? "yellow" : "green",
+          ms: beMs,
+        };
+      } catch (err) {
+        result.backend = { status: "red", error: err.message, ms: Date.now() - beStart };
+      }
+
+      results.push(result);
+    }
+
+    const checkTime = new Date().toISOString();
+    // Build history entry
+    const historyEntry = {
+      time: checkTime,
+      instances: results.map(r => ({
+        name: r.name,
+        frontendMs: r.frontend?.ms ?? null,
+        frontendOk: r.frontend?.status !== "red",
+        backendMs: r.backend?.ms ?? null,
+        backendOk: r.backend?.status !== "red",
+      })),
+    };
+    const history = [...(_systemHealthCache.history || []), historyEntry].slice(-12);
+    _systemHealthCache = { instances: results, lastCheck: checkTime, history };
+    console.log(`[system-health] Checked ${results.length} instances (${history.length} history entries)`);
+  } catch (err) {
+    console.error("[system-health] check failed:", err.message);
+  }
+}
+
+setInterval(checkSystemHealth, 5 * 60 * 1000);
+setTimeout(checkSystemHealth, 60 * 1000); // first check 60s after startup
+console.log("[system-health] Background health check started (every 5 min)");
+
+// ============================================================================
 // GA Standard Hourly Refresh (keeps today's GA file fresh)
 // ============================================================================
 const GA_STANDARD_REFRESH_INTERVAL = 60 * 60 * 1000; // 1 hour
@@ -7076,6 +7161,60 @@ const server = http.createServer(async (req, res) => {
     } catch (err) {
       return send(res, 500, { error: err?.message || "Unable to compute health" });
     }
+  }
+
+  // ── System Health — instance frontend/backend status ──
+  if (pathname === "/api/system-health" && req.method === "GET") {
+    const session = await validateSession(req, queryParams);
+    if (!session) {
+      return send(res, 401, { error: "Authentication required" });
+    }
+    // Compute per-instance uptime from history
+    const history = _systemHealthCache.history || [];
+    const uptimeMap = {};
+    if (history.length > 0) {
+      for (const entry of history) {
+        for (const inst of entry.instances) {
+          if (!uptimeMap[inst.name]) uptimeMap[inst.name] = { ok: 0, total: 0 };
+          uptimeMap[inst.name].total += 1;
+          if (inst.frontendOk && inst.backendOk) uptimeMap[inst.name].ok += 1;
+        }
+      }
+    }
+    const uptime = {};
+    for (const [name, counts] of Object.entries(uptimeMap)) {
+      uptime[name] = counts.total > 0 ? Math.round((counts.ok / counts.total) * 100) : 100;
+    }
+    return send(res, 200, {
+      instances: _systemHealthCache.instances,
+      lastCheck: _systemHealthCache.lastCheck,
+      history,
+      uptime,
+    });
+  }
+
+  // ── Pipeline Status — cache freshness info ──
+  if (pathname === "/api/pipeline-status" && req.method === "GET") {
+    const session = await validateSession(req, queryParams);
+    if (!session) {
+      return send(res, 401, { error: "Authentication required" });
+    }
+    const result = {
+      placements_cache: {
+        age_ms: _livePlacementsCacheTime > 0 ? Date.now() - _livePlacementsCacheTime : null,
+        last_update: _livePlacementsCacheTime > 0 ? new Date(_livePlacementsCacheTime).toISOString() : null,
+      },
+      sessions_cache: {
+        age_ms: _liveSessionsCacheTime > 0 ? Date.now() - _liveSessionsCacheTime : null,
+        last_update: _liveSessionsCacheTime > 0 ? new Date(_liveSessionsCacheTime).toISOString() : null,
+      },
+      ga_realtime: {
+        snapshots: _gaRealtimeSnapshots.length,
+        last_snapshot: _gaRealtimeSnapshots.length > 0 ? _gaRealtimeSnapshots[_gaRealtimeSnapshots.length - 1].time : null,
+      },
+      instance_failures: _liveInstanceFailures,
+    };
+    return send(res, 200, result);
   }
 
   // ── Traffic Health — per-FI daily baseline + LIVE today anomaly detection ──

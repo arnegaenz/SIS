@@ -100,7 +100,8 @@ var ITEMS = {
   "activity-log":       { id:"activity-log", label:"User Activity", href:NAV_PREFIX+"activity-log.html" },
   "shared-views":       { id:"shared-views", label:"Shared Links", href:NAV_PREFIX+"shared-views.html" },
   "logs":               { id:"logs", label:"Server Logs", href:NAV_PREFIX+"logs.html" },
-  "synthetic-traffic":  { id:"synthetic-traffic", label:"Synthetic Traffic", href:NAV_PREFIX+"synthetic-traffic.html" }
+  "synthetic-traffic":  { id:"synthetic-traffic", label:"Synthetic Traffic", href:NAV_PREFIX+"synthetic-traffic.html" },
+  "monitor":            { id:"monitor", label:"System Monitor", href:NAV_PREFIX+"dashboards/monitor.html" }
 };
 
 function grp(label, ids) {
@@ -112,7 +113,7 @@ function grp(label, ids) {
 // Full admin GROUPS (all pages including Admin)
 var GROUPS = [
   grp("Partner Analytics", ["executive","funnel-customer","portfolio","supported-sites","campaign-builder"]),
-  grp("Monitoring", ["operations","heatmap","watchlist","realtime","troubleshoot","troubleshoot-customer"]),
+  grp("Monitoring", ["operations","monitor","heatmap","watchlist","realtime","troubleshoot","troubleshoot-customer"]),
   grp("Analysis", ["funnel","customer-success","sources","ux-paths","experience","placement-outcomes","fi-api","playbook"]),
   grp("Admin", ["maintenance","users","activity-log","shared-views","logs","synthetic-traffic"])
 ];
@@ -121,7 +122,7 @@ var GROUPS = [
 var NAV_CONFIGS = {
   "core": [
     grp("Partner Analytics", ["executive","funnel-customer","portfolio","supported-sites","campaign-builder"]),
-    grp("Monitoring", ["operations","heatmap","watchlist","realtime","troubleshoot","troubleshoot-customer"]),
+    grp("Monitoring", ["operations","monitor","heatmap","watchlist","realtime","troubleshoot","troubleshoot-customer"]),
     grp("Analysis", ["funnel","customer-success","sources","ux-paths","experience","placement-outcomes","fi-api","playbook"])
   ],
   "internal": [
@@ -130,7 +131,7 @@ var NAV_CONFIGS = {
     grp("Analysis", ["funnel","experience","troubleshoot"])
   ],
   "siteops": [
-    grp("Monitoring", ["operations","realtime","watchlist"]),
+    grp("Monitoring", ["operations","monitor","realtime","watchlist"]),
     grp("Sites", ["supported-sites","heatmap"]),
     grp("Analysis", ["funnel","troubleshoot"])
   ],
@@ -140,7 +141,7 @@ var NAV_CONFIGS = {
   ],
   "cs": [
     grp("Dashboards", ["portfolio","funnel-customer","customer-success","supported-sites","campaign-builder"]),
-    grp("Monitoring", ["operations","heatmap","realtime","watchlist"]),
+    grp("Monitoring", ["operations","monitor","heatmap","realtime","watchlist"]),
     grp("Analysis", ["funnel","experience"]),
     grp("Support", ["troubleshoot-customer","troubleshoot","fi-api"])
   ],
