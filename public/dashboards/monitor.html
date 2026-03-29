@@ -54,18 +54,20 @@
       <div class="monitor-loading">Checking pipeline...</div>
     </div>
 
-    <!-- Traffic Map -->
-    <div class="monitor-section-title">TRAFFIC MAP <span class="monitor-help" title="Live geographic distribution of CardUpdatr traffic across the United States. Dot size indicates number of active users in each city. Data from GA realtime snapshots (last 30 minutes). International traffic shown as a count below the map.">?</span></div>
-    <div class="monitor-map-container" id="trafficMap"></div>
-
-    <!-- System Totals Strip -->
-    <div class="monitor-section-title">SYSTEM TOTALS (TODAY)</div>
-    <div id="monitorTotals" class="monitor-totals-strip"></div>
-
-    <!-- Live Activity Feed -->
-    <div class="monitor-section-title">LIVE ACTIVITY <span class="monitor-help" title="Real-time feed of recent session and placement events across all CardSavr instances. Shows the last 50 events, refreshed every 30 seconds. Each event shows the time, instance, FI, merchant (if applicable), and status.">?</span></div>
-    <div class="monitor-feed" id="monitorFeed">
-      <div class="monitor-loading">Loading activity feed...</div>
+    <!-- Bottom: Map+Totals (left) | Feed (right) -->
+    <div class="monitor-bottom-split">
+      <div class="monitor-bottom-left">
+        <div class="monitor-section-title">TRAFFIC MAP <span class="monitor-help" title="Live geographic distribution of CardUpdatr traffic across the United States. Dot size indicates number of active users in each city. Data from GA realtime snapshots (last 30 minutes). International traffic shown as a count below the map.">?</span></div>
+        <div class="monitor-map-container" id="trafficMap"></div>
+        <div class="monitor-section-title">SYSTEM TOTALS (TODAY)</div>
+        <div id="monitorTotals" class="monitor-totals-strip"></div>
+      </div>
+      <div class="monitor-bottom-right">
+        <div class="monitor-section-title">LIVE ACTIVITY <span class="monitor-help" title="Real-time feed of recent session and placement events across all CardSavr instances. Shows the last 50 events, refreshed every 30 seconds.">?</span></div>
+        <div class="monitor-feed" id="monitorFeed">
+          <div class="monitor-loading">Loading activity feed...</div>
+        </div>
+      </div>
     </div>
 
     <!-- Detail Modal -->

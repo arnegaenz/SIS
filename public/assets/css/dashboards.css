@@ -3623,9 +3623,35 @@ body.kiosk-mode .traffic-tile.status-dark {
   }
 }
 
+/* ── Bottom Split Layout ── */
+.monitor-bottom-split {
+  display: grid;
+  grid-template-columns: 3fr 2fr;
+  gap: 16px;
+}
+
+.monitor-bottom-left {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  gap: 4px;
+}
+
+.monitor-bottom-left .monitor-map-container {
+  max-height: 220px;
+  overflow: hidden;
+}
+
+.monitor-bottom-right {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
 /* ── Live Activity Feed ── */
 .monitor-feed {
-  max-height: 400px;
+  flex: 1;
+  max-height: 300px;
   overflow-y: auto;
   border: 1px solid var(--border);
   border-radius: 14px;
@@ -3634,8 +3660,7 @@ body.kiosk-mode .traffic-tile.status-dark {
 }
 
 .kiosk-mode .monitor-feed {
-  max-height: calc(100vh - 520px);
-  min-height: 200px;
+  max-height: 400px;
 }
 
 /* Custom scrollbar for dark theme */
