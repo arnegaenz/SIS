@@ -1593,42 +1593,85 @@ function renderMerchantDetailModal(row, prior) {
 
   // Recent events for this merchant from today's feed (respecting feed filters)
   // When "Include test data" is checked, show customer-dev events too
-  const skipDev = state.feedFilters.excludeDevInstance && !state.includeTests;
-  const feedEvents = (state.feedEvents || []).filter(
-    (evt) => (evt.merchant || "").toLowerCase() === name.toLowerCase()
-      && !(skipDev && evt.instance === "customer-dev")
-  );
-  const recentEvents = feedEvents;
-  let eventsHtml = "";
-  if (recentEvents.length) {
-    const eventRows = recentEvents.map((evt) => {
-      const statusCls = evt.status === "success" ? "color:#22c55e" : evt.status === "pending" ? "color:#f59e0b" : "color:#ef4444";
-      const evtDate = evt.timestamp ? new Date(evt.timestamp) : null;
-      const cvd = VIEW_WINDOW_DAYS[viewRotation.views[viewRotation.currentIndex]] || 1;
-      const time = evtDate ? (cvd > 1
-        ? evtDate.toLocaleDateString([], { month: "short", day: "numeric" }) + " " + evtDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-        : evtDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })) : "";
-      const termLabel = evt.termination_type && evt.status !== "success" ? `<span style="font-family:monospace;font-size:0.72rem;color:var(--muted);margin-left:6px;">${evt.termination_type}</span>` : "";
+  // Store merchant name for re-render on toggle
+  window._merchantModalName = name;
+  window._merchantModalShowAll = false;
+
+  function renderMerchantEvents(showAll) {
+    const skipDev = !state.includeTests;
+    const allEvents = (state.feedEvents || []).filter(
+      (evt) => (evt.merchant || "").toLowerCase() === name.toLowerCase()
+        && !(skipDev && evt.instance === "customer-dev")
+    );
+    const filtered = showAll ? allEvents : allEvents.filter(evt => evt.status === "success" || evt.status === "failed");
+    const cvd = VIEW_WINDOW_DAYS[viewRotation.views[viewRotation.currentIndex]] || 1;
+
+    if (filtered.length) {
+      const eventRows = filtered.map((evt) => {
+        const statusCls = evt.status === "success" ? "color:#22c55e" : evt.status === "cancelled" ? "color:#ecc94b" : evt.status === "abandoned" ? "color:#a0aec0" : "color:#ef4444";
+        const evtDate = evt.timestamp ? new Date(evt.timestamp) : null;
+        const time = evtDate ? (cvd > 1
+          ? evtDate.toLocaleDateString([], { month: "short", day: "numeric" }) + " " + evtDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+          : evtDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })) : "";
+        const termLabel = evt.termination_type && evt.status !== "success" ? `<span style="font-family:monospace;font-size:0.72rem;color:var(--muted);margin-left:6px;">${evt.termination_type}</span>` : "";
+        return `
+          <div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--border);">
+            <span style="font-size:0.75rem;color:var(--muted);min-width:48px;font-variant-numeric:tabular-nums;">${time}</span>
+            <span style="font-size:0.78rem;color:var(--text);flex:1;">${evt.fi_name || ""}</span>
+            <span style="font-size:0.75rem;font-weight:600;${statusCls};text-transform:uppercase;">${evt.status || ""}</span>
+            ${termLabel}
+          </div>
+        `;
+      }).join("");
       return `
-        <div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--border);">
-          <span style="font-size:0.75rem;color:var(--muted);min-width:48px;font-variant-numeric:tabular-nums;">${time}</span>
-          <span style="font-size:0.78rem;color:var(--text);flex:1;">${evt.fi_name || ""}</span>
-          <span style="font-size:0.75rem;font-weight:600;${statusCls};text-transform:uppercase;">${evt.status || ""}</span>
-          ${termLabel}
+        <div class="detail-modal__section-title" style="display:flex;align-items:center;justify-content:space-between;">
+          <span>Recent Activity <span style="color:var(--muted);font-weight:400;">(${filtered.length}${!showAll && allEvents.length > filtered.length ? " of " + allEvents.length : ""} events)</span></span>
+          <label style="font-size:0.72rem;font-weight:400;text-transform:none;letter-spacing:0;cursor:pointer;color:var(--muted);"><input type="checkbox" id="merchantShowAll" ${showAll ? "checked" : ""} style="margin-right:4px;" />Show all</label>
         </div>
+        <div class="detail-modal__scrollable">${eventRows}</div>
       `;
-    }).join("");
-    const countNote = feedEvents.length > 0 ? ` <span style="color:var(--muted);font-weight:400;">(${feedEvents.length} events)</span>` : "";
-    eventsHtml = `
-      <div class="detail-modal__section-title">Recent Activity${countNote}</div>
-      <div class="detail-modal__scrollable">${eventRows}</div>
-    `;
-  } else {
-    eventsHtml = `
-      <div class="detail-modal__section-title">Recent Activity</div>
-      <div style="font-size:0.78rem;color:var(--muted);margin-bottom:16px;">No events for this merchant.</div>
+    }
+    return `
+      <div class="detail-modal__section-title" style="display:flex;align-items:center;justify-content:space-between;">
+        <span>Recent Activity</span>
+        <label style="font-size:0.72rem;font-weight:400;text-transform:none;letter-spacing:0;cursor:pointer;color:var(--muted);"><input type="checkbox" id="merchantShowAll" ${showAll ? "checked" : ""} style="margin-right:4px;" />Show all</label>
+      </div>
+      <div style="font-size:0.78rem;color:var(--muted);margin-bottom:16px;">No ${showAll ? "" : "system "}events for this merchant.</div>
     `;
   }
+
+  const eventsContainer = document.createElement("div");
+  eventsContainer.id = "merchantEventsContainer";
+  eventsContainer.innerHTML = renderMerchantEvents(false);
+
+  // Re-render on toggle
+  function bindShowAllToggle() {
+    const cb = document.getElementById("merchantShowAll");
+    if (cb) {
+      cb.addEventListener("change", () => {
+        window._merchantModalShowAll = cb.checked;
+        eventsContainer.innerHTML = renderMerchantEvents(cb.checked);
+        bindShowAllToggle();
+      });
+    }
+  }
+
+  let eventsHtml;
+  // We'll append the container after setting innerHTML, so use a placeholder
+  const eventsPlaceholder = `<div id="merchantEventsPlaceholder"></div>`;
+  eventsHtml = eventsPlaceholder;
+
+  // We need to inject the container after the modal content is set
+  setTimeout(() => {
+    const ph = document.getElementById("merchantEventsPlaceholder");
+    if (ph) {
+      ph.replaceWith(eventsContainer);
+      bindShowAllToggle();
+    }
+  }, 0);
+
+  // Keep eventsHtml for the template below
+  const _eventsHtml = eventsHtml;
 
   const overlay = document.createElement("div");
   overlay.id = "merchantDetailModal";

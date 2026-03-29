@@ -229,67 +229,62 @@ function renderInstances(data) {
   });
 }
 
-/* ── Instance Detail Panel ── */
+/* ── Instance Detail Modal ── */
 let _instanceActivity = null;
 
-async function showInstanceDetail(instName) {
-  const titleEl = document.getElementById("instanceDetailTitle");
-  const detailEl = document.getElementById("instanceDetail");
-  if (!titleEl || !detailEl) return;
-
-  titleEl.style.display = "";
-  detailEl.style.display = "";
-  titleEl.textContent = `INSTANCE: ${instName.toUpperCase()}`;
-
-  // Fetch activity data if not cached
-  if (!_instanceActivity) {
-    detailEl.innerHTML = `<div class="mon-loading">Loading activity data...</div>`;
-    try {
-      _instanceActivity = await fetchJson("/api/instance-activity");
-    } catch {
-      detailEl.innerHTML = `<div class="mon-error">Failed to load activity data</div>`;
-      return;
-    }
-  }
+function showInstanceDetail(instName) {
+  const overlay = document.getElementById("monitorModalOverlay");
+  const nameEl = document.getElementById("monitorModalName");
+  const subEl = document.getElementById("monitorModalSubtitle");
+  const contentEl = document.getElementById("monitorModalContent");
+  if (!overlay || !contentEl) return;
 
   const instData = _instanceActivity?.instances?.[instName];
+
+  nameEl.textContent = instName;
+  subEl.textContent = instData
+    ? `${instData.total_sessions} sessions · ${instData.total_placements} placements · ${instData.fis.length} active FIs`
+    : "No activity data";
+
   if (!instData || instData.fis.length === 0) {
-    detailEl.innerHTML = `<div class="mon-empty">No active FIs on this instance today</div>`;
-    return;
+    contentEl.innerHTML = `<div style="color:var(--muted);font-size:0.85rem;padding:16px 0;">No active FIs on this instance today.</div>`;
+  } else {
+    contentEl.innerHTML = `
+      <div style="display:flex;gap:24px;margin-bottom:16px;">
+        <div>
+          <div style="font-size:2rem;font-weight:700;color:var(--text);">${instData.total_sessions}</div>
+          <div style="font-size:0.7rem;color:var(--muted);text-transform:uppercase;">Sessions Today</div>
+        </div>
+        <div>
+          <div style="font-size:2rem;font-weight:700;color:var(--text);">${instData.total_placements}</div>
+          <div style="font-size:0.7rem;color:var(--muted);text-transform:uppercase;">Placements Today</div>
+        </div>
+        <div>
+          <div style="font-size:2rem;font-weight:700;color:var(--accent, #63b3ed);">${instData.fis.length}</div>
+          <div style="font-size:0.7rem;color:var(--muted);text-transform:uppercase;">Active FIs</div>
+        </div>
+      </div>
+      <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:8px;">Active FIs</div>
+      <div class="detail-modal__scrollable">
+        <div style="border:1px solid var(--border);border-radius:10px;overflow:hidden;">
+          <div style="display:grid;grid-template-columns:2fr 1fr 1fr 2fr;padding:8px 14px;background:var(--panel-light);font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);">
+            <span>FI</span><span>Sessions</span><span>Placements</span><span>Last Seen</span>
+          </div>
+          ${instData.fis.map(fi => `
+            <div style="display:grid;grid-template-columns:2fr 1fr 1fr 2fr;padding:8px 14px;border-top:1px solid var(--border);font-size:0.8rem;">
+              <span style="color:var(--text);font-weight:500;">${escHtml(fi.fi_name)}</span>
+              <span style="color:var(--text);">${fi.sessions}</span>
+              <span style="color:var(--text);">${fi.placements}</span>
+              <span style="color:var(--muted);">${fi.last_seen ? formatRelativeTime(fi.last_seen) : "\u2014"}</span>
+            </div>
+          `).join("")}
+        </div>
+      </div>
+    `;
   }
 
-  detailEl.innerHTML = `
-    <div style="display:flex;gap:24px;margin-bottom:16px;">
-      <div>
-        <div style="font-size:1.8rem;font-weight:700;color:var(--text);">${instData.total_sessions}</div>
-        <div style="font-size:0.7rem;color:var(--muted);text-transform:uppercase;">Sessions Today</div>
-      </div>
-      <div>
-        <div style="font-size:1.8rem;font-weight:700;color:var(--text);">${instData.total_placements}</div>
-        <div style="font-size:0.7rem;color:var(--muted);text-transform:uppercase;">Placements Today</div>
-      </div>
-      <div>
-        <div style="font-size:1.8rem;font-weight:700;color:var(--accent, #63b3ed);">${instData.fis.length}</div>
-        <div style="font-size:0.7rem;color:var(--muted);text-transform:uppercase;">Active FIs</div>
-      </div>
-    </div>
-    <div style="border:1px solid var(--border);border-radius:10px;overflow:hidden;">
-      <div style="display:grid;grid-template-columns:2fr 1fr 1fr 2fr;padding:8px 14px;background:var(--panel-light);font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);">
-        <span>FI</span><span>Sessions</span><span>Placements</span><span>Last Seen</span>
-      </div>
-      ${instData.fis.map(fi => `
-        <div style="display:grid;grid-template-columns:2fr 1fr 1fr 2fr;padding:8px 14px;border-top:1px solid var(--border);font-size:0.8rem;">
-          <span style="color:var(--text);font-weight:500;">${escHtml(fi.fi_name)}</span>
-          <span style="color:var(--text);">${fi.sessions}</span>
-          <span style="color:var(--text);">${fi.placements}</span>
-          <span style="color:var(--muted);">${fi.last_seen ? formatRelativeTime(fi.last_seen) : "—"}</span>
-        </div>
-      `).join("")}
-    </div>
-  `;
-
-  // Scroll to detail
-  detailEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  overlay.style.display = "";
+  requestAnimationFrame(() => overlay.classList.add("open"));
 }
 
 /* ── Render: Pipeline Status ── */
