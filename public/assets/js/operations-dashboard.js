@@ -226,10 +226,13 @@ function handleArrowKey(direction) {
   commandCenterRefresh();
 }
 
-function togglePlayPause() {
+function togglePlayPause(e) {
+  if (e) { e.stopPropagation(); e.preventDefault(); }
   if (viewRotation.mode === "auto") {
     pauseViewCycle();
+    clearTimeout(viewRotation.resumeTimer); // don't auto-resume after explicit pause
   } else {
+    clearTimeout(viewRotation.resumeTimer);
     startViewCycle();
   }
   updatePlayPauseButton();
@@ -763,18 +766,38 @@ function initCommandCenter() {
     ppBtn.addEventListener("click", togglePlayPause);
   }
 
+  // Exit kiosk button
+  const exitBtn = document.getElementById("phExitKiosk");
+  if (exitBtn) {
+    exitBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const url = new URL(window.location);
+      url.searchParams.delete("kiosk");
+      window.location.href = url.toString();
+    });
+  }
+
   // Any interaction pauses rotation, resumes after 1 minute of inactivity
   function handleInteraction(e) {
-    // Don't pause if clicking the play/pause button itself
-    if (e.target.closest && e.target.closest(".kiosk-ph__playpause")) return;
+    // Don't interfere with controls
+    if (e.target.closest && (
+      e.target.closest(".kiosk-ph__playpause") ||
+      e.target.closest(".detail-modal__close") ||
+      e.target.closest(".detail-modal-overlay") ||
+      e.target.closest(".kiosk-ph__health") ||
+      e.target.closest("button") ||
+      e.target.closest("input") ||
+      e.target.closest("label")
+    )) return;
     if (viewRotation.mode === "auto") {
       pauseViewCycle();
-    }
-    clearTimeout(viewRotation.resumeTimer);
-    viewRotation.resumeTimer = setTimeout(() => {
-      startViewCycle();
       updatePlayPauseButton();
-    }, viewRotation.resumeMs);
+      clearTimeout(viewRotation.resumeTimer);
+      viewRotation.resumeTimer = setTimeout(() => {
+        startViewCycle();
+        updatePlayPauseButton();
+      }, viewRotation.resumeMs);
+    }
   }
   document.addEventListener("click", handleInteraction);
   document.addEventListener("scroll", handleInteraction, true);
@@ -1575,12 +1598,16 @@ function renderMerchantDetailModal(row, prior) {
     (evt) => (evt.merchant || "").toLowerCase() === name.toLowerCase()
       && !(skipDev && evt.instance === "customer-dev")
   );
-  const recentEvents = feedEvents.slice(0, 10);
+  const recentEvents = feedEvents;
   let eventsHtml = "";
   if (recentEvents.length) {
     const eventRows = recentEvents.map((evt) => {
       const statusCls = evt.status === "success" ? "color:#22c55e" : evt.status === "pending" ? "color:#f59e0b" : "color:#ef4444";
-      const time = evt.timestamp ? new Date(evt.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "";
+      const evtDate = evt.timestamp ? new Date(evt.timestamp) : null;
+      const cvd = VIEW_WINDOW_DAYS[viewRotation.views[viewRotation.currentIndex]] || 1;
+      const time = evtDate ? (cvd > 1
+        ? evtDate.toLocaleDateString([], { month: "short", day: "numeric" }) + " " + evtDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+        : evtDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })) : "";
       const termLabel = evt.termination_type && evt.status !== "success" ? `<span style="font-family:monospace;font-size:0.72rem;color:var(--muted);margin-left:6px;">${evt.termination_type}</span>` : "";
       return `
         <div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--border);">
@@ -1591,15 +1618,15 @@ function renderMerchantDetailModal(row, prior) {
         </div>
       `;
     }).join("");
-    const countNote = feedEvents.length > 10 ? ` <span style="color:var(--muted);font-weight:400;">(showing 10 of ${feedEvents.length})</span>` : "";
+    const countNote = feedEvents.length > 0 ? ` <span style="color:var(--muted);font-weight:400;">(${feedEvents.length} events)</span>` : "";
     eventsHtml = `
-      <div class="detail-modal__section-title">Recent Activity (24h)${countNote}</div>
-      <div style="margin-bottom:16px;">${eventRows}</div>
+      <div class="detail-modal__section-title">Recent Activity${countNote}</div>
+      <div class="detail-modal__scrollable">${eventRows}</div>
     `;
   } else {
     eventsHtml = `
-      <div class="detail-modal__section-title">Recent Activity (24h)</div>
-      <div style="font-size:0.78rem;color:var(--muted);margin-bottom:16px;">No events for this merchant in the last 24 hours.</div>
+      <div class="detail-modal__section-title">Recent Activity</div>
+      <div style="font-size:0.78rem;color:var(--muted);margin-bottom:16px;">No events for this merchant.</div>
     `;
   }
 
@@ -2278,14 +2305,22 @@ function renderKioskTrafficHealth(data, windowDays) {
       tile.addEventListener("click", () => {
         const fiKey = tile.dataset.fiKey;
         const fi = data.fis.find(f => f.fi_lookup_key === fiKey);
-        if (fi) renderTrafficDetailModal(fi, data);
+        if (fi) renderTrafficDetailModal(fi, data, days);
       });
     });
   }
 }
 
-function renderTrafficDetailModal(fi, data) {
+function renderTrafficDetailModal(fi, data, windowDays) {
   if (!trafficEls.detailOverlay) return;
+  const days = windowDays || 1;
+  const windowLabel = days === 1 ? "Today" : `${days}d`;
+  const dailyCounts = fi.daily_counts || [];
+  const windowSessions = days === 1 ? fi.today_sessions : dailyCounts.slice(-days).reduce((s, c) => s + c, 0);
+
+  // Pause rotation while modal is open, remember previous state
+  viewRotation.modeBeforeModal = viewRotation.mode;
+  if (viewRotation.mode === "auto") pauseViewCycle();
 
   trafficEls.detailName.textContent = fi.fi_name;
   trafficEls.detailSubtitle.textContent = `${fi.partner} · ${fi.instance || fi.integration_type}`;
@@ -2293,12 +2328,12 @@ function renderTrafficDetailModal(fi, data) {
   // Stats grid
   const statItems = [
     { label: "Status", value: fi.status.toUpperCase(), color: trafficHealthColor(fi.status) },
-    { label: "Today", value: `${fi.today_sessions} sessions` },
-    { label: "Projected", value: `${fi.today_projected} sessions` },
+    { label: windowLabel, value: `${windowSessions} sessions` },
+    { label: "Projected", value: days === 1 ? `${fi.today_projected} sessions` : "—" },
     { label: "Baseline (median)", value: `${fi.baseline_median}/day` },
     { label: "Baseline (avg)", value: `${fi.baseline_avg}/day` },
     { label: "Yesterday", value: `${fi.yesterday_sessions} sessions` },
-    { label: "% of Baseline (proj)", value: `${fi.pct_of_baseline}%` },
+    { label: "% of Baseline (proj)", value: days === 1 ? `${fi.pct_of_baseline}%` : "—" },
     { label: "Hours Since Last", value: fi.hours_since_last != null ? `${fi.hours_since_last}h` : "N/A" },
   ];
 
@@ -2314,8 +2349,8 @@ function renderTrafficDetailModal(fi, data) {
     })
     .join("");
 
-  // Bar chart: 15 daily counts with baseline line
-  const counts = fi.daily_counts;
+  // Bar chart: daily counts with baseline line, highlight window
+  const counts = (fi.daily_counts || []).slice(-7);
   const baseline = fi.baseline_median;
   const maxVal = Math.max(...counts, baseline, 1);
   const chartW = 560;
@@ -2330,14 +2365,14 @@ function renderTrafficDetailModal(fi, data) {
     const barH = Math.max(1, (val / maxVal) * usableH);
     const x = padding + i * (barW + 4);
     const y = chartH - padding - barH;
-    const isToday = i === barCount - 1;
+    const isInWindow = i >= barCount - days;
     let fill;
-    if (isToday) {
+    if (isInWindow) {
       fill = fi.status === "dark" ? "#ef4444" : fi.status === "low" ? "#f59e0b" : fi.status === "sleeping" ? "#818cf8" : "#22c55e";
     } else {
       fill = "var(--accent)";
     }
-    bars += `<rect x="${x}" y="${y}" width="${barW}" height="${barH}" rx="3" fill="${fill}" opacity="${isToday ? 1 : 0.4}" />`;
+    bars += `<rect x="${x}" y="${y}" width="${barW}" height="${barH}" rx="3" fill="${fill}" opacity="${isInWindow ? 1 : 0.4}" />`;
     // Value label on top
     if (val > 0) {
       bars += `<text x="${x + barW / 2}" y="${y - 4}" text-anchor="middle" fill="var(--muted)" font-size="9">${val}</text>`;
@@ -2377,6 +2412,11 @@ function closeTrafficDetail() {
   if (!trafficEls.detailOverlay) return;
   trafficEls.detailOverlay.classList.remove("open");
   setTimeout(() => { trafficEls.detailOverlay.style.display = "none"; }, 200);
+  // Restore previous play/pause state
+  if (viewRotation.modeBeforeModal === "auto") {
+    startViewCycle();
+    updatePlayPauseButton();
+  }
 }
 
 // Bind modal close handlers
@@ -2398,7 +2438,7 @@ function init() {
   const kiosk = isKioskMode();
 
   if (kiosk) {
-    initKioskMode("Operations Command Center", 30);
+    initKioskMode("Success Dashboard", 30);
     initCommandCenter();
     state.windowDays = 8;
     loadFiRegistry();

@@ -81,7 +81,7 @@ var ITEMS = {
   "portfolio":          { id:"portfolio", label:"CS Portfolio", href:NAV_PREFIX+"dashboards/portfolio.html" },
   "supported-sites":    { id:"supported-sites", label:"Supported Sites", href:NAV_PREFIX+"supported-sites.html" },
   "campaign-builder":   { id:"campaign-builder", label:"Campaign URL Builder", href:NAV_PREFIX+"campaign-builder.html" },
-  "operations":         { id:"operations", label:"Operations Dashboard", href:NAV_PREFIX+"dashboards/operations.html" },
+  "operations":         { id:"operations", label:"Success Dashboard", href:NAV_PREFIX+"dashboards/operations.html" },
   "heatmap":            { id:"heatmap", label:"Merchant Heatmap", href:NAV_PREFIX+"heatmap.html" },
   "watchlist":          { id:"watchlist", label:"Alerts & Watchlist", href:NAV_PREFIX+"watchlist.html" },
   "realtime":           { id:"realtime", label:"Real-Time", href:NAV_PREFIX+"realtime.html" },

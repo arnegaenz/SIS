@@ -1501,10 +1501,18 @@ body.kiosk-mode .table-scroll th {
   width: 90%;
   max-width: 680px;
   max-height: 85vh;
-  overflow-y: auto;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
   transform: scale(0.95);
   transition: transform 0.2s ease;
+}
+
+.detail-modal__scrollable {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
 }
 
 .detail-modal-overlay.open .detail-modal {
@@ -1766,6 +1774,24 @@ body.kiosk-mode .table-scroll th {
 .kiosk-ph__playpause.paused {
   color: #48bb78;
   border-color: #48bb78;
+}
+
+.kiosk-ph__exit {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: 6px;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.kiosk-ph__exit:hover {
+  color: var(--text);
+  border-color: var(--text);
 }
 
 .kiosk-ph__progress {

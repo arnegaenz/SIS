@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Operations Dashboard</title>
+  <title>Success Dashboard</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
   <link rel="stylesheet" href="../sis-shared.css?v=navfix" />
   <link rel="stylesheet" href="../assets/css/sis.css" />
@@ -19,7 +19,7 @@
         window.__sisHeaderNav_operations = true;
         window.renderHeaderNav({
           currentId: "operations",
-          title: "Operations Dashboard",
+          title: "Success Dashboard",
           subtitle: "Failure rates, error modes, and merchant stability signals."
         });
       }
@@ -216,6 +216,7 @@
         </div>
         <div class="kiosk-ph__clock" id="phClock" title="Current local time. Data refreshes every 30 seconds."></div>
         <button class="kiosk-ph__playpause" id="phPlayPause" title="Play/Pause view rotation. Arrow keys also work."><svg width="20" height="22" viewBox="0 0 20 22"><rect x="2" y="1" width="5" height="20" rx="1" fill="currentColor"/><rect x="13" y="1" width="5" height="20" rx="1" fill="currentColor"/></svg></button>
+        <button class="kiosk-ph__exit" id="phExitKiosk" title="Exit kiosk mode">Exit</button>
       </div>
       <div class="kiosk-ph__progress" id="phCycleProgress" title="View cycle progress bar. When full, transitions to the next view. Arrow keys pause auto-cycling.">
         <div class="kiosk-ph__progress-push" id="phCycleProgressPush"></div>
