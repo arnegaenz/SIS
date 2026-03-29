@@ -54,17 +54,9 @@
       <div class="monitor-loading">Checking pipeline...</div>
     </div>
 
-    <!-- Alerts Panel -->
-    <div class="monitor-alerts-panel">
-      <div class="monitor-alerts-col">
-        <div class="monitor-section-title">TRAFFIC ANOMALIES <span class="monitor-help" title="Flags FIs whose session volume is abnormal compared to their 14-day rolling baseline. DARK: was active, now zero sessions — possible outage or integration failure. LOW: sending traffic but significantly below baseline — something changed. Only FIs averaging 5+ sessions/day are monitored. 'Sleeping' FIs (expected quiet period based on time of day) are excluded.">?</span> <span class="monitor-badge" id="trafficBadge">0</span></div>
-        <div class="monitor-alert-list" id="trafficAlerts"></div>
-      </div>
-      <div class="monitor-alerts-col">
-        <div class="monitor-section-title">MERCHANT ALERTS <span class="monitor-help" title="Flags merchants with failure rates above 50% (minimum 3 jobs in the last 7 days). Shows the failure ratio, top error code, and a visual bar comparing successes vs failures. SITE_INTERACTION_FAILURE typically means the merchant changed their website and the automation needs updating. Click a merchant for detailed job history.">?</span> <span class="monitor-badge" id="merchantBadge">0</span></div>
-        <div class="monitor-alert-list" id="merchantAlerts"></div>
-      </div>
-    </div>
+    <!-- Instance Detail (populated on click) -->
+    <div class="monitor-section-title" id="instanceDetailTitle" style="display:none;">INSTANCE DETAIL <span class="monitor-help" title="Shows active FIs sending traffic through this instance, their recent session counts, and the last time each FI was seen. Click an instance card above to view its detail.">?</span></div>
+    <div class="monitor-instance-detail" id="instanceDetail" style="display:none;"></div>
     <!-- Detail Modal -->
     <div class="detail-modal-overlay" id="monitorModalOverlay" style="display:none;">
       <div class="detail-modal" id="monitorModal">

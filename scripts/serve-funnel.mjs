@@ -7217,6 +7217,77 @@ const server = http.createServer(async (req, res) => {
     return send(res, 200, result);
   }
 
+  // ── Instance Activity — per-instance FI session counts from live caches ──
+  if (pathname === "/api/instance-activity" && req.method === "GET") {
+    const session = await validateSession(req, queryParams);
+    if (!session) {
+      return send(res, 401, { error: "Authentication required" });
+    }
+    try {
+      const fiRegistry = await loadFiRegistrySafe();
+      const fiMeta = buildFiMetaMap(fiRegistry);
+      const instancesFile = await readInstancesFile();
+      const instNames = (instancesFile.entries || []).map(e => e.name || "");
+
+      const result = {};
+      for (const instName of instNames) {
+        result[instName] = { total_sessions: 0, total_placements: 0, fis: [] };
+      }
+
+      // Count sessions per instance/FI from live session cache
+      const fiByInstance = new Map(); // "inst:fiKey" → { fi_name, sessions, last_seen }
+      if (_liveSessionsCache) {
+        for (const sess of _liveSessionsCache) {
+          const inst = formatInstanceDisplay(sess._instance || "unknown");
+          const fiKey = normalizeFiKey(sess.financial_institution_lookup_key || sess.fi_lookup_key || sess.fi_name || "");
+          const fiName = fiMeta.get(fiKey)?.fi || sess.fi_name || fiKey || "Unknown";
+          const key = `${inst}:${fiKey}`;
+          if (!fiByInstance.has(key)) fiByInstance.set(key, { fi_key: fiKey, fi_name: fiName, instance: inst, sessions: 0, placements: 0, last_seen: "" });
+          const entry = fiByInstance.get(key);
+          entry.sessions++;
+          const ts = sess.created_on || "";
+          if (ts > entry.last_seen) entry.last_seen = ts;
+        }
+      }
+
+      // Count placements per instance/FI from live placement cache
+      if (_livePlacementsCache) {
+        for (const pl of _livePlacementsCache) {
+          const inst = formatInstanceDisplay(pl._instance || "unknown");
+          const fiKey = normalizeFiKey(pl.fi_lookup_key || pl.fi || "");
+          const fiName = fiMeta.get(fiKey)?.fi || pl.fi_name || fiKey || "Unknown";
+          const key = `${inst}:${fiKey}`;
+          if (!fiByInstance.has(key)) fiByInstance.set(key, { fi_key: fiKey, fi_name: fiName, instance: inst, sessions: 0, placements: 0, last_seen: "" });
+          fiByInstance.get(key).placements++;
+        }
+      }
+
+      // Group into result
+      for (const entry of fiByInstance.values()) {
+        const inst = entry.instance;
+        if (!result[inst]) result[inst] = { total_sessions: 0, total_placements: 0, fis: [] };
+        result[inst].total_sessions += entry.sessions;
+        result[inst].total_placements += entry.placements;
+        result[inst].fis.push({
+          fi_key: entry.fi_key,
+          fi_name: entry.fi_name,
+          sessions: entry.sessions,
+          placements: entry.placements,
+          last_seen: entry.last_seen,
+        });
+      }
+
+      // Sort FIs by session count desc
+      for (const inst of Object.values(result)) {
+        inst.fis.sort((a, b) => b.sessions - a.sessions);
+      }
+
+      return send(res, 200, { instances: result, cached_at: new Date().toISOString() });
+    } catch (err) {
+      return send(res, 500, { error: err?.message || "Unable to compute instance activity" });
+    }
+  }
+
   // ── Traffic Health — per-FI daily baseline + LIVE today anomaly detection ──
   if (pathname === "/api/traffic-health" && req.method === "GET") {
     const session = await validateSession(req, queryParams);

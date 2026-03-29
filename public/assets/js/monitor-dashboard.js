@@ -156,6 +156,11 @@ function renderInstances(data) {
     if (overallColor === "red") instanceDown++;
     else if (overallColor === "yellow") instanceWarn++;
 
+    // Active FI count from cached activity data
+    const activityData = _instanceActivity?.instances?.[inst.name];
+    const activeFis = activityData?.fis?.length || 0;
+    const todaySessions = activityData?.total_sessions || 0;
+
     const uptimePct = uptime[inst.name] ?? 100;
     const uptimeColor = uptimePct >= 100 ? "#48bb78" : uptimePct >= 75 ? "#ecc94b" : "#fc8181";
 
@@ -178,7 +183,7 @@ function renderInstances(data) {
     if (beError) tooltip += `\nBE Error: ${beError}`;
 
     return `
-      <div class="mon-instance-card mon-instance-card--${overallColor}" title="${escHtml(tooltip)}">
+      <div class="mon-instance-card mon-instance-card--${overallColor}" data-instance="${escHtml(inst.name)}" style="cursor:pointer;" title="${escHtml(tooltip)}">
         <div class="mon-instance-card__top">
           <span class="mon-instance-card__name">${escHtml(inst.name)}</span>
           <span class="mon-dot mon-dot--${overallColor} ${overallColor === "red" ? "mon-dot--pulse" : ""}"></span>
@@ -205,6 +210,7 @@ function renderInstances(data) {
           <div class="mon-instance-card__sparkline">
             ${sparklineSvg(feHistory.length >= 2 ? feHistory : beHistory, 60, 20, overallColor === "green" ? "#48bb78" : overallColor === "yellow" ? "#ecc94b" : "#fc8181")}
           </div>
+          <span style="font-size:0.7rem;color:var(--muted);">${activeFis} FIs · ${todaySessions} sessions</span>
           <span class="mon-instance-card__uptime" style="color:${uptimeColor}">${uptimePct}%</span>
         </div>
       </div>
@@ -213,6 +219,77 @@ function renderInstances(data) {
 
   _bannerState.down = instanceDown;
   _bannerState.warnings = instanceWarn;
+
+  // Bind click handlers for instance detail
+  grid.querySelectorAll(".mon-instance-card[data-instance]").forEach(card => {
+    card.addEventListener("click", () => {
+      const instName = card.dataset.instance;
+      showInstanceDetail(instName);
+    });
+  });
+}
+
+/* ── Instance Detail Panel ── */
+let _instanceActivity = null;
+
+async function showInstanceDetail(instName) {
+  const titleEl = document.getElementById("instanceDetailTitle");
+  const detailEl = document.getElementById("instanceDetail");
+  if (!titleEl || !detailEl) return;
+
+  titleEl.style.display = "";
+  detailEl.style.display = "";
+  titleEl.textContent = `INSTANCE: ${instName.toUpperCase()}`;
+
+  // Fetch activity data if not cached
+  if (!_instanceActivity) {
+    detailEl.innerHTML = `<div class="mon-loading">Loading activity data...</div>`;
+    try {
+      _instanceActivity = await fetchJson("/api/instance-activity");
+    } catch {
+      detailEl.innerHTML = `<div class="mon-error">Failed to load activity data</div>`;
+      return;
+    }
+  }
+
+  const instData = _instanceActivity?.instances?.[instName];
+  if (!instData || instData.fis.length === 0) {
+    detailEl.innerHTML = `<div class="mon-empty">No active FIs on this instance today</div>`;
+    return;
+  }
+
+  detailEl.innerHTML = `
+    <div style="display:flex;gap:24px;margin-bottom:16px;">
+      <div>
+        <div style="font-size:1.8rem;font-weight:700;color:var(--text);">${instData.total_sessions}</div>
+        <div style="font-size:0.7rem;color:var(--muted);text-transform:uppercase;">Sessions Today</div>
+      </div>
+      <div>
+        <div style="font-size:1.8rem;font-weight:700;color:var(--text);">${instData.total_placements}</div>
+        <div style="font-size:0.7rem;color:var(--muted);text-transform:uppercase;">Placements Today</div>
+      </div>
+      <div>
+        <div style="font-size:1.8rem;font-weight:700;color:var(--accent, #63b3ed);">${instData.fis.length}</div>
+        <div style="font-size:0.7rem;color:var(--muted);text-transform:uppercase;">Active FIs</div>
+      </div>
+    </div>
+    <div style="border:1px solid var(--border);border-radius:10px;overflow:hidden;">
+      <div style="display:grid;grid-template-columns:2fr 1fr 1fr 2fr;padding:8px 14px;background:var(--panel-light);font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);">
+        <span>FI</span><span>Sessions</span><span>Placements</span><span>Last Seen</span>
+      </div>
+      ${instData.fis.map(fi => `
+        <div style="display:grid;grid-template-columns:2fr 1fr 1fr 2fr;padding:8px 14px;border-top:1px solid var(--border);font-size:0.8rem;">
+          <span style="color:var(--text);font-weight:500;">${escHtml(fi.fi_name)}</span>
+          <span style="color:var(--text);">${fi.sessions}</span>
+          <span style="color:var(--text);">${fi.placements}</span>
+          <span style="color:var(--muted);">${fi.last_seen ? formatRelativeTime(fi.last_seen) : "—"}</span>
+        </div>
+      `).join("")}
+    </div>
+  `;
+
+  // Scroll to detail
+  detailEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
 
 /* ── Render: Pipeline Status ── */
@@ -618,19 +695,11 @@ async function fetchAll() {
   dateFrom.setDate(dateFrom.getDate() - 7);
   const dateFromStr = `${dateFrom.getFullYear()}-${pad(dateFrom.getMonth() + 1)}-${pad(dateFrom.getDate())}`;
 
-  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const results = await Promise.allSettled([
     fetchJson("/api/system-health"),
     fetchJson("/api/pipeline-status"),
-    fetchJson("/api/traffic-health"),
-    fetchJson(`/api/metrics/ops?date_from=${dateFromStr}&date_to=${dateTo}`),
-    fetchJson(`/api/metrics/ops-feed?tz=${encodeURIComponent(tz)}&days=7`),
+    fetchJson("/api/instance-activity"),
   ]);
-
-  // Store feed events for modal detail
-  if (results[4]?.status === "fulfilled") {
-    _lastFeedEvents = results[4].value?.allEvents || results[4].value?.events || [];
-  }
 
   // Instance health
   if (results[0].status === "fulfilled") {
@@ -646,18 +715,9 @@ async function fetchAll() {
     els.pipelineStatus.innerHTML = `<div class="mon-error">Failed to load pipeline: ${escHtml(results[1].reason?.message)}</div>`;
   }
 
-  // Traffic
+  // Cache instance activity for detail panel
   if (results[2].status === "fulfilled") {
-    renderTrafficAlerts(results[2].value);
-  } else {
-    els.trafficAlerts.innerHTML = `<div class="mon-error">Failed to load traffic: ${escHtml(results[2].reason?.message)}</div>`;
-  }
-
-  // Merchants
-  if (results[3].status === "fulfilled") {
-    renderMerchantAlerts(results[3].value);
-  } else {
-    els.merchantAlerts.innerHTML = `<div class="mon-error">Failed to load merchants: ${escHtml(results[3].reason?.message)}</div>`;
+    _instanceActivity = results[2].value;
   }
 
   // Update banner (after all sections have set their counts)

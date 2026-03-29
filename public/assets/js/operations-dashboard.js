@@ -548,9 +548,9 @@ function render1DayTimeline(feedEvents, gaTimeline, gaHourly, timelineDays) {
         // Standard GA — funnel page breakdown if available, purple fallback otherwise
         if (funnelTotal > 0) {
           const sm = ga.select_merchants, ud = ga.user_data, ce = ga.credential_entry;
-          if (sm > 0) bottomHtml += `<div class="kiosk-1d__bar-segment kiosk-1d__bar-segment--select-merchants" style="height:${(sm/funnelTotal)*heightPct}%"></div>`;
-          if (ud > 0) bottomHtml += `<div class="kiosk-1d__bar-segment kiosk-1d__bar-segment--user-data" style="height:${(ud/funnelTotal)*heightPct}%"></div>`;
           if (ce > 0) bottomHtml += `<div class="kiosk-1d__bar-segment kiosk-1d__bar-segment--credential-entry" style="height:${(ce/funnelTotal)*heightPct}%"></div>`;
+          if (ud > 0) bottomHtml += `<div class="kiosk-1d__bar-segment kiosk-1d__bar-segment--user-data" style="height:${(ud/funnelTotal)*heightPct}%"></div>`;
+          if (sm > 0) bottomHtml += `<div class="kiosk-1d__bar-segment kiosk-1d__bar-segment--select-merchants" style="height:${(sm/funnelTotal)*heightPct}%"></div>`;
         } else {
           bottomHtml += `<div class="kiosk-1d__bar-segment kiosk-1d__bar-segment--ga-standard" style="height:${heightPct}%"></div>`;
         }
