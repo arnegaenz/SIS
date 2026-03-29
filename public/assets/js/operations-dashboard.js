@@ -79,7 +79,7 @@ const state = {
   trafficShowNormal: false,
   trafficShowSleeping: false,
   feedFilters: {
-    statuses: new Set(["success", "failed", "cancelled", "abandoned", "session"]),
+    statuses: new Set(["success", "failed", "cancelled"]),
     merchants: new Set(),
     fis: new Set(),
     excludeDevInstance: true,
@@ -141,19 +141,25 @@ function startViewCycle() {
   }
   viewRotation.progressRaf = requestAnimationFrame(animateProgress);
 
-  viewRotation.cycleTimer = setTimeout(() => {
-    // Switch view
-    if (viewRotation.views.length > 1) {
-      const nextIndex = (viewRotation.currentIndex + 1) % viewRotation.views.length;
-      transitionToView(nextIndex);
-    }
-    // Alternate phase for next cycle
+  viewRotation.cycleTimer = setTimeout(async () => {
+    // Alternate phase
     viewRotation.phase = isFillPhase ? "push" : "fill";
-    // After push phase completes, reset both bars for next fill
     if (!isFillPhase) {
       if (fillEl) { fillEl.style.transition = "none"; fillEl.style.width = "0%"; }
       if (pushEl) { pushEl.style.transition = "none"; pushEl.style.width = "0%"; }
     }
+
+    // Determine next view
+    if (viewRotation.views.length > 1) {
+      const nextIndex = (viewRotation.currentIndex + 1) % viewRotation.views.length;
+      viewRotation.currentIndex = nextIndex;
+      const viewKey = viewRotation.views[nextIndex];
+      const labelEl = document.getElementById("phViewLabel");
+      if (labelEl) labelEl.textContent = VIEW_NAMES[viewKey] || viewKey;
+    }
+
+    // Fetch ALL data for the new view, then render everything at once
+    await commandCenterRefresh();
     startViewCycle();
   }, viewRotation.cycleMs);
 }
@@ -165,11 +171,11 @@ function pauseViewCycle() {
   clearTimeout(viewRotation.resumeTimer);
 
   const fillEl = document.getElementById("phCycleProgressFill");
+  const pushEl = document.getElementById("phCycleProgressPush");
   if (fillEl) fillEl.style.width = "0%";
+  if (pushEl) { pushEl.style.transition = "none"; pushEl.style.width = "0%"; }
 
-  viewRotation.resumeTimer = setTimeout(() => {
-    startViewCycle();
-  }, viewRotation.resumeMs);
+  updatePlayPauseButton();
 }
 
 const VIEW_WINDOW_DAYS = { "1day": 1, "3day": 3, "7day": 7 };
@@ -213,7 +219,34 @@ function handleArrowKey(direction) {
   if (len <= 1) return;
   pauseViewCycle();
   const nextIndex = (viewRotation.currentIndex + direction + len) % len;
-  transitionToView(nextIndex);
+  viewRotation.currentIndex = nextIndex;
+  const viewKey = viewRotation.views[nextIndex];
+  const labelEl = document.getElementById("phViewLabel");
+  if (labelEl) labelEl.textContent = VIEW_NAMES[viewKey] || viewKey;
+  commandCenterRefresh();
+}
+
+function togglePlayPause() {
+  if (viewRotation.mode === "auto") {
+    pauseViewCycle();
+  } else {
+    startViewCycle();
+  }
+  updatePlayPauseButton();
+}
+
+function updatePlayPauseButton() {
+  const btn = document.getElementById("phPlayPause");
+  if (!btn) return;
+  if (viewRotation.mode === "auto") {
+    btn.innerHTML = '<svg width="20" height="22" viewBox="0 0 20 22"><rect x="2" y="1" width="5" height="20" rx="1" fill="currentColor"/><rect x="13" y="1" width="5" height="20" rx="1" fill="currentColor"/></svg>';
+    btn.classList.remove("paused");
+    btn.title = "Pause rotation (spacebar)";
+  } else {
+    btn.innerHTML = '<svg width="20" height="22" viewBox="0 0 20 22"><polygon points="3,1 3,21 19,11" fill="currentColor"/></svg>';
+    btn.classList.add("paused");
+    btn.title = "Resume rotation (spacebar)";
+  }
 }
 
 /* ── Command Center — Persistent Header ── */
@@ -243,30 +276,14 @@ function animateValue(el, target, duration) {
 }
 
 function renderPersistentHeader(opsData, healthData, gaTimeline) {
-  // Live count from GA realtime
-  const liveCountEl = document.getElementById("phLiveCount");
-  const deviceSplitEl = document.getElementById("phDeviceSplit");
-  if (gaTimeline && gaTimeline.latest) {
-    const latest = gaTimeline.latest;
-    if (liveCountEl) animateValue(liveCountEl, latest.active_users, 400);
-    if (deviceSplitEl && latest.by_device) {
-      const total = latest.active_users || 1;
-      const m = latest.by_device.mobile || 0;
-      const d = latest.by_device.desktop || 0;
-      const t = latest.by_device.tablet || 0;
-      deviceSplitEl.innerHTML = [
-        m > 0 ? `<span>Mobile ${Math.round(m/total*100)}%</span>` : "",
-        d > 0 ? `<span>Desktop ${Math.round(d/total*100)}%</span>` : "",
-        t > 0 ? `<span>Tablet ${Math.round(t/total*100)}%</span>` : "",
-      ].filter(Boolean).join("");
-    }
-  } else {
-    if (liveCountEl) liveCountEl.textContent = "\u2014";
-    if (deviceSplitEl) deviceSplitEl.innerHTML = "";
-  }
+  // KPIs from header summary (matches current view window)
+  const summary = state.headerSummary || state.feedSummary;
+  const currentDays = VIEW_WINDOW_DAYS[viewRotation.views[viewRotation.currentIndex]] || 1;
 
-  // KPIs from server-computed feed summary (accurate 24h totals)
-  const summary = state.feedSummary;
+  // Window label
+  const windowLabelEl = document.getElementById("phWindowLabel");
+  const windowLabels = { 1: "24 HOURS", 3: "3 DAYS", 7: "7 DAYS" };
+  if (windowLabelEl) windowLabelEl.textContent = windowLabels[currentDays] || `${currentDays} DAYS`;
   const todaySessions = summary ? summary.unique_sessions : 0;
   const todayJobs = summary ? summary.total_jobs : 0;
   const todaySuccess = summary ? summary.jobs_success : 0;
@@ -352,17 +369,27 @@ function updateCommandCenterClock() {
 
 /* ── Command Center — 1-Day Timeline ── */
 
-function render1DayTimeline(feedEvents, gaTimeline, gaHourly) {
+function render1DayTimeline(feedEvents, gaTimeline, gaHourly, timelineDays) {
   const container = document.getElementById("timeline1Day");
   const legendEl = document.getElementById("timeline1DayLegend");
   if (!container) return;
 
+  const days = timelineDays || 1;
+  const totalHours = days * 24;
   const now = new Date();
-  const cutoff = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  const cutoff = new Date(now.getTime() - totalHours * 60 * 60 * 1000);
 
-  // Build 24 hourly slots as a rolling window: slot 0 = 24h ago, slot 23 = current hour
+  // Set gap based on number of hours
+  const gap = days === 1 ? 2 : days === 3 ? 1 : 0;
+  container.style.gap = gap + "px";
+
+  // Update title
+  const titleEl = container.closest(".kiosk-1d__timeline-wrap")?.querySelector(".kiosk-section-title");
+  if (titleEl) titleEl.textContent = days === 1 ? "Activity Timeline \u2014 Today" : `Activity Timeline \u2014 ${days} Days`;
+
+  // Build hourly slots as a rolling window
   const slots = [];
-  for (let i = 0; i < 24; i++) {
+  for (let i = 0; i < totalHours; i++) {
     const slotTime = new Date(cutoff.getTime() + i * 60 * 60 * 1000);
     slots.push({
       start: slotTime,
@@ -380,7 +407,7 @@ function render1DayTimeline(feedEvents, gaTimeline, gaHourly) {
     if (!evt.timestamp) continue;
     const evtTime = new Date(evt.timestamp);
     if (evtTime < cutoff || evtTime > now) continue;
-    const slotIdx = Math.min(23, Math.floor((evtTime - cutoff) / (60 * 60 * 1000)));
+    const slotIdx = Math.min(totalHours - 1, Math.floor((evtTime - cutoff) / (60 * 60 * 1000)));
     if (slots[slotIdx].cardsavr[evt.status] !== undefined) {
       slots[slotIdx].cardsavr[evt.status]++;
       slots[slotIdx].cardsavr.total++;
@@ -391,9 +418,9 @@ function render1DayTimeline(feedEvents, gaTimeline, gaHourly) {
   if (gaHourly && gaHourly.hourly) {
     for (const row of gaHourly.hourly) {
       // Standard GA hours are in UTC — convert to local for slot matching
-      const utcDate = new Date(row.date + "T" + String(row.hour).padStart(2, "0") + ":30:00Z");
+      const utcDate = new Date(row.utc_timestamp || (row.date + "T" + String(row.hour).padStart(2, "0") + ":30:00"));
       if (utcDate < cutoff || utcDate > now) continue;
-      const slotIdx = Math.min(23, Math.floor((utcDate - cutoff) / (60 * 60 * 1000)));
+      const slotIdx = Math.min(totalHours - 1, Math.floor((utcDate - cutoff) / (60 * 60 * 1000)));
       const users = row.users || row.active_users || 0;
       slots[slotIdx].ga.views += row.views || 0;
       slots[slotIdx].ga.active_users += users;
@@ -408,9 +435,9 @@ function render1DayTimeline(feedEvents, gaTimeline, gaHourly) {
   // Bucket funnel page breakdown from standard GA
   if (gaHourly && gaHourly.funnel) {
     for (const row of gaHourly.funnel) {
-      const utcDate = new Date(row.date + "T" + String(row.hour).padStart(2, "0") + ":30:00Z");
+      const utcDate = new Date(row.utc_timestamp || (row.date + "T" + String(row.hour).padStart(2, "0") + ":30:00"));
       if (utcDate < cutoff || utcDate > now) continue;
-      const slotIdx = Math.min(23, Math.floor((utcDate - cutoff) / (60 * 60 * 1000)));
+      const slotIdx = Math.min(totalHours - 1, Math.floor((utcDate - cutoff) / (60 * 60 * 1000)));
       slots[slotIdx].ga.select_merchants += row.select_merchants || 0;
       slots[slotIdx].ga.user_data += row.user_data || 0;
       slots[slotIdx].ga.credential_entry += row.credential_entry || 0;
@@ -419,12 +446,12 @@ function render1DayTimeline(feedEvents, gaTimeline, gaHourly) {
 
   // Then: fill remaining empty GA slots from realtime snapshots (averaged per hour)
   if (gaTimeline && gaTimeline.snapshots) {
-    const rtBuckets = Array.from({ length: 24 }, () => ({ users: [], views: [], mobile: [], desktop: [], tablet: [] }));
+    const rtBuckets = Array.from({ length: totalHours }, () => ({ users: [], views: [], mobile: [], desktop: [], tablet: [] }));
     for (const snap of gaTimeline.snapshots) {
       if (!snap.time) continue;
       const snapTime = new Date(snap.time);
       if (snapTime < cutoff || snapTime > now) continue;
-      const slotIdx = Math.min(23, Math.floor((snapTime - cutoff) / (60 * 60 * 1000)));
+      const slotIdx = Math.min(totalHours - 1, Math.floor((snapTime - cutoff) / (60 * 60 * 1000)));
       if (snap.summary) {
         rtBuckets[slotIdx].users.push(snap.summary.active_users || 0);
         rtBuckets[slotIdx].views.push(snap.summary.total_views || 0);
@@ -435,7 +462,7 @@ function render1DayTimeline(feedEvents, gaTimeline, gaHourly) {
       }
     }
     const avg = arr => arr.length ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : 0;
-    for (let i = 0; i < 24; i++) {
+    for (let i = 0; i < totalHours; i++) {
       const rt = rtBuckets[i];
       if (rt.users.length === 0) continue;
       // Realtime fills in if standard hasn't covered this slot
@@ -463,7 +490,7 @@ function render1DayTimeline(feedEvents, gaTimeline, gaHourly) {
 
   // Build HTML
   let html = '<div class="kiosk-1d__midline-upper"></div><div class="kiosk-1d__midline-lower"></div>';
-  for (let i = 0; i < 24; i++) {
+  for (let i = 0; i < totalHours; i++) {
     const slot = slots[i];
     const isFuture = slot.start > now;
 
@@ -539,7 +566,8 @@ function render1DayTimeline(feedEvents, gaTimeline, gaHourly) {
     }
     bottomHtml += "</div>";
 
-    const showLabel = i % 3 === 0 || i === 23;
+    const labelFreq = days === 1 ? 3 : days === 3 ? 12 : 24;
+    const showLabel = i % labelFreq === 0 || i === totalHours - 1;
     html += `<div class="kiosk-1d__hour" title="${tooltip}" style="${isFuture ? 'opacity:0.15' : ''}">
       ${topHtml}
       <div class="kiosk-1d__label-channel">
@@ -645,21 +673,24 @@ function renderViewTiles(viewKey) {
   if (state.trafficHealth) {
     renderKioskTrafficHealth(state.trafficHealth, days);
   }
+
 }
 
 /* ── Command Center — Data Fetching ── */
 
-async function fetchGaRealtimeTimeline() {
+async function fetchGaRealtimeTimeline(hours) {
   try {
-    const res = await fetch("/api/ga-realtime-timeline?hours=24");
+    const h = hours || 24;
+    const res = await fetch(`/api/ga-realtime-timeline?hours=${h}`);
     if (!res.ok) return null;
     return await res.json();
   } catch { return null; }
 }
 
-async function fetchGaHourly() {
+async function fetchGaHourly(days) {
   try {
-    const res = await fetch("/api/ga-hourly");
+    const d = days || VIEW_WINDOW_DAYS[viewRotation.views[viewRotation.currentIndex]] || 1;
+    const res = await fetch(`/api/ga-hourly?days=${d}`);
     if (!res.ok) return null;
     return await res.json();
   } catch { return null; }
@@ -721,23 +752,59 @@ function initCommandCenter() {
 
   // Arrow key handling
   document.addEventListener("keydown", (e) => {
-    if (e.key === "ArrowRight") { handleArrowKey(1); e.preventDefault(); }
-    if (e.key === "ArrowLeft") { handleArrowKey(-1); e.preventDefault(); }
+    if (e.key === "ArrowRight") { handleArrowKey(1); updatePlayPauseButton(); e.preventDefault(); }
+    if (e.key === "ArrowLeft") { handleArrowKey(-1); updatePlayPauseButton(); e.preventDefault(); }
+    if (e.key === " ") { togglePlayPause(); e.preventDefault(); }
   });
+
+  // Play/pause button
+  const ppBtn = document.getElementById("phPlayPause");
+  if (ppBtn) {
+    ppBtn.addEventListener("click", togglePlayPause);
+  }
+
+  // Any interaction pauses rotation, resumes after 1 minute of inactivity
+  function handleInteraction(e) {
+    // Don't pause if clicking the play/pause button itself
+    if (e.target.closest && e.target.closest(".kiosk-ph__playpause")) return;
+    if (viewRotation.mode === "auto") {
+      pauseViewCycle();
+    }
+    clearTimeout(viewRotation.resumeTimer);
+    viewRotation.resumeTimer = setTimeout(() => {
+      startViewCycle();
+      updatePlayPauseButton();
+    }, viewRotation.resumeMs);
+  }
+  document.addEventListener("click", handleInteraction);
+  document.addEventListener("scroll", handleInteraction, true);
 
   // Clock update interval
   setInterval(updateCommandCenterClock, 1000);
 }
 
 async function commandCenterRefresh() {
+  const currentViewDays = VIEW_WINDOW_DAYS[viewRotation.views[viewRotation.currentIndex]] || 1;
   await fetchOpsTrends();
   const [_opsResult, healthData, gaTimeline, gaHourly] = await Promise.all([
     fetchMetrics(),
     fetchHealthComposite(),
-    fetchGaRealtimeTimeline(),
-    fetchGaHourly(),
+    fetchGaRealtimeTimeline(currentViewDays * 24),
+    fetchGaHourly(currentViewDays),
   ]);
-  await Promise.all([fetchEventFeed(), fetchTrafficHealth()]);
+  try {
+    const headerRes = await fetch(`/api/metrics/ops-feed?tz=${encodeURIComponent(getLocalTimezone())}&days=${currentViewDays}`);
+    if (headerRes.ok) {
+      const headerData = await headerRes.json();
+      state.headerSummary = headerData.summary || null;
+      state.allFeedEvents = headerData.allEvents || headerData.events || [];
+      state.feedEvents = headerData.allEvents || headerData.events || [];
+      state.feedSummary = headerData.summary || null;
+      updateFeedFilterOptions();
+      renderFilteredFeed();
+    }
+  } catch {}
+  await fetchTrafficHealth();
 
   state.gaTimeline = gaTimeline;
   state.gaHourly = gaHourly;
@@ -745,7 +812,8 @@ async function commandCenterRefresh() {
 
   const opsData = state.data;
   renderPersistentHeader(opsData, healthData, gaTimeline);
-  render1DayTimeline(state.allFeedEvents, gaTimeline, gaHourly);
+  const timelineDays = VIEW_WINDOW_DAYS[viewRotation.views[viewRotation.currentIndex]] || 1;
+  render1DayTimeline(state.allFeedEvents, gaTimeline, gaHourly, timelineDays);
 
   // Render tiles for current view window
   const currentView = viewRotation.views[viewRotation.currentIndex];
@@ -1665,11 +1733,15 @@ function renderVolumeSparkline(byDay) {
     `;
   }).join("");
 
-  // Date labels
-  const dateIndices = [0, Math.floor(byDay.length / 2), byDay.length - 1];
+  // Date labels — show all for small datasets, pick 3 for larger ones
+  const isDateFormat = byDay.length > 0 && /^\d{4}-/.test(byDay[0].date || "");
+  const dateIndices = byDay.length <= 5
+    ? byDay.map((_, i) => i)
+    : [0, Math.floor(byDay.length / 2), byDay.length - 1];
   const dateLabelSvg = dateIndices.map((i) => {
     const x = padL + i * stepX;
-    return `<text x="${x.toFixed(1)}" y="${vh - 4}" text-anchor="middle" fill="#64748b" font-size="9">${(byDay[i].date || "").slice(5)}</text>`;
+    const label = isDateFormat ? (byDay[i].date || "").slice(5) : (byDay[i].date || "");
+    return `<text x="${x.toFixed(1)}" y="${vh - 4}" text-anchor="middle" fill="#64748b" font-size="${isDateFormat ? 9 : 7.5}">${label}</text>`;
   }).join("");
 
   kioskEls.volumeChart.innerHTML = `
@@ -1688,14 +1760,15 @@ function renderVolumeSparkline(byDay) {
   `;
 }
 
-async function fetchEventFeed() {
+async function fetchEventFeed(days) {
   const eventList = kioskEls.eventList || document.getElementById("kioskEventList");
   if (!eventList) return;
   try {
-    const res = await fetch(`/api/metrics/ops-feed?tz=${encodeURIComponent(getLocalTimezone())}`);
+    const feedDays = days || VIEW_WINDOW_DAYS[viewRotation.views[viewRotation.currentIndex]] || 1;
+    const res = await fetch(`/api/metrics/ops-feed?tz=${encodeURIComponent(getLocalTimezone())}&days=${feedDays}`);
     if (!res.ok) return;
     const data = await res.json();
-    state.feedEvents = data.events || [];
+    state.feedEvents = data.allEvents || data.events || [];
     state.allFeedEvents = data.allEvents || data.events || [];
     state.feedSummary = data.summary || null;
     updateFeedFilterOptions();
@@ -1708,9 +1781,10 @@ async function fetchEventFeed() {
 function renderFilteredFeed() {
   const feedListEl = kioskEls.eventList || document.getElementById("kioskEventList");
   if (!feedListEl) return;
-  const { statuses, merchants, fis, excludeDevInstance } = state.feedFilters;
-  const events = (state.feedEvents || []).filter((evt) => {
-    if (excludeDevInstance && evt.instance === "customer-dev") return false;
+  const { statuses, merchants, fis } = state.feedFilters;
+  const allEvts = state.feedEvents || [];
+  const events = allEvts.filter((evt) => {
+    if (!state.includeTests && evt.instance === "customer-dev") return false;
     if (!statuses.has(evt.status || "unknown")) return false;
     if (merchants.size > 0 && !merchants.has(evt.merchant || "Unknown")) return false;
     if (fis.size > 0 && !fis.has(evt.fi_name || "")) return false;
@@ -2329,7 +2403,7 @@ function init() {
     state.windowDays = 8;
     loadFiRegistry();
     startViewCycle();
-    startAutoRefresh(commandCenterRefresh, 30000); // 30 seconds
+    commandCenterRefresh(); // initial data load
   } else {
     initTimeWindows();
     bindSortHandlers();

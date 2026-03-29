@@ -1607,18 +1607,26 @@ async function refreshTodayGaStandard() {
     if (!propertyId) return;
 
     const today = new Date().toISOString().slice(0, 10);
-
-    // 1. Full page-level fetch (existing format — for other consumers)
-    const rows = await fetchGaRowsForDay({ date: today, propertyId, keyFile: cfg.file });
-    const payload = {
-      date: today,
-      rows: rows.map(r => ({ ...r, is_test: false })),
-      count: rows.length,
-      requests: [{ date: today, propertyId, is_test: false, fetched: rows.length }],
-    };
     const gaDir = path.join(RAW_DIR, "ga");
     await fs.mkdir(gaDir, { recursive: true });
-    await fs.writeFile(path.join(gaDir, `${today}.json`), JSON.stringify(payload, null, 2));
+
+    // Re-fetch last 7 days of page-level GA data (GA backfills over time)
+    for (let d = 7; d >= 0; d--) {
+      const day = new Date(Date.now() - d * 86400000).toISOString().slice(0, 10);
+      try {
+        const dayRows = await fetchGaRowsForDay({ date: day, propertyId, keyFile: cfg.file });
+        const payload = {
+          date: day,
+          rows: dayRows.map(r => ({ ...r, is_test: false })),
+          count: dayRows.length,
+          requests: [{ date: day, propertyId, is_test: false, fetched: dayRows.length }],
+        };
+        await fs.writeFile(path.join(gaDir, `${day}.json`), JSON.stringify(payload, null, 2));
+      } catch (err) {
+        console.warn(`[ga-standard-bg] Failed to refresh ${day}: ${err.message}`);
+      }
+    }
+    const rows = JSON.parse(await fs.readFile(path.join(gaDir, `${today}.json`), "utf8")).rows || [];
 
     // 2. Hourly unique users query (deduplicated — for timeline)
     const { google } = await import("googleapis");
@@ -6669,16 +6677,16 @@ const server = http.createServer(async (req, res) => {
     try {
       const feedTz = queryParams.get("tz") || null;
       const feedTzInfo = tzDateInfo(feedTz && isValidTimezone(feedTz) ? feedTz : null);
+      const feedDays = Math.min(7, Math.max(1, parseInt(queryParams.get("days") || "1")));
       const now = new Date();
       const utcToday = now.toISOString().slice(0, 10);
       const utcYesterday = new Date(now.getTime() - 86400000).toISOString().slice(0, 10);
-      const cutoff24h = new Date(now.getTime() - 86400000).toISOString();
+      const cutoff24h = new Date(now.getTime() - feedDays * 86400000).toISOString();
 
-      // Determine which UTC-date files to read to cover local today + local yesterday
-      const fileDaysToRead = new Set([utcToday, utcYesterday]);
-      // If local yesterday < UTC yesterday (user is behind UTC), need the day before UTC yesterday
-      if (feedTzInfo.localYesterday < utcYesterday) {
-        fileDaysToRead.add(isoAddDays(utcYesterday, -1));
+      // Determine which UTC-date files to read to cover the requested window
+      const fileDaysToRead = new Set([utcToday]);
+      for (let d = 1; d <= feedDays + 1; d++) {
+        fileDaysToRead.add(isoAddDays(utcToday, -d));
       }
 
       // Today: use live cache (populated every 15 min), fall back to batch file
@@ -6832,11 +6840,29 @@ const server = http.createServer(async (req, res) => {
       const utcToday = now.toISOString().slice(0, 10);
       const utcYesterday = new Date(now.getTime() - 86400000).toISOString().slice(0, 10);
 
-      // Read hourly unique user files (preferred) or fall back to page-level GA files
-      // Need 3 UTC days to cover a full 24h rolling window in any timezone
-      const utcDayBefore = new Date(now.getTime() - 2 * 86400000).toISOString().slice(0, 10);
+      // Read hourly unique user files for the requested window
+      const gaDays = Math.min(8, Math.max(2, parseInt(queryParams.get("days") || "2") + 1));
+      const gaDateList = [];
+      for (let d = gaDays - 1; d >= 0; d--) {
+        gaDateList.push(new Date(now.getTime() - d * 86400000).toISOString().slice(0, 10));
+      }
+      // Convert GA property time (America/Los_Angeles) to UTC ISO timestamp
+      function gaHourToUtc(date, hour) {
+        // Construct Pacific datetime, then find its UTC equivalent
+        const pt = new Date(`${date}T${String(hour).padStart(2, "0")}:30:00`);
+        // pt is interpreted as UTC on the server — we need to shift by the Pacific offset
+        // Find what Pacific time this UTC moment represents
+        const ptFormatted = pt.toLocaleString("sv-SE", { timeZone: "America/Los_Angeles" });
+        // ptFormatted is the Pacific time for this UTC moment
+        // The difference tells us the offset
+        const ptMoment = new Date(ptFormatted + "Z");
+        const offsetMs = pt.getTime() - ptMoment.getTime();
+        // Add offset to get the UTC time that corresponds to this Pacific hour
+        return new Date(pt.getTime() + offsetMs).toISOString();
+      }
+
       const hourlyData = [];
-      for (const day of [utcDayBefore, utcYesterday, utcToday]) {
+      for (const day of gaDateList) {
         // Try hourly uniques first (deduplicated)
         try {
           const uniquesDir = path.join(RAW_DIR, "ga-hourly-uniques");
@@ -6847,6 +6873,7 @@ const server = http.createServer(async (req, res) => {
             hourlyData.push({
               date: day,
               hour: r.hour,
+              utc_timestamp: gaHourToUtc(day, r.hour),
               users: r.users || 0,
               views: r.views || 0,
               device: dev,
@@ -6873,14 +6900,14 @@ const server = http.createServer(async (req, res) => {
             entry.users += r.active_users || 0;
           }
           for (const entry of hourMap.values()) {
-            hourlyData.push({ date: day, ...entry });
+            hourlyData.push({ date: day, utc_timestamp: gaHourToUtc(day, entry.hour), ...entry });
           }
         } catch { /* file may not exist */ }
       }
 
       // Load funnel page breakdown per hour (for visual stacking)
       const funnelData = [];
-      for (const day of [utcDayBefore, utcYesterday, utcToday]) {
+      for (const day of gaDateList) {
         try {
           const gaDir = path.join(RAW_DIR, "ga");
           const raw = await fs.readFile(path.join(gaDir, `${day}.json`), "utf8");
@@ -6899,7 +6926,7 @@ const server = http.createServer(async (req, res) => {
             entry.total += r.active_users || 0;
           }
           for (const [h, entry] of hourMap) {
-            funnelData.push({ date: day, hour: h, ...entry });
+            funnelData.push({ date: day, hour: h, utc_timestamp: gaHourToUtc(day, h), ...entry });
           }
         } catch { /* file may not exist */ }
       }

@@ -1639,52 +1639,19 @@ body.kiosk-mode .table-scroll th {
   flex-direction: column;
   gap: 4px;
   min-width: 140px;
+  padding-right: 20px;
+  border-right: 1px solid var(--border);
+  margin-right: 4px;
 }
 
-.kiosk-ph__live-pulse {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.kiosk-ph__live-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: #48bb78;
-  animation: kioskPulse 2s ease-in-out infinite;
-}
-
-@keyframes kioskPulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(72, 187, 120, 0.5); }
-  50% { box-shadow: 0 0 0 6px rgba(72, 187, 120, 0); }
-}
-
-.kiosk-ph__live-count {
-  font-size: clamp(28px, 3vw, 42px);
+.kiosk-ph__window-label {
+  font-size: clamp(20px, 2.5vw, 32px);
   font-weight: 700;
-  color: var(--text);
-  line-height: 1;
-}
-
-.kiosk-ph__live-label {
-  font-size: 0.75rem;
-  color: var(--muted);
+  color: var(--accent, #63b3ed);
   text-transform: uppercase;
   letter-spacing: 0.05em;
-}
-
-.kiosk-ph__device-split {
-  font-size: 0.72rem;
-  color: var(--muted);
-  display: flex;
-  gap: 10px;
-}
-
-.kiosk-ph__device-split span {
-  display: flex;
-  align-items: center;
-  gap: 3px;
+  line-height: 1.2;
+  white-space: nowrap;
 }
 
 .kiosk-ph__center {
@@ -1771,6 +1738,34 @@ body.kiosk-mode .table-scroll th {
   padding: 6px 0 4px;
   white-space: nowrap;
   text-align: center;
+}
+
+.kiosk-ph__playpause {
+  background: none;
+  border: 2px solid var(--muted);
+  color: var(--muted);
+  font-size: clamp(22px, 2.5vw, 34px);
+  cursor: pointer;
+  width: 62px;
+  height: 62px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  line-height: 0.8;
+  overflow: hidden;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.kiosk-ph__playpause:hover {
+  background: var(--panel-light);
+  color: var(--text);
+  border-color: var(--text);
+}
+
+.kiosk-ph__playpause.paused {
+  color: #48bb78;
+  border-color: #48bb78;
 }
 
 .kiosk-ph__progress {

@@ -421,7 +421,9 @@ export function formatRelativeTime(dateStr) {
   const diffMin = Math.floor(diffSec / 60);
   if (diffMin < 60) return `${diffMin}m ago`;
   const diffHr = Math.floor(diffMin / 60);
-  return `${diffHr}h ago`;
+  if (diffHr < 48) return `${diffHr}h ago`;
+  const diffDays = (diffHr / 24).toFixed(1);
+  return `${diffDays}d ago`;
 }
 
 export function healthColor(successRate) {

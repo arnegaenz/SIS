@@ -180,22 +180,17 @@
 
     <!-- Persistent header — always visible in kiosk -->
     <div id="kioskPersistentHeader" class="kiosk-persistent-header" style="display:none;">
-      <div class="kiosk-ph__left" title="GA Realtime — number of people actively on CardUpdatr pages right now. Polled from Google Analytics every 5 minutes. Device breakdown shows mobile vs desktop vs tablet split.">
-        <div class="kiosk-ph__live-pulse">
-          <span class="kiosk-ph__live-dot"></span>
-          <span class="kiosk-ph__live-count" id="phLiveCount">&mdash;</span>
-          <span class="kiosk-ph__live-label">active now</span>
-        </div>
-        <div class="kiosk-ph__device-split" id="phDeviceSplit"></div>
+      <div class="kiosk-ph__left" title="Current time window for all data on this page. Cycles automatically between 24 Hours, 3 Days, and 7 Days.">
+        <div class="kiosk-ph__window-label" id="phWindowLabel">24 HOURS</div>
       </div>
       <div class="kiosk-ph__center">
-        <div class="kiosk-ph__kpi" id="phSessions" title="Unique cardholder sessions in the last 24 hours. Each session represents one cardholder launching CardUpdatr — whether they completed placements or just browsed.">
+        <div class="kiosk-ph__kpi" id="phSessions" title="Unique cardholder sessions. Each session represents one cardholder launching CardUpdatr — whether they completed placements or just browsed.">
           <div class="kiosk-ph__kpi-value">&mdash;</div>
-          <div class="kiosk-ph__kpi-label">Sessions (24h)</div>
+          <div class="kiosk-ph__kpi-label">Sessions</div>
         </div>
-        <div class="kiosk-ph__kpi" id="phPlacements" title="Total card placement jobs attempted in the last 24 hours. Each job is one cardholder attempting to update their card at one merchant. One session can have multiple jobs if the cardholder selected multiple merchants.">
+        <div class="kiosk-ph__kpi" id="phPlacements" title="Total card placement jobs attempted. Each job is one cardholder attempting to update their card at one merchant. One session can have multiple jobs if the cardholder selected multiple merchants.">
           <div class="kiosk-ph__kpi-value">&mdash;</div>
-          <div class="kiosk-ph__kpi-label">Jobs (24h)</div>
+          <div class="kiosk-ph__kpi-label">Jobs</div>
         </div>
         <div class="kiosk-ph__kpi" id="phLinked" title="Jobs that successfully linked the account (got past credentials). This equals successful placements + system failures. The difference between Jobs and Linked represents cardholder-caused failures (wrong credentials, timeouts, cancellations).">
           <div class="kiosk-ph__kpi-value">&mdash;</div>
@@ -209,9 +204,9 @@
           <div class="kiosk-ph__kpi-value">&mdash;</div>
           <div class="kiosk-ph__kpi-label">System Rate</div>
         </div>
-        <div class="kiosk-ph__kpi" id="phSuccessful" title="Total successful card placements in the last 24 hours. Each one represents a cardholder who successfully updated their card at a merchant.">
+        <div class="kiosk-ph__kpi" id="phSuccessful" title="Total successful card placements. Each one represents a cardholder who successfully updated their card at a merchant.">
           <div class="kiosk-ph__kpi-value">&mdash;</div>
-          <div class="kiosk-ph__kpi-label">Successful (24h)</div>
+          <div class="kiosk-ph__kpi-label">Successful</div>
         </div>
       </div>
       <div class="kiosk-ph__right">
@@ -220,6 +215,7 @@
           <span class="kiosk-ph__health-label">Healthy</span>
         </div>
         <div class="kiosk-ph__clock" id="phClock" title="Current local time. Data refreshes every 30 seconds."></div>
+        <button class="kiosk-ph__playpause" id="phPlayPause" title="Play/Pause view rotation. Arrow keys also work."><svg width="20" height="22" viewBox="0 0 20 22"><rect x="2" y="1" width="5" height="20" rx="1" fill="currentColor"/><rect x="13" y="1" width="5" height="20" rx="1" fill="currentColor"/></svg></button>
       </div>
       <div class="kiosk-ph__progress" id="phCycleProgress" title="View cycle progress bar. When full, transitions to the next view. Arrow keys pause auto-cycling.">
         <div class="kiosk-ph__progress-push" id="phCycleProgressPush"></div>
@@ -240,7 +236,6 @@
           <div class="kiosk-1d__timeline" id="timeline1Day"></div>
           <div class="kiosk-1d__timeline-legend" id="timeline1DayLegend"></div>
         </div>
-        <div class="kiosk-view-label" id="phViewLabel" title="Current view window. Arrow keys to switch manually. Auto-cycles every 15 seconds.">1-DAY PULSE</div>
         <div class="kiosk-1d__bottom">
           <div class="kiosk-1d__left">
             <div class="kiosk-section-title" id="kioskHealthTitle">Partner Traffic Health</div>
@@ -270,7 +265,6 @@
                     <div class="feed-mini-select__options"></div>
                   </div>
                 </div>
-                <label class="feed-exclude-label" id="feedExcludeDevLabel" title="Hide events from customer-dev instance"><input type="checkbox" id="feedExcludeDev" checked /> Exclude customer-dev</label>
                 <button type="button" class="feed-clear-btn" id="feedClearBtn" style="display:none;">Clear</button>
               </div>
               <div class="event-feed__list" id="kioskEventList"></div>
