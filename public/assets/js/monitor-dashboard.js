@@ -283,6 +283,7 @@ function renderPipeline(data) {
 
 /* ── Render: Traffic Anomalies ── */
 function renderTrafficAlerts(data) {
+  _lastTrafficData = data;
   const el = els.trafficAlerts;
   if (!data || !data.fis) {
     el.innerHTML = `<div class="mon-empty">No traffic data available</div>`;
@@ -321,7 +322,7 @@ function renderTrafficAlerts(data) {
     const spark = sparklineSvg(dailyCounts.slice(-7), 50, 16, sparkColor);
 
     return `
-      <div class="mon-alert-row mon-alert-row--${color}">
+      <div class="mon-alert-row mon-alert-row--${color}" data-fi-key="${escHtml(fi.fi_lookup_key || fi.fi_name || "")}" style="cursor:pointer;" title="Click for details">
         <span class="mon-alert-badge mon-alert-badge--${color}">${statusText}</span>
         <span class="mon-alert-name">${escHtml(fi.fi_name || fi.fi_key || "")}</span>
         <span class="mon-alert-partner">${escHtml(fi.partner || "")}</span>
@@ -330,6 +331,15 @@ function renderTrafficAlerts(data) {
       </div>
     `;
   }).join("");
+
+  // Bind click handlers
+  el.querySelectorAll(".mon-alert-row[data-fi-key]").forEach(row => {
+    row.addEventListener("click", () => {
+      const fiKey = row.dataset.fiKey;
+      const fi = (_lastTrafficData?.fis || []).find(f => (f.fi_lookup_key || f.fi_name) === fiKey);
+      if (fi) showFiModal(fi);
+    });
+  });
 }
 
 /* ── Render: Merchant Alerts ── */
@@ -378,7 +388,7 @@ function renderMerchantAlerts(opsData) {
     const failPct = 100 - successPct;
 
     return `
-      <div class="mon-alert-row mon-alert-row--${color}">
+      <div class="mon-alert-row mon-alert-row--${color}" data-merchant="${escHtml(a.name)}" style="cursor:pointer;" title="Click for details">
         <span class="mon-merchant-pct mon-merchant-pct--${color}">${pct}%</span>
         <span class="mon-alert-name">${escHtml(a.name)}</span>
         <span class="mon-merchant-ratio">${a.failures}/${a.total}</span>
@@ -390,7 +400,211 @@ function renderMerchantAlerts(opsData) {
       </div>
     `;
   }).join("");
+
+  // Bind click handlers for merchant detail modal
+  el.querySelectorAll(".mon-alert-row[data-merchant]").forEach(row => {
+    row.addEventListener("click", () => {
+      const merchantName = row.dataset.merchant;
+      const alert = alerts.find(a => a.name === merchantName);
+      if (alert) showMerchantModal(alert);
+    });
+  });
 }
+
+/* ── Merchant Detail Modal ── */
+let _lastFeedEvents = [];
+let _lastTrafficData = null;
+
+function showMerchantModal(alert) {
+  const overlay = document.getElementById("monitorModalOverlay");
+  const nameEl = document.getElementById("monitorModalName");
+  const subEl = document.getElementById("monitorModalSubtitle");
+  const contentEl = document.getElementById("monitorModalContent");
+  if (!overlay || !contentEl) return;
+
+  nameEl.textContent = alert.name;
+  const pct = (alert.failRate * 100).toFixed(1);
+  subEl.textContent = `${pct}% failure rate — ${alert.failures} of ${alert.total} jobs failed`;
+
+  // Find feed events for this merchant — only system-side results (success + failed), exclude abandoned/cancelled
+  const merchantEvents = _lastFeedEvents.filter(evt =>
+    (evt.merchant || "").toLowerCase() === alert.name.toLowerCase()
+    && (evt.status === "success" || evt.status === "failed")
+  );
+
+  let eventsHtml = "";
+  if (merchantEvents.length > 0) {
+    const rows = merchantEvents.map(evt => {
+      const evtDate = evt.timestamp ? new Date(evt.timestamp) : null;
+      const time = evtDate
+        ? evtDate.toLocaleDateString([], { month: "short", day: "numeric" }) + " " + evtDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+        : "";
+      const statusCls = evt.status === "success" ? "color:#48bb78" : evt.status === "cancelled" ? "color:#ecc94b" : "color:#fc8181";
+      const termLabel = evt.termination_type && evt.status !== "success"
+        ? `<span style="font-family:monospace;font-size:0.72rem;color:var(--muted);margin-left:6px;">${escHtml(evt.termination_type)}</span>`
+        : "";
+      return `
+        <div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--border);font-size:0.8rem;">
+          <span style="color:var(--muted);min-width:110px;font-variant-numeric:tabular-nums;">${time}</span>
+          <span style="color:var(--text);flex:1;">${escHtml(evt.fi_name || "")}</span>
+          <span style="font-weight:600;${statusCls};text-transform:uppercase;">${evt.status || ""}</span>
+          ${termLabel}
+        </div>
+      `;
+    }).join("");
+
+    eventsHtml = `
+      <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin:16px 0 8px;">Job History (${merchantEvents.length} events)</div>
+      <div class="detail-modal__scrollable">${rows}</div>
+    `;
+  } else {
+    eventsHtml = `<div style="color:var(--muted);font-size:0.8rem;margin-top:16px;">No recent events found for this merchant.</div>`;
+  }
+
+  contentEl.innerHTML = `
+    <div style="display:flex;gap:24px;margin-bottom:12px;">
+      <div>
+        <div style="font-size:2rem;font-weight:700;color:#fc8181;">${pct}%</div>
+        <div style="font-size:0.7rem;color:var(--muted);text-transform:uppercase;">Failure Rate</div>
+      </div>
+      <div>
+        <div style="font-size:2rem;font-weight:700;color:var(--text);">${alert.total}</div>
+        <div style="font-size:0.7rem;color:var(--muted);text-transform:uppercase;">Total Jobs</div>
+      </div>
+      <div>
+        <div style="font-size:2rem;font-weight:700;color:#48bb78;">${alert.success}</div>
+        <div style="font-size:0.7rem;color:var(--muted);text-transform:uppercase;">Successful</div>
+      </div>
+      <div>
+        <div style="font-size:2rem;font-weight:700;color:#fc8181;">${alert.failures}</div>
+        <div style="font-size:0.7rem;color:var(--muted);text-transform:uppercase;">Failed</div>
+      </div>
+    </div>
+    <div style="font-size:0.8rem;color:var(--muted);margin-bottom:8px;">Top Error: <span style="font-family:monospace;color:var(--text);">${escHtml(alert.topError)}</span></div>
+    ${eventsHtml}
+  `;
+
+  overlay.style.display = "";
+  requestAnimationFrame(() => overlay.classList.add("open"));
+}
+
+function closeMonitorModal() {
+  const overlay = document.getElementById("monitorModalOverlay");
+  if (!overlay) return;
+  overlay.classList.remove("open");
+  setTimeout(() => { overlay.style.display = "none"; }, 200);
+}
+
+// Modal close handlers
+document.getElementById("monitorModalClose")?.addEventListener("click", closeMonitorModal);
+document.getElementById("monitorModalOverlay")?.addEventListener("click", (e) => {
+  if (e.target.id === "monitorModalOverlay") closeMonitorModal();
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") closeMonitorModal();
+});
+
+/* ── FI Detail Modal ── */
+function showFiModal(fi) {
+  const overlay = document.getElementById("monitorModalOverlay");
+  const nameEl = document.getElementById("monitorModalName");
+  const subEl = document.getElementById("monitorModalSubtitle");
+  const contentEl = document.getElementById("monitorModalContent");
+  if (!overlay || !contentEl) return;
+
+  const statusColors = { dark: "#fc8181", low: "#ecc94b", sleeping: "#818cf8", normal: "#48bb78" };
+  const statusColor = statusColors[fi.status] || "#a0aec0";
+
+  nameEl.textContent = fi.fi_name || fi.fi_lookup_key || "Unknown FI";
+  subEl.textContent = `${fi.partner || "Unknown"} · ${fi.instance || fi.integration_type || ""}`;
+
+  // Stats
+  const dailyCounts = fi.daily_counts || [];
+  const last7 = dailyCounts.slice(-7);
+  const weekTotal = last7.reduce((s, c) => s + c, 0);
+  const weekAvg = last7.length > 0 ? (weekTotal / last7.length).toFixed(1) : "0";
+
+  // Bar chart SVG — 7 days with baseline
+  const baseline = fi.baseline_median || 0;
+  const maxVal = Math.max(...last7, baseline, 1);
+  const chartW = 500, chartH = 140, padL = 40, padR = 10, padT = 10, padB = 24;
+  const plotW = chartW - padL - padR;
+  const plotH = chartH - padT - padB;
+  const barW = last7.length > 0 ? Math.min(50, (plotW - (last7.length - 1) * 6) / last7.length) : 40;
+
+  let barsHtml = "";
+  last7.forEach((val, i) => {
+    const barH = Math.max(1, (val / maxVal) * plotH);
+    const x = padL + i * (barW + 6);
+    const y = padT + plotH - barH;
+    const isToday = i === last7.length - 1;
+    const fill = isToday ? statusColor : "var(--accent, #63b3ed)";
+    const opacity = isToday ? 1 : 0.5;
+    barsHtml += `<rect x="${x}" y="${y}" width="${barW}" height="${barH}" rx="3" fill="${fill}" opacity="${opacity}" />`;
+    if (val > 0) barsHtml += `<text x="${x + barW/2}" y="${y - 4}" text-anchor="middle" fill="var(--muted)" font-size="9">${val}</text>`;
+    const label = isToday ? "Today" : `-${last7.length - 1 - i}d`;
+    barsHtml += `<text x="${x + barW/2}" y="${chartH - 6}" text-anchor="middle" fill="var(--muted)" font-size="9">${label}</text>`;
+  });
+
+  // Baseline line
+  const baselineY = padT + plotH - Math.max(1, (baseline / maxVal) * plotH);
+  const lineEnd = padL + (last7.length - 1) * (barW + 6) + barW;
+  const baselineHtml = baseline > 0
+    ? `<line x1="${padL}" y1="${baselineY}" x2="${lineEnd}" y2="${baselineY}" stroke="#ecc94b" stroke-width="1.5" stroke-dasharray="6,3" /><text x="${lineEnd + 4}" y="${baselineY + 3}" fill="#ecc94b" font-size="9">median ${baseline}/day</text>`
+    : "";
+
+  contentEl.innerHTML = `
+    <div style="display:flex;gap:24px;margin-bottom:16px;flex-wrap:wrap;">
+      <div>
+        <div style="font-size:2rem;font-weight:700;color:${statusColor};text-transform:uppercase;">${fi.status}</div>
+        <div style="font-size:0.7rem;color:var(--muted);text-transform:uppercase;">Current Status</div>
+      </div>
+      <div>
+        <div style="font-size:2rem;font-weight:700;color:var(--text);">${fi.today_sessions || 0}</div>
+        <div style="font-size:0.7rem;color:var(--muted);text-transform:uppercase;">Sessions Today</div>
+      </div>
+      <div>
+        <div style="font-size:2rem;font-weight:700;color:var(--text);">${fi.baseline_median || 0}/day</div>
+        <div style="font-size:0.7rem;color:var(--muted);text-transform:uppercase;">Baseline (Median)</div>
+      </div>
+      <div>
+        <div style="font-size:2rem;font-weight:700;color:var(--text);">${fi.pct_of_baseline != null ? fi.pct_of_baseline + "%" : "—"}</div>
+        <div style="font-size:0.7rem;color:var(--muted);text-transform:uppercase;">% of Baseline</div>
+      </div>
+      <div>
+        <div style="font-size:2rem;font-weight:700;color:var(--text);">${fi.hours_since_last != null ? fi.hours_since_last + "h" : "—"}</div>
+        <div style="font-size:0.7rem;color:var(--muted);text-transform:uppercase;">Since Last Session</div>
+      </div>
+    </div>
+    <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:8px;">7-Day Session Trend (avg ${weekAvg}/day)</div>
+    <svg width="100%" height="${chartH}" viewBox="0 0 ${chartW + 60} ${chartH}" style="display:block;margin-bottom:12px;">
+      ${barsHtml}
+      ${baselineHtml}
+    </svg>
+  `;
+
+  overlay.style.display = "";
+  requestAnimationFrame(() => overlay.classList.add("open"));
+}
+
+/* ── Help Tooltips ── */
+document.querySelectorAll(".monitor-help").forEach(helpBtn => {
+  const text = helpBtn.getAttribute("title");
+  helpBtn.removeAttribute("title"); // prevent native tooltip
+  helpBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    // Close any open tooltip
+    document.querySelectorAll(".monitor-help-tooltip").forEach(t => t.remove());
+    // Create and show tooltip
+    const tip = document.createElement("div");
+    tip.className = "monitor-help-tooltip";
+    tip.textContent = text;
+    helpBtn.appendChild(tip);
+  });
+});
+document.addEventListener("click", () => {
+  document.querySelectorAll(".monitor-help-tooltip").forEach(t => t.remove());
+});
 
 /* ── Main Fetch ── */
 async function fetchAll() {
@@ -404,12 +618,19 @@ async function fetchAll() {
   dateFrom.setDate(dateFrom.getDate() - 7);
   const dateFromStr = `${dateFrom.getFullYear()}-${pad(dateFrom.getMonth() + 1)}-${pad(dateFrom.getDate())}`;
 
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const results = await Promise.allSettled([
     fetchJson("/api/system-health"),
     fetchJson("/api/pipeline-status"),
     fetchJson("/api/traffic-health"),
     fetchJson(`/api/metrics/ops?date_from=${dateFromStr}&date_to=${dateTo}`),
+    fetchJson(`/api/metrics/ops-feed?tz=${encodeURIComponent(tz)}&days=7`),
   ]);
+
+  // Store feed events for modal detail
+  if (results[4]?.status === "fulfilled") {
+    _lastFeedEvents = results[4].value?.allEvents || results[4].value?.events || [];
+  }
 
   // Instance health
   if (results[0].status === "fulfilled") {

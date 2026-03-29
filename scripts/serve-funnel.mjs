@@ -8499,9 +8499,14 @@ const server = http.createServer(async (req, res) => {
     if (await fileExists(fp)) return serveFile(res, fp);
   }
 
-  if (pathname === "/dashboards/operations" || pathname === "/dashboards/operations.html") {
-    const fp = path.join(PUBLIC_DIR, "dashboards", "operations.html");
+  if (pathname === "/dashboards/success" || pathname === "/dashboards/success.html") {
+    const fp = path.join(PUBLIC_DIR, "dashboards", "success.html");
     if (await fileExists(fp)) return serveFile(res, fp);
+  }
+  // Backwards compat redirect
+  if (pathname === "/dashboards/operations" || pathname === "/dashboards/operations.html") {
+    res.writeHead(302, { Location: "/dashboards/success.html" + (url.parse(req.url).search || "") });
+    return res.end();
   }
 
   if (pathname === "/dashboards/portfolio" || pathname === "/dashboards/portfolio.html") {

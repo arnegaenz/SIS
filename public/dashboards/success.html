@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Success Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <link rel="stylesheet" href="../sis-shared.css?v=navfix" />
+  <link rel="stylesheet" href="../assets/css/sis.css" />
+  <link rel="stylesheet" href="../assets/css/dashboards.css" />
+  <link rel="stylesheet" href="../assets/css/mobile.css" />
+  <script src="../assets/js/config.js"></script>
+  <script src="../assets/js/passcode-gate.js"></script>
+  <script defer src="../assets/js/sis.js"></script>
+  <script defer src="../assets/js/nav.js"></script>
+  <script type="module" defer src="../assets/js/operations-dashboard.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function(){
+      if (window.renderHeaderNav && !window.__sisHeaderNav_operations) {
+        window.__sisHeaderNav_operations = true;
+        window.renderHeaderNav({
+          currentId: "operations",
+          title: "Success Dashboard",
+          subtitle: "Failure rates, error modes, and merchant stability signals."
+        });
+      }
+    });
+  </script>
+</head>
+<body>
+  <div id="sis-header"></div>
+  <div class="dashboard-shell">
+    <section class="dashboard-toolbar">
+      <div class="toolbar-left">
+        <div class="filter-group">
+          <label>Time Window</label>
+          <div class="segmented" id="timeWindow"></div>
+        </div>
+        <div class="filter-group">
+          <label>FI Scope</label>
+          <select id="fiScope">
+            <option value="all">All FIs</option>
+            <option value="sso_only">SSO FIs only</option>
+            <option value="non_sso_only">Non-SSO FIs only</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>FI Selection</label>
+          <div class="multi-select" id="fiSelect">
+            <button type="button" class="multi-select__button">All FIs</button>
+            <div class="multi-select__panel">
+              <input class="multi-select__search" type="text" placeholder="Search FIs" />
+              <div class="multi-select__options"></div>
+            </div>
+          </div>
+        </div>
+        <div class="filter-group">
+          <label>Partner</label>
+          <div class="multi-select" id="partnerSelect">
+            <button type="button" class="multi-select__button">All partners</button>
+            <div class="multi-select__panel">
+              <input class="multi-select__search" type="text" placeholder="Search partners" />
+              <div class="multi-select__options"></div>
+            </div>
+          </div>
+        </div>
+        <div class="filter-group">
+          <label>Instance</label>
+          <div class="multi-select" id="instanceSelect">
+            <button type="button" class="multi-select__button">All instances</button>
+            <div class="multi-select__panel">
+              <input class="multi-select__search" type="text" placeholder="Search instances" />
+              <div class="multi-select__options"></div>
+            </div>
+          </div>
+        </div>
+        <div class="filter-group">
+          <label>Merchant</label>
+          <div class="multi-select" id="merchantSelect">
+            <button type="button" class="multi-select__button">All merchants</button>
+            <div class="multi-select__panel">
+              <input class="multi-select__search" type="text" placeholder="Search merchants" />
+              <div class="multi-select__options"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="toolbar-right">
+        <div id="tzSelectWrap"></div>
+        <label class="toolbar-test-toggle"><input type="checkbox" id="includeTestsCheckbox" /> Include test data</label>
+        <button class="btn-secondary" id="kioskToggle">Kiosk View</button>
+        <button class="btn-primary" id="exportOps">Export Merchants CSV</button>
+      </div>
+    </section>
+
+    <section class="dashboard-grid">
+      <div class="card">
+        <h3>Total Jobs</h3>
+        <div class="kpi-value" id="kpiTotalJobs">-</div>
+      </div>
+      <div class="card">
+        <h3>Success Rate</h3>
+        <div class="kpi-value" id="kpiSuccessRate">-</div>
+      </div>
+      <div class="card">
+        <h3>Failure Rate</h3>
+        <div class="kpi-value" id="kpiFailureRate">-</div>
+      </div>
+      <div class="card">
+        <h3>Top Merchant Failure</h3>
+        <div class="kpi-value" id="kpiTopMerchant">-</div>
+        <div class="kpi-sub" id="kpiTopMerchantDetail"></div>
+      </div>
+    </section>
+
+    <section id="trafficHealthSection" style="margin-top: 18px;">
+      <div class="section-title">Partner Traffic Health</div>
+      <div id="trafficHealthBanner"></div>
+      <div id="trafficHealthGrid" class="traffic-health-grid"></div>
+    </section>
+
+    <section class="dashboard-grid two" style="margin-top: 18px;">
+      <div class="card chart-panel">
+        <h3>Failure Rate Over Time</h3>
+        <div id="failureLineChart" class="line-chart"></div>
+      </div>
+      <div class="card chart-panel">
+        <h3>Status Breakdown</h3>
+        <div id="statusStack" class="stack-bar"></div>
+        <div class="legend" id="statusLegend"></div>
+      </div>
+    </section>
+
+    <section style="margin-top: 22px;">
+      <div class="section-title">Top Problem Merchants</div>
+      <div class="table-wrap">
+        <div class="table-toolbar">
+          <div class="muted" id="merchantTableMeta">Loading…</div>
+        </div>
+        <div class="table-scroll">
+          <table id="merchantTable">
+            <thead>
+              <tr>
+                <th data-key="merchant_name">Merchant</th>
+                <th data-key="Jobs_Total">Jobs Total</th>
+                <th data-key="Jobs_Failed">Jobs Failed</th>
+                <th data-key="failure_rate">Failure Rate</th>
+                <th data-key="top_error_code">Top Error Code</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section style="margin-top: 22px;">
+      <div class="section-title">Hot FIs / Instances</div>
+      <div class="table-wrap">
+        <div class="table-toolbar">
+          <div class="muted" id="fiInstanceTableMeta">Loading…</div>
+        </div>
+        <div class="table-scroll">
+          <table id="fiInstanceTable">
+            <thead>
+              <tr>
+                <th data-key="fi_name">FI Name</th>
+                <th data-key="instance">Instance</th>
+                <th data-key="Jobs_Total">Jobs Total</th>
+                <th data-key="Jobs_Failed">Jobs Failed</th>
+                <th data-key="failure_rate">Failure Rate</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Kiosk mode containers (hidden in normal mode, shown when ?kiosk=1) -->
+
+    <!-- Persistent header — always visible in kiosk -->
+    <div id="kioskPersistentHeader" class="kiosk-persistent-header" style="display:none;">
+      <div class="kiosk-ph__left" title="Current time window for all data on this page. Cycles automatically between 24 Hours, 3 Days, and 7 Days.">
+        <div class="kiosk-ph__window-label" id="phWindowLabel">24 HOURS</div>
+      </div>
+      <div class="kiosk-ph__center">
+        <div class="kiosk-ph__kpi" id="phSessions" title="Unique cardholder sessions. Each session represents one cardholder launching CardUpdatr — whether they completed placements or just browsed.">
+          <div class="kiosk-ph__kpi-value">&mdash;</div>
+          <div class="kiosk-ph__kpi-label">Sessions</div>
+        </div>
+        <div class="kiosk-ph__kpi" id="phPlacements" title="Total card placement jobs attempted. Each job is one cardholder attempting to update their card at one merchant. One session can have multiple jobs if the cardholder selected multiple merchants.">
+          <div class="kiosk-ph__kpi-value">&mdash;</div>
+          <div class="kiosk-ph__kpi-label">Jobs</div>
+        </div>
+        <div class="kiosk-ph__kpi" id="phLinked" title="Jobs that successfully linked the account (got past credentials). This equals successful placements + system failures. The difference between Jobs and Linked represents cardholder-caused failures (wrong credentials, timeouts, cancellations).">
+          <div class="kiosk-ph__kpi-value">&mdash;</div>
+          <div class="kiosk-ph__kpi-label">Linked (24h)</div>
+        </div>
+        <div class="kiosk-ph__kpi" id="phSuccessRate" title="Overall Success Rate (24h) — successful jobs divided by total jobs (success + failed). Includes all failure types. Green >= 70%, Amber >= 50%, Red < 50%.">
+          <div class="kiosk-ph__kpi-value">&mdash;</div>
+          <div class="kiosk-ph__kpi-label">Success Rate</div>
+        </div>
+        <div class="kiosk-ph__kpi" id="phSystemRate" title="System Success Rate (today) — successful jobs divided by (successful + system failures). Excludes cardholder-caused failures: wrong credentials, timeouts, cancellations, account locked, etc. Answers: when the system was fully in play, how often did it succeed? Green >= 70%, Amber >= 50%, Red < 50%.">
+          <div class="kiosk-ph__kpi-value">&mdash;</div>
+          <div class="kiosk-ph__kpi-label">System Rate</div>
+        </div>
+        <div class="kiosk-ph__kpi" id="phSuccessful" title="Total successful card placements. Each one represents a cardholder who successfully updated their card at a merchant.">
+          <div class="kiosk-ph__kpi-value">&mdash;</div>
+          <div class="kiosk-ph__kpi-label">Successful</div>
+        </div>
+      </div>
+      <div class="kiosk-ph__right">
+        <div class="kiosk-ph__health" id="phHealth" title="Composite system health — click to expand. Monitors 5 signals: instance connectivity, data freshness, success rate vs baseline, traffic volume anomalies, and merchant failure spikes. Green = all clear, Yellow = warning, Red = critical.">
+          <span class="kiosk-ph__health-dot"></span>
+          <span class="kiosk-ph__health-label">Healthy</span>
+        </div>
+        <div class="kiosk-ph__clock" id="phClock" title="Current local time. Data refreshes every 30 seconds."></div>
+        <button class="kiosk-ph__playpause" id="phPlayPause" title="Play/Pause view rotation. Arrow keys also work."><svg width="20" height="22" viewBox="0 0 20 22"><rect x="2" y="1" width="5" height="20" rx="1" fill="currentColor"/><rect x="13" y="1" width="5" height="20" rx="1" fill="currentColor"/></svg></button>
+        <button class="kiosk-ph__exit" id="phExitKiosk" title="Exit kiosk mode">Exit</button>
+      </div>
+      <div class="kiosk-ph__progress" id="phCycleProgress" title="View cycle progress bar. When full, transitions to the next view. Arrow keys pause auto-cycling.">
+        <div class="kiosk-ph__progress-push" id="phCycleProgressPush"></div>
+        <div class="kiosk-ph__progress-fill" id="phCycleProgressFill"></div>
+      </div>
+      <!-- Health detail panel -->
+      <div id="kioskHealthPanel" class="kiosk-health-panel" style="display:none;">
+        <div class="kiosk-health-panel__signals" id="phHealthSignals"></div>
+      </div>
+    </div>
+
+    <!-- Rotating viewport -->
+    <div id="kioskViewport" class="kiosk-viewport" style="display:none;">
+      <!-- 1-Day Pulse view -->
+      <div id="kioskView1Day" class="kiosk-view kiosk-view--active" data-view="1day">
+        <div class="kiosk-1d__timeline-wrap">
+          <div class="kiosk-section-title" title="Rolling 24-hour activity timeline. Left = 24 hours ago, right = now. Bars show hourly event volume. Confirmed zone (left): colored by job status from CardSavr data. Live edge (right, glowing): device breakdown from GA realtime snapshots. Dashed line marks where confirmed data ends and live data begins.">Activity Timeline &mdash; Today</div>
+          <div class="kiosk-1d__timeline" id="timeline1Day"></div>
+          <div class="kiosk-1d__timeline-legend" id="timeline1DayLegend"></div>
+        </div>
+        <div class="kiosk-1d__bottom">
+          <div class="kiosk-1d__left">
+            <div class="kiosk-section-title" id="kioskHealthTitle">Partner Traffic Health</div>
+            <div id="kioskTrafficBanner"></div>
+            <div id="kioskTrafficGrid" class="traffic-health-grid kiosk-fi-scroll"></div>
+            <div class="kiosk-section-title">Merchant Health</div>
+            <div id="kioskMerchantGrid" class="merchant-health-grid kiosk-merchant-scroll"></div>
+          </div>
+          <div class="kiosk-1d__right">
+            <div class="kiosk-section-title" id="kioskVolTitle">Placement Volume (24 hours)</div>
+            <div id="kioskVolumeChart" class="kiosk-volume-chart"></div>
+            <div class="kiosk-section-title" style="margin-top:12px;">Live Event Feed</div>
+            <div id="kioskEventFeed" class="event-feed">
+              <div class="event-feed__header" id="feedFilterBar">
+                <div class="feed-status-pills" id="feedStatusPills"></div>
+                <div class="feed-mini-select" id="feedMerchantSelect">
+                  <button type="button" class="feed-mini-select__btn">Merchant</button>
+                  <div class="feed-mini-select__panel">
+                    <input class="feed-mini-select__search" type="text" placeholder="Search…" />
+                    <div class="feed-mini-select__options"></div>
+                  </div>
+                </div>
+                <div class="feed-mini-select" id="feedFiSelect">
+                  <button type="button" class="feed-mini-select__btn">FI</button>
+                  <div class="feed-mini-select__panel">
+                    <input class="feed-mini-select__search" type="text" placeholder="Search…" />
+                    <div class="feed-mini-select__options"></div>
+                  </div>
+                </div>
+                <button type="button" class="feed-clear-btn" id="feedClearBtn" style="display:none;">Clear</button>
+              </div>
+              <div class="event-feed__list" id="kioskEventList"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 7-Day Rhythm (Phase 2 placeholder) -->
+      <div id="kioskView7Day" class="kiosk-view" data-view="7day"></div>
+
+      <!-- 3-Day Momentum (Phase 2 placeholder) -->
+      <div id="kioskView3Day" class="kiosk-view" data-view="3day"></div>
+    </div>
+
+    <!-- Legacy kiosk containers (kept for render functions that reference them) -->
+    <div id="kioskKpiRow" class="kiosk-kpi-row" style="display:none;"></div>
+    <div id="kioskTrafficHealth" style="display:none;"></div>
+
+    <!-- Traffic Health Detail Modal -->
+    <div id="trafficDetailOverlay" class="detail-modal-overlay" style="display:none;">
+      <div class="detail-modal" id="trafficDetailModal">
+        <div class="detail-modal__header">
+          <div>
+            <div class="detail-modal__name" id="trafficDetailName"></div>
+            <div class="detail-modal__subtitle" id="trafficDetailSubtitle"></div>
+          </div>
+          <button class="detail-modal__close" id="trafficDetailClose">&times;</button>
+        </div>
+        <div class="detail-modal__stats" id="trafficDetailStats"></div>
+        <div id="trafficDetailChart" style="margin-bottom:16px;"></div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

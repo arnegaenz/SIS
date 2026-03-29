@@ -54,6 +54,7 @@
     "campaign-builder.html":   ["admin","core","cs","partner","fi"],
     "executive.html":          ["admin","core","internal","executive"],
     // Monitoring
+    "success.html":            ["admin","core","internal","siteops","cs"],
     "operations.html":         ["admin","core","internal","siteops","cs"],
     "monitor.html":            ["admin","core","internal","siteops","cs"],
     "heatmap.html":            ["admin","core","siteops","cs"],
@@ -85,7 +86,7 @@
     "admin":     "dashboards/portfolio.html",
     "core":      "dashboards/portfolio.html",
     "internal":  "dashboards/portfolio.html",
-    "siteops":   "dashboards/operations.html",
+    "siteops":   "dashboards/success.html",
     "support":   "troubleshoot-customer.html",
     "cs":        "dashboards/portfolio.html",
     "executive": "dashboards/executive.html",

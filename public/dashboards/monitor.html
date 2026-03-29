@@ -43,13 +43,13 @@
     </div>
 
     <!-- Instance Status Board -->
-    <div class="monitor-section-title">INSTANCES</div>
+    <div class="monitor-section-title">INSTANCES <span class="monitor-help" title="Each CardSavr instance is checked every 5 minutes. Frontend: HTTP request to a live cardupdatr.app page — tests DNS, hosting, SSL, and app serving. Backend: API login via CardSavr SDK — tests authentication and API responsiveness. Response times under 1s are green, 1-3s yellow, over 3s or failed is red. Sparkline shows response time trend over the last hour. Uptime % is based on successful checks in the last hour.">?</span></div>
     <div class="monitor-instance-strip" id="instanceGrid">
       <div class="monitor-loading">Checking instances...</div>
     </div>
 
     <!-- Data Pipeline -->
-    <div class="monitor-section-title">DATA PIPELINE</div>
+    <div class="monitor-section-title">DATA PIPELINE <span class="monitor-help" title="Monitors the freshness of SIS data caches. Placements Cache: live card placement data, refreshed every 15 minutes from CardSavr API. Sessions Cache: live cardholder session data, refreshed every 15 minutes. GA Realtime: Google Analytics realtime snapshots collected every 5 minutes. Instance Connectivity: tracks which CardSavr instances failed their last API login attempt. Green = fresh (under 15 min), yellow = getting stale (15-30 min), red = stale (over 30 min).">?</span></div>
     <div class="monitor-pipeline-strip" id="pipelineStatus">
       <div class="monitor-loading">Checking pipeline...</div>
     </div>
@@ -57,12 +57,25 @@
     <!-- Alerts Panel -->
     <div class="monitor-alerts-panel">
       <div class="monitor-alerts-col">
-        <div class="monitor-section-title">TRAFFIC ANOMALIES <span class="monitor-badge" id="trafficBadge">0</span></div>
+        <div class="monitor-section-title">TRAFFIC ANOMALIES <span class="monitor-help" title="Flags FIs whose session volume is abnormal compared to their 14-day rolling baseline. DARK: was active, now zero sessions — possible outage or integration failure. LOW: sending traffic but significantly below baseline — something changed. Only FIs averaging 5+ sessions/day are monitored. 'Sleeping' FIs (expected quiet period based on time of day) are excluded.">?</span> <span class="monitor-badge" id="trafficBadge">0</span></div>
         <div class="monitor-alert-list" id="trafficAlerts"></div>
       </div>
       <div class="monitor-alerts-col">
-        <div class="monitor-section-title">MERCHANT ALERTS <span class="monitor-badge" id="merchantBadge">0</span></div>
+        <div class="monitor-section-title">MERCHANT ALERTS <span class="monitor-help" title="Flags merchants with failure rates above 50% (minimum 3 jobs in the last 7 days). Shows the failure ratio, top error code, and a visual bar comparing successes vs failures. SITE_INTERACTION_FAILURE typically means the merchant changed their website and the automation needs updating. Click a merchant for detailed job history.">?</span> <span class="monitor-badge" id="merchantBadge">0</span></div>
         <div class="monitor-alert-list" id="merchantAlerts"></div>
+      </div>
+    </div>
+    <!-- Detail Modal -->
+    <div class="detail-modal-overlay" id="monitorModalOverlay" style="display:none;">
+      <div class="detail-modal" id="monitorModal">
+        <div class="detail-modal__header">
+          <div>
+            <div class="detail-modal__name" id="monitorModalName"></div>
+            <div class="detail-modal__subtitle" id="monitorModalSubtitle"></div>
+          </div>
+          <button class="detail-modal__close" id="monitorModalClose">&times;</button>
+        </div>
+        <div id="monitorModalContent"></div>
       </div>
     </div>
   </div>

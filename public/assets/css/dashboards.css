@@ -2992,6 +2992,50 @@ body.kiosk-mode .traffic-tile.status-dark {
   margin: 32px 0 14px;
 }
 
+/* ── Help icon + tooltip ── */
+.monitor-help {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1px solid var(--muted);
+  color: var(--muted);
+  font-size: 0.6rem;
+  font-weight: 700;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color 0.15s, border-color 0.15s;
+  position: relative;
+}
+
+.monitor-help:hover {
+  color: var(--text);
+  border-color: var(--text);
+}
+
+.monitor-help-tooltip {
+  position: absolute;
+  top: 24px;
+  left: 0;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 16px;
+  min-width: 300px;
+  max-width: 400px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  z-index: 300;
+  font-size: 0.75rem;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--text);
+  line-height: 1.5;
+  white-space: normal;
+}
+
 /* ── Badge (count on section titles) ── */
 .monitor-badge {
   display: inline-flex;
