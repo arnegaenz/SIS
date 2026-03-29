@@ -6,7 +6,64 @@
 
 # Build History
 
-## Mar 27, 2026 (Session 15)
+## Mar 27-28, 2026 (Session 15)
+
+### Success Dashboard (formerly Operations Command Center)
+Two-day build session transforming the ops kiosk into a full command center.
+
+**Renamed**: Operations Dashboard → Success Dashboard
+
+**Persistent Header:**
+- Time window indicator (24 HOURS / 3 DAYS / 7 DAYS) cycles with view
+- Funnel KPIs: Sessions → Jobs → Linked → Success Rate → System Rate → Successful
+- Health dot (5 signals), clock, play/pause button (SVG, 62x62), exit button
+- All KPIs match current view window
+
+**Butterfly Timeline:**
+- CardSavr sessions/jobs hang down from top, GA traffic grows up from bottom
+- Hourly bars compress for wider views (2px/1px/0px gap for 1d/3d/7d)
+- Label channel between two midlines for readable hour labels
+- GA standard data: funnel page colors (Select/User Data/Credentials — purple tones)
+- GA realtime data: device colors (Mobile/Desktop/Tablet — blue/gray/teal)
+- Tooltips show both CardSavr and GA data per hour column
+
+**GA Data Pipeline:**
+- GA property timezone fix: America/Los_Angeles → UTC conversion
+- Hourly unique users query (totalUsers, properly deduplicated)
+- deviceCategory added to GA fetch dimensions
+- Standard GA refresh every 1 hour (re-fetches last 7 days)
+- Realtime snapshots every 5 minutes (rolling 7-day retention)
+- Pacific date loading for GA files (extra day buffer for timezone boundary)
+- GA data backfilled — stored files were missing ~50% of rows
+
+**View Rotation:**
+- 3 views: 24 Hours, 3 Days, 7 Days (15-second cycle)
+- Progress bar wave: blue fills → background pushes → repeat
+- Play/pause button with spacebar toggle
+- Arrow keys for manual navigation
+- Any interaction pauses, resumes after 1 min inactivity
+- Modals pause rotation, restore previous state on close
+
+**Data Accuracy:**
+- Live sessions cache (15-min poll) — fixes missing browse-only sessions
+- Feed summary with unique session IDs, linked jobs, system success rate
+- Success Rate = successful / all jobs (harsh truth)
+- System Rate = successful / linked (when system was in play)
+- Uncapped allEvents for timeline, 100-event cap for feed display only
+- Volume chart: 6-hour buckets (1-day), daily (3d/7d), from feed data
+- Merchant grid: by_merchant_by_day for per-window filtering
+- Traffic health tiles: session counts, sparklines, banner all match view window
+
+**Other:**
+- Customer Success kiosk title fix
+- Relative time: 48h+ shows decimal days (6.3d ago)
+- Merchant modal: events match view window, scrollable, shows dates
+- FI modal: stats match view window, bar chart highlights window days
+- formatRelativeTime updated for multi-day feeds
+
+---
+
+## Mar 27, 2026 (Session 15 — original entry)
 
 ### Operations Command Center — Phase 1
 Complete redesign of the ops dashboard kiosk mode into a command center.
