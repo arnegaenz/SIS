@@ -6841,11 +6841,16 @@ const server = http.createServer(async (req, res) => {
       const utcYesterday = new Date(now.getTime() - 86400000).toISOString().slice(0, 10);
 
       // Read hourly unique user files for the requested window
-      const gaDays = Math.min(8, Math.max(2, parseInt(queryParams.get("days") || "2") + 1));
+      // GA files use Pacific dates — build date list in Pacific time with buffer
+      const requestedDays = Math.min(7, Math.max(1, parseInt(queryParams.get("days") || "1")));
+      const gaDays = requestedDays + 2; // extra buffer for timezone boundary
       const gaDateList = [];
       for (let d = gaDays - 1; d >= 0; d--) {
-        gaDateList.push(new Date(now.getTime() - d * 86400000).toISOString().slice(0, 10));
+        const pacDate = new Date(new Date(now.getTime() - d * 86400000).toLocaleString("en-US", { timeZone: "America/Los_Angeles" }));
+        gaDateList.push(pacDate.getFullYear() + "-" + String(pacDate.getMonth() + 1).padStart(2, "0") + "-" + String(pacDate.getDate()).padStart(2, "0"));
       }
+      // Dedupe
+      const gaDateSet = [...new Set(gaDateList)];
       // Convert GA property time (America/Los_Angeles) to UTC ISO timestamp
       function gaHourToUtc(date, hour) {
         // Construct Pacific datetime, then find its UTC equivalent
@@ -6862,7 +6867,7 @@ const server = http.createServer(async (req, res) => {
       }
 
       const hourlyData = [];
-      for (const day of gaDateList) {
+      for (const day of gaDateSet) {
         // Try hourly uniques first (deduplicated)
         try {
           const uniquesDir = path.join(RAW_DIR, "ga-hourly-uniques");
@@ -6907,7 +6912,7 @@ const server = http.createServer(async (req, res) => {
 
       // Load funnel page breakdown per hour (for visual stacking)
       const funnelData = [];
-      for (const day of gaDateList) {
+      for (const day of gaDateSet) {
         try {
           const gaDir = path.join(RAW_DIR, "ga");
           const raw = await fs.readFile(path.join(gaDir, `${day}.json`), "utf8");
