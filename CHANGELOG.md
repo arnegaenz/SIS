@@ -6,7 +6,25 @@
 
 # Build History
 
-## Mar 29, 2026 (Session 16)
+## Mar 29-30, 2026 (Session 16)
+
+### Architecture Doc
+- Created `docs/architecture.md` — comprehensive engineering handoff reference
+- Covers: infrastructure, external services, data flows, all API endpoints, auth system, deployment
+
+### Success Dashboard — Window-Aware FI Classification
+- 3-day and 7-day views reclassify FIs based on aggregate data (not momentary status)
+- No "sleeping" in multi-day views — meaningless over multiple days
+- Each tile shows window % of baseline
+
+### Domain & Email
+- SendGrid re-enabled with `sis@strivveinsights.com` from-address
+- Traffic alert email links updated to strivveinsights.com
+- config.js uses same-origin (works on any domain without hardcoding)
+
+### Cross-Dashboard
+- Shared kiosk EXIT button replaces "Regular View" on all dashboard pages
+- Light mode: dark panel behind System Monitor traffic map
 
 ### System Monitor — Polish & Interactivity
 
