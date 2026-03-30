@@ -2181,8 +2181,9 @@ function renderTrafficHealthBanner(data, bannerEl, windowDays) {
 }
 
 function renderTrafficTile(fi, windowDays) {
-  const sparkline = buildTrafficSparkline(fi.daily_counts, fi.baseline_median, fi.status, windowDays);
   const days = windowDays || 1;
+  const effectiveStatus = (days > 1 && fi._windowStatus) ? fi._windowStatus : fi.status;
+  const sparkline = buildTrafficSparkline(fi.daily_counts, fi.baseline_median, effectiveStatus, windowDays);
   const dailyCounts = fi.daily_counts || [];
 
   // Compute session total for the window
@@ -2195,30 +2196,45 @@ function renderTrafficTile(fi, windowDays) {
     windowLabel = `${days}d`;
   }
 
+  // Compute window % of baseline
+  const windowAvg = days > 1 && dailyCounts.length > 0
+    ? windowSessions / Math.min(days, dailyCounts.length)
+    : null;
+  const windowPct = windowAvg != null && fi.baseline_avg > 0
+    ? Math.round((windowAvg / fi.baseline_avg) * 100)
+    : null;
+
   let statsHtml;
   let zzzIndicator = "";
-  if (fi.status === "dark" && days === 1) {
+  if (effectiveStatus === "dark" && days === 1) {
     const hoursAgo = fi.hours_since_last != null ? `${fi.hours_since_last}h ago` : "unknown";
     statsHtml = `DARK &mdash; last session <strong>${hoursAgo}</strong>`;
-  } else if (fi.status === "sleeping" && days === 1) {
+  } else if (effectiveStatus === "sleeping" && days === 1) {
     const tierNote = fi.fingerprint_tier === 1 && fi.expected_cumulative != null
       ? ` (expect ~${fi.expected_cumulative} by now)`
       : "";
     statsHtml = `Quiet period${tierNote}`;
     zzzIndicator = `<span class="zzz-indicator">zzz</span>`;
-  } else if (fi.status === "low" && days === 1) {
+  } else if (effectiveStatus === "dark" && days > 1) {
+    statsHtml = `${windowLabel}: <strong>0</strong> sessions`;
+  } else if (effectiveStatus === "low" && days === 1) {
     statsHtml = `Today: <strong>${fi.today_sessions}</strong> sessions (<strong>${fi.pct_of_baseline}%</strong> of baseline, proj)`;
+  } else if (effectiveStatus === "low" && days > 1) {
+    const pctStr = windowPct != null ? ` (<strong>${windowPct}%</strong> of baseline)` : "";
+    statsHtml = `${windowLabel}: <strong>${windowSessions}</strong> sessions${pctStr}`;
   } else {
-    const pctNote = days === 1 ? ` (<strong>${fi.pct_of_baseline}%</strong> of baseline, proj)` : "";
+    const pctNote = days === 1
+      ? ` (<strong>${fi.pct_of_baseline}%</strong> of baseline, proj)`
+      : windowPct != null ? ` (<strong>${windowPct}%</strong> of baseline)` : "";
     statsHtml = `${windowLabel}: <strong>${windowSessions}</strong> sessions${pctNote}`;
   }
 
   // Build verbose tooltip
-  const statusExplain = fi.status === "dark"
+  const statusExplain = effectiveStatus === "dark"
     ? "DARK: Zero sessions detected. This FI may have an outage, integration issue, or has gone offline."
-    : fi.status === "low"
+    : effectiveStatus === "low"
     ? "LOW: Session volume is significantly below the 14-day baseline. Could indicate reduced traffic, partial outage, or campaign ending."
-    : fi.status === "sleeping"
+    : effectiveStatus === "sleeping"
     ? "SLEEPING: Expected quiet period — historically near-zero traffic at this hour. No action needed."
     : "NORMAL: Session volume is within expected range based on the 14-day rolling baseline.";
   const lastSessionStr = fi.hours_since_last != null ? `${fi.hours_since_last} hours ago` : "Unknown";
@@ -2249,14 +2265,14 @@ function renderTrafficTile(fi, windowDays) {
     `Click to open detail modal with full 15-day chart.`,
   ].join("\n");
 
-  const badgeLabel = fi.status === "sleeping" ? "Sleeping" : fi.status.toUpperCase();
+  const badgeLabel = effectiveStatus === "sleeping" ? "Sleeping" : effectiveStatus.toUpperCase();
   return `
-    <div class="traffic-tile status-${fi.status}" data-fi-key="${fi.fi_lookup_key}" title="${tipFi.replace(/"/g, '&quot;')}">
+    <div class="traffic-tile status-${effectiveStatus}" data-fi-key="${fi.fi_lookup_key}" title="${tipFi.replace(/"/g, '&quot;')}">
       <div class="traffic-tile__header">
         <span class="traffic-tile__name">${fi.fi_name}</span>
         <span style="display:flex;align-items:center;gap:4px;">
           ${zzzIndicator}
-          <span class="traffic-tile__status-badge ${fi.status}">${badgeLabel}</span>
+          <span class="traffic-tile__status-badge ${effectiveStatus}">${badgeLabel}</span>
         </span>
       </div>
       <div class="traffic-tile__partner">${fi.partner}</div>
@@ -2329,25 +2345,62 @@ function renderTrafficHealth(data) {
   }
 }
 
+function reclassifyForWindow(fi, windowDays) {
+  if (windowDays <= 1) return fi; // 1-day view uses server status as-is
+  const dailyCounts = fi.daily_counts || [];
+  const windowCounts = dailyCounts.slice(-windowDays);
+  const windowTotal = windowCounts.reduce((s, c) => s + c, 0);
+  const windowAvg = windowCounts.length > 0 ? windowTotal / windowCounts.length : 0;
+  const baselineAvg = fi.baseline_avg || 0;
+
+  // Reclassify based on window aggregate vs baseline
+  let status;
+  if (windowTotal === 0) {
+    status = "dark";
+  } else if (baselineAvg > 0 && windowAvg < baselineAvg * 0.4) {
+    status = "low";
+  } else {
+    status = "normal";
+  }
+  // No "sleeping" in multi-day views — it's a momentary state, not a window state
+  return { ...fi, _windowStatus: status, _windowSessions: windowTotal, _windowAvg: windowAvg };
+}
+
 function renderKioskTrafficHealth(data, windowDays) {
   if (!data || !data.fis) return;
-  renderTrafficHealthBanner(data, trafficEls.kioskBanner, windowDays);
+  const days = windowDays || 1;
+
+  // Reclassify FIs for the current window
+  const reclassified = data.fis.map(fi => reclassifyForWindow(fi, days));
+
+  // Recompute banner summary from window-aware statuses
+  if (days > 1) {
+    const windowSummary = { ...data.summary, dark: 0, low: 0, sleeping: 0, normal: 0 };
+    for (const fi of reclassified) {
+      const ws = fi._windowStatus || fi.status;
+      windowSummary[ws] = (windowSummary[ws] || 0) + 1;
+    }
+    renderTrafficHealthBanner({ ...data, summary: windowSummary }, trafficEls.kioskBanner, days);
+  } else {
+    renderTrafficHealthBanner(data, trafficEls.kioskBanner, days);
+  }
 
   if (trafficEls.kioskGrid) {
-    // In kiosk mode, sort: dark → low → normal → sleeping (sleeping last, not actionable)
+    // Sort by window status: dark → low → normal; within status, by baseline desc
     const kioskStatusOrder = { dark: 0, low: 1, normal: 2, sleeping: 3 };
-    const sorted = data.fis.slice().sort((a, b) => {
-      const so = (kioskStatusOrder[a.status] ?? 9) - (kioskStatusOrder[b.status] ?? 9);
+    const sorted = reclassified.slice().sort((a, b) => {
+      const aStatus = a._windowStatus || a.status;
+      const bStatus = b._windowStatus || b.status;
+      const so = (kioskStatusOrder[aStatus] ?? 9) - (kioskStatusOrder[bStatus] ?? 9);
       if (so !== 0) return so;
       return (b.baseline_avg || 0) - (a.baseline_avg || 0);
     });
-    const days = windowDays || 1;
     trafficEls.kioskGrid.innerHTML = sorted.map(fi => renderTrafficTile(fi, days)).join("");
 
     trafficEls.kioskGrid.querySelectorAll(".traffic-tile").forEach(tile => {
       tile.addEventListener("click", () => {
         const fiKey = tile.dataset.fiKey;
-        const fi = data.fis.find(f => f.fi_lookup_key === fiKey);
+        const fi = reclassified.find(f => f.fi_lookup_key === fiKey);
         if (fi) renderTrafficDetailModal(fi, data, days);
       });
     });

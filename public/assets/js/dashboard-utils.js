@@ -245,7 +245,7 @@ export function initKioskMode(title, refreshSeconds) {
         </div>
       </div>
       <button class="theme-toggle kiosk-theme-toggle" id="kioskThemeToggle" type="button">${theme === "dark" ? "Dark mode" : "Light mode"}</button>
-      <button class="kiosk-view-toggle" id="kioskViewToggle" type="button" title="Switch to regular view">Regular View</button>
+      <button class="kiosk-exit-btn" id="kioskViewToggle" type="button" title="Exit kiosk mode">EXIT</button>
       <div class="kiosk-header__clock" id="kioskClock"></div>
       <button class="kiosk-tz-toggle" id="kioskTzToggle" type="button" title="Change timezone">${getTimezoneLabel(getTimezonePreference())}</button>
       <div class="kiosk-header__dot" id="kioskDot"></div>

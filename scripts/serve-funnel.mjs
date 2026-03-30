@@ -927,8 +927,8 @@ function formatAlertEmailHtml(alerts, allFis) {
           <tbody>${normalRows}</tbody>
         </table>
         <p style="margin:12px 0 0;font-size:12px;color:#94a3b8;">
-          <a href="https://34-220-57-7.sslip.io/dashboards/operations" style="color:#2563eb;">View Operations Dashboard</a> &middot;
-          <a href="https://34-220-57-7.sslip.io/maintenance.html#trafficHealthSettingsCard" style="color:#2563eb;">Alert Settings</a>
+          <a href="https://strivveinsights.com/dashboards/success.html" style="color:#2563eb;">View Success Dashboard</a> &middot;
+          <a href="https://strivveinsights.com/maintenance.html#trafficHealthSettingsCard" style="color:#2563eb;">Alert Settings</a>
         </p>
       </div>
     </div>

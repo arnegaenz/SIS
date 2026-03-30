@@ -517,6 +517,26 @@ body.kiosk-mode .dashboard-shell {
   color: var(--text);
 }
 
+.kiosk-exit-btn {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  padding: 6px 14px;
+  border-radius: 6px;
+  white-space: nowrap;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.kiosk-exit-btn:hover {
+  color: var(--text);
+  border-color: var(--text);
+}
+
 .kiosk-tz-toggle {
   border: 1px solid var(--border);
   background: var(--panel-soft);
@@ -4005,4 +4025,16 @@ body.kiosk-mode .traffic-tile.status-dark {
 
 .kiosk-mode .monitor-map-international {
   font-size: 0.88rem;
+}
+
+/* Light mode: give the map a dark panel so dots/states stay visible */
+[data-theme="light"] .monitor-map-container {
+  background: #1a202c;
+  border-radius: 10px;
+}
+[data-theme="light"] .monitor-map-container .monitor-map-international {
+  color: rgba(255,255,255,0.6);
+}
+[data-theme="light"] .monitor-map-container .monitor-map-empty {
+  color: rgba(255,255,255,0.5);
 }

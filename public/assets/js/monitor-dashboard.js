@@ -556,16 +556,14 @@ function showPipelineModal(key) {
       const spanDays = spanMs / 86400000;
       coverageText = spanDays < 1 ? `${Math.round(spanMs / 3600000)}h` : `${spanDays.toFixed(1)} days`;
     }
+    const hasTraffic = (summary.active_users ?? 0) > 0;
     body = `
       <div class="detail-modal__scrollable">
-        <div class="mon-modal-stat"><span class="mon-modal-stat__label">Active Users (now)</span><span class="mon-modal-stat__value" style="font-size:18px;color:#48bb78">${summary.active_users ?? "—"}</span></div>
-        <div class="mon-modal-stat"><span class="mon-modal-stat__label">Page Views (now)</span><span class="mon-modal-stat__value">${summary.total_views ?? "—"}</span></div>
-        ${Object.keys(byDevice).length > 0 ? `<div class="mon-modal-section-title">By Device</div>
+        <div class="mon-modal-stat"><span class="mon-modal-stat__label">Active Users</span><span class="mon-modal-stat__value" style="font-size:18px;color:${hasTraffic ? "#48bb78" : "var(--muted)"}">${summary.active_users ?? 0}</span></div>
+        <div class="mon-modal-stat"><span class="mon-modal-stat__label">Page Views</span><span class="mon-modal-stat__value">${summary.total_views ?? 0}</span></div>
+        ${Object.keys(byDevice).length > 0 && hasTraffic ? `<div class="mon-modal-section-title">By Device</div>
         ${Object.entries(byDevice).sort((a,b) => b[1] - a[1]).map(([dev, count]) => `<div class="mon-modal-stat"><span class="mon-modal-stat__label">${escHtml(dev)}</span><span class="mon-modal-stat__value">${count}</span></div>`).join("")}` : ""}
-        <div class="mon-modal-section-title">Pipeline Health</div>
-        <div class="mon-modal-stat"><span class="mon-modal-stat__label">Data Coverage</span><span class="mon-modal-stat__value">${coverageText}</span></div>
-        <div class="mon-modal-stat"><span class="mon-modal-stat__label">Poll Interval</span><span class="mon-modal-stat__value">5 min</span></div>
-        <div class="mon-modal-stat"><span class="mon-modal-stat__label">Last Poll</span><span class="mon-modal-stat__value">${d.last_snapshot ? new Date(d.last_snapshot).toLocaleTimeString() : "—"}</span></div>
+        <div class="mon-modal-stat" style="margin-top:12px"><span class="mon-modal-stat__label">Last updated</span><span class="mon-modal-stat__value">${d.last_snapshot ? new Date(d.last_snapshot).toLocaleTimeString() : "—"}</span></div>
       </div>`;
   } else if (key === "connectivity") {
     const failures = data.instance_failures || [];
