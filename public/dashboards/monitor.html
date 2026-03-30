@@ -36,10 +36,16 @@
       <span class="monitor-last-updated" id="lastUpdated"></span>
     </div>
 
-    <!-- Overall Status Banner -->
-    <div class="monitor-banner" id="overallBanner">
-      <div class="monitor-banner__dot"></div>
-      <div class="monitor-banner__text">Checking systems...</div>
+    <!-- Header Bar -->
+    <div class="monitor-header" id="overallBanner">
+      <div class="monitor-header__left">
+        <div class="monitor-banner__dot"></div>
+        <div class="monitor-banner__text">Checking systems...</div>
+      </div>
+      <div class="monitor-header__right">
+        <span class="monitor-header__title">System Monitor</span>
+        <span class="monitor-header__clock" id="monitorClock"></span>
+      </div>
     </div>
 
     <!-- Top split: Instances (left) | Pipeline + Feed (right) -->
@@ -57,6 +63,7 @@
         </div>
         <div class="monitor-section-title">LIVE TRAFFIC <span class="monitor-help" title="Live geographic distribution of CardUpdatr traffic across the United States. Pulsing dots indicate active users. Data from GA realtime snapshots (last 30 minutes).">?</span></div>
         <div class="monitor-map-container" id="trafficMap"></div>
+        <div class="monitor-section-title">SYSTEM TOTALS (LAST 24 HOURS)</div>
         <div id="monitorTotals" class="monitor-totals-strip"></div>
       </div>
     </div>

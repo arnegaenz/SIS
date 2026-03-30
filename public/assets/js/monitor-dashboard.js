@@ -123,10 +123,18 @@ function renderBanner() {
     text = "ALL SYSTEMS OPERATIONAL";
   }
 
-  el.className = `monitor-banner monitor-banner--${level}`;
+  el.className = `monitor-header monitor-banner--${level}`;
+  const now = new Date();
+  const clock = now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", second: "2-digit", hour12: true });
   el.innerHTML = `
-    <div class="monitor-banner__dot monitor-banner__dot--${level}"></div>
-    <div class="monitor-banner__text">${text}</div>
+    <div class="monitor-header__left">
+      <div class="monitor-banner__dot monitor-banner__dot--${level}"></div>
+      <div class="monitor-banner__text">${text}</div>
+    </div>
+    <div class="monitor-header__right">
+      <span class="monitor-header__title">System Monitor</span>
+      <span class="monitor-header__clock">${clock}</span>
+    </div>
   `;
 }
 
@@ -988,7 +996,7 @@ function renderTrafficMap(gaData) {
   if (byCity.length === 0) {
     emptyHtml = `<div class="monitor-map-empty">No geographic data available — waiting for GA realtime snapshots</div>`;
   } else if (usDots.length === 0 && intlTotal === 0) {
-    emptyHtml = `<div class="monitor-map-empty">No mappable traffic in current snapshot</div>`;
+    emptyHtml = ``;
   }
 
   el.innerHTML = svg + intlHtml + emptyHtml;
@@ -1061,6 +1069,12 @@ async function fetchAll() {
 }
 
 /* ── Init ── */
+// Clock update
+setInterval(() => {
+  const clockEl = document.getElementById("monitorClock");
+  if (clockEl) clockEl.textContent = new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", second: "2-digit", hour12: true });
+}, 1000);
+
 if (isKioskMode()) {
   if (els.toolbar) els.toolbar.style.display = "none";
   initKioskMode("System Monitor", 30);

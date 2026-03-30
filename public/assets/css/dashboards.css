@@ -3053,6 +3053,44 @@ body.kiosk-mode .traffic-tile.status-dark {
 }
 
 /* ── Overall Status Banner ── */
+.monitor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  border-radius: 10px;
+  margin-top: 10px;
+  margin-bottom: 6px;
+  transition: background 0.3s, border-color 0.3s;
+  border: 1px solid var(--border);
+  background: var(--panel);
+}
+
+.monitor-header__left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.monitor-header__right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.monitor-header__title {
+  font-size: 0.75rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.monitor-header__clock {
+  font-size: 0.8rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
 .monitor-banner {
   display: flex;
   align-items: center;
@@ -3628,7 +3666,7 @@ body.kiosk-mode .traffic-tile.status-dark {
   grid-template-columns: 2fr 3fr;
   gap: 16px;
   margin-bottom: 12px;
-  height: calc(100vh - 140px);
+  height: calc(100vh - 240px);
   overflow: hidden;
 }
 
@@ -3640,7 +3678,7 @@ body.kiosk-mode .traffic-tile.status-dark {
 .monitor-instance-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px;
+  gap: 20px;
 }
 
 .monitor-top-right {
