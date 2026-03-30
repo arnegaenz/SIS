@@ -227,6 +227,20 @@ All partner-facing content follows engagement-positive tone:
 - Phase 1 DONE: troubleshoot-customer.html with plain-English explanations, FI scoping, copy block
 - Phase 2 ideas: session search by reference ID, FI picker for multi-FI users, date range calendar, export/print
 
+### Success Dashboard — Top FI Conversion Metrics
+- Add conversion rate leaderboard to the Success Dashboard kiosk view
+- Show best-performing FIs by conversion rate, sourced from actual session/placement data
+- Should leverage Source data (SSO vs campaign vs discovery) to contextualize conversion rates
+- Window-aware: adapts to 1-day / 3-day / 7-day view like other tiles
+- Helps answer "who's winning and why" at a glance
+
+### System Health Toast (Admin/Internal Only)
+- Surface `/api/ops-health-composite` alerts as a thin toast bar on every page
+- Only for unrestricted roles (admin, core, internal, siteops, cs)
+- Shows: instance issues, cache staleness, success rate anomalies, merchant spikes
+- Links to System Monitor for details
+- Non-intrusive, dismissable, reappears on next poll if condition persists
+
 ### Initial Data Load Performance
 - Page load pulls ~2,200+ records into local cache, then counts through them for FI funnel
 - East coast user reported very slow load times — counter "took forever"
