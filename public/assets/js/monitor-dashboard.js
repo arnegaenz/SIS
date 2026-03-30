@@ -4,6 +4,7 @@ import {
   startAutoRefresh,
   formatRelativeTime,
 } from "./dashboard-utils.js";
+import { US_STATE_PATHS } from "./us-state-paths.js";
 
 /* ── Constants ── */
 const REFRESH_KIOSK_MS = 30 * 1000;
@@ -977,7 +978,7 @@ function renderTrafficMap(gaData) {
   }).join("\n");
 
   const svg = `<svg class="monitor-map-svg" viewBox="0 0 960 600" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
-    <path d="${US_OUTLINE_PATH}" fill="rgba(255,255,255,0.03)" stroke="var(--muted)" stroke-width="1.5" stroke-linejoin="round" stroke-opacity="0.35"/>
+    ${Object.values(US_STATE_PATHS).map(d => `<path d="${d}" fill="rgba(255,255,255,0.03)" stroke="var(--muted)" stroke-width="0.5" stroke-linejoin="round" stroke-opacity="0.25"/>`).join("\n    ")}
     ${dots}
   </svg>`;
 
