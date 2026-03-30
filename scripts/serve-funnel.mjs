@@ -661,8 +661,9 @@ async function validateSession(req, queryParams) {
 }
 
 async function sendMagicLinkEmail(email, name, magicLink) {
+  // Always log the magic link for emergency access
+  console.log("[auth] Magic link for", email, ":", magicLink);
   if (!SENDGRID_API_KEY) {
-    console.log("[auth] No SENDGRID_API_KEY - magic link for", email, ":", magicLink);
     return;
   }
 

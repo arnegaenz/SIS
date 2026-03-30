@@ -737,8 +737,8 @@ function renderTotals(feedSummary) {
 
   el.innerHTML = cards.map(c => `
     <div class="mon-totals-card">
-      <span class="mon-totals-card__value">${c.value.toLocaleString()}</span>
-      <span class="mon-totals-card__label">${c.label}</span>
+      <div class="mon-totals-card__value">${c.value.toLocaleString()}</div>
+      <div class="mon-totals-card__label">${c.label}</div>
     </div>
   `).join("");
 }
