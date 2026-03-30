@@ -7370,18 +7370,45 @@ const server = http.createServer(async (req, res) => {
     if (!session) {
       return send(res, 401, { error: "Authentication required" });
     }
+    // Compute per-instance placement counts
+    const placementsByInstance = {};
+    if (_livePlacementsCache) {
+      for (const p of _livePlacementsCache) {
+        const inst = p._instance || "unknown";
+        placementsByInstance[inst] = (placementsByInstance[inst] || 0) + 1;
+      }
+    }
+    // Compute per-instance session counts
+    const sessionsByInstance = {};
+    if (_liveSessionsCache) {
+      for (const s of _liveSessionsCache) {
+        const inst = s._instance || "unknown";
+        sessionsByInstance[inst] = (sessionsByInstance[inst] || 0) + 1;
+      }
+    }
+    // GA realtime time range
+    const gaFirst = _gaRealtimeSnapshots.length > 0 ? _gaRealtimeSnapshots[0].time : null;
+    const gaLast = _gaRealtimeSnapshots.length > 0 ? _gaRealtimeSnapshots[_gaRealtimeSnapshots.length - 1].time : null;
+    const gaLatestSummary = _gaRealtimeSnapshots.length > 0 ? _gaRealtimeSnapshots[_gaRealtimeSnapshots.length - 1].summary : null;
+
     const result = {
       placements_cache: {
         age_ms: _livePlacementsCacheTime > 0 ? Date.now() - _livePlacementsCacheTime : null,
         last_update: _livePlacementsCacheTime > 0 ? new Date(_livePlacementsCacheTime).toISOString() : null,
+        record_count: _livePlacementsCache ? _livePlacementsCache.length : 0,
+        by_instance: placementsByInstance,
       },
       sessions_cache: {
         age_ms: _liveSessionsCacheTime > 0 ? Date.now() - _liveSessionsCacheTime : null,
         last_update: _liveSessionsCacheTime > 0 ? new Date(_liveSessionsCacheTime).toISOString() : null,
+        record_count: _liveSessionsCache ? _liveSessionsCache.length : 0,
+        by_instance: sessionsByInstance,
       },
       ga_realtime: {
         snapshots: _gaRealtimeSnapshots.length,
-        last_snapshot: _gaRealtimeSnapshots.length > 0 ? _gaRealtimeSnapshots[_gaRealtimeSnapshots.length - 1].time : null,
+        first_snapshot: gaFirst,
+        last_snapshot: gaLast,
+        latest_summary: gaLatestSummary,
       },
       instance_failures: _liveInstanceFailures,
     };

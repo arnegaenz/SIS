@@ -313,7 +313,7 @@ function renderPipeline(data) {
     const age = data.placements_cache.age_ms;
     const color = pipelineFreshness(age);
     const pct = Math.min(100, Math.round((age / (30 * 60 * 1000)) * 100));
-    items.push({ label: "Placements Cache", color, detail: formatAge(age), pct,
+    items.push({ key: "placements", label: "Placements Cache", color, detail: formatAge(age), pct,
       sub: data.placements_cache.last_update ? new Date(data.placements_cache.last_update).toLocaleTimeString() : "" });
   }
 
@@ -321,7 +321,7 @@ function renderPipeline(data) {
     const age = data.sessions_cache.age_ms;
     const color = pipelineFreshness(age);
     const pct = Math.min(100, Math.round((age / (30 * 60 * 1000)) * 100));
-    items.push({ label: "Sessions Cache", color, detail: formatAge(age), pct,
+    items.push({ key: "sessions", label: "Sessions Cache", color, detail: formatAge(age), pct,
       sub: data.sessions_cache.last_update ? new Date(data.sessions_cache.last_update).toLocaleTimeString() : "" });
   }
 
@@ -332,7 +332,10 @@ function renderPipeline(data) {
     if (lastSnap) age = Date.now() - new Date(lastSnap).getTime();
     const color = count === 0 ? "red" : pipelineFreshness(age);
     const pct = count === 0 ? 100 : Math.min(100, Math.round((age / (30 * 60 * 1000)) * 100));
-    items.push({ label: "GA Realtime", color, detail: count > 0 ? `${count} snapshots` : "No snapshots", pct,
+    const gaDetail = count > 0
+      ? `${data.ga_realtime.latest_summary?.active_users ?? 0} active`
+      : "No data";
+    items.push({ key: "ga_realtime", label: "GA Realtime", color, detail: gaDetail, pct,
       sub: lastSnap ? formatRelativeTime(lastSnap) : "" });
   }
 
@@ -340,7 +343,7 @@ function renderPipeline(data) {
     const failures = data.instance_failures;
     const color = failures.length === 0 ? "green" : failures.length <= 2 ? "yellow" : "red";
     const pct = failures.length === 0 ? 0 : Math.min(100, failures.length * 25);
-    items.push({ label: "Instance Connectivity", color,
+    items.push({ key: "connectivity", label: "Instance Connectivity", color,
       detail: failures.length === 0 ? "All OK" : `${failures.length} failing`, pct,
       sub: failures.length > 0 ? failures.join(", ") : "" });
   }
@@ -350,10 +353,11 @@ function renderPipeline(data) {
     return;
   }
 
+  _lastPipelineData = data;
   const colorHex = { green: "#48bb78", yellow: "#ecc94b", red: "#fc8181" };
 
   el.innerHTML = items.map(item => `
-    <div class="mon-pipeline-card mon-pipeline-card--${item.color}">
+    <div class="mon-pipeline-card mon-pipeline-card--${item.color}" data-pipeline-key="${item.key}" style="cursor:pointer">
       <div class="mon-pipeline-card__header">
         <span class="mon-dot mon-dot--${item.color}"></span>
         <span class="mon-pipeline-card__label">${escHtml(item.label)}</span>
@@ -363,6 +367,11 @@ function renderPipeline(data) {
       ${item.sub ? `<div class="mon-pipeline-card__sub">${escHtml(item.sub)}</div>` : ""}
     </div>
   `).join("");
+
+  // Bind click handlers
+  el.querySelectorAll("[data-pipeline-key]").forEach(card => {
+    card.addEventListener("click", () => showPipelineModal(card.dataset.pipelineKey));
+  });
 }
 
 /* ── Render: Traffic Anomalies ── */
@@ -493,6 +502,87 @@ function renderMerchantAlerts(opsData) {
       if (alert) showMerchantModal(alert);
     });
   });
+}
+
+/* ── Pipeline Detail Modal ── */
+let _lastPipelineData = null;
+
+function showPipelineModal(key) {
+  const data = _lastPipelineData;
+  if (!data) return;
+
+  const overlay = document.getElementById("monitorModalOverlay");
+  const nameEl = document.getElementById("monitorModalName");
+  const subEl = document.getElementById("monitorModalSubtitle");
+  const contentEl = document.getElementById("monitorModalContent");
+  if (!overlay || !contentEl) return;
+
+  let title = "", subtitle = "", body = "";
+
+  if (key === "placements" && data.placements_cache) {
+    const d = data.placements_cache;
+    title = "Placements Cache";
+    subtitle = d.last_update ? `Last updated: ${new Date(d.last_update).toLocaleString()}` : "Never updated";
+    const instRows = Object.entries(d.by_instance || {}).sort((a, b) => b[1] - a[1])
+      .map(([inst, count]) => `<tr><td>${escHtml(inst)}</td><td style="text-align:right">${count}</td></tr>`).join("");
+    body = `
+      <div class="detail-modal__scrollable">
+        <div class="mon-modal-stat"><span class="mon-modal-stat__label">Total Records</span><span class="mon-modal-stat__value">${d.record_count ?? "—"}</span></div>
+        <div class="mon-modal-stat"><span class="mon-modal-stat__label">Cache Age</span><span class="mon-modal-stat__value">${d.age_ms != null ? formatAge(d.age_ms) : "—"}</span></div>
+        ${instRows ? `<div class="mon-modal-section-title">By Instance</div><table class="mon-modal-table"><thead><tr><th>Instance</th><th style="text-align:right">Placements</th></tr></thead><tbody>${instRows}</tbody></table>` : ""}
+      </div>`;
+  } else if (key === "sessions" && data.sessions_cache) {
+    const d = data.sessions_cache;
+    title = "Sessions Cache";
+    subtitle = d.last_update ? `Last updated: ${new Date(d.last_update).toLocaleString()}` : "Never updated";
+    const instRows = Object.entries(d.by_instance || {}).sort((a, b) => b[1] - a[1])
+      .map(([inst, count]) => `<tr><td>${escHtml(inst)}</td><td style="text-align:right">${count}</td></tr>`).join("");
+    body = `
+      <div class="detail-modal__scrollable">
+        <div class="mon-modal-stat"><span class="mon-modal-stat__label">Total Records</span><span class="mon-modal-stat__value">${d.record_count ?? "—"}</span></div>
+        <div class="mon-modal-stat"><span class="mon-modal-stat__label">Cache Age</span><span class="mon-modal-stat__value">${d.age_ms != null ? formatAge(d.age_ms) : "—"}</span></div>
+        ${instRows ? `<div class="mon-modal-section-title">By Instance</div><table class="mon-modal-table"><thead><tr><th>Instance</th><th style="text-align:right">Sessions</th></tr></thead><tbody>${instRows}</tbody></table>` : ""}
+      </div>`;
+  } else if (key === "ga_realtime" && data.ga_realtime) {
+    const d = data.ga_realtime;
+    title = "GA Realtime Traffic";
+    subtitle = d.last_snapshot ? `Updated ${formatRelativeTime(d.last_snapshot)}` : "No data yet";
+    const summary = d.latest_summary || {};
+    const byDevice = summary.by_device || {};
+    // Calculate data coverage
+    let coverageText = "—";
+    if (d.first_snapshot && d.last_snapshot) {
+      const spanMs = new Date(d.last_snapshot).getTime() - new Date(d.first_snapshot).getTime();
+      const spanDays = spanMs / 86400000;
+      coverageText = spanDays < 1 ? `${Math.round(spanMs / 3600000)}h` : `${spanDays.toFixed(1)} days`;
+    }
+    body = `
+      <div class="detail-modal__scrollable">
+        <div class="mon-modal-stat"><span class="mon-modal-stat__label">Active Users (now)</span><span class="mon-modal-stat__value" style="font-size:18px;color:#48bb78">${summary.active_users ?? "—"}</span></div>
+        <div class="mon-modal-stat"><span class="mon-modal-stat__label">Page Views (now)</span><span class="mon-modal-stat__value">${summary.total_views ?? "—"}</span></div>
+        ${Object.keys(byDevice).length > 0 ? `<div class="mon-modal-section-title">By Device</div>
+        ${Object.entries(byDevice).sort((a,b) => b[1] - a[1]).map(([dev, count]) => `<div class="mon-modal-stat"><span class="mon-modal-stat__label">${escHtml(dev)}</span><span class="mon-modal-stat__value">${count}</span></div>`).join("")}` : ""}
+        <div class="mon-modal-section-title">Pipeline Health</div>
+        <div class="mon-modal-stat"><span class="mon-modal-stat__label">Data Coverage</span><span class="mon-modal-stat__value">${coverageText}</span></div>
+        <div class="mon-modal-stat"><span class="mon-modal-stat__label">Poll Interval</span><span class="mon-modal-stat__value">5 min</span></div>
+        <div class="mon-modal-stat"><span class="mon-modal-stat__label">Last Poll</span><span class="mon-modal-stat__value">${d.last_snapshot ? new Date(d.last_snapshot).toLocaleTimeString() : "—"}</span></div>
+      </div>`;
+  } else if (key === "connectivity") {
+    const failures = data.instance_failures || [];
+    title = "Instance Connectivity";
+    subtitle = failures.length === 0 ? "All instances responding" : `${failures.length} instance(s) failing`;
+    body = `
+      <div class="detail-modal__scrollable">
+        <div class="mon-modal-stat"><span class="mon-modal-stat__label">Status</span><span class="mon-modal-stat__value" style="color:${failures.length === 0 ? "#48bb78" : "#fc8181"}">${failures.length === 0 ? "All OK" : failures.length + " failing"}</span></div>
+        ${failures.length > 0 ? `<div class="mon-modal-section-title">Failing Instances</div>${failures.map(f => `<div style="color:#fc8181;padding:4px 0">• ${escHtml(f)}</div>`).join("")}` : `<div style="color:var(--muted);padding:8px 0;font-size:13px">All instances passed their last connectivity check.</div>`}
+      </div>`;
+  }
+
+  nameEl.textContent = title;
+  subEl.textContent = subtitle;
+  contentEl.innerHTML = body;
+  overlay.style.display = "flex";
+  requestAnimationFrame(() => overlay.classList.add("open"));
 }
 
 /* ── Merchant Detail Modal ── */
@@ -983,11 +1073,11 @@ const US_OUTLINE_PATH = `M48.6,11.2L51.2,6.7L54.4,10.1L59.7,14.7L63.9,15.9L70.4,
 
 /* ── Render: Traffic Map (layered buckets) ── */
 const BUCKET_STYLES = [
-  { fill: "#48bb78", opacity: 0.8, rScale: 3,   rMin: 4, rMax: 20, pulse: true,  label: "Now" },
-  { fill: "#38a169", opacity: 0.6, rScale: 2,   rMin: 3, rMax: 15, pulse: false, label: "1-6h" },
-  { fill: "#4fd1c5", opacity: 0.4, rScale: 1.5, rMin: 3, rMax: 12, pulse: false, label: "6-24h" },
-  { fill: "#63b3ed", opacity: 0.3, rScale: 1.2, rMin: 2, rMax: 10, pulse: false, label: "24-48h" },
-  { fill: "#a0aec0", opacity: 0.15, rScale: 1,  rMin: 2, rMax: 8,  pulse: false, label: "48-72h" },
+  { fill: "#48bb78", opacity: 0.9, rScale: 2.5, rMin: 3, rMax: 16, pulse: true,  label: "Now" },
+  { fill: "#f6e05e", opacity: 0.7, rScale: 2,   rMin: 3, rMax: 14, pulse: false, label: "1-6h" },
+  { fill: "#ed8936", opacity: 0.6, rScale: 1.5, rMin: 2, rMax: 12, pulse: false, label: "6-24h" },
+  { fill: "#63b3ed", opacity: 0.45, rScale: 1.2, rMin: 2, rMax: 10, pulse: false, label: "24-48h" },
+  { fill: "#a0aec0", opacity: 0.25, rScale: 1,  rMin: 2, rMax: 8,  pulse: false, label: "48-72h" },
 ];
 
 function renderTrafficMap(mapData) {
@@ -1002,18 +1092,19 @@ function renderTrafficMap(mapData) {
     return;
   }
 
-  // Aggregate international counts across all buckets
+  // Deduplicate: each city shows only in its most recent bucket
+  // Process newest first (bucket 0, 1, 2...), claim cities as we go
+  const claimedCities = new Set();
   const intlCounts = {};
   let intlTotal = 0;
   let totalCityEntries = 0;
 
-  // Render older buckets first (lower z-index), newer on top
-  // Reverse order: bucket 4, 3, 2, 1, 0
-  let allDots = "";
-  for (let bi = buckets.length - 1; bi >= 0; bi--) {
-    const bucket = buckets[bi];
+  // Collect dots per bucket (newest first for dedup, render oldest first for z-order)
+  const dotsByBucket = [];
+  for (const bucket of buckets) {
     const style = BUCKET_STYLES[bucket.id] || BUCKET_STYLES[0];
     const cities = bucket.cities || [];
+    const dots = [];
 
     for (const entry of cities) {
       const city = entry.city || "";
@@ -1023,21 +1114,28 @@ function renderTrafficMap(mapData) {
       totalCityEntries++;
 
       if (country === "United States" || country === "US" || country === "USA") {
+        if (claimedCities.has(city)) continue; // already shown in a newer bucket
+        claimedCities.add(city);
         const coords = US_CITIES[city];
         if (!coords) continue;
         const r = Math.max(style.rMin, Math.min(style.rMax, users * style.rScale));
         const cssClass = `monitor-map-dot-${bucket.id}`;
         const delay = style.pulse ? (Math.abs(coords.x * 7 + coords.y * 13) % 2000) / 1000 : 0;
         const delayAttr = style.pulse ? ` style="animation-delay:${delay.toFixed(1)}s"` : "";
-        allDots += `<circle class="${cssClass}" cx="${coords.x}" cy="${coords.y}" r="${r}"${delayAttr}>
-          <title>${escHtml(city)}: ${users} user${users !== 1 ? "s" : ""} (${style.label})</title>
-        </circle>\n`;
+        dots.push(`<circle class="${cssClass}" cx="${coords.x}" cy="${coords.y}" r="${r}"${delayAttr} data-tip="${escHtml(city)}: ${users} user${users !== 1 ? "s" : ""} (${style.label})"/>`);
       } else {
         intlTotal += users;
         const label = country || "Unknown";
         intlCounts[label] = (intlCounts[label] || 0) + users;
       }
     }
+    dotsByBucket.push({ id: bucket.id, dots });
+  }
+
+  // Render oldest buckets first (behind), newest on top
+  let allDots = "";
+  for (let i = dotsByBucket.length - 1; i >= 0; i--) {
+    allDots += dotsByBucket[i].dots.join("\n") + "\n";
   }
 
   const svg = `<svg class="monitor-map-svg" viewBox="0 0 960 600" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
@@ -1052,7 +1150,7 @@ function renderTrafficMap(mapData) {
       .sort((a, b) => b[1] - a[1])
       .map(([country, count]) => `${escHtml(country)}: ${count}`)
       .join(", ");
-    intlHtml = `<div class="monitor-map-international" style="position:absolute;bottom:4px;left:50%;transform:translateX(-50%);font-size:0.65rem;white-space:nowrap;">${intlTotal} international user${intlTotal !== 1 ? "s" : ""} (${parts})</div>`;
+    intlHtml = "";
   }
 
   // Empty state
@@ -1072,7 +1170,7 @@ function renderTrafficMap(mapData) {
   el.querySelectorAll("circle").forEach(dot => {
     dot.style.cursor = "pointer";
     dot.addEventListener("mouseenter", (e) => {
-      const title = dot.querySelector("title")?.textContent || "";
+      const title = dot.getAttribute("data-tip") || "";
       if (!title) return;
       tooltip.textContent = title;
       tooltip.style.display = "";

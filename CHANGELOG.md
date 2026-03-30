@@ -6,6 +6,31 @@
 
 # Build History
 
+## Mar 29, 2026 (Session 16)
+
+### System Monitor — Polish & Interactivity
+
+**Traffic Map Improvements:**
+- Deduplicated city dots across time buckets — each city now shows only in its most recent bucket
+- New color scheme: green (now) → yellow (1-6h) → orange (6-24h) → blue (24-48h) → grey (48-72h)
+- Fixed double tooltip bug — removed native SVG `<title>`, kept only custom positioned tooltip
+- Reduced dot glow radius for cleaner appearance with low traffic volumes
+
+**Data Pipeline Click-to-Detail Modals:**
+- Placements Cache: record count, cache age, breakdown by instance
+- Sessions Cache: record count, cache age, breakdown by instance
+- GA Realtime: active users, page views, device breakdown, data coverage, pipeline health
+- Instance Connectivity: status summary, list of any failing instances
+- Server endpoint enriched with per-instance counts and GA latest summary
+
+**Layout:**
+- Instance grid gap increased (20px → 24px) for better vertical spacing
+- GA Realtime tile shows "X active" instead of raw snapshot count
+
+**Bug Fixes:**
+- Pipeline tile showed "686 snapshots" (meaningless) — now shows active user count
+- Map dots all appeared same green due to newer bucket dots covering older ones
+
 ## Mar 27-28, 2026 (Session 15)
 
 ### Success Dashboard (formerly Operations Command Center)

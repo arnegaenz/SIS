@@ -2956,6 +2956,51 @@ body.kiosk-mode .traffic-tile.status-dark {
   font-variant-numeric: tabular-nums;
 }
 
+/* ── Pipeline Modal Stats ── */
+.mon-modal-stat {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.mon-modal-stat__label {
+  color: var(--muted);
+  font-size: 13px;
+}
+.mon-modal-stat__value {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--fg);
+}
+.mon-modal-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin: 16px 0 8px;
+}
+.mon-modal-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.mon-modal-table th {
+  text-align: left;
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+.mon-modal-table td {
+  padding: 5px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+
 /* ============================================================================
    System Monitor Dashboard — NOC-Style
    ============================================================================ */
@@ -3666,7 +3711,7 @@ body.kiosk-mode .traffic-tile.status-dark {
   grid-template-columns: 2fr 3fr;
   gap: 16px;
   margin-bottom: 12px;
-  height: calc(100vh - 240px);
+  height: calc(100vh - 190px);
   overflow: hidden;
 }
 
@@ -3678,7 +3723,7 @@ body.kiosk-mode .traffic-tile.status-dark {
 .monitor-instance-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 20px;
+  gap: 24px;
 }
 
 .monitor-top-right {
@@ -3871,36 +3916,36 @@ body.kiosk-mode .traffic-tile.status-dark {
 /* Bucket 0: Now (0-30min) — bright green, pulsing */
 .monitor-map-dot-0 {
   fill: #48bb78;
-  opacity: 0.8;
-  filter: drop-shadow(0 0 8px rgba(72, 187, 120, 0.7)) drop-shadow(0 0 16px rgba(72, 187, 120, 0.3));
+  opacity: 0.9;
+  filter: drop-shadow(0 0 6px rgba(72, 187, 120, 0.6));
   animation: mon-map-pulse 2s ease-in-out infinite;
 }
 
-/* Bucket 1: 1-6h — darker green, no pulse */
+/* Bucket 1: 1-6h — warm yellow */
 .monitor-map-dot-1 {
-  fill: #38a169;
-  opacity: 0.6;
-  filter: drop-shadow(0 0 4px rgba(56, 161, 105, 0.4));
+  fill: #f6e05e;
+  opacity: 0.7;
+  filter: drop-shadow(0 0 4px rgba(246, 224, 94, 0.4));
 }
 
-/* Bucket 2: 6-24h — teal */
+/* Bucket 2: 6-24h — orange */
 .monitor-map-dot-2 {
-  fill: #4fd1c5;
-  opacity: 0.4;
-  filter: drop-shadow(0 0 3px rgba(79, 209, 197, 0.3));
+  fill: #ed8936;
+  opacity: 0.6;
+  filter: drop-shadow(0 0 3px rgba(237, 137, 54, 0.3));
 }
 
 /* Bucket 3: 24-48h — blue */
 .monitor-map-dot-3 {
   fill: #63b3ed;
-  opacity: 0.3;
+  opacity: 0.45;
   filter: drop-shadow(0 0 2px rgba(99, 179, 237, 0.2));
 }
 
 /* Bucket 4: 48-72h — grey */
 .monitor-map-dot-4 {
   fill: #a0aec0;
-  opacity: 0.15;
+  opacity: 0.25;
 }
 
 /* Legacy class kept for backwards compat */
