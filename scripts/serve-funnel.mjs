@@ -1587,9 +1587,12 @@ async function fetchGaRealtimeSnapshot() {
 async function hydrateGaRealtimeSnapshots() {
   try {
     const gaRealtimeDir = path.join(RAW_DIR, "ga-realtime");
-    const today = new Date().toISOString().slice(0, 10);
-    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
-    for (const day of [yesterday, today]) {
+    // Load up to 4 days back to support 72h traffic map buckets
+    const daysToLoad = [];
+    for (let d = 3; d >= 0; d--) {
+      daysToLoad.push(new Date(Date.now() - d * 86400000).toISOString().slice(0, 10));
+    }
+    for (const day of daysToLoad) {
       try {
         const raw = await fs.readFile(path.join(gaRealtimeDir, `${day}.json`), "utf8");
         const data = JSON.parse(raw);
@@ -1774,7 +1777,54 @@ async function refreshTodayGaStandard() {
     await fs.mkdir(gaUniquesDir, { recursive: true });
     await fs.writeFile(path.join(gaUniquesDir, `${today}.json`), JSON.stringify(uniquePayload, null, 2));
 
-    console.log(`[ga-standard-bg] Refreshed today: ${rows.length} page rows, ${uniqueRows.length} hourly unique rows for ${today}`);
+    // 3. City-level user query (last 3 days) for traffic map historical buckets
+    let cityRowCount = 0;
+    try {
+      const threeDaysAgo = new Date(Date.now() - 3 * 86400000).toISOString().slice(0, 10);
+      const cityResponse = await analyticsData.properties.runReport({
+        property: `properties/${propertyId}`,
+        requestBody: {
+          dateRanges: [{ startDate: threeDaysAgo, endDate: today }],
+          dimensions: [
+            { name: "date" },
+            { name: "city" },
+            { name: "country" },
+          ],
+          metrics: [
+            { name: "totalUsers" },
+          ],
+          limit: 10000,
+        },
+      });
+      // Group by date and write per-day files
+      const cityByDate = {};
+      for (const row of (cityResponse.data.rows || [])) {
+        const dateRaw = row.dimensionValues?.[0]?.value || "";
+        const city = row.dimensionValues?.[1]?.value || "";
+        const country = row.dimensionValues?.[2]?.value || "";
+        const users = Number(row.metricValues?.[0]?.value || "0");
+        if (!dateRaw || !city || city === "(not set)" || users <= 0) continue;
+        // GA returns date as YYYYMMDD — convert to YYYY-MM-DD
+        const dateStr = dateRaw.length === 8
+          ? `${dateRaw.slice(0,4)}-${dateRaw.slice(4,6)}-${dateRaw.slice(6,8)}`
+          : dateRaw;
+        if (!cityByDate[dateStr]) cityByDate[dateStr] = [];
+        cityByDate[dateStr].push({ city, country, users });
+        cityRowCount++;
+      }
+      const gaCityDir = path.join(RAW_DIR, "ga-city");
+      await fs.mkdir(gaCityDir, { recursive: true });
+      for (const [dateStr, cities] of Object.entries(cityByDate)) {
+        await fs.writeFile(
+          path.join(gaCityDir, `${dateStr}.json`),
+          JSON.stringify({ date: dateStr, cities }, null, 2)
+        );
+      }
+    } catch (cityErr) {
+      console.warn(`[ga-standard-bg] City query failed: ${cityErr.message}`);
+    }
+
+    console.log(`[ga-standard-bg] Refreshed today: ${rows.length} page rows, ${uniqueRows.length} hourly unique rows, ${cityRowCount} city rows for ${today}`);
   } catch (err) {
     console.error("[ga-standard-bg] refresh failed:", err.message);
   }
@@ -6938,6 +6988,100 @@ const server = http.createServer(async (req, res) => {
       return send(res, 200, { snapshots, latest, count: snapshots.length });
     } catch (err) {
       return send(res, 500, { error: err?.message || "Unable to fetch GA realtime timeline" });
+    }
+  }
+
+  // ── Traffic Map Data — layered city buckets for the US map ──
+  if (pathname === "/api/traffic-map-data" && req.method === "GET") {
+    const session = await validateSession(req, queryParams);
+    if (!session) {
+      return send(res, 401, { error: "Authentication required" });
+    }
+    try {
+      const now = Date.now();
+      // Bucket definitions: id, label, min_ago, max_ago (in minutes)
+      const BUCKET_DEFS = [
+        { id: 0, label: "Now",     min_ago: 0,    max_ago: 30 },
+        { id: 1, label: "1-6h",    min_ago: 30,   max_ago: 360 },
+        { id: 2, label: "6-24h",   min_ago: 360,  max_ago: 1440 },
+        { id: 3, label: "24-48h",  min_ago: 1440, max_ago: 2880 },
+        { id: 4, label: "48-72h",  min_ago: 2880, max_ago: 4320 },
+      ];
+
+      // Pre-load ga-city files (last 4 days) for buckets 2-4
+      const gaCityCache = {};
+      for (let d = 0; d <= 3; d++) {
+        const dateStr = new Date(now - d * 86400000).toISOString().slice(0, 10);
+        try {
+          const cityFile = path.join(RAW_DIR, "ga-city", `${dateStr}.json`);
+          const raw = await fs.readFile(cityFile, "utf8");
+          gaCityCache[dateStr] = JSON.parse(raw);
+        } catch { /* file may not exist */ }
+      }
+
+      // Build buckets from realtime snapshots
+      const buckets = BUCKET_DEFS.map(def => {
+        const cutoffMin = new Date(now - def.min_ago * 60000).toISOString();
+        const cutoffMax = new Date(now - def.max_ago * 60000).toISOString();
+
+        // Get realtime snapshots in this time window
+        const windowSnapshots = _gaRealtimeSnapshots.filter(
+          s => s.time <= cutoffMin && s.time > cutoffMax
+        );
+
+        // Aggregate city data across snapshots, then average
+        const cityAccum = {}; // city|country -> { city, country, totalUsers, count }
+        for (const snap of windowSnapshots) {
+          const cities = snap.summary?.by_city || [];
+          for (const c of cities) {
+            if (!c.city || c.users <= 0) continue;
+            const key = `${c.city}|${c.country || ""}`;
+            if (!cityAccum[key]) {
+              cityAccum[key] = { city: c.city, country: c.country || "", totalUsers: 0, count: 0 };
+            }
+            cityAccum[key].totalUsers += c.users;
+            cityAccum[key].count += 1;
+          }
+        }
+
+        // For buckets 2-4 (6h+), also pull from ga-city standard files
+        if (def.id >= 2) {
+          const bucketStart = new Date(now - def.max_ago * 60000);
+          const bucketEnd = new Date(now - def.min_ago * 60000);
+          for (const [dateStr, data] of Object.entries(gaCityCache)) {
+            // ga-city files are daily aggregates — check if the date falls in range
+            const dateStart = new Date(dateStr + "T00:00:00-07:00"); // approximate Pacific
+            const dateEnd = new Date(dateStr + "T23:59:59-07:00");
+            // Include if date range overlaps bucket range
+            if (dateEnd >= bucketStart && dateStart <= bucketEnd) {
+              for (const c of (data.cities || [])) {
+                if (!c.city || c.users <= 0) continue;
+                const key = `${c.city}|${c.country || ""}`;
+                if (!cityAccum[key]) {
+                  cityAccum[key] = { city: c.city, country: c.country || "", totalUsers: 0, count: 0 };
+                }
+                // Standard GA is already deduplicated daily, treat as 1 sample
+                cityAccum[key].totalUsers += c.users;
+                cityAccum[key].count += 1;
+              }
+            }
+          }
+        }
+
+        // Compute averages
+        const cities = Object.values(cityAccum).map(c => ({
+          city: c.city,
+          country: c.country,
+          users: Math.round(c.totalUsers / (c.count || 1)),
+        })).filter(c => c.users > 0)
+          .sort((a, b) => b.users - a.users);
+
+        return { id: def.id, label: def.label, min_ago: def.min_ago, max_ago: def.max_ago, cities };
+      });
+
+      return send(res, 200, { buckets });
+    } catch (err) {
+      return send(res, 500, { error: err?.message || "Unable to build traffic map data" });
     }
   }
 

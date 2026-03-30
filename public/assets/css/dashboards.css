@@ -3868,6 +3868,42 @@ body.kiosk-mode .traffic-tile.status-dark {
   display: block;
 }
 
+/* Bucket 0: Now (0-30min) — bright green, pulsing */
+.monitor-map-dot-0 {
+  fill: #48bb78;
+  opacity: 0.8;
+  filter: drop-shadow(0 0 8px rgba(72, 187, 120, 0.7)) drop-shadow(0 0 16px rgba(72, 187, 120, 0.3));
+  animation: mon-map-pulse 2s ease-in-out infinite;
+}
+
+/* Bucket 1: 1-6h — darker green, no pulse */
+.monitor-map-dot-1 {
+  fill: #38a169;
+  opacity: 0.6;
+  filter: drop-shadow(0 0 4px rgba(56, 161, 105, 0.4));
+}
+
+/* Bucket 2: 6-24h — teal */
+.monitor-map-dot-2 {
+  fill: #4fd1c5;
+  opacity: 0.4;
+  filter: drop-shadow(0 0 3px rgba(79, 209, 197, 0.3));
+}
+
+/* Bucket 3: 24-48h — blue */
+.monitor-map-dot-3 {
+  fill: #63b3ed;
+  opacity: 0.3;
+  filter: drop-shadow(0 0 2px rgba(99, 179, 237, 0.2));
+}
+
+/* Bucket 4: 48-72h — grey */
+.monitor-map-dot-4 {
+  fill: #a0aec0;
+  opacity: 0.15;
+}
+
+/* Legacy class kept for backwards compat */
 .monitor-map-dot {
   fill: rgba(72, 187, 120, 0.8);
   filter: drop-shadow(0 0 8px rgba(72, 187, 120, 0.7)) drop-shadow(0 0 16px rgba(72, 187, 120, 0.3));
@@ -3883,6 +3919,25 @@ body.kiosk-mode .traffic-tile.status-dark {
     opacity: 1;
     filter: drop-shadow(0 0 12px rgba(72, 187, 120, 0.8)) drop-shadow(0 0 24px rgba(72, 187, 120, 0.4));
   }
+}
+
+.monitor-map-tooltip {
+  position: absolute;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 0.72rem;
+  color: var(--text);
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 10;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+  transform: translateX(-50%);
+}
+
+.monitor-state-path {
+  transition: fill 0.15s, stroke-opacity 0.15s;
 }
 
 .monitor-map-international {
