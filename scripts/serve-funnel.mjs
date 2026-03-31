@@ -7847,6 +7847,7 @@ const server = http.createServer(async (req, res) => {
           hours_since_last: hoursSinceLast,
           pct_of_baseline: pctOfBaseline,
           daily_counts: dailyCounts,
+          daily_dates: allDays,
           fingerprint_tier: fp ? fp.tier : 3,
         };
         if (expectedCumulative != null) fiObj.expected_cumulative = Math.round(expectedCumulative * 10) / 10;

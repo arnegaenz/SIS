@@ -278,20 +278,62 @@ function animateValue(el, target, duration) {
   requestAnimationFrame(step);
 }
 
+// Termination types caused by cardholder (not system) — used for linked/system-rate calc
+const UX_TERMINATIONS = new Set([
+  "USER_DATA_FAILURE", "NEVER_STARTED", "TIMEOUT_CREDENTIALS", "TIMEOUT_TFA",
+  "ABANDONED_QUICKSTART", "CANCELED", "CANCELLED", "ACCOUNT_SETUP_INCOMPLETE",
+  "TOO_MANY_LOGIN_FAILURES", "ACCOUNT_LOCKED", "PASSWORD_RESET_REQUIRED", "INVALID_CARD_DETAILS",
+]);
+
+// Recompute summary from events, respecting the includeTests filter
+function computeFilteredSummary() {
+  const allEvts = state.allFeedEvents || [];
+  const uniqueSessionIds = new Set();
+  let totalJobs = 0, totalSuccess = 0, totalFailed = 0, totalCancelled = 0, totalAbandoned = 0, totalBrowseOnly = 0, totalLinked = 0;
+  for (const evt of allEvts) {
+    if (!state.includeTests && evt.instance === "customer-dev") continue;
+    if (evt.session_id) uniqueSessionIds.add(evt.session_id);
+    if (evt.status === "success") {
+      totalJobs++; totalSuccess++; totalLinked++;
+    } else if (evt.status === "failed") {
+      totalJobs++; totalFailed++;
+      const term = (evt.termination_type || "").trim().toUpperCase();
+      if (!UX_TERMINATIONS.has(term)) totalLinked++;
+    } else if (evt.status === "cancelled") {
+      totalJobs++; totalCancelled++;
+    } else if (evt.status === "abandoned") {
+      totalJobs++; totalAbandoned++;
+    } else if (evt.status === "session") {
+      totalBrowseOnly++;
+    }
+  }
+  return {
+    unique_sessions: uniqueSessionIds.size,
+    total_jobs: totalJobs,
+    jobs_linked: totalLinked,
+    jobs_success: totalSuccess,
+    jobs_failed: totalFailed,
+    jobs_cancelled: totalCancelled,
+    jobs_abandoned: totalAbandoned,
+    browse_only_sessions: totalBrowseOnly,
+    total_events: allEvts.length,
+  };
+}
+
 function renderPersistentHeader(opsData, healthData, gaTimeline) {
-  // KPIs from header summary (matches current view window)
-  const summary = state.headerSummary || state.feedSummary;
+  // KPIs recomputed from filtered events (respects includeTests toggle)
+  const summary = computeFilteredSummary();
   const currentDays = VIEW_WINDOW_DAYS[viewRotation.views[viewRotation.currentIndex]] || 1;
 
   // Window label
   const windowLabelEl = document.getElementById("phWindowLabel");
   const windowLabels = { 1: "24 HOURS", 3: "3 DAYS", 7: "7 DAYS" };
   if (windowLabelEl) windowLabelEl.textContent = windowLabels[currentDays] || `${currentDays} DAYS`;
-  const todaySessions = summary ? summary.unique_sessions : 0;
-  const todayJobs = summary ? summary.total_jobs : 0;
-  const todaySuccess = summary ? summary.jobs_success : 0;
-  const todayFailed = summary ? summary.jobs_failed : 0;
-  const todayTotal = summary ? summary.total_jobs : 0; // ALL outcomes: success + failed + cancelled + abandoned
+  const todaySessions = summary.unique_sessions;
+  const todayJobs = summary.total_jobs;
+  const todaySuccess = summary.jobs_success;
+  const todayFailed = summary.jobs_failed;
+  const todayTotal = summary.total_jobs;
 
   const sessionsEl = document.querySelector("#phSessions .kiosk-ph__kpi-value");
   const placementsEl = document.querySelector("#phPlacements .kiosk-ph__kpi-value");
@@ -300,7 +342,7 @@ function renderPersistentHeader(opsData, healthData, gaTimeline) {
   if (sessionsEl) animateValue(sessionsEl, todaySessions, 300);
   if (placementsEl) animateValue(placementsEl, todayJobs, 300);
 
-  const todayLinked = summary ? summary.jobs_linked : 0;
+  const todayLinked = summary.jobs_linked;
   const linkedEl = document.querySelector("#phLinked .kiosk-ph__kpi-value");
   if (linkedEl) animateValue(linkedEl, todayLinked, 300);
 
@@ -2120,7 +2162,56 @@ async function fetchTrafficHealth() {
   }
 }
 
-function buildTrafficSparkline(dailyCounts, baseline, status, windowDays) {
+// Build per-day SESSION outcome map for a given FI from feed events
+// Each session is classified as: hadSuccess, hadFailuresOnly, or browseOnly
+function buildFiDailySessionOutcomes(fiName) {
+  const evts = (state.allFeedEvents || []).filter(evt => {
+    if (!state.includeTests && evt.instance === "customer-dev") return false;
+    return evt.fi_name === fiName;
+  });
+
+  // Group events by session_id, track best outcome per session
+  const sessions = new Map(); // session_id → { date, hadSuccess, hadJobs }
+  for (const evt of evts) {
+    if (!evt.timestamp || !evt.session_id) continue;
+    const d = new Date(evt.timestamp);
+    const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+    if (!sessions.has(evt.session_id)) {
+      sessions.set(evt.session_id, { date: dateStr, hadSuccess: false, hadJobs: false });
+    }
+    const sess = sessions.get(evt.session_id);
+    if (evt.status !== "session") {
+      sess.hadJobs = true;
+      if (evt.status === "success") sess.hadSuccess = true;
+    }
+  }
+
+  // Bucket session outcomes by day
+  const byDay = new Map(); // dateStr → { success: N, failed: N }  (browse-only is implicit)
+  for (const [, sess] of sessions) {
+    if (!byDay.has(sess.date)) byDay.set(sess.date, { success: 0, failed: 0 });
+    const bucket = byDay.get(sess.date);
+    if (sess.hadSuccess) bucket.success++;
+    else if (sess.hadJobs) bucket.failed++;
+    // browse-only sessions are not counted — they're the remainder
+  }
+  return byDay;
+}
+
+// Get local date strings for the last N days (aligned to daily_counts tail)
+function getRecentDateStrings(n) {
+  const dates = [];
+  const now = new Date();
+  for (let i = n - 1; i >= 0; i--) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - i);
+    dates.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`);
+  }
+  return dates;
+}
+
+function buildTrafficSparkline(dailyCounts, baseline, status, windowDays, fiName, dailyDates) {
   const trimmed = dailyCounts.slice(-7);
   const count = trimmed.length;
   if (!count) return "";
@@ -2129,19 +2220,63 @@ function buildTrafficSparkline(dailyCounts, baseline, status, windowDays) {
   const w = 120;
   const h = 32;
   const barW = Math.max(2, (w - (count - 1) * 2) / count);
+
+  // Get per-day session outcomes if fiName provided
+  const outcomeMap = fiName ? buildFiDailySessionOutcomes(fiName) : null;
+  const dateStrings = dailyDates ? dailyDates.slice(-7) : (fiName ? getRecentDateStrings(count) : []);
+
   const bars = trimmed
     .map((val, i) => {
-      const barH = Math.max(1, (val / maxVal) * (h - 2));
+      const totalBarH = Math.max(1, (val / maxVal) * (h - 2));
       const x = i * (barW + 2);
-      const y = h - barH;
       const isInWindow = i >= count - highlightDays;
-      let fill;
+      const baseOpacity = isInWindow ? 1 : 0.35;
+
+      // Default fill for browse-only portion
+      let sessionFill;
       if (isInWindow) {
-        fill = status === "dark" ? "#ef4444" : status === "low" ? "#f59e0b" : status === "sleeping" ? "#818cf8" : "#22c55e";
+        sessionFill = status === "dark" ? "#ef4444" : status === "low" ? "#f59e0b" : status === "sleeping" ? "#818cf8" : "#22c55e";
       } else {
-        fill = "var(--muted)";
+        sessionFill = "var(--muted)";
       }
-      return `<rect x="${x}" y="${y}" width="${barW}" height="${barH}" rx="1" fill="${fill}" opacity="${isInWindow ? 1 : 0.35}" />`;
+
+      // Stack sessions by outcome: success (green), failed (red), browse-only (status color)
+      const dayOutcome = outcomeMap && dateStrings[i] ? outcomeMap.get(dateStrings[i]) : null;
+      if (dayOutcome && val > 0) {
+        const sessWithOutcomes = dayOutcome.success + dayOutcome.failed;
+        if (sessWithOutcomes > 0) {
+          const pxPerSession = totalBarH / val;
+          const browseOnly = Math.max(0, val - sessWithOutcomes);
+          let rects = "";
+          let yPos = h; // start from bottom
+
+          // Success sessions at the very bottom
+          if (dayOutcome.success > 0) {
+            const segH = dayOutcome.success * pxPerSession;
+            yPos -= segH;
+            rects += `<rect x="${x}" y="${yPos}" width="${barW}" height="${segH}" rx="0" fill="#48bb78" opacity="${baseOpacity}" />`;
+          }
+
+          // Failed sessions above success
+          if (dayOutcome.failed > 0) {
+            const segH = dayOutcome.failed * pxPerSession;
+            yPos -= segH;
+            rects += `<rect x="${x}" y="${yPos}" width="${barW}" height="${segH}" rx="0" fill="#fc8181" opacity="${baseOpacity}" />`;
+          }
+
+          // Browse-only sessions on top
+          if (browseOnly > 0) {
+            const segH = browseOnly * pxPerSession;
+            yPos -= segH;
+            rects += `<rect x="${x}" y="${yPos}" width="${barW}" height="${segH}" rx="1" fill="${sessionFill}" opacity="${baseOpacity}" />`;
+          }
+          return rects;
+        }
+      }
+
+      // No job data — plain bar
+      const y = h - totalBarH;
+      return `<rect x="${x}" y="${y}" width="${barW}" height="${totalBarH}" rx="1" fill="${sessionFill}" opacity="${baseOpacity}" />`;
     })
     .join("");
 
@@ -2183,7 +2318,7 @@ function renderTrafficHealthBanner(data, bannerEl, windowDays) {
 function renderTrafficTile(fi, windowDays) {
   const days = windowDays || 1;
   const effectiveStatus = (days > 1 && fi._windowStatus) ? fi._windowStatus : fi.status;
-  const sparkline = buildTrafficSparkline(fi.daily_counts, fi.baseline_median, effectiveStatus, windowDays);
+  const sparkline = buildTrafficSparkline(fi.daily_counts, fi.baseline_median, effectiveStatus, windowDays, fi.fi_name, fi.daily_dates);
   const dailyCounts = fi.daily_counts || [];
 
   // Compute session total for the window
@@ -2456,19 +2591,64 @@ function renderTrafficDetailModal(fi, data, windowDays) {
   const barW = Math.max(8, (chartW - padding * 2 - (barCount - 1) * 4) / barCount);
   const usableH = chartH - padding - 10;
 
+  // Get per-day session outcomes for stacked bars
+  const modalOutcomeMap = buildFiDailySessionOutcomes(fi.fi_name);
+  const modalDateStrings = fi.daily_dates ? fi.daily_dates.slice(-barCount) : getRecentDateStrings(barCount);
+
   let bars = "";
   counts.forEach((val, i) => {
-    const barH = Math.max(1, (val / maxVal) * usableH);
+    const totalBarH = Math.max(1, (val / maxVal) * usableH);
     const x = padding + i * (barW + 4);
-    const y = chartH - padding - barH;
     const isInWindow = i >= barCount - days;
-    let fill;
+    const baseOpacity = isInWindow ? 1 : 0.4;
+
+    let sessionFill;
     if (isInWindow) {
-      fill = fi.status === "dark" ? "#ef4444" : fi.status === "low" ? "#f59e0b" : fi.status === "sleeping" ? "#818cf8" : "#22c55e";
+      sessionFill = fi.status === "dark" ? "#ef4444" : fi.status === "low" ? "#f59e0b" : fi.status === "sleeping" ? "#818cf8" : "#22c55e";
     } else {
-      fill = "var(--accent)";
+      sessionFill = "var(--accent)";
     }
-    bars += `<rect x="${x}" y="${y}" width="${barW}" height="${barH}" rx="3" fill="${fill}" opacity="${isInWindow ? 1 : 0.4}" />`;
+
+    const dayOutcome = modalDateStrings[i] ? modalOutcomeMap.get(modalDateStrings[i]) : null;
+    if (dayOutcome && val > 0) {
+      const sessWithOutcomes = dayOutcome.success + dayOutcome.failed;
+      if (sessWithOutcomes > 0) {
+        const pxPerSession = totalBarH / val;
+        const browseOnly = Math.max(0, val - sessWithOutcomes);
+        let yPos = chartH - padding; // start from bottom
+
+        // Success sessions at the very bottom
+        if (dayOutcome.success > 0) {
+          const segH = dayOutcome.success * pxPerSession;
+          yPos -= segH;
+          bars += `<rect x="${x}" y="${yPos}" width="${barW}" height="${segH}" rx="0" fill="#48bb78" opacity="${baseOpacity}" />`;
+        }
+
+        // Failed sessions above success
+        if (dayOutcome.failed > 0) {
+          const segH = dayOutcome.failed * pxPerSession;
+          yPos -= segH;
+          bars += `<rect x="${x}" y="${yPos}" width="${barW}" height="${segH}" rx="0" fill="#fc8181" opacity="${baseOpacity}" />`;
+        }
+
+        // Browse-only sessions on top
+        if (browseOnly > 0) {
+          const segH = browseOnly * pxPerSession;
+          yPos -= segH;
+          bars += `<rect x="${x}" y="${yPos}" width="${barW}" height="${segH}" rx="3" fill="${sessionFill}" opacity="${baseOpacity}" />`;
+        }
+
+        // Value label on top
+        if (val > 0) {
+          bars += `<text x="${x + barW / 2}" y="${chartH - padding - totalBarH - 4}" text-anchor="middle" fill="var(--muted)" font-size="9">${val}</text>`;
+        }
+        return;
+      }
+    }
+
+    // No job data — plain bar
+    const y = chartH - padding - totalBarH;
+    bars += `<rect x="${x}" y="${y}" width="${barW}" height="${totalBarH}" rx="3" fill="${sessionFill}" opacity="${baseOpacity}" />`;
     // Value label on top
     if (val > 0) {
       bars += `<text x="${x + barW / 2}" y="${y - 4}" text-anchor="middle" fill="var(--muted)" font-size="9">${val}</text>`;
@@ -2489,6 +2669,36 @@ function renderTrafficDetailModal(fi, data, windowDays) {
     return `<text x="${x}" y="${chartH - 6}" text-anchor="middle" fill="var(--muted)" font-size="9">${label}</text>`;
   }).join("");
 
+  // ── Session Outcome Legend (colors match stacked bars above) ──
+  let totalSuccessSess = 0, totalFailedSess = 0;
+  for (const [, d] of modalOutcomeMap) {
+    totalSuccessSess += d.success; totalFailedSess += d.failed;
+  }
+  const totalWithJobs = totalSuccessSess + totalFailedSess;
+  const totalSessions = counts.reduce((a, b) => a + b, 0);
+  const browseOnlySess = Math.max(0, totalSessions - totalWithJobs);
+
+  let outcomeHtml = "";
+  if (totalWithJobs > 0 || totalSessions > 0) {
+    const legendItems = [
+      { count: totalSuccessSess, color: "#48bb78", label: "Had success" },
+      { count: totalFailedSess, color: "#fc8181", label: "Tried, no success" },
+      { count: browseOnlySess, color: "#22c55e", label: "Browse only" },
+    ].filter(s => s.count > 0);
+
+    const legend = legendItems.map(s =>
+      `<span style="display:inline-flex;align-items:center;gap:4px;margin-right:12px;">` +
+      `<span style="width:8px;height:8px;border-radius:2px;background:${s.color};display:inline-block;"></span>` +
+      `<span style="color:var(--muted);font-size:0.7rem;">${s.label}: ${s.count}</span></span>`
+    ).join("");
+
+    outcomeHtml = `
+      <div style="margin-top:8px;line-height:1.6;">
+        <span style="font-size:0.7rem;font-weight:600;color:var(--muted);margin-right:8px;">${totalSessions} sessions:</span>${legend}
+      </div>
+    `;
+  }
+
   trafficEls.detailChart.innerHTML = `
     <svg width="100%" height="${chartH}" viewBox="0 0 ${chartW + 40} ${chartH}">
       ${bars}
@@ -2497,6 +2707,7 @@ function renderTrafficDetailModal(fi, data, windowDays) {
       ${dayLabels}
     </svg>
     ${hoursInfo ? `<div style="text-align:right;font-size:0.72rem;color:var(--muted);margin-top:4px;">${hoursInfo}</div>` : ""}
+    ${outcomeHtml}
   `;
 
   // Show modal
