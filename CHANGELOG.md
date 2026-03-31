@@ -6,6 +6,22 @@
 
 # Build History
 
+## Mar 30, 2026 (Session 17)
+
+### Operations Kiosk — Include Test Data Fix
+- Header KPIs (sessions, jobs, success rate, system rate, successful) now recompute from filtered events
+- Previously used raw backend summary which included customer-dev test data regardless of toggle
+- Real production numbers were being inflated (e.g., 2 successful shown when only 1 was real)
+
+### Operations Kiosk — Session Outcome Stacking on FI Cards
+- FI traffic health sparkline bars and detail modal charts now show stacked session outcomes
+- Green = session had at least one successful placement, Red = tried but no success, Default = browse-only
+- Uses session-level classification (grouped by session_id), not individual job counts
+- Added `daily_dates` to traffic health API for proper date alignment between endpoints
+- Key insight: sessions and jobs are different units — stacking jobs within session bars was incorrect
+
+---
+
 ## Mar 29-30, 2026 (Session 16)
 
 ### Architecture Doc
