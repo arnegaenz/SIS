@@ -1,9 +1,14 @@
 {
   "name": "strivve-metrics",
   "version": "1.0.0",
-  "description": "",
+  "description": "SIS (Strivve Insights Service) — analytics and metrics for CardUpdatr/CardSavr",
   "main": "index.js",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
+    "start": "node scripts/serve-funnel.mjs",
+    "dev": "node scripts/serve-funnel.mjs",
     "test": "node scripts/smoke-test-scoping.mjs",
     "test:scoping": "node scripts/smoke-test-scoping.mjs",
     "test:api": "node scripts/smoke-test-api-scoping.mjs",
