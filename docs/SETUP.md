@@ -69,6 +69,16 @@ You need credentials in `secrets/`. Ask the team lead for these files:
 }
 ```
 
+### ga-service-account.json / ga-test.json (optional)
+
+Standard Google Cloud service account key files. To generate one:
+1. Go to [Google Cloud Console](https://console.cloud.google.com/) → IAM & Admin → Service Accounts
+2. Select the Strivve project → Create or select a service account
+3. Keys tab → Add Key → Create new key → JSON
+4. Save as `secrets/ga-service-account.json` (production) or `secrets/ga-test.json` (test)
+
+The service account needs the **Google Analytics Data API** (analyticsdata.googleapis.com) enabled and read access to the GA4 property. If you skip these, everything works except GA traffic data on dashboards.
+
 ## 4. FI Registry
 
 The `fi_registry.json` file is required but gitignored (it's large, ~136MB). Get a copy from production:
