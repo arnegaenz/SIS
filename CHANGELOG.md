@@ -6,6 +6,16 @@
 
 # Build History
 
+## Apr 1, 2026 (Session 18)
+
+### FI Registry — CSV Export
+- Added "Export CSV" button to FI Registry table on maintenance page
+- Exports all 18 fields: name, key, instance, partner, integration type, status, cardholder info, core/processor details, traffic dates
+- Respects active filters (instance, partner, integration type, search) — exports only visible rows
+- Date-stamped filename: `fi_registry_YYYY-MM-DD.csv`
+
+---
+
 ## Mar 30, 2026 (Session 17)
 
 ### Operations Kiosk — Include Test Data Fix
