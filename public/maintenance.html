@@ -853,6 +853,7 @@
               <button class="btn secondary" id="registryReloadBtn" type="button">Reload Registry</button>
               <button class="btn secondary" id="registryFindDupes" type="button">Cleanup Registry</button>
               <button class="btn secondary" id="registrySyncFiApi" type="button">Sync FI API</button>
+              <button class="btn secondary" id="registryExportCsv" type="button">⬇ Export CSV</button>
             </div>
           <div class="registry-body">
             <div class="registry-table-wrapper">
@@ -1930,6 +1931,7 @@
       const reloadBtn = document.getElementById("registryReloadBtn");
       const dupesBtn = document.getElementById("registryFindDupes");
       const syncBtn = document.getElementById("registrySyncFiApi");
+      const exportCsvBtn = document.getElementById("registryExportCsv");
       const tableBody = document.getElementById("registryTableBody");
       const registryCount = document.getElementById("registryCount");
       const statusLine = document.getElementById("editorStatus");
@@ -2065,6 +2067,38 @@
           credit_processor: entry.credit_processor || "",
           status: entry.status || "",
         };
+      }
+
+      function exportRegistryCsv() {
+        const rows = filteredEntries.length ? filteredEntries : entries;
+        if (!rows.length) { setStatus("No data to export.", "warn"); return; }
+        const esc = (v) => { const s = v == null ? "" : String(v); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
+        const headers = [
+          "FI Name", "Lookup Key", "Instance", "Partner", "Integration Type", "Status",
+          "Cardholder Total", "Cardholder Source", "Cardholder As-Of",
+          "Core Vendor", "Core Product", "Debit Processor", "Credit Processor",
+          "Traffic First Seen", "Traffic Last Seen", "Traffic First Seen SSO",
+          "First Seen", "Last Seen"
+        ];
+        const fields = [
+          "fi_name", "fi_lookup_key", "instance", "partner", "integration_type", "status",
+          "cardholder_total", "cardholder_source", "cardholder_as_of",
+          "core_vendor", "core_product", "debit_processor", "credit_processor",
+          "traffic_first_seen", "traffic_last_seen", "traffic_first_seen_sso",
+          "first_seen", "last_seen"
+        ];
+        const csv = [headers.map(esc).join(",")]
+          .concat(rows.map(r => fields.map(f => esc(r[f])).join(",")))
+          .join("\n");
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `fi_registry_${new Date().toISOString().slice(0, 10)}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
       }
 
       function setStatus(message, kind = "") {
@@ -2761,6 +2795,7 @@
       partnerFilter?.addEventListener("change", renderTable);
       reloadBtn.addEventListener("click", reloadRegistryFromData);
       syncBtn?.addEventListener("click", syncRegistryFromFiApi);
+      exportCsvBtn?.addEventListener("click", exportRegistryCsv);
       dupesBtn?.addEventListener("click", () => {
         if (!entries.length) {
           setStatus("Load the registry first.");
