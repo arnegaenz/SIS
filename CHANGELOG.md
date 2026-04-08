@@ -6,6 +6,15 @@
 
 # Build History
 
+## Apr 8, 2026 (Session 19)
+
+### Portfolio Dashboard — Job Success Rate Fix
+- **Bug fix**: Job success rate was calculated as `(total - failed) / total`, which counted cancelled and abandoned jobs as successes. NASA FCU showed ~80% when actual was ~22%. Now uses `Jobs_Success` directly from ops data.
+- **Detail panel scroll**: Wrapped panel body in scrollable container so Recommended Actions and Card Replacement Opportunity sections are no longer clipped
+- **Tighter section spacing**: Reduced margin/padding on section titles (System Health, Motivation Diagnosis, etc.) to fit more content without scrolling
+
+---
+
 ## Apr 1, 2026 (Session 18)
 
 ### FI Registry — CSV Export
