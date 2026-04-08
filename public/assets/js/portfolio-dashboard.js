@@ -358,10 +358,11 @@ function enrichAndRender() {
     const key = row.fi_lookup_key || row.fi_name || "";
     if (!key) return;
     if (!opsMap.has(key)) {
-      opsMap.set(key, { jobsTotal: 0, jobsFailed: 0 });
+      opsMap.set(key, { jobsTotal: 0, jobsSuccess: 0, jobsFailed: 0 });
     }
     const entry = opsMap.get(key);
     entry.jobsTotal += row.Jobs_Total || 0;
+    entry.jobsSuccess += row.Jobs_Success || 0;
     entry.jobsFailed += row.Jobs_Failed || 0;
   });
 
@@ -380,7 +381,7 @@ function enrichAndRender() {
     const cardholders = reg.cardholder_total || 0;
     const monthlyReachPct = cardholders > 0 ? (sm / cardholders) * 100 : null;
 
-    const ops = opsMap.get(key) || { jobsTotal: 0, jobsFailed: 0 };
+    const ops = opsMap.get(key) || { jobsTotal: 0, jobsSuccess: 0, jobsFailed: 0 };
     const jobFailRate = ops.jobsTotal > 0 ? ops.jobsFailed / ops.jobsTotal : 0;
 
     // Classify tier using session success rate percentage
@@ -404,6 +405,7 @@ function enrichAndRender() {
       tierInfo,
       tier: tierInfo.tier,
       jobsTotal: ops.jobsTotal,
+      jobsSuccess: ops.jobsSuccess,
       jobsFailed: ops.jobsFailed,
       jobFailRate,
       opsOverall,
@@ -923,7 +925,7 @@ function renderDetailModal(fi) {
 
   // Stats grid
   const reachLabel = fi.monthlyReachPct !== null ? `${fi.monthlyReachPct.toFixed(2)}%` : "N/A";
-  const jobSuccessRate = fi.jobsTotal > 0 ? formatRate(fi.jobsTotal - fi.jobsFailed, fi.jobsTotal) : "-";
+  const jobSuccessRate = fi.jobsTotal > 0 ? formatRate(fi.jobsSuccess, fi.jobsTotal) : "-";
 
   // Weekly trend
   let weeklyHtml = "";
@@ -1118,11 +1120,13 @@ function renderDetailModal(fi) {
           <span class="partner-detail-panel__stat-label">Engagement Score</span>
         </div>
       </div>
-      ${weeklyHtml}
-      ${systemHtml}
-      ${tierHtml}
-      ${reachMathHtml}
-      ${actionsHtml}
+      <div class="detail-modal__scrollable">
+        ${weeklyHtml}
+        ${systemHtml}
+        ${tierHtml}
+        ${reachMathHtml}
+        ${actionsHtml}
+      </div>
     </div>
   `;
 
