@@ -19,6 +19,14 @@
 - **7th KPI tile on success.html kiosk header**: "Prod Sites" after "Successful". 24h view = live count, 3d/7d views = daily averages from snapshots. Falls back to `—` with informative tooltip ("Needs N daily snapshots. X of N collected. Next snapshot: 5pm PT.") until enough snapshots accumulate.
 - **Backlog**: deep-dive availability page (uptime, flips, tier drift, trends); evaluate SQLite migration if JSON-walk gets slow on the deep-dive page.
 
+### Historical Backfill (Jan 2025 → Apr 2026)
+- Imported 467 days of prior site-state history from `strivve-snapshots-changelog.csv` (1.6GB, 2.1M rows, hourly snapshots going back to Sept 2024).
+- Stream parser at `scripts/backfill-merchant-sites.mjs`: for each (date, site_id) picks the row closest to 17:00 PT so backfill aligns with the live 5pm PT snapshot cadence.
+- **Hybrid storage**: 2026 data written full-fat (~250KB/day with per-site `raw` blobs); 2025 data written slim (~38KB/day, no `raw`). Total on disk: 40MB.
+- `backfilled: true` and `slim: true/false` flags on each snapshot file distinguish backfill from live captures.
+- Result: "Prod Sites" KPI tile went live with real 3d/7d averages the moment files landed on the server, instead of the usual 3-7 day accrual period.
+- Observed trend: prod site count held remarkably steady (58-65) across the full 15-month span while total cataloged sites grew 135 → 216 (+60%). Limited actually dropped (19 → 13); down grew (48 → 114).
+
 ---
 
 ## Apr 8, 2026 (Session 19)
