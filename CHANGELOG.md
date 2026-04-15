@@ -6,6 +6,21 @@
 
 # Build History
 
+## Apr 15, 2026 (Session 20)
+
+### Merchant Site Availability — Snapshot Pipeline + "Prod Sites" KPI
+- **Daily snapshot**: 5pm Pacific capture of full CardSavr `merchant_sites` payload to `raw/merchant-sites/YYYY-MM-DD.json`. Every field preserved (no stripping) plus derived fields per site: `status` (prod/limited/down/unknown), `is_demo`, `is_synthetic`. Top-level `summary` precomputes counts by status and tier. No new deps — `setInterval` every 10 min checks PT hour + today's file existence, so startup catch-up and scheduled run are the same code path.
+- **New endpoints** (admin-only):
+  - `GET /merchant-sites-availability` — returns `today` (live, 5-min cached), `avg_3d`, `avg_7d` for the prod count. Null values with `days_available/days_needed` when insufficient snapshots.
+  - `GET /merchant-sites-snapshot?date=…` — fetch one day's snapshot
+  - `GET /merchant-sites-snapshot-dates` — list available dates
+  - `POST /merchant-sites-snapshot-run[?date=…]` — manually trigger
+  - `GET /merchant-sites-raw` — debug peek at first page of raw CardSavr payload (temporary, keep for now)
+- **7th KPI tile on success.html kiosk header**: "Prod Sites" after "Successful". 24h view = live count, 3d/7d views = daily averages from snapshots. Falls back to `—` with informative tooltip ("Needs N daily snapshots. X of N collected. Next snapshot: 5pm PT.") until enough snapshots accumulate.
+- **Backlog**: deep-dive availability page (uptime, flips, tier drift, trends); evaluate SQLite migration if JSON-walk gets slow on the deep-dive page.
+
+---
+
 ## Apr 8, 2026 (Session 19)
 
 ### Portfolio Dashboard — Job Success Rate Fix

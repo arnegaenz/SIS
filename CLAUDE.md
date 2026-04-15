@@ -213,6 +213,11 @@ All partner-facing content follows engagement-positive tone:
 
 ## 🟡 Medium (Real work, approach clear)
 
+### Merchant Site Availability — Deep Dive Page + DB Evaluation
+- **Shipped 2026-04-15**: daily 5pm PT JSON snapshots at `raw/merchant-sites/YYYY-MM-DD.json` (full CardSavr payload + derived status), `/merchant-sites-availability` endpoint, "Prod Sites" KPI tile on success.html kiosk (24h live / 3d / 7d avg).
+- **Next**: dedicated page that digs into site availability over time — site-by-site uptime history, flip events (prod→limited, limited→down), tier drift, availability trends by merchant/tier. Read from snapshot JSON files.
+- **Then**: re-evaluate storage model. JSON-per-day is fine for the KPI and small queries but gets slow for cross-day analytics ("days site X was prod in last 90 days", site diffs, etc). If the deep-dive page ends up sluggish or limited by the JSON-walk pattern, migrate to SQLite (`better-sqlite3`, schema: `snapshots(date, id, name, host, tier, status, tags_json, raw_json)` indexed on date+id and host+date). Keep JSON as backup/audit.
+
 ### Admin-Only Nav Visibility Flag for WIP Pages
 - WIP pages (Sources, UX Paths, Customer Success Dashboard) should not appear in nav for non-admin users
 - Add flag or config to hide unready pages from partner-facing nav

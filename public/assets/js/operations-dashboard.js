@@ -368,6 +368,49 @@ function renderPersistentHeader(opsData, healthData, gaTimeline) {
     }
   }
 
+  // Prod Sites Available — depends on active view window
+  const prodTile = document.getElementById("phProdSites");
+  if (prodTile) {
+    const prodEl = prodTile.querySelector(".kiosk-ph__kpi-value");
+    const labelEl = prodTile.querySelector(".kiosk-ph__kpi-label");
+    const avail = state.merchantSiteAvailability;
+    const daysForView = VIEW_WINDOW_DAYS[viewRotation.views[viewRotation.currentIndex]] || 1;
+    let bucket, labelText, tooltip;
+    if (daysForView === 1) {
+      bucket = avail?.today;
+      labelText = "Prod Sites";
+      tooltip = bucket && bucket.prod != null
+        ? `${bucket.prod} sites currently tagged prod in CardSavr (live, cached ${bucket.cached_age_s || 0}s).`
+        : "Live merchant site count unavailable.";
+    } else if (daysForView === 3) {
+      bucket = avail?.avg_3d;
+      labelText = "Prod Sites (3d avg)";
+    } else {
+      bucket = avail?.avg_7d;
+      labelText = "Prod Sites (7d avg)";
+    }
+    if (daysForView !== 1) {
+      if (bucket && bucket.prod != null) {
+        tooltip = `Average prod sites/day across last ${bucket.days_needed} daily snapshots (5pm PT).`;
+      } else {
+        const have = bucket?.days_available ?? 0;
+        const need = bucket?.days_needed ?? daysForView;
+        tooltip = `Needs ${need} daily snapshots. ${have} of ${need} collected. Next snapshot: 5pm PT.`;
+      }
+    }
+    if (labelEl) labelEl.textContent = labelText;
+    if (prodTile) prodTile.title = tooltip;
+    if (prodEl) {
+      if (bucket && bucket.prod != null) {
+        animateValue(prodEl, bucket.prod, 300);
+        prodEl.style.color = "var(--text)";
+      } else {
+        prodEl.textContent = "—";
+        prodEl.style.color = "var(--muted)";
+      }
+    }
+  }
+
   // Health dot
   if (healthData) {
     const dot = document.querySelector(".kiosk-ph__health-dot");
@@ -848,15 +891,25 @@ function initCommandCenter() {
   setInterval(updateCommandCenterClock, 1000);
 }
 
+async function fetchMerchantSitesAvailability() {
+  try {
+    const res = await fetch("/merchant-sites-availability", { cache: "no-store" });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch { return null; }
+}
+
 async function commandCenterRefresh() {
   const currentViewDays = VIEW_WINDOW_DAYS[viewRotation.views[viewRotation.currentIndex]] || 1;
   await fetchOpsTrends();
-  const [_opsResult, healthData, gaTimeline, gaHourly] = await Promise.all([
+  const [_opsResult, healthData, gaTimeline, gaHourly, siteAvail] = await Promise.all([
     fetchMetrics(),
     fetchHealthComposite(),
     fetchGaRealtimeTimeline(currentViewDays * 24),
     fetchGaHourly(currentViewDays),
+    fetchMerchantSitesAvailability(),
   ]);
+  state.merchantSiteAvailability = siteAvail;
   try {
     const headerRes = await fetch(`/api/metrics/ops-feed?tz=${encodeURIComponent(getLocalTimezone())}&days=${currentViewDays}`);
     if (headerRes.ok) {

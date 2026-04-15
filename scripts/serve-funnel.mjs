@@ -1622,6 +1622,144 @@ setTimeout(fetchGaRealtimeSnapshot, 45 * 1000); // first fetch 45s after startup
 console.log("[ga-realtime-bg] Background fetch started (every 5 min)");
 
 // ============================================================================
+// Merchant Sites Daily Snapshot (5pm Pacific — full raw CardSavr payload)
+// ============================================================================
+const MERCHANT_SITES_DIR = path.join(RAW_DIR, "merchant-sites");
+const MERCHANT_SITES_SNAPSHOT_HOUR_PT = 17; // 5pm Pacific
+let _merchantSitesLiveCache = null; // { ts, counts, total }
+
+function classifyMerchantSiteStatus(tags = []) {
+  const lower = (tags || []).map((t) => t.toString().toLowerCase());
+  if (lower.some((t) => t.includes("down") || t.includes("disabled"))) return "down";
+  if (lower.some((t) => t.includes("limited") || t.includes("beta") || t.includes("degraded"))) return "limited";
+  if (lower.some((t) => t.includes("unrestricted") || t === "prod")) return "prod";
+  return "unknown";
+}
+
+async function fetchMerchantSitesRawFromSs01() {
+  const { entries } = await readInstancesFile();
+  const ss01 = pickSs01Instance(entries);
+  if (!ss01) throw new Error("No ss01 instance credentials found.");
+  const { session } = await loginWithSdk(ss01);
+  const rawRows = [];
+  let pagingMeta = null;
+  let guard = 0;
+  while (guard < 200) {
+    const headers = pagingMeta ? { "x-cardsavr-paging": JSON.stringify(pagingMeta) } : {};
+    const resp = await getMerchantSitesPage(session, headers);
+    const rows =
+      (Array.isArray(resp?.body) && resp.body) ||
+      (Array.isArray(resp?.merchant_sites) && resp.merchant_sites) ||
+      (Array.isArray(resp?.items) && resp.items) ||
+      (Array.isArray(resp) ? resp : []);
+    rawRows.push(...rows);
+    const pagingHeader = resp?.headers?.get
+      ? resp.headers.get("x-cardsavr-paging")
+      : resp?.headers?.["x-cardsavr-paging"];
+    if (!pagingHeader) break;
+    try { pagingMeta = JSON.parse(pagingHeader); } catch { break; }
+    const total = Number(pagingMeta.total_results) || rows.length;
+    const pageLen = Number(pagingMeta.page_length) || rows.length || 25;
+    const totalPages = pageLen > 0 ? Math.ceil(total / pageLen) : 1;
+    const nextPage = (Number(pagingMeta.page) || pagingMeta.page || 1) + 1;
+    if (nextPage > totalPages) break;
+    pagingMeta.page = nextPage;
+    if (!pagingMeta.page_length) pagingMeta.page_length = pageLen;
+    guard += 1;
+  }
+  return rawRows;
+}
+
+function buildMerchantSitesSnapshot(rawRows, snapshotDate) {
+  const sites = rawRows.map((r) => {
+    const tags = Array.isArray(r.tags) ? r.tags : [];
+    const lower = tags.map((t) => t.toString().toLowerCase());
+    return {
+      id: r.id,
+      name: r.name || r.display_name || "",
+      host: r.host || r.hostname || "",
+      tier: r.tier ?? null,
+      tags,
+      status: classifyMerchantSiteStatus(tags),
+      is_demo: lower.some((t) => t.includes("demo")),
+      is_synthetic: lower.some((t) => t.includes("synthetic")),
+      raw: r,
+    };
+  });
+
+  const summary = {
+    by_status: { prod: 0, limited: 0, down: 0, unknown: 0 },
+    by_tier: {},
+    prod_by_tier: {},
+    limited_by_tier: {},
+    down_by_tier: {},
+    excluded: { demo: 0, synthetic: 0 },
+  };
+  for (const s of sites) {
+    summary.by_status[s.status] = (summary.by_status[s.status] || 0) + 1;
+    const tk = s.tier == null ? "null" : String(s.tier);
+    summary.by_tier[tk] = (summary.by_tier[tk] || 0) + 1;
+    if (s.status === "prod") summary.prod_by_tier[tk] = (summary.prod_by_tier[tk] || 0) + 1;
+    if (s.status === "limited") summary.limited_by_tier[tk] = (summary.limited_by_tier[tk] || 0) + 1;
+    if (s.status === "down") summary.down_by_tier[tk] = (summary.down_by_tier[tk] || 0) + 1;
+    if (s.is_demo) summary.excluded.demo += 1;
+    if (s.is_synthetic) summary.excluded.synthetic += 1;
+  }
+
+  return {
+    snapshot_date: snapshotDate,
+    fetched_at: new Date().toISOString(),
+    snapshot_tz: "America/Los_Angeles",
+    count: sites.length,
+    summary,
+    sites,
+  };
+}
+
+function getPacificDateParts(now = new Date()) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Los_Angeles",
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "numeric", hour12: false,
+  }).formatToParts(now);
+  const map = Object.fromEntries(parts.map((p) => [p.type, p.value]));
+  // Intl can emit hour "24" at midnight — normalize
+  const hour = parseInt(map.hour, 10) % 24;
+  return { date: `${map.year}-${map.month}-${map.day}`, hour };
+}
+
+async function snapshotMerchantSites(snapshotDate) {
+  const rawRows = await fetchMerchantSitesRawFromSs01();
+  const snapshot = buildMerchantSitesSnapshot(rawRows, snapshotDate);
+  await fs.mkdir(MERCHANT_SITES_DIR, { recursive: true });
+  const filePath = path.join(MERCHANT_SITES_DIR, `${snapshotDate}.json`);
+  await fs.writeFile(filePath, JSON.stringify(snapshot, null, 2));
+  console.log(`[merchant-sites-snap] wrote ${snapshotDate}.json — ${snapshot.count} sites (prod:${snapshot.summary.by_status.prod} limited:${snapshot.summary.by_status.limited} down:${snapshot.summary.by_status.down} unknown:${snapshot.summary.by_status.unknown})`);
+  return snapshot;
+}
+
+async function maybeRunMerchantSitesSnapshot() {
+  try {
+    const { date, hour } = getPacificDateParts();
+    if (hour < MERCHANT_SITES_SNAPSHOT_HOUR_PT) return;
+    const filePath = path.join(MERCHANT_SITES_DIR, `${date}.json`);
+    try {
+      await fs.access(filePath);
+      return; // already have today's snapshot
+    } catch { /* file missing — proceed */ }
+    console.log(`[merchant-sites-snap] Running snapshot for ${date} (hour ${hour} PT)…`);
+    await snapshotMerchantSites(date);
+  } catch (err) {
+    console.error("[merchant-sites-snap] failed:", err.message);
+  }
+}
+
+// Check every 10 minutes; on startup; catches 5pm PT window even after process restart.
+setInterval(maybeRunMerchantSitesSnapshot, 10 * 60 * 1000);
+setTimeout(maybeRunMerchantSitesSnapshot, 60 * 1000); // first check 60s after startup
+console.log("[merchant-sites-snap] Daily snapshot scheduled (5pm PT, check every 10 min)");
+
+// ============================================================================
 // System Health Check (every 5 min — frontend + backend per instance)
 // ============================================================================
 let _systemHealthCache = { instances: [], lastCheck: null, history: [] };
@@ -3958,6 +4096,9 @@ const server = http.createServer(async (req, res) => {
         partnerSummary: body.partnerSummary || null,
         shareUrl: body.shareUrl || null,
         insights: body.insights || null,
+        granularities: body.granularities || null,
+        dashboardUrl: body.dashboardUrl || null,
+        fiKey: body.fiKey || null,
       });
 
       const isQBR = !!(body.insights && body.insights.qbr && body.insights.qbr.quarters);
@@ -4871,6 +5012,125 @@ const server = http.createServer(async (req, res) => {
       const message = err?.message || "Unable to load merchant sites";
       console.error("merchant-sites fetch failed", err);
       return send(res, 500, { error: message });
+    }
+  }
+  if (pathname === "/merchant-sites-availability") {
+    try {
+      // "Today" = live count, cached 5 min to avoid hammering CardSavr
+      const now = Date.now();
+      if (!_merchantSitesLiveCache || now - _merchantSitesLiveCache.ts > 5 * 60 * 1000) {
+        try {
+          const sites = await fetchMerchantSitesFromSs01();
+          const counts = { prod: 0, limited: 0, down: 0, unknown: 0 };
+          for (const s of sites) counts[classifyMerchantSiteStatus(s.tags)]++;
+          _merchantSitesLiveCache = { ts: now, counts, total: sites.length };
+        } catch (err) {
+          console.error("[merchant-sites-availability] live fetch failed:", err.message);
+          // fall through — may still have stale cache
+        }
+      }
+      const today = _merchantSitesLiveCache
+        ? { prod: _merchantSitesLiveCache.counts.prod, source: "live", cached_age_s: Math.round((now - _merchantSitesLiveCache.ts) / 1000) }
+        : { prod: null, source: "unavailable" };
+
+      // Averages from snapshot files
+      async function avgOverDays(nDays) {
+        try { await fs.mkdir(MERCHANT_SITES_DIR, { recursive: true }); } catch {}
+        let files = [];
+        try { files = await fs.readdir(MERCHANT_SITES_DIR); } catch { files = []; }
+        const dates = files
+          .filter((f) => /^\d{4}-\d{2}-\d{2}\.json$/.test(f))
+          .map((f) => f.slice(0, 10))
+          .sort()
+          .slice(-nDays);
+        const prodCounts = [];
+        for (const d of dates) {
+          try {
+            const raw = await fs.readFile(path.join(MERCHANT_SITES_DIR, `${d}.json`), "utf8");
+            const json = JSON.parse(raw);
+            const p = json?.summary?.by_status?.prod;
+            if (typeof p === "number") prodCounts.push(p);
+          } catch { /* skip */ }
+        }
+        if (prodCounts.length < nDays) {
+          return { prod: null, days_available: prodCounts.length, days_needed: nDays };
+        }
+        const avg = prodCounts.reduce((a, b) => a + b, 0) / prodCounts.length;
+        return { prod: Math.round(avg * 10) / 10, days_available: prodCounts.length, days_needed: nDays };
+      }
+      const [avg_3d, avg_7d] = await Promise.all([avgOverDays(3), avgOverDays(7)]);
+      return send(res, 200, { today, avg_3d, avg_7d });
+    } catch (err) {
+      return send(res, 500, { error: err?.message || "failed" });
+    }
+  }
+  if (pathname === "/merchant-sites-snapshot-dates") {
+    if (!(await requireFullAccess(req, res, queryParams))) return;
+    try {
+      await fs.mkdir(MERCHANT_SITES_DIR, { recursive: true });
+      const files = await fs.readdir(MERCHANT_SITES_DIR);
+      const dates = files
+        .filter((f) => /^\d{4}-\d{2}-\d{2}\.json$/.test(f))
+        .map((f) => f.slice(0, 10))
+        .sort();
+      return send(res, 200, { count: dates.length, dates });
+    } catch (err) {
+      return send(res, 500, { error: err?.message || "failed" });
+    }
+  }
+  if (pathname === "/merchant-sites-snapshot") {
+    if (!(await requireFullAccess(req, res, queryParams))) return;
+    try {
+      const date = queryParams.get("date");
+      if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        return send(res, 400, { error: "date=YYYY-MM-DD required" });
+      }
+      const filePath = path.join(MERCHANT_SITES_DIR, `${date}.json`);
+      const raw = await fs.readFile(filePath, "utf8");
+      res.setHeader("Content-Type", "application/json");
+      setCors(res);
+      res.end(raw);
+      return;
+    } catch (err) {
+      return send(res, 404, { error: "snapshot not found" });
+    }
+  }
+  if (pathname === "/merchant-sites-snapshot-run" && req.method === "POST") {
+    if (!(await requireFullAccess(req, res, queryParams))) return;
+    try {
+      const { date } = getPacificDateParts();
+      const target = queryParams.get("date") || date;
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(target)) {
+        return send(res, 400, { error: "date=YYYY-MM-DD required" });
+      }
+      const snap = await snapshotMerchantSites(target);
+      return send(res, 200, { ok: true, date: target, count: snap.count, summary: snap.summary });
+    } catch (err) {
+      return send(res, 500, { error: err?.message || "failed" });
+    }
+  }
+  if (pathname === "/merchant-sites-raw") {
+    if (!(await requireFullAccess(req, res, queryParams))) return;
+    try {
+      const { entries } = await readInstancesFile();
+      const ss01 = pickSs01Instance(entries);
+      if (!ss01) throw new Error("No ss01 instance credentials found.");
+      const { session } = await loginWithSdk(ss01);
+      const resp = await getMerchantSitesPage(session, {});
+      const rows =
+        (Array.isArray(resp?.body) && resp.body) ||
+        (Array.isArray(resp?.merchant_sites) && resp.merchant_sites) ||
+        (Array.isArray(resp?.items) && resp.items) ||
+        (Array.isArray(resp) ? resp : []);
+      return send(res, 200, {
+        sample_count: rows.length,
+        first_row: rows[0] || null,
+        first_three: rows.slice(0, 3),
+        top_level_keys: resp && typeof resp === "object" ? Object.keys(resp) : [],
+      });
+    } catch (err) {
+      console.error("merchant-sites-raw fetch failed", err);
+      return send(res, 500, { error: err?.message || "failed" });
     }
   }
   if (pathname === "/fi-api-data") {
@@ -6590,6 +6850,478 @@ const server = http.createServer(async (req, res) => {
       return send(res, status, { error: err?.message || "Unable to build funnel metrics" });
     }
   }
+  if (pathname === "/api/conversion-breakdown") {
+    // Admin-only diagnostic endpoint: 6-step conversion funnel split by source_category,
+    // grouped into MOTIVATION / EXPERIENCE / EXECUTION bands, plus time-window comparison
+    // and Source Adoption Scoreboard (CS retrofit vs Integration escalation vs Regressions).
+    const session = await validateSession(req, queryParams);
+    if (!session) return send(res, 401, { error: "Authentication required" });
+    const userContext = session.user;
+    const role = (userContext && (userContext.access_level || userContext.role) || "").toString().toLowerCase();
+    const normRole = role === "full" ? "admin" : role;
+    if (normRole !== "admin") {
+      return send(res, 403, { error: "Admin only" });
+    }
+
+    let payload = null;
+    if (req.method === "POST") {
+      try {
+        const rawBody = await readRequestBody(req);
+        payload = rawBody ? JSON.parse(rawBody) : {};
+      } catch (err) {
+        return send(res, 400, { error: "Invalid JSON payload" });
+      }
+    }
+
+    try {
+      const fiRegistry = await loadFiRegistrySafe();
+      const filters = parseMetricsFilters(queryParams, payload, userContext, fiRegistry);
+      const { start, end } = resolveDateRange(filters);
+      const fiMeta = buildFiMetaMap(fiRegistry);
+      const instanceMeta = await loadInstanceMetaMap();
+
+      const includeTests =
+        (payload?.includeTests === true) || (payload?.includeTests === "true") ||
+        queryParams.get("includeTests") === "true";
+
+      const fiList = filters.fi_list.map((fi) => normalizeFiKey(fi)).filter(Boolean);
+      const fiSet = fiList.length ? new Set(fiList) : null;
+      const instanceSet = filters.instance_list.length
+        ? new Set(filters.instance_list.map((value) => normalizeInstanceKey(value)))
+        : null;
+
+      // Canonicalize source_category to a fixed enum.
+      // activation / campaign / card_controls / other / untagged
+      const CAT_ENUM = new Set(["activation", "campaign", "card_controls", "other"]);
+      function canonCategory(raw) {
+        const v = normalizeSourceToken(raw || "");
+        if (!v || v === "unknown") return "untagged";
+        if (CAT_ENUM.has(v)) return v;
+        // common aliases
+        if (v === "cardcontrols" || v === "card-controls") return "card_controls";
+        return "other";
+      }
+
+      // ─── Filter-bar-scoped aggregation (bands + FI lists) ─────────
+      const bandDays = daysBetween(start, end);
+
+      const catTemplate = () => ({
+        sessions: 0,
+        step2_num: 0, step2_den: 0,
+        step3_num: 0, step3_den: 0,
+        step4_num: 0, step4_den: 0,
+        step5_num: 0, step5_den: 0, // job-level
+        step6_num: 0, step6_den: 0, // job-level
+        by_type: {}, // source_type -> { sessions, step2_num, ... }
+      });
+      const catMap = {};
+      for (const c of ["activation", "campaign", "card_controls", "other", "untagged"]) {
+        catMap[c] = catTemplate();
+      }
+
+      // Job-level per-merchant breakdown keyed by `${cat}::${merchant}`
+      const merchantStep5 = new Map(); // key -> { cat, merchant, num, den }
+      const merchantStep6 = new Map();
+
+      // Per-FI aggregation for lists
+      const fiAgg = new Map(); // fiKey -> { fi_name, volume, tagged_sessions, untagged_sessions, first_tagged: date, last_tagged: date }
+
+      let totalSessions = 0;
+      let sessionsReachedStep4 = 0;
+      let totalJobsAtStep4 = 0;
+      let totalPlacements = 0;
+      let sessionsWithPlacement = 0;
+
+      for (const day of bandDays) {
+        const [sessionsRaw, placementsRaw] = await Promise.all([
+          readSessionDay(day),
+          readPlacementDay(day),
+        ]);
+        if (!sessionsRaw || sessionsRaw.error) continue;
+        const sessions = Array.isArray(sessionsRaw.sessions) ? sessionsRaw.sessions : [];
+        const placements = Array.isArray(placementsRaw?.placements) ? placementsRaw.placements : [];
+
+        // Index placements by session id for per-job / per-merchant lookups
+        const placementsBySession = new Map();
+        const placementSourceMap = new Map();
+        for (const p of placements) {
+          const key = p.agent_session_id || p.session_id || p.cardholder_session_id || p.cuid || null;
+          if (!key) continue;
+          if (!placementsBySession.has(key)) placementsBySession.set(key, []);
+          placementsBySession.get(key).push(p);
+          if (!placementSourceMap.has(key)) {
+            const sourceInfo = extractSourceFromPlacement(p);
+            if (sourceInfo) placementSourceMap.set(key, sourceInfo);
+          }
+        }
+
+        for (const sessionObj of sessions) {
+          const agentId = sessionObj.agent_session_id || sessionObj.session_id || sessionObj.id || sessionObj.cuid || null;
+          const instanceRaw = sessionObj._instance || sessionObj.instance || sessionObj.instance_name || sessionObj.org_name || "";
+          const instanceDisplay = formatInstanceDisplay(instanceRaw || "unknown");
+          if (instanceSet && !instanceSet.has(normalizeInstanceKey(instanceDisplay))) continue;
+          if (!includeTests && isTestInstanceName(instanceDisplay)) continue;
+
+          const instanceLookup = instanceMeta.get(instanceDisplay.toLowerCase());
+          const fiLookupRaw =
+            sessionObj.financial_institution_lookup_key ||
+            sessionObj.fi_lookup_key ||
+            sessionObj.fi_name ||
+            null;
+          const fiKey = normalizeFiKey(fiLookupRaw || instanceLookup?.fi || sessionObj.fi_name || "");
+          if (fiSet && !fiSet.has(fiKey)) continue;
+
+          // Session-level SSO check (not FI-level) — an FI can have both SSO and non-SSO traffic.
+          const sessIntegration = (sessionObj.integration || sessionObj.source?.integration || "").toString().toUpperCase();
+          const isSso = sessIntegration === "SSO" || sessIntegration === "CU2_SSO";
+          if (filters.fi_scope === "sso_only" && !isSso) continue;
+          if (filters.fi_scope === "non_sso_only" && isSso) continue;
+
+          const sourceFallback = agentId ? placementSourceMap.get(agentId) : null;
+          const sourceInfo = extractSourceFromSession(sessionObj, sourceFallback);
+          const rawCat = sourceInfo?.source_category || "";
+          const rawType = normalizeSourceToken(sourceInfo?.source_type || "");
+          const cat = canonCategory(rawCat);
+          const typeKey = rawType || (cat === "untagged" ? "untagged" : "unknown");
+
+          const flags = resolveSessionFunnelFlags(sessionObj);
+          const jobs = resolveSessionJobCounts(sessionObj);
+
+          // Step 1 denominator (session-level) — counted by presence in window
+          // Step 1 numerator (sees CU) = reachedSelectMerchant (first page view)
+          const step1Sees = flags.reachedSelectMerchant ? 1 : 0;
+          // Step 2: merchant-select reached -> credential entry (UX signal). We use
+          // reachedSelectMerchant as denom and reachedCredentialEntry as num.
+          const step2Num = flags.reachedCredentialEntry ? 1 : 0;
+          const step2Den = flags.reachedSelectMerchant ? 1 : 0;
+          // Step 3 (non-SSO): user data form submission. Non-SSO flow is strictly
+          // sequential — reaching credential entry proves the user-data form was
+          // submitted. Denom = reached user data page, num = reached credential entry.
+          const clickstream = Array.isArray(sessionObj?.clickstream) ? sessionObj.clickstream : [];
+          const reachedUserData = !isSso && hasClickstreamMatch(clickstream, (url, title) =>
+            url.includes("user-data") || url.includes("card-data") || title.includes("your information") || title.includes("card information")
+          );
+          const step3Den = (!isSso && reachedUserData) ? 1 : 0;
+          const step3Num = (!isSso && reachedUserData && flags.reachedCredentialEntry) ? 1 : 0;
+          // Step 4: reached credential entry -> successfully entered credentials (i.e. at
+          // least one job started). Numerator = sessions_with_jobs (jobs.total>0).
+          const step4Num = (flags.reachedCredentialEntry && jobs.total > 0) ? 1 : 0;
+          const step4Den = flags.reachedCredentialEntry ? 1 : 0;
+
+          // Aggregate into category bucket
+          const bucket = catMap[cat];
+          bucket.sessions += 1;
+          bucket.step2_num += step2Num; bucket.step2_den += step2Den;
+          bucket.step3_num += step3Num; bucket.step3_den += step3Den;
+          bucket.step4_num += step4Num; bucket.step4_den += step4Den;
+
+          if (!bucket.by_type[typeKey]) {
+            bucket.by_type[typeKey] = { sessions: 0, step2_num: 0, step2_den: 0, step3_num: 0, step3_den: 0, step4_num: 0, step4_den: 0 };
+          }
+          const tbucket = bucket.by_type[typeKey];
+          tbucket.sessions += 1;
+          tbucket.step2_num += step2Num; tbucket.step2_den += step2Den;
+          tbucket.step3_num += step3Num; tbucket.step3_den += step3Den;
+          tbucket.step4_num += step4Num; tbucket.step4_den += step4Den;
+
+          totalSessions += 1;
+          if (step4Den) sessionsReachedStep4 += step4Num ? 1 : 0;
+          if (step4Num) totalJobsAtStep4 += jobs.total;
+
+          // Step 5 & 6 — JOB-level. Iterate placements for this session.
+          const sessionPlacements = agentId ? (placementsBySession.get(agentId) || []) : [];
+          let hadAnySuccess = false;
+          for (const pl of sessionPlacements) {
+            const merchant = (pl.merchant_site_hostname || pl.merchant_site_name || pl.merchant || pl.site || "Unknown").toString();
+            // Per-job source: prefer the placement's own source_type/category, fall back to session
+            const plSource = extractSourceFromPlacement(pl) || sourceInfo;
+            const plCat = canonCategory(plSource?.source_category || rawCat);
+            // termination_type is the canonical category: BILLABLE (placed), USER_DATA_FAILURE (UX),
+            // SITE_INTERACTION_FAILURE (system), NEVER_STARTED (abandoned).
+            const termType = (pl.termination_type || "").toString().trim().toUpperCase();
+            const statusRaw = (pl.status || "").toString().trim().toUpperCase();
+            const isSuccess = termType === "BILLABLE" || statusRaw === "SUCCESSFUL";
+            const attempted = !!termType || !!statusRaw || pl.is_success !== null;
+            // Step 5 "Account linked" = passed UX (BILLABLE or SITE_INTERACTION_FAILURE).
+            const linked = termType === "BILLABLE" || termType === "SITE_INTERACTION_FAILURE";
+            if (attempted) {
+              bucket.step5_den += 1;
+              if (linked) bucket.step5_num += 1;
+              const k5 = `${plCat}::${merchant}`;
+              if (!merchantStep5.has(k5)) merchantStep5.set(k5, { cat: plCat, merchant, num: 0, den: 0 });
+              const m5 = merchantStep5.get(k5);
+              m5.den += 1;
+              if (linked) m5.num += 1;
+            }
+            // Step 6 "Card placed" = of linked jobs, how many successfully placed (System Success Rate).
+            if (linked) {
+              bucket.step6_den += 1;
+              const k6 = `${plCat}::${merchant}`;
+              if (!merchantStep6.has(k6)) merchantStep6.set(k6, { cat: plCat, merchant, num: 0, den: 0 });
+              const m6 = merchantStep6.get(k6);
+              m6.den += 1;
+              if (isSuccess) {
+                bucket.step6_num += 1;
+                m6.num += 1;
+                totalPlacements += 1;
+                hadAnySuccess = true;
+              }
+            }
+          }
+          if (hadAnySuccess) sessionsWithPlacement += 1;
+
+          // FI list aggregation
+          if (!fiAgg.has(fiKey)) {
+            const meta = fiMeta.get(fiKey) || {};
+            fiAgg.set(fiKey, {
+              fi_key: fiKey,
+              fi_name: meta.fi || sessionObj.fi_name || fiLookupRaw || fiKey || "Unknown FI",
+              traffic_first_seen: meta.traffic_first_seen || null,
+              volume: 0,
+              tagged_sessions: 0,
+              untagged_sessions: 0,
+              last_tagged: null,
+            });
+          }
+          const fiRow = fiAgg.get(fiKey);
+          fiRow.volume += 1;
+          if (cat === "untagged") {
+            fiRow.untagged_sessions += 1;
+          } else {
+            fiRow.tagged_sessions += 1;
+            const d = (sessionObj.created_on || "").toString().slice(0, 10);
+            if (d && (!fiRow.last_tagged || d > fiRow.last_tagged)) fiRow.last_tagged = d;
+          }
+        }
+      }
+
+      // ─── Time-window strip (6 windows x 6 steps) ──────────────────
+      // Compute independently of the filter-bar date range — rolling back from today.
+      const endTw = todayIsoDate();
+      const windowDefs = [
+        { key: "30d", days: 30 },
+        { key: "60d", days: 60 },
+        { key: "90d", days: 90 },
+        { key: "6mo", days: 183 },
+        { key: "9mo", days: 274 },
+        { key: "12mo", days: 365 },
+      ];
+      const timeWindows = {};
+      for (const w of windowDefs) {
+        const startTw = addDaysIso(endTw, -(w.days - 1));
+        const acc = {
+          step1_num: 0, step1_den: 0,
+          step2_num: 0, step2_den: 0,
+          step3_num: 0, step3_den: 0,
+          step4_num: 0, step4_den: 0,
+          step5_num: 0, step5_den: 0,
+          step6_num: 0, step6_den: 0,
+        };
+        const twDays = daysBetween(startTw, endTw);
+        for (const day of twDays) {
+          const [sessionsRaw, placementsRaw] = await Promise.all([
+            readSessionDay(day),
+            readPlacementDay(day),
+          ]);
+          if (!sessionsRaw || sessionsRaw.error) continue;
+          const sessions = Array.isArray(sessionsRaw.sessions) ? sessionsRaw.sessions : [];
+          const placements = Array.isArray(placementsRaw?.placements) ? placementsRaw.placements : [];
+          const placementsBySession = new Map();
+          for (const p of placements) {
+            const key = p.agent_session_id || p.session_id || p.cardholder_session_id || p.cuid || null;
+            if (!key) continue;
+            if (!placementsBySession.has(key)) placementsBySession.set(key, []);
+            placementsBySession.get(key).push(p);
+          }
+          for (const sessionObj of sessions) {
+            const instanceRaw = sessionObj._instance || sessionObj.instance || sessionObj.instance_name || sessionObj.org_name || "";
+            const instanceDisplay = formatInstanceDisplay(instanceRaw || "unknown");
+            if (!includeTests && isTestInstanceName(instanceDisplay)) continue;
+            const fiLookupRaw = sessionObj.financial_institution_lookup_key || sessionObj.fi_lookup_key || sessionObj.fi_name || null;
+            const fiKey = normalizeFiKey(fiLookupRaw || sessionObj.fi_name || "");
+            const sessIntegration = (sessionObj.integration || sessionObj.source?.integration || "").toString().toUpperCase();
+            const isSso = sessIntegration === "SSO" || sessIntegration === "CU2_SSO";
+            const flags = resolveSessionFunnelFlags(sessionObj);
+            const jobs = resolveSessionJobCounts(sessionObj);
+            const clickstream = Array.isArray(sessionObj?.clickstream) ? sessionObj.clickstream : [];
+            const reachedUserData = !isSso && hasClickstreamMatch(clickstream, (url, title) =>
+              url.includes("user-data") || url.includes("card-data") || title.includes("your information") || title.includes("card information")
+            );
+            acc.step1_den += 1;
+            acc.step1_num += flags.reachedSelectMerchant ? 1 : 0;
+            if (flags.reachedSelectMerchant) {
+              acc.step2_den += 1;
+              if (flags.reachedCredentialEntry) acc.step2_num += 1;
+            }
+            if (!isSso && reachedUserData) {
+              acc.step3_den += 1;
+              if (flags.reachedCredentialEntry) acc.step3_num += 1;
+            }
+            if (flags.reachedCredentialEntry) {
+              acc.step4_den += 1;
+              if (jobs.total > 0) acc.step4_num += 1;
+            }
+            const agentId = sessionObj.agent_session_id || sessionObj.session_id || sessionObj.id || sessionObj.cuid || null;
+            const sessionPlacements = agentId ? (placementsBySession.get(agentId) || []) : [];
+            for (const pl of sessionPlacements) {
+              const termType = (pl.termination_type || "").toString().trim().toUpperCase();
+              const statusRaw = (pl.status || "").toString().trim().toUpperCase();
+              const isSuccess = termType === "BILLABLE" || statusRaw === "SUCCESSFUL";
+              const attempted = !!termType || !!statusRaw || pl.is_success !== null;
+              const linked = termType === "BILLABLE" || termType === "SITE_INTERACTION_FAILURE";
+              if (attempted) {
+                acc.step5_den += 1;
+                if (linked) acc.step5_num += 1;
+              }
+              if (linked) {
+                acc.step6_den += 1;
+                if (isSuccess) acc.step6_num += 1;
+              }
+            }
+          }
+        }
+        const pct = (n, d) => d ? Number(((n / d) * 100).toFixed(1)) : null;
+        timeWindows[w.key] = {
+          step1_sees_cu: pct(acc.step1_num, acc.step1_den),
+          step2_merchant_continue: pct(acc.step2_num, acc.step2_den),
+          step3_user_data: pct(acc.step3_num, acc.step3_den),
+          step4_cred_entered: pct(acc.step4_num, acc.step4_den),
+          step5_linked: pct(acc.step5_num, acc.step5_den),
+          step6_placed: pct(acc.step6_num, acc.step6_den),
+        };
+      }
+
+      // ─── Source coverage + FI lists ──────────────────────────────
+      const OWNERSHIP_CUTOFF = "2026-03-01";
+      let taggedFiCount = 0, partialFiCount = 0, untaggedFiCount = 0;
+      const csRetrofit = [];
+      const integrationEscalation = [];
+      const regressions = [];
+      for (const row of fiAgg.values()) {
+        const cov = row.volume ? Number(((row.tagged_sessions / row.volume) * 100).toFixed(1)) : 0;
+        row.coverage_pct = cov;
+        if (cov >= 90) taggedFiCount += 1;
+        else if (cov > 0) partialFiCount += 1;
+        else untaggedFiCount += 1;
+
+        const firstSeen = row.traffic_first_seen || null;
+        const baseEntry = {
+          fi_key: row.fi_key,
+          fi_name: row.fi_name,
+          traffic_first_seen: firstSeen,
+          volume: row.volume,
+          coverage_pct: cov,
+        };
+
+        // Regression: previously had tagged traffic but stopped (last_tagged > 14 days before end)
+        if (row.last_tagged && cov < 50) {
+          const lastDt = new Date(row.last_tagged + "T00:00:00Z");
+          const endDt = new Date(end + "T00:00:00Z");
+          const daysQuiet = Math.floor((endDt - lastDt) / 86400000);
+          if (daysQuiet >= 14) {
+            regressions.push({ ...baseEntry, days_quiet: daysQuiet, last_tagged: row.last_tagged });
+            continue;
+          }
+        }
+
+        // Only surface FIs that still need rollout (coverage < 90%)
+        if (cov >= 90) continue;
+
+        if (firstSeen && firstSeen >= OWNERSHIP_CUTOFF) {
+          integrationEscalation.push(baseEntry);
+        } else {
+          csRetrofit.push(baseEntry);
+        }
+      }
+      csRetrofit.sort((a, b) => b.volume - a.volume);
+      integrationEscalation.sort((a, b) => b.volume - a.volume);
+      regressions.sort((a, b) => (b.days_quiet || 0) - (a.days_quiet || 0));
+
+      const totalFis = fiAgg.size;
+      const sourceCoveragePct = totalFis ? Number(((taggedFiCount / totalFis) * 100).toFixed(1)) : 0;
+
+      // ─── Assemble output ─────────────────────────────────────────
+      const pct = (n, d) => d ? Number(((n / d) * 100).toFixed(1)) : null;
+
+      const motivationByCategory = {};
+      for (const c of ["activation", "campaign", "card_controls", "other", "untagged"]) {
+        const b = catMap[c];
+        const byType = {};
+        for (const [t, tb] of Object.entries(b.by_type)) {
+          byType[t] = { sessions: tb.sessions };
+        }
+        motivationByCategory[c] = { sessions: b.sessions, by_type: byType };
+      }
+
+      const expStep = (stepKey) => {
+        const byCat = {};
+        for (const c of ["activation", "campaign", "card_controls", "other", "untagged"]) {
+          const b = catMap[c];
+          const num = b[stepKey + "_num"];
+          const den = b[stepKey + "_den"];
+          byCat[c] = { numerator: num, denominator: den, conv_pct: pct(num, den) };
+        }
+        return { by_category: byCat };
+      };
+
+      const exeStep = (stepKey, merchantMap) => {
+        const byCat = {};
+        for (const c of ["activation", "campaign", "card_controls", "other", "untagged"]) {
+          const b = catMap[c];
+          const num = b[stepKey + "_num"];
+          const den = b[stepKey + "_den"];
+          byCat[c] = { numerator: num, denominator: den, conv_pct: pct(num, den) };
+        }
+        const byMerchant = Array.from(merchantMap.values())
+          .map((m) => ({ merchant: m.merchant, category: m.cat, numerator: m.num, denominator: m.den, conv_pct: pct(m.num, m.den) }))
+          .sort((a, b) => b.denominator - a.denominator);
+        return { by_category: byCat, by_merchant: byMerchant };
+      };
+
+      // Overall conversion = % of visits that produced any successful card placement.
+      const overallConvPct = totalSessions ? pct(sessionsWithPlacement, totalSessions) : null;
+
+      return send(res, 200, {
+        filters: { ...filters, date_from: start, date_to: end },
+        ownership_cutoff: OWNERSHIP_CUTOFF,
+        source_coverage_pct: sourceCoveragePct,
+        source_coverage_breakdown: {
+          tagged: taggedFiCount,
+          partial: partialFiCount,
+          untagged: untaggedFiCount,
+          total_fis: totalFis,
+        },
+        overall: {
+          sessions: totalSessions,
+          overall_conv_pct: overallConvPct,
+          sessions_with_placement: sessionsWithPlacement,
+          jobs_per_session: sessionsReachedStep4 ? Number((totalJobsAtStep4 / sessionsReachedStep4).toFixed(2)) : null,
+          placements: totalPlacements,
+        },
+        time_windows: timeWindows,
+        motivation: { by_category: motivationByCategory },
+        experience: {
+          step2_merchant_continue: expStep("step2"),
+          step3_user_data: expStep("step3"),
+          step4_cred_entered: expStep("step4"),
+        },
+        execution: {
+          step5_linked: exeStep("step5", merchantStep5),
+          step6_placed: exeStep("step6", merchantStep6),
+        },
+        fi_lists: {
+          cs_retrofit: csRetrofit,
+          integration_escalation: integrationEscalation,
+          regressions,
+        },
+      });
+    } catch (err) {
+      const status = err?.status || 500;
+      console.error("[conversion-breakdown] error:", err);
+      return send(res, status, { error: err?.message || "Unable to build conversion breakdown" });
+    }
+  }
+
   if (pathname === "/api/metrics/ops") {
     // Validate session
     const session = await validateSession(req, queryParams);
