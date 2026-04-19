@@ -69,6 +69,7 @@
     "ux-paths.html":           ["admin","core"],
     "experience.html":         ["admin","core","internal","cs"],
     "placement-outcomes.html": ["admin","core"],
+    "conversion-breakdown.html": ["admin"],
     "fi-api.html":             ["admin","core","support","cs"],
     // Resources (accessible by all via direct URL)
     "engagement-playbook.html": ["admin","core","internal","siteops","support","cs","executive","partner","fi"],
@@ -317,6 +318,40 @@
   function init() {
     // Don't run on login page
     if (isLoginPage()) return;
+
+    // Kiosk token pickup — long-lived session tokens passed via URL.
+    // Stores token, fetches user info, strips token from URL, then reloads.
+    try {
+      var kParams = new URLSearchParams(window.location.search || "");
+      var kioskTok = kParams.get("kiosk_token");
+      if (kioskTok && /^sess_/.test(kioskTok)) {
+        localStorage.setItem(TOKEN_KEY, kioskTok);
+        kParams.delete("kiosk_token");
+        var cleanUrl = window.location.pathname;
+        var qs = kParams.toString();
+        if (qs) cleanUrl += "?" + qs;
+        cleanUrl += window.location.hash || "";
+        console.log("[auth] Kiosk token picked up, fetching user...");
+        fetch((global.SIS_API_BASE || "") + "/auth/me", {
+          headers: { "Authorization": "Bearer " + kioskTok }
+        })
+          .then(function(res) { return res.json(); })
+          .then(function(data) {
+            if (data && data.ok && data.user) {
+              localStorage.setItem(USER_KEY, JSON.stringify(data.user));
+              window.location.replace(cleanUrl);
+            } else {
+              localStorage.removeItem(TOKEN_KEY);
+              redirectToLogin();
+            }
+          })
+          .catch(function() {
+            localStorage.removeItem(TOKEN_KEY);
+            redirectToLogin();
+          });
+        return; // halt init — reload will restart it cleanly
+      }
+    } catch (e) {}
 
     // Skip auth in view mode (shared read-only link)
     if (isViewMode()) {
