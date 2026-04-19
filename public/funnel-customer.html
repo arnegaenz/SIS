@@ -1372,6 +1372,65 @@
     [data-theme="dark"] .reach-math-gap {
       background: rgba(37,99,235,0.08); border-color: rgba(37,99,235,0.2); color: #93c5fd;
     }
+
+    /* ── Copy-to-Excel buttons ── */
+    .copy-section-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      margin-left: 10px;
+      padding: 3px 8px;
+      font-size: 0.7rem;
+      font-weight: 500;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      vertical-align: middle;
+      transition: all 0.15s ease;
+    }
+    .copy-section-btn:hover {
+      background: var(--panel-light, #f8fafc);
+      color: var(--text);
+      border-color: var(--accent, #63b3ed);
+    }
+    .copy-section-btn svg { width: 12px; height: 12px; }
+    .copy-section-btn.copied {
+      background: #10b981;
+      color: white;
+      border-color: #10b981;
+    }
+    [data-theme="dark"] .copy-section-btn:hover { background: rgba(99, 179, 237, 0.08); }
+
+    /* Highlight flash when landing via PDF deep-link */
+    .section-flash {
+      animation: sectionFlash 2s ease-out;
+    }
+    @keyframes sectionFlash {
+      0%   { background: rgba(250, 204, 21, 0.25); }
+      100% { background: transparent; }
+    }
+
+    /* Toast */
+    .sis-toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 9999;
+      padding: 10px 16px;
+      background: #10b981;
+      color: white;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity 0.2s ease, transform 0.2s ease;
+      pointer-events: none;
+    }
+    .sis-toast.show { opacity: 1; transform: translateY(0); }
   </style>
 </head>
 <body>
@@ -1423,6 +1482,7 @@
 
       <!-- Performance Overview -->
       <div id="perfOverview" style="display:none;">
+        <span id="pdf-summary" class="pdf-anchor" aria-hidden="true"></span>
         <div class="perf-section-title">Performance Overview <span class="muted date-window" id="dateWindowLabel"></span></div>
         <div id="totalsBar" class="totals-bar" style="display:none;"></div>
         <!-- Color key -->
@@ -1432,9 +1492,9 @@
             <input type="checkbox" id="gaToggle" checked>
             <span class="key-swatch ga"></span> Google Analytics
           </label>
-          <span class="key-item"><span class="key-swatch cs"></span> Session Clickstream</span>
-          <span class="key-item"><span class="key-swatch stats"></span> Session Stats</span>
-          <span class="key-item"><span class="key-swatch highlight"></span> Success Metrics</span>
+          <span class="key-item"><span class="key-swatch cs"></span> Visit clickstream</span>
+          <span class="key-item"><span class="key-swatch stats"></span> Visit stats</span>
+          <span class="key-item"><span class="key-swatch highlight"></span> Conversion metrics</span>
         </div>
 
         <div class="perf-grid" id="metricsGrid">
@@ -1446,12 +1506,12 @@
             <div class="card-sub" id="subCardholders"></div>
           </div>
           <div class="perf-card highlight" id="cardSuccessRate">
-            <div class="card-label">Cardholder Success Rate</div>
+            <div class="card-label">Conversion rate</div>
             <div class="card-value" id="valSuccessRate">-</div>
-            <div class="card-sub" id="subSuccessRate">Successful ÷ Total cardholders</div>
+            <div class="card-sub" id="subSuccessRate">Cardholders who updated ÷ Total visitors</div>
           </div>
           <div class="perf-card highlight" id="cardSuccessCardholders">
-            <div class="card-label">Successful Cardholders</div>
+            <div class="card-label">Cardholders who converted</div>
             <div class="card-value" id="valSuccessCardholders">-</div>
             <div class="card-sub" id="subSuccessCardholders"></div>
           </div>
@@ -1475,21 +1535,21 @@
             <div class="card-sub" id="subGaUser"></div>
           </div>
           <div class="perf-card ga-card" id="cardGaCred">
-            <div class="card-label">Credential Entry Views</div>
+            <div class="card-label">Started</div>
             <div class="card-value" id="valGaCred">-</div>
             <div class="card-sub" id="subGaCred"></div>
           </div>
           <div class="perf-card ga-card" id="cardGaSelCredPct">
-            <div class="card-label">Sel → Credential %</div>
+            <div class="card-label">Engagement %</div>
             <div class="card-value" id="valGaSelCredPct">-</div>
-            <div class="card-sub" id="subGaSelCredPct">GA select → credential entry</div>
+            <div class="card-sub" id="subGaSelCredPct">Browsed → started updating</div>
           </div>
 
-          <!-- Row 2b: Session Milestones (hidden for non-SSO) -->
+          <!-- Row 2b: Cardholder Journey (hidden for non-SSO) -->
           <div id="sessionMilestonesRow" class="perf-grid-subsection">
-          <div class="grid-row-label">Session Milestones <span class="muted">— Server-confirmed cardholder progression</span></div>
+          <div class="grid-row-label">Cardholder Journey <span class="muted">— How cardholders move through CardUpdatr</span></div>
           <div class="perf-card cs-card" id="cardCsSelect">
-            <div class="card-label">Merchant Selection</div>
+            <div class="card-label">Browsed merchants</div>
             <div class="card-value" id="valCsSelect">-</div>
             <div class="card-sub" id="subCsSelect"></div>
           </div>
@@ -1499,12 +1559,12 @@
             <div class="card-sub" id="subCsUser"></div>
           </div>
           <div class="perf-card cs-card" id="cardCsCred">
-            <div class="card-label">Credential Entry</div>
+            <div class="card-label">Started updating</div>
             <div class="card-value" id="valCsCred">-</div>
             <div class="card-sub" id="subCsCred"></div>
           </div>
           <div class="perf-card" id="cardLaunchCredPct">
-            <div class="card-label">Sel → Credential %</div>
+            <div class="card-label">Engagement %</div>
             <div class="card-value" id="valLaunchCredPct">-</div>
             <div class="card-sub" id="subLaunchCredPct"></div>
           </div>
@@ -1533,7 +1593,7 @@
             </div>
             <div class="card-sub" id="subMerchantsPerSession"></div>
           </div>
-          <div class="perf-card cs-card stats-card" id="cardCsSelectDist" title="Select Merchant page views per visit">
+          <div class="perf-card cs-card stats-card" id="cardCsSelectDist" title="Merchant selection page views per visit">
             <div class="card-label">Merchant Views Per Visit</div>
             <div class="stats-chips" id="csSelectStatsChips">
               <span class="stats-chip"><b>MEDIAN</b> <span class="chip-val" id="csSelectChipMedian">—</span></span>
@@ -1573,7 +1633,7 @@
             </div>
             <div class="card-sub" id="csUserDistSub"></div>
           </div>
-          <div class="perf-card cs-card stats-card" id="cardCsCredDist" title="Credential Entry page views per visit">
+          <div class="perf-card cs-card stats-card" id="cardCsCredDist" title="Update-start page views per visit">
             <div class="card-label">Credential Attempts Per Visit</div>
             <div class="stats-chips" id="csCredStatsChips">
               <span class="stats-chip"><b>MEDIAN</b> <span class="chip-val" id="csCredChipMedian">—</span></span>
@@ -1603,7 +1663,7 @@
       <div id="funnelVizSection" class="insights-section" style="display:none;">
         <div class="insights-section-title">
           Cardholder Journey Funnel
-          <span class="section-badge">Funnel</span>
+          <span class="section-badge">Journey</span>
         </div>
         <div class="funnel-viz" id="funnelViz"></div>
         <div class="admin-overlay">
@@ -1637,9 +1697,9 @@
           <div class="spectrum-gauge" id="spectrumGauge"></div>
           <div class="spectrum-labels">
             <span>0%</span>
-            <span>Discovery</span>
-            <span>Campaign</span>
-            <span>Activation</span>
+            <span>Organic only</span>
+            <span>Campaign-driven</span>
+            <span>Activation-embedded</span>
             <span>27%+</span>
           </div>
           <div class="spectrum-diagnosis" id="spectrumDiagnosis"></div>
@@ -1670,6 +1730,7 @@
         <div class="insights-section-title">
           Growth Opportunity
           <span class="section-badge">Projection</span>
+          <button type="button" class="copy-section-btn" data-copy-section="projectionContent" title="Copy this table as tab-separated values for pasting into Excel or Google Sheets">📋 Copy</button>
         </div>
         <div id="projectionContent"></div>
       </div>
@@ -1678,7 +1739,7 @@
       <div id="reachMathSection" class="insights-section" style="display:none;">
         <div class="insights-section-title">
           Card Replacement Opportunity
-          <span class="section-badge">Reach Math</span>
+          <span class="section-badge">Opportunity</span>
         </div>
         <div id="reachMathContent"></div>
       </div>
@@ -1705,20 +1766,20 @@
           <span class="section-badge">Breakdown</span>
         </div>
         <div id="integrationBreakdownIntro" class="integration-breakdown-intro">
-          Your portfolio includes both SSO and non-SSO integrations — two fundamentally different cardholder journeys. SSO cardholders are pre-authenticated and land directly on the merchant selection page. Non-SSO cardholders enter their card details manually before seeing merchants — every visit represents a committed cardholder. The metrics below separate these flows to show what's really driving performance in each.
+          Your portfolio includes both online banking and standalone integrations — two fundamentally different cardholder journeys. Online banking cardholders are pre-authenticated and land directly on the merchant selection page. Standalone cardholders enter their card details manually before seeing merchants — every visit represents a committed cardholder. The metrics below separate these flows to show what's really driving performance in each.
         </div>
 
-        <!-- SSO Breakdown -->
+        <!-- Online Banking Breakdown -->
         <div id="ssoBreakdownBlock" class="breakdown-block" style="display:none;">
-          <div class="breakdown-badge sso-badge">SSO — Pre-Authenticated Traffic</div>
+          <div class="breakdown-badge sso-badge">Online banking — Pre-Authenticated Traffic</div>
           <div id="ssoNarrativeBlocks" class="breakdown-narratives"></div>
           <div class="spectrum-container breakdown-spectrum">
             <div class="spectrum-gauge" id="ssoSpectrumGauge"></div>
             <div class="spectrum-labels">
               <span>0%</span>
-              <span>Discovery</span>
-              <span>Campaign</span>
-              <span>Activation</span>
+              <span>Organic only</span>
+              <span>Campaign-driven</span>
+              <span>Activation-embedded</span>
               <span>27%+</span>
             </div>
             <div class="spectrum-diagnosis" id="ssoSpectrumDiagnosis"></div>
@@ -1729,18 +1790,18 @@
 
         <!-- Non-SSO Breakdown -->
         <div id="nonssoBreakdownBlock" class="breakdown-block" style="display:none;">
-          <div class="breakdown-badge nonsso-badge">Non-SSO — Manual Card Entry Traffic</div>
+          <div class="breakdown-badge nonsso-badge">Standalone — Manual Card Entry Traffic</div>
           <div class="ga-undercount-disclaimer" id="nonssoCalibrationBanner">
-            <strong>GA measurement note:</strong> Non-SSO traffic is tracked via Google Analytics, which undercounts by approximately 15–30% due to Safari Intelligent Tracking Prevention and ad blockers. Actual cardholder volume is likely higher than reported.
+            <strong>Measurement note:</strong> Standalone traffic is tracked via Google Analytics, which undercounts by approximately 15–30% due to Safari Intelligent Tracking Prevention and ad blockers. Actual cardholder volume is likely higher than reported.
           </div>
           <div id="nonssoNarrativeBlocks" class="breakdown-narratives"></div>
           <div class="spectrum-container breakdown-spectrum">
             <div class="spectrum-gauge" id="nonssoSpectrumGauge"></div>
             <div class="spectrum-labels">
               <span>0%</span>
-              <span>Discovery</span>
-              <span>Campaign</span>
-              <span>Activation</span>
+              <span>Organic only</span>
+              <span>Campaign-driven</span>
+              <span>Activation-embedded</span>
               <span>50%+</span>
             </div>
             <div class="spectrum-diagnosis" id="nonssoSpectrumDiagnosis"></div>
@@ -1751,10 +1812,12 @@
       </div>
 
       <!-- ═══ QBR Sections (visible only in QBR mode) ═══ -->
+      <span id="pdf-quarterly" class="pdf-anchor" aria-hidden="true"></span>
       <div id="qbrTrendSection" class="insights-section qbr-section page-section" style="display:none;">
         <div class="insights-section-title">
           Quarterly Performance Trend
-          <span class="qbr-badge">QBR</span>
+          <span class="qbr-badge">Quarterly Review</span>
+          <button type="button" class="copy-section-btn" data-copy-section="qbrTrendTable" title="Copy this table as tab-separated values for pasting into Excel or Google Sheets">📋 Copy</button>
         </div>
         <div id="qbrTrendTable"></div>
         <div id="qbrSparklines"></div>
@@ -1763,7 +1826,7 @@
       <div id="qbrNarrativeSection" class="insights-section qbr-section page-section" style="display:none;">
         <div class="insights-section-title">
           Quarterly Trend Analysis
-          <span class="qbr-badge">QBR</span>
+          <span class="qbr-badge">Quarterly Review</span>
         </div>
         <div id="qbrNarrativeBlocks"></div>
       </div>
@@ -1771,15 +1834,17 @@
       <div id="qbrYoySection" class="insights-section qbr-section page-section" style="display:none;">
         <div class="insights-section-title">
           Year-over-Year Comparison
-          <span class="qbr-badge">QBR</span>
+          <span class="qbr-badge">Quarterly Review</span>
         </div>
         <div id="qbrYoyContent"></div>
       </div>
 
+      <span id="pdf-monthly" class="pdf-anchor" aria-hidden="true"></span>
       <div id="qbrMonthlySection" class="insights-section qbr-section page-section" style="display:none;">
         <div class="insights-section-title">
           Monthly Detail — Current Quarter
-          <span class="qbr-badge">QBR</span>
+          <span class="qbr-badge">Quarterly Review</span>
+          <button type="button" class="copy-section-btn" data-copy-section="qbrMonthlyContent" title="Copy this table as tab-separated values for pasting into Excel or Google Sheets">📋 Copy</button>
         </div>
         <div id="qbrMonthlyContent"></div>
       </div>
@@ -1787,7 +1852,7 @@
       <div id="qbrSummarySection" class="insights-section qbr-section page-section" style="display:none;">
         <div class="insights-section-title">
           Executive Summary &amp; Outlook
-          <span class="qbr-badge">QBR</span>
+          <span class="qbr-badge">Quarterly Review</span>
         </div>
         <div id="qbrSummaryContent"></div>
       </div>
@@ -1812,32 +1877,34 @@
 
       <!-- Highlights -->
       <div id="highlightsSection" style="display:none;">
-        <div class="perf-section-title">Performance Highlights <span class="muted">(Best 7-Day Windows)</span></div>
+        <span id="pdf-daily" class="pdf-anchor" aria-hidden="true"></span>
+        <div class="perf-section-title">Performance Highlights <span class="muted">(Best 7-Day Windows)</span><button type="button" class="copy-section-btn" data-copy-section="highlightsSection" title="Copy this section as tab-separated values for pasting into Excel or Google Sheets">📋 Copy</button></div>
         <div id="bestWindows"></div>
       </div>
 
       <!-- Per-FI Conversion Tables -->
       <div id="fiTablesSection" style="display:none;">
-        <div class="perf-section-title">FI Performance Detail</div>
+        <span id="pdf-weekly" class="pdf-anchor" aria-hidden="true"></span>
+        <div class="perf-section-title">FI Performance Detail<button type="button" class="copy-section-btn" data-copy-section="fiTablesSection" title="Copy this section as tab-separated values for pasting into Excel or Google Sheets">📋 Copy</button></div>
 
         <div class="group-block" data-group="SSO" style="display:none;">
-          <div class="group-header">SSO</div>
+          <div class="group-header">Online banking</div>
           <div class="table-scroll">
           <table class="fi-table" id="table-SSO">
           <thead><tr>
             <th data-sort="fi">FI</th>
-            <th data-sort="instances">Inst</th>
-            <th data-sort="integration">Type</th>
-            <th data-sort="ga_select" class="num ga-col">Launches</th>
-            <th data-sort="cs_select" class="num">@Select</th>
-            <th data-sort="ga_cred" class="num ga-col">Cred Views</th>
-            <th data-sort="ga_rate" class="num" title="Percentage of server-recorded visits detected by Google Analytics. Lower values indicate tracking gaps (Safari ITP, ad blockers).">GA %</th>
-            <th data-sort="reach" class="num" title="Projected monthly rate based on selected time period">Reach %</th>
-            <th data-sort="sel_cred_pct" class="num">Sel→C %</th>
-            <th data-sort="sessions" class="num">Sessions</th>
-            <th data-sort="sess_with_success" class="num">Successful</th>
-            <th data-sort="sess_success_pct" class="num">Rate</th>
-            <th data-sort="placements" class="num">Placed</th>
+            <th data-sort="instances">Instance</th>
+            <th data-sort="integration">Channel</th>
+            <th data-sort="ga_select" class="num ga-col">Visits</th>
+            <th data-sort="cs_select" class="num">Browsed</th>
+            <th data-sort="ga_cred" class="num ga-col">Started</th>
+            <th data-sort="ga_rate" class="num ga-col" style="display:none" title="Percentage of server-recorded visits detected by Google Analytics. Lower values indicate tracking gaps (Safari ITP, ad blockers)."></th>
+            <th data-sort="reach" class="num" title="Projected monthly rate based on selected time period">Adoption %</th>
+            <th data-sort="sel_cred_pct" class="num">Engagement %</th>
+            <th data-sort="sessions" class="num">Visits</th>
+            <th data-sort="sess_with_success" class="num">Converted</th>
+            <th data-sort="sess_success_pct" class="num">Conversion %</th>
+            <th data-sort="placements" class="num">Cards updated</th>
           </tr></thead>
           <tbody></tbody>
           </table>
@@ -1845,26 +1912,26 @@
         </div>
 
         <div class="group-block" data-group="NON-SSO" style="display:none;">
-          <div class="group-header">NON-SSO</div>
+          <div class="group-header">Standalone</div>
           <div class="table-scroll">
           <table class="fi-table" id="table-NON-SSO">
           <thead><tr>
             <th data-sort="fi">FI</th>
-            <th data-sort="instances">Inst</th>
-            <th data-sort="integration">Type</th>
-            <th data-sort="ga_select" class="num ga-col">Launches</th>
-            <th data-sort="cs_select" class="num">@Select</th>
-            <th data-sort="ga_user" class="num ga-col">UD Views</th>
-            <th data-sort="ga_cred" class="num ga-col">Cred Views</th>
-            <th data-sort="ga_rate" class="num" title="Percentage of server-recorded visits detected by Google Analytics. Lower values indicate tracking gaps (Safari ITP, ad blockers).">GA %</th>
-            <th data-sort="est_launches" class="num" title="Estimated true launches: GA Select Merchant count adjusted for GA undercount using per-FI calibration (GA Credential Entry ÷ Server Credential Entry).">Est. Lnch</th>
-            <th data-sort="reach" class="num" title="Projected monthly rate based on selected time period (using calibrated launches when available)">Reach %</th>
-            <th data-sort="sel_user_pct" class="num">Sel→U %</th>
-            <th data-sort="sel_cred_pct" class="num">Sel→C %</th>
-            <th data-sort="sessions" class="num">Sessions</th>
-            <th data-sort="sess_with_success" class="num">Successful</th>
-            <th data-sort="sess_success_pct" class="num" title="Estimated from GA-calibrated launch data. ~ indicates calculated values.">Rate</th>
-            <th data-sort="placements" class="num">Placed</th>
+            <th data-sort="instances">Instance</th>
+            <th data-sort="integration">Channel</th>
+            <th data-sort="ga_select" class="num ga-col">Visits</th>
+            <th data-sort="cs_select" class="num">Browsed</th>
+            <th data-sort="ga_user" class="num ga-col">Started</th>
+            <th data-sort="ga_cred" class="num ga-col">Started</th>
+            <th data-sort="ga_rate" class="num ga-col" style="display:none" title="Percentage of server-recorded visits detected by Google Analytics. Lower values indicate tracking gaps (Safari ITP, ad blockers)."></th>
+            <th data-sort="est_launches" class="num" title="Estimated true visits: GA Select Merchant count adjusted for GA undercount using per-FI calibration (GA Credential Entry ÷ Server Credential Entry).">Est. visits</th>
+            <th data-sort="reach" class="num" title="Projected monthly rate based on selected time period (using calibrated visits when available)">Adoption %</th>
+            <th data-sort="sel_user_pct" class="num">Engagement %</th>
+            <th data-sort="sel_cred_pct" class="num">Engagement %</th>
+            <th data-sort="sessions" class="num">Visits</th>
+            <th data-sort="sess_with_success" class="num">Converted</th>
+            <th data-sort="sess_success_pct" class="num" title="Estimated from GA-calibrated visit data. ~ indicates calculated values.">Conversion %</th>
+            <th data-sort="placements" class="num">Cards updated</th>
           </tr></thead>
           <tbody></tbody>
           </table>
@@ -1877,20 +1944,20 @@
           <table class="fi-table" id="table-CardSavr">
           <thead><tr>
             <th data-sort="fi">FI</th>
-            <th data-sort="instances">Inst</th>
-            <th data-sort="integration">Type</th>
-            <th data-sort="ga_select" class="num ga-col">Launches</th>
-            <th data-sort="cs_select" class="num">@Select</th>
-            <th data-sort="ga_user" class="num ga-col">UD Views</th>
-            <th data-sort="ga_cred" class="num ga-col">Cred Views</th>
-            <th data-sort="ga_rate" class="num" title="Percentage of server-recorded visits detected by Google Analytics. Lower values indicate tracking gaps (Safari ITP, ad blockers).">GA %</th>
-            <th data-sort="reach" class="num" title="Projected monthly rate based on selected time period">Reach %</th>
-            <th data-sort="sel_user_pct" class="num">Sel→U %</th>
-            <th data-sort="sel_cred_pct" class="num">Sel→C %</th>
-            <th data-sort="sessions" class="num">Sessions</th>
-            <th data-sort="sess_with_success" class="num">Successful</th>
-            <th data-sort="sess_success_pct" class="num">Rate</th>
-            <th data-sort="placements" class="num">Placed</th>
+            <th data-sort="instances">Instance</th>
+            <th data-sort="integration">Channel</th>
+            <th data-sort="ga_select" class="num ga-col">Visits</th>
+            <th data-sort="cs_select" class="num">Browsed</th>
+            <th data-sort="ga_user" class="num ga-col">Started</th>
+            <th data-sort="ga_cred" class="num ga-col">Started</th>
+            <th data-sort="ga_rate" class="num ga-col" style="display:none" title="Percentage of server-recorded visits detected by Google Analytics. Lower values indicate tracking gaps (Safari ITP, ad blockers)."></th>
+            <th data-sort="reach" class="num" title="Projected monthly rate based on selected time period">Adoption %</th>
+            <th data-sort="sel_user_pct" class="num">Engagement %</th>
+            <th data-sort="sel_cred_pct" class="num">Engagement %</th>
+            <th data-sort="sessions" class="num">Visits</th>
+            <th data-sort="sess_with_success" class="num">Converted</th>
+            <th data-sort="sess_success_pct" class="num">Conversion %</th>
+            <th data-sort="placements" class="num">Cards updated</th>
           </tr></thead>
           <tbody></tbody>
           </table>
@@ -1903,20 +1970,20 @@
           <table class="fi-table" id="table-UNKNOWN">
           <thead><tr>
             <th data-sort="fi">FI</th>
-            <th data-sort="instances">Inst</th>
-            <th data-sort="integration">Type</th>
-            <th data-sort="ga_select" class="num ga-col">Launches</th>
-            <th data-sort="cs_select" class="num">@Select</th>
-            <th data-sort="ga_user" class="num ga-col">UD Views</th>
-            <th data-sort="ga_cred" class="num ga-col">Cred Views</th>
-            <th data-sort="ga_rate" class="num" title="Percentage of server-recorded visits detected by Google Analytics. Lower values indicate tracking gaps (Safari ITP, ad blockers).">GA %</th>
-            <th data-sort="reach" class="num" title="Projected monthly rate based on selected time period">Reach %</th>
-            <th data-sort="sel_user_pct" class="num">Sel→U %</th>
-            <th data-sort="sel_cred_pct" class="num">Sel→C %</th>
-            <th data-sort="sessions" class="num">Sessions</th>
-            <th data-sort="sess_with_success" class="num">Successful</th>
-            <th data-sort="sess_success_pct" class="num">Rate</th>
-            <th data-sort="placements" class="num">Placed</th>
+            <th data-sort="instances">Instance</th>
+            <th data-sort="integration">Channel</th>
+            <th data-sort="ga_select" class="num ga-col">Visits</th>
+            <th data-sort="cs_select" class="num">Browsed</th>
+            <th data-sort="ga_user" class="num ga-col">Started</th>
+            <th data-sort="ga_cred" class="num ga-col">Started</th>
+            <th data-sort="ga_rate" class="num ga-col" style="display:none" title="Percentage of server-recorded visits detected by Google Analytics. Lower values indicate tracking gaps (Safari ITP, ad blockers)."></th>
+            <th data-sort="reach" class="num" title="Projected monthly rate based on selected time period">Adoption %</th>
+            <th data-sort="sel_user_pct" class="num">Engagement %</th>
+            <th data-sort="sel_cred_pct" class="num">Engagement %</th>
+            <th data-sort="sessions" class="num">Visits</th>
+            <th data-sort="sess_with_success" class="num">Converted</th>
+            <th data-sort="sess_success_pct" class="num">Conversion %</th>
+            <th data-sort="placements" class="num">Cards updated</th>
           </tr></thead>
           <tbody></tbody>
           </table>
@@ -2514,7 +2581,7 @@
 
     // ─── Termination rules (needed for placement categorization) ───
     const TERMINATION_RULES = {
-      BILLABLE: { label: "Successful", severity: "success" },
+      BILLABLE: { label: "Converted", severity: "success" },
       SITE_INTERACTION_FAILURE: { label: "Automation / site failed", severity: "site-failure" },
       UNSUCCESSFUL: { label: "Ran but didn't complete", severity: "site-failure" },
       USER_DATA_FAILURE: { label: "Bad or missing user data", severity: "ux" },
@@ -2682,16 +2749,16 @@
       const medianVolume = weeklyVolumes[Math.floor(weeklyVolumes.length / 2)] || 0;
 
       const windows = [
-        { label: "Highest Success Rate",
+        { label: "Highest conversion rate",
           filter: (c) => c.sessions >= minVisits,
           compare: (c, b) => { if (c.successRatio !== b.successRatio) return c.successRatio - b.successRatio; return c.sessions - b.sessions; } },
-        { label: "Most Successful Placements",
+        { label: "Most cards updated",
           filter: (c) => c.sessions >= minVisits,
           compare: (c, b) => { if (c.placements !== b.placements) return c.placements - b.placements; return c.successRatio - b.successRatio; } },
-        { label: "Highest Credential Entry Rate",
+        { label: "Highest engagement rate",
           filter: (c) => c.sessions >= minVisits && c.sel >= minVisits,
           compare: (c, b) => { if (c.credEntryRatio !== b.credEntryRatio) return c.credEntryRatio - b.credEntryRatio; return c.sel - b.sel; } },
-        { label: "Best Success Rate at Scale",
+        { label: "Best conversion rate at scale",
           filter: (c) => c.sessions > medianVolume && c.sessions >= minVisits,
           compare: (c, b) => { if (c.successRatio !== b.successRatio) return c.successRatio - b.successRatio; return c.sessions - b.sessions; } },
       ];
@@ -3102,8 +3169,8 @@
       // Card 1: Cardholders (blended top-of-funnel)
       document.getElementById("valCardholders").textContent = fmt(metrics.totalCardholders);
       let cardholderSub = "Cardholders who launched CardUpdatr";
-      if (hasNonSSO && !hasSSO) cardholderSub = "Estimated from GA-calibrated launch data";
-      else if (hasNonSSO && hasSSO) cardholderSub = "SSO sessions + estimated non-SSO launches";
+      if (hasNonSSO && !hasSSO) cardholderSub = "Estimated from GA-calibrated visit data";
+      else if (hasNonSSO && hasSSO) cardholderSub = "Online banking visits + estimated standalone visits";
       document.getElementById("subCardholders").textContent = cardholderSub;
 
       // Card 2: Cardholder Success Rate (against true top-of-funnel)
@@ -3111,7 +3178,7 @@
         ? ((metrics.sessionsWithSuccessfulJobs / metrics.totalCardholders) * 100).toFixed(1) + "%"
         : "—";
       document.getElementById("valSuccessRate").textContent = successRate;
-      document.getElementById("subSuccessRate").textContent = "Successful ÷ Total cardholders";
+      document.getElementById("subSuccessRate").textContent = "Cardholders who updated ÷ Total visitors";
 
       // Card 3: Successful Cardholders (count)
       document.getElementById("valSuccessCardholders").textContent = fmt(metrics.sessionsWithSuccessfulJobs);
@@ -3123,7 +3190,7 @@
       // Card 4: Cards Updated (with avg per cardholder)
       document.getElementById("valSuccessful").textContent = fmt(metrics.successful);
       const avgCardsPerCh = metrics.sessionsWithSuccessfulJobs > 0
-        ? (metrics.successful / metrics.sessionsWithSuccessfulJobs).toFixed(2) + " avg per successful cardholder"
+        ? (metrics.successful / metrics.sessionsWithSuccessfulJobs).toFixed(2) + " avg per converted cardholder"
         : "Cards updated at merchants";
       document.getElementById("subSuccessful").textContent = avgCardsPerCh;
 
@@ -3134,23 +3201,23 @@
       document.getElementById("valGaSelect").textContent = fmt(metrics.totalGaSelect);
       document.getElementById("subGaSelect").textContent = "Browser-reported page views";
       document.getElementById("valGaUser").textContent = fmt(metrics.totalGaUser);
-      document.getElementById("subGaUser").textContent = pct(metrics.totalGaUser, metrics.totalGaSelect) + " of launches";
+      document.getElementById("subGaUser").textContent = pct(metrics.totalGaUser, metrics.totalGaSelect) + " of visits";
       document.getElementById("valGaCred").textContent = fmt(metrics.totalGaCred);
-      document.getElementById("subGaCred").textContent = pct(metrics.totalGaCred, metrics.totalGaSelect) + " of launches";
+      document.getElementById("subGaCred").textContent = pct(metrics.totalGaCred, metrics.totalGaSelect) + " of visits";
       const gaSelCredPct = metrics.totalGaSelect > 0 ? ((metrics.totalGaCred / metrics.totalGaSelect) * 100).toFixed(1) + "%" : "—";
       document.getElementById("valGaSelCredPct").textContent = gaSelCredPct;
-      document.getElementById("subGaSelCredPct").textContent = "GA select → credential entry";
+      document.getElementById("subGaSelCredPct").textContent = "Browsed → started updating";
 
       // Row 2b: Session Milestones
       document.getElementById("valCsSelect").textContent = fmt(metrics.totalCsSelect);
       document.getElementById("subCsSelect").textContent = fmt(metrics.totalCsSelect) + " of " + fmt(metrics.totalSessions) + " visits";
       document.getElementById("valCsUser").textContent = fmt(metrics.totalCsUser);
-      document.getElementById("subCsUser").textContent = pct(metrics.totalCsUser, metrics.totalCsSelect) + " of visits @select";
+      document.getElementById("subCsUser").textContent = pct(metrics.totalCsUser, metrics.totalCsSelect) + " of visits at Merchant Select";
       document.getElementById("valCsCred").textContent = fmt(metrics.totalCsCred);
-      document.getElementById("subCsCred").textContent = pct(metrics.totalCsCred, metrics.totalCsSelect) + " of visits @select";
+      document.getElementById("subCsCred").textContent = pct(metrics.totalCsCred, metrics.totalCsSelect) + " of visits at Merchant Select";
       const launchCredPct = metrics.totalCsSelect > 0 ? ((metrics.totalCsCred / metrics.totalCsSelect) * 100).toFixed(1) + "%" : "—";
       document.getElementById("valLaunchCredPct").textContent = launchCredPct;
-      document.getElementById("subLaunchCredPct").textContent = fmt(metrics.totalCsCred) + " of " + fmt(metrics.totalCsSelect) + " visits @select";
+      document.getElementById("subLaunchCredPct").textContent = fmt(metrics.totalCsCred) + " of " + fmt(metrics.totalCsSelect) + " visits at Merchant Select";
 
       // Hide Session Milestones + Engagement Depth rows when all non-SSO
       const milestonesRow = document.getElementById("sessionMilestonesRow");
@@ -3190,14 +3257,101 @@
       // Totals bar
       const parts = [];
       parts.push(`cardholders ${fmt(metrics.totalCardholders)}`);
-      parts.push(`sessions ${fmt(metrics.totalSessions)}`);
-      parts.push(`successful ${fmt(metrics.sessionsWithSuccessfulJobs)}`);
+      parts.push(`visits ${fmt(metrics.totalSessions)}`);
+      parts.push(`converted ${fmt(metrics.sessionsWithSuccessfulJobs)}`);
       parts.push(`cards updated ${fmt(metrics.successful)}`);
       totalsBar.innerHTML = `Totals (${fiCount} FIs): ${parts.join(" | ")}`;
       totalsBar.style.display = "";
     }
 
     // ─── Per-FI table rendering ───
+    // Marketing-facing display for integration_type enum values.
+    // Internal values (SSO / NON-SSO / CardSavr) are preserved in data; only display is remapped.
+    function formatChannelLabel(value) {
+      const raw = String(value || "").toUpperCase();
+      if (raw === "SSO") return "Online banking";
+      if (raw === "NON-SSO" || raw === "NON_SSO" || raw === "NONSSO") return "Standalone";
+      return value || "";
+    }
+
+    // ─── Copy-to-Excel helpers ───
+    function showToast(message, opts) {
+      let el = document.getElementById("sisToast");
+      if (!el) {
+        el = document.createElement("div");
+        el.id = "sisToast";
+        el.className = "sis-toast";
+        document.body.appendChild(el);
+      }
+      el.textContent = message;
+      if (opts && opts.bg) el.style.background = opts.bg;
+      else el.style.background = "";
+      el.classList.add("show");
+      clearTimeout(el.__toastTimer);
+      el.__toastTimer = setTimeout(() => el.classList.remove("show"), 2200);
+    }
+
+    // Collect TSV from one or more <table> elements (or containers that wrap them)
+    function extractTsvFromScope(scope) {
+      if (!scope) return "";
+      const tables = scope.tagName === "TABLE" ? [scope] : Array.from(scope.querySelectorAll("table"));
+      if (!tables.length) return "";
+      const blocks = [];
+      tables.forEach((table, idx) => {
+        const lines = [];
+        // Optional header label before each table if there are multiple (use the nearest group-header)
+        if (tables.length > 1) {
+          const hdr = table.closest("[data-group]")?.querySelector(".group-header")?.textContent?.trim();
+          if (hdr) lines.push(hdr);
+        }
+        table.querySelectorAll("tr").forEach(tr => {
+          // skip hidden rows
+          const style = window.getComputedStyle(tr);
+          if (style.display === "none") return;
+          const cells = [];
+          tr.querySelectorAll("th, td").forEach(cell => {
+            // skip hidden columns (e.g. ga-col with display:none)
+            const cStyle = window.getComputedStyle(cell);
+            if (cStyle.display === "none") return;
+            // Flatten text, collapse whitespace, strip tabs/newlines
+            const text = (cell.innerText || cell.textContent || "").replace(/[\t\n\r]+/g, " ").replace(/\s{2,}/g, " ").trim();
+            cells.push(text);
+          });
+          if (cells.length) lines.push(cells.join("\t"));
+        });
+        blocks.push(lines.join("\n"));
+      });
+      return blocks.join("\n\n");
+    }
+
+    async function copySectionToClipboard(sectionId, btn) {
+      const scope = document.getElementById(sectionId);
+      if (!scope) { showToast("Nothing to copy", { bg: "#ef4444" }); return; }
+      const tsv = extractTsvFromScope(scope);
+      if (!tsv) { showToast("No table data in this section", { bg: "#ef4444" }); return; }
+      try {
+        await navigator.clipboard.writeText(tsv);
+        showToast("Copied — paste into Excel");
+        if (btn) {
+          btn.classList.add("copied");
+          const prev = btn.innerHTML;
+          btn.innerHTML = "Copied";
+          setTimeout(() => { btn.classList.remove("copied"); btn.innerHTML = prev; }, 1400);
+        }
+      } catch (err) {
+        console.warn("[copy] clipboard write failed", err);
+        showToast("Copy failed — check browser permissions", { bg: "#ef4444" });
+      }
+    }
+
+    // Wire copy buttons on any element with data-copy-section
+    document.addEventListener("click", function(e) {
+      const btn = e.target.closest("[data-copy-section]");
+      if (!btn) return;
+      e.preventDefault();
+      copySectionToClipboard(btn.getAttribute("data-copy-section"), btn);
+    });
+
     const fiTablesSection = document.getElementById("fiTablesSection");
     const singleFiView = document.getElementById("singleFiView");
     const fiTableBodies = {};
@@ -3342,7 +3496,7 @@
       let cells = `
         <td>${row.fi}</td>
         <td>${instancesText}</td>
-        <td>${integration}</td>
+        <td>${formatChannelLabel(integration)}</td>
         <td class="num ga-col">${gaSelectDisplay}</td>
         <td class="num">${row.cs_select || 0}</td>`;
       if (isNonSso) {
@@ -3351,7 +3505,7 @@
       }
       cells += `
         <td class="num ga-col">${gaCredDisplay}</td>
-        <td class="num ${gaRate.cls}">${gaRate.display}</td>`;
+        <td class="num ga-col ${gaRate.cls}" style="display:none">${gaRate.display}</td>`;
       if (isNonSso) {
         var estL = computeEstLaunches(row);
         cells += `<td class="num">${estL !== null ? estL : ""}</td>`;
@@ -3419,7 +3573,7 @@
       let cells = `
         <td>Total</td>
         <td>\u2014</td>
-        <td>${integration}</td>
+        <td>${formatChannelLabel(integration)}</td>
         <td class="num ga-col">${tGaSelectDisplay}</td>
         <td class="num">${t.cs_select}</td>`;
       if (!isSso) {
@@ -3428,7 +3582,7 @@
       }
       cells += `
         <td class="num ga-col">${tGaCredDisplay}</td>
-        <td class="num ${gaRate.cls}">${gaRate.display}</td>`;
+        <td class="num ga-col ${gaRate.cls}" style="display:none">${gaRate.display}</td>`;
       if (!isSso) {
         var tEstLaunches = computeEstLaunches(t);
         cells += `<td class="num">${tEstLaunches !== null ? tEstLaunches : ""}</td>`;
@@ -3502,7 +3656,7 @@
         const block = fiGroupBlocks[integration];
         if (block) block.style.display = rows.length ? "" : "none";
         const header = fiGroupHeaders[integration];
-        if (header) header.textContent = rows.length ? `${integration} (${rows.length})` : integration;
+        if (header) header.textContent = rows.length ? `${formatChannelLabel(integration)} (${rows.length})` : formatChannelLabel(integration);
 
         // Add/remove footnote for non-SSO tables
         if (block) {
@@ -3511,7 +3665,7 @@
             if (!existingNote) {
               var note = document.createElement("div");
               note.className = "fi-table-footnote";
-              note.textContent = "~ Estimated from GA-calibrated launch data";
+              note.textContent = "~ Estimated from GA-calibrated visit data";
               block.appendChild(note);
             }
           } else if (existingNote) {
@@ -3775,18 +3929,18 @@
       const cardholders = ctx.totalCardholders || (gaHidden ? ctx.totalSessions : ctx.gaSelect);
 
       const stages = gaHidden ? [
-        // SSO mode: Cardholders (= sessions) → Credential Entry → Successful → Cards Updated
+        // Online banking mode: Cardholders (= visits) → Started updating → Converted → Cards updated
         { label: 'Cardholders', value: cardholders, color: '#ede9fe', borderColor: '#c4b5fd', textColor: '#5b21b6' },
-        { label: 'Credential Entry', value: ctx.credSessions || ctx.gaCred, color: '#fef3c7', borderColor: '#fcd34d', textColor: '#92400e' },
-        { label: 'Successful', value: ctx.sessionsWithSuccess, color: '#dbeafe', borderColor: '#93c5fd', textColor: '#1e40af' },
-        { label: 'Cards Updated', value: ctx.successfulPlacements, color: '#dcfce7', borderColor: '#86efac', textColor: '#166534' },
+        { label: 'Started updating', value: ctx.credSessions || ctx.gaCred, color: '#fef3c7', borderColor: '#fcd34d', textColor: '#92400e' },
+        { label: 'Converted', value: ctx.sessionsWithSuccess, color: '#dbeafe', borderColor: '#93c5fd', textColor: '#1e40af' },
+        { label: 'Cards updated', value: ctx.successfulPlacements, color: '#dcfce7', borderColor: '#86efac', textColor: '#166534' },
       ] : [
-        // Non-SSO / mixed: Cardholders (blended) → Sessions → Credential Entry → Successful → Cards Updated
+        // Standalone / mixed: Cardholders (blended) → Visits → Started updating → Converted → Cards updated
         { label: 'Cardholders', value: cardholders, color: '#ede9fe', borderColor: '#c4b5fd', textColor: '#5b21b6' },
-        { label: 'Sessions', value: ctx.totalSessions, color: '#fff7ed', borderColor: '#fdba74', textColor: '#9a3412' },
-        { label: 'Credential Entry', value: ctx.credSessions || ctx.gaCred, color: '#fef3c7', borderColor: '#fcd34d', textColor: '#92400e' },
-        { label: 'Successful', value: ctx.sessionsWithSuccess, color: '#dbeafe', borderColor: '#93c5fd', textColor: '#1e40af' },
-        { label: 'Cards Updated', value: ctx.successfulPlacements, color: '#dcfce7', borderColor: '#86efac', textColor: '#166534' },
+        { label: 'Visits', value: ctx.totalSessions, color: '#fff7ed', borderColor: '#fdba74', textColor: '#9a3412' },
+        { label: 'Started updating', value: ctx.credSessions || ctx.gaCred, color: '#fef3c7', borderColor: '#fcd34d', textColor: '#92400e' },
+        { label: 'Converted', value: ctx.sessionsWithSuccess, color: '#dbeafe', borderColor: '#93c5fd', textColor: '#1e40af' },
+        { label: 'Cards updated', value: ctx.successfulPlacements, color: '#dcfce7', borderColor: '#86efac', textColor: '#166534' },
       ];
 
       // Calculate relative heights (min 30%, max 100%)
@@ -3795,11 +3949,11 @@
 
       // Map stage transitions to narrative scroll targets
       const transitionTargets = {
-        'Cardholders→Sessions': null,
-        'Sessions→Credential Entry': 'selCred',
-        'Cardholders→Credential Entry': 'selCred',
-        'Credential Entry→Successful': 'credCompletion',
-        'Successful→Cards Updated': 'avgCards',
+        'Cardholders→Visits': null,
+        'Visits→Started updating': 'selCred',
+        'Cardholders→Started updating': 'selCred',
+        'Started updating→Converted': 'credCompletion',
+        'Converted→Cards updated': 'avgCards',
       };
 
       stages.forEach((stage, i) => {
@@ -3829,11 +3983,11 @@
               else if (dropPct > 50) dropClass = 'dropoff-yellow';
               // Contextual label based on transition
               let dropLabel;
-              if (stage.label === 'Sessions') {
+              if (stage.label === 'Visits') {
                 dropLabel = `${dropPct.toFixed(0)}% didn't complete the form`;
-              } else if (stage.label === 'Credential Entry') {
+              } else if (stage.label === 'Started updating') {
                 dropLabel = `${dropPct.toFixed(0)}% browse but don't start`;
-              } else if (stage.label === 'Successful') {
+              } else if (stage.label === 'Converted') {
                 dropLabel = `${dropPct.toFixed(0)}% start but don't finish`;
               } else {
                 dropLabel = `${dropPct.toFixed(0)}% conversion opportunity`;
@@ -3917,9 +4071,9 @@
       const labels = {
         headline: 'Cardholder Performance',
         conversion: 'Conversion Funnel',
-        outcomes: 'Placement Depth',
-        reach: 'Member Reach',
-        completion: 'Credential Completion',
+        outcomes: 'Update Depth',
+        reach: 'Member Adoption',
+        completion: 'Action Completion',
         potential: 'Performance Ceiling',
       };
       return labels[section] || section;
@@ -4026,11 +4180,11 @@
       // Build gauge zones (proportional widths on a 0–30% scale)
       const maxScale = 30;
       const zones = [
-        { label: 'Discovery', min: 0, max: 3, color: '#ef4444' },
+        { label: 'Organic only', min: 0, max: 3, color: '#ef4444' },
         { label: '\u27F6', min: 3, max: 8, color: '#f97316' },
-        { label: 'Campaign', min: 8, max: 12, color: '#eab308' },
+        { label: 'Campaign-driven', min: 8, max: 12, color: '#eab308' },
         { label: '\u27F6', min: 12, max: 21, color: '#84cc16' },
-        { label: 'Activation', min: 21, max: 30, color: '#22c55e' },
+        { label: 'Activation-embedded', min: 21, max: 30, color: '#22c55e' },
       ];
 
       let gaugeHtml = '';
@@ -4220,8 +4374,8 @@
       let html = `<table class="projection-table">
         <thead><tr>
           <th>Scenario</th>
-          <th class="num">Success Rate</th>
-          <th class="num">Projected Placements</th>
+          <th class="num">Conversion rate</th>
+          <th class="num">Projected card updates</th>
           <th class="num">vs Current</th>
         </tr></thead>
         <tbody>
@@ -4246,7 +4400,7 @@
 
       html += `</tbody></table>`;
       const volLabel = current.estimatedLaunches
-        ? `${EI.fmtN(current.estimatedLaunches)} estimated launches (from ${EI.fmtN(current.sessions)} sessions)`
+        ? `${EI.fmtN(current.estimatedLaunches)} estimated visits (from ${EI.fmtN(current.sessions)} visits)`
         : `${EI.fmtN(current.sessions)} CardUpdatr visits`;
       html += `<div class="projection-note">Projections based on current volume of ${volLabel} over ${current.days} days. Actual results depend on traffic quality and cardholder motivation.</div>`;
 
@@ -4299,25 +4453,25 @@
         </div>
         <div class="reach-math-stat">
           <div class="reach-math-value">${fN(monthlyReach)}</div>
-          <div class="reach-math-label">Currently reaching CardUpdatr</div>
+          <div class="reach-math-label">Currently visiting CardUpdatr</div>
           <div class="reach-math-note">~${fN(currentReach)} visits over ${currentDays} days</div>
         </div>
         <div class="reach-math-stat">
           <div class="reach-math-value">${fN(potentialPlacements)}</div>
-          <div class="reach-math-label">Potential placements/month</div>
-          <div class="reach-math-note">At Activation-level (21%) conversion</div>
+          <div class="reach-math-label">Potential card updates/month</div>
+          <div class="reach-math-note">At peak channel performance (21% conversion)</div>
         </div>
       </div>`;
 
-      html += `<div class="reach-math-narrative">Every month, approximately <strong>${fN(monthlyPool)}</strong> of your cardholders receive a replacement card — from expirations, lost/stolen, or reissues. These are <strong>Activation-level</strong> cardholders at peak motivation. `;
+      html += `<div class="reach-math-narrative">Every month, approximately <strong>${fN(monthlyPool)}</strong> of your cardholders receive a replacement card — from expirations, lost/stolen, or reissues. These are cardholders at peak motivation. `;
 
       if (gap > 0 && monthlyPool > 0) {
         const pctReached = Math.min(100, Math.round((monthlyReach / monthlyPool) * 100));
         html += `Currently, CardUpdatr is reaching about <strong>${pctReached}%</strong> of this natural pool. `;
-        html += `Connecting with more of these motivated cardholders at the moment of card activation is the highest-leverage opportunity available.</div>`;
-        html += `<div class="reach-math-gap">Opportunity: <strong>${fN(gap)}</strong> additional motivated cardholders/month could be reached through activation flow integration and card issuance touchpoints.</div>`;
+        html += `Connecting with more of these high-intent cardholders at the moment of card activation is the highest-leverage opportunity available.</div>`;
+        html += `<div class="reach-math-gap">Opportunity: <strong>${fN(gap)}</strong> additional high-intent cardholders/month could be reached through activation flow integration and card issuance touchpoints.</div>`;
       } else {
-        html += `Your current reach is strong — you're connecting with cardholders at or above the natural replacement rate. Focus on maintaining this momentum and optimizing conversion quality.</div>`;
+        html += `Your current adoption is strong — you're connecting with cardholders at or above the natural replacement rate. Focus on maintaining this momentum and optimizing conversion quality.</div>`;
       }
 
       container.innerHTML = html;
@@ -4390,12 +4544,12 @@
         if (calBanner) {
           if (nonssoCtx.gaCalibrationRate !== null && nonssoCtx.gaCalibrationRate !== undefined) {
             var gaRatePctStr = (nonssoCtx.gaCalibrationRate * 100).toFixed(0);
-            calBanner.innerHTML = '<strong>GA calibration:</strong> Estimated launches derived from per-FI GA tracking rate (' +
-              gaRatePctStr + '% for this view — GA-reported Credential Entry views \u00F7 server-verified Credential Entry sessions). ' +
+            calBanner.innerHTML = '<strong>Analytics calibration:</strong> Estimated visits derived from per-FI GA tracking rate (' +
+              gaRatePctStr + '% for this view — GA-reported started-updating views \u00F7 server-verified started-updating visits). ' +
               'GA Select Merchant counts adjusted by this factor to account for Safari ITP and ad-blocker undercount. ' +
-              'Success Rate values marked with ~ are calculated from estimated launches.';
+              'Conversion rate values marked with ~ are calculated from estimated visits.';
           } else {
-            calBanner.innerHTML = '<strong>GA measurement note:</strong> Non-SSO traffic is tracked via Google Analytics, which undercounts by approximately 15\u201330% due to Safari Intelligent Tracking Prevention and ad blockers. ' +
+            calBanner.innerHTML = '<strong>Measurement note:</strong> Standalone traffic is tracked via Google Analytics, which undercounts by approximately 15\u201330% due to Safari Intelligent Tracking Prevention and ad blockers. ' +
               'Server-side clickstream calibration data is not yet available for this partner \u2014 actual cardholder volume is likely higher than reported.';
           }
         }
@@ -4479,27 +4633,27 @@
       var zones;
       if (isNonSSO && !hasCalibration) {
         zones = [
-          { label: 'Discovery', min: 0, max: 8, color: '#ef4444' },
+          { label: 'Organic only', min: 0, max: 8, color: '#ef4444' },
           { label: '\u27F6', min: 8, max: 15, color: '#f97316' },
-          { label: 'Campaign', min: 15, max: 25, color: '#eab308' },
+          { label: 'Campaign-driven', min: 15, max: 25, color: '#eab308' },
           { label: '\u27F6', min: 25, max: 35, color: '#84cc16' },
-          { label: 'Activation', min: 35, max: 50, color: '#22c55e' },
+          { label: 'Activation-embedded', min: 35, max: 50, color: '#22c55e' },
         ];
       } else {
         zones = [
-          { label: 'Discovery', min: 0, max: 3, color: '#ef4444' },
+          { label: 'Organic only', min: 0, max: 3, color: '#ef4444' },
           { label: '\u27F6', min: 3, max: 8, color: '#f97316' },
-          { label: 'Campaign', min: 8, max: 12, color: '#eab308' },
+          { label: 'Campaign-driven', min: 8, max: 12, color: '#eab308' },
           { label: '\u27F6', min: 12, max: 21, color: '#84cc16' },
-          { label: 'Activation', min: 21, max: 30, color: '#22c55e' },
+          { label: 'Activation-embedded', min: 21, max: 30, color: '#22c55e' },
         ];
       }
 
-      // Update spectrum labels for non-SSO with calibration
+      // Update spectrum labels for standalone with calibration
       if (hasCalibration) {
         var labelsEl = gauge.parentElement ? gauge.parentElement.querySelector('.spectrum-labels') : null;
         if (labelsEl) {
-          labelsEl.innerHTML = '<span>0%</span><span>Discovery</span><span>Campaign</span><span>Activation</span><span>30%+</span>';
+          labelsEl.innerHTML = '<span>0%</span><span>Organic only</span><span>Campaign-driven</span><span>Activation-embedded</span><span>30%+</span>';
         }
       }
 
@@ -4565,7 +4719,7 @@
       if (!scenarios.length || current.sessions < 10) { container.innerHTML = ''; return; }
 
       var html = '<table class="projection-table">';
-      html += '<thead><tr><th>Scenario</th><th class="num">Success Rate</th><th class="num">Projected Placements</th><th class="num">vs Current</th></tr></thead>';
+      html += '<thead><tr><th>Scenario</th><th class="num">Conversion rate</th><th class="num">Projected card updates</th><th class="num">vs Current</th></tr></thead>';
       html += '<tbody><tr class="current-row">';
       html += '<td>Current performance</td>';
       html += '<td class="num">' + (current.successRate !== null ? EI.fmt(current.successRate) + '%' : '\u2014') + '</td>';
@@ -4585,7 +4739,7 @@
 
       html += '</tbody></table>';
       var bVolLabel = current.estimatedLaunches
-        ? EI.fmtN(current.estimatedLaunches) + ' estimated launches (from ' + EI.fmtN(current.sessions) + ' sessions)'
+        ? EI.fmtN(current.estimatedLaunches) + ' estimated visits (from ' + EI.fmtN(current.sessions) + ' visits)'
         : EI.fmtN(current.sessions) + ' visits';
       html += '<div class="projection-note">Projections based on current volume of ' + bVolLabel + ' over ' + current.days + ' days.</div>';
       container.innerHTML = html;
@@ -4678,13 +4832,13 @@
       if (!container || !section || !quartersData.length) { if (section) section.style.display = 'none'; return; }
 
       const metricRows = [
-        { label: 'Total Sessions', key: 'totalSessions', format: 'n', pctChange: true },
-        { label: 'Credential Entry Rate', key: 'selCredPct', format: '%' },
-        { label: 'Success Rate', key: '__successRate', format: '%' },
-        { label: 'Successful Placements', key: 'successfulPlacements', format: 'n', pctChange: true },
-        { label: 'Avg Cards Per Cardholder', key: 'avgCardsPerSession', format: 'd' },
-        { label: 'Monthly Reach', key: 'monthlyReachPct', format: '%' },
-        { label: 'Motivation Tier', key: '__tier', format: 'tier' },
+        { label: 'Total visits', key: 'totalSessions', format: 'n', pctChange: true },
+        { label: 'Engagement rate', key: 'selCredPct', format: '%' },
+        { label: 'Conversion rate', key: '__successRate', format: '%' },
+        { label: 'Cards updated', key: 'successfulPlacements', format: 'n', pctChange: true },
+        { label: 'Avg updates per cardholder', key: 'avgCardsPerSession', format: 'd' },
+        { label: 'Monthly adoption', key: 'monthlyReachPct', format: '%' },
+        { label: 'Channel mix', key: '__tier', format: 'tier' },
       ];
 
       let html = `<table class="qbr-trend-table"><thead><tr><th>Metric</th>`;
@@ -4770,10 +4924,10 @@
       if (!container || quartersData.length < 2) return;
 
       const sparklines = [
-        { label: 'Success Rate %', values: quartersData.map(q => q.metrics.launchSuccessPct != null ? q.metrics.launchSuccessPct : q.metrics.sessionSuccessPct), color: '#2563eb' },
-        { label: 'Sessions', values: quartersData.map(q => q.metrics.totalSessions), color: '#f59e0b' },
-        { label: 'Placements', values: quartersData.map(q => q.metrics.successfulPlacements), color: '#16a34a' },
-        { label: 'Monthly Reach %', values: quartersData.map(q => q.metrics.monthlyReachPct), color: '#8b5cf6' },
+        { label: 'Conversion rate %', values: quartersData.map(q => q.metrics.launchSuccessPct != null ? q.metrics.launchSuccessPct : q.metrics.sessionSuccessPct), color: '#2563eb' },
+        { label: 'Visits', values: quartersData.map(q => q.metrics.totalSessions), color: '#f59e0b' },
+        { label: 'Cards updated', values: quartersData.map(q => q.metrics.successfulPlacements), color: '#16a34a' },
+        { label: 'Monthly adoption %', values: quartersData.map(q => q.metrics.monthlyReachPct), color: '#8b5cf6' },
       ];
 
       let html = '<div class="qbr-sparkline-row">';
@@ -4806,8 +4960,8 @@
         trend: 'Trailing Year Trend',
         highlight: 'Quarter Highlight',
         divergence: 'Volume vs Conversion',
-        tier: 'Motivation Tier Movement',
-        outcome: 'Placement Outcomes',
+        tier: 'Channel Mix Movement',
+        outcome: 'Update Outcomes',
       };
 
       let html = '';
@@ -4864,10 +5018,10 @@
       const p = priorCtx;
 
       const rows = [
-        { label: 'Success Rate', curr: m.launchSuccessPct != null ? m.launchSuccessPct : m.sessionSuccessPct, prev: p.launchSuccessPct != null ? p.launchSuccessPct : p.sessionSuccessPct, format: '%', pp: true },
-        { label: 'Placements', curr: m.successfulPlacements, prev: p.successfulPlacements, format: 'n' },
-        { label: 'Sessions', curr: m.totalSessions, prev: p.totalSessions, format: 'n' },
-        { label: 'Credential Entry Rate', curr: m.selCredPct, prev: p.selCredPct, format: '%', pp: true },
+        { label: 'Conversion rate', curr: m.launchSuccessPct != null ? m.launchSuccessPct : m.sessionSuccessPct, prev: p.launchSuccessPct != null ? p.launchSuccessPct : p.sessionSuccessPct, format: '%', pp: true },
+        { label: 'Cards updated', curr: m.successfulPlacements, prev: p.successfulPlacements, format: 'n' },
+        { label: 'Visits', curr: m.totalSessions, prev: p.totalSessions, format: 'n' },
+        { label: 'Engagement rate', curr: m.selCredPct, prev: p.selCredPct, format: '%', pp: true },
       ];
 
       let html = `<div class="qbr-yoy-callout">`;
@@ -4941,7 +5095,7 @@
       if (!months.length) { section.style.display = 'none'; return; }
 
       let html = `<table class="qbr-monthly-table"><thead><tr>
-        <th>Month</th><th>Launches</th><th>Sessions</th><th>Cred Entry %</th><th>Success Rate</th><th>Placements</th>
+        <th>Month</th><th>Visits (tracked)</th><th>Visits</th><th>Engagement %</th><th>Conversion rate</th><th>Cards updated</th>
       </tr></thead><tbody>`;
 
       let totalLaunches = 0, totalSessions = 0, totalPlacements = 0;
@@ -5194,9 +5348,9 @@
       }).join("");
       bestWindowsDiv.innerHTML = `<table class="highlights-table">
         <thead><tr>
-          <th>Highlight</th><th>FI</th><th>Integration</th><th>Window</th>
-          <th class="num">Launches</th><th class="num">Sessions</th><th class="num">Successful Cardholders</th>
-          <th class="num">Success Rate</th><th class="num">Placements</th>
+          <th>Highlight</th><th>FI</th><th>Channel</th><th>Window</th>
+          <th class="num">Visits (tracked)</th><th class="num">Visits</th><th class="num">Converted</th>
+          <th class="num">Conversion rate</th><th class="num">Cards updated</th>
         </tr></thead>
         <tbody>${rows}</tbody>
       </table>`;
@@ -5439,22 +5593,22 @@
       let headerHtml = `<thead><tr>
           <th data-sort="period">Period</th>
           <th data-sort="fi">FI</th>
-          <th data-sort="instances">Inst</th>
-          <th data-sort="integration">Type</th>
-          <th data-sort="ga_select" class="num">Launches</th>
-          <th data-sort="cs_select" class="num">@Select</th>`;
-      if (!isSso) headerHtml += `<th data-sort="ga_user" class="num">UD Views</th>`;
+          <th data-sort="instances">Instance</th>
+          <th data-sort="integration">Channel</th>
+          <th data-sort="ga_select" class="num">Visits</th>
+          <th data-sort="cs_select" class="num">Browsed</th>`;
+      if (!isSso) headerHtml += `<th data-sort="ga_user" class="num">Started</th>`;
       headerHtml += `
-          <th data-sort="ga_cred" class="num">Cred Views</th>
-          <th data-sort="ga_rate" class="num" title="Percentage of server-recorded visits detected by Google Analytics. Lower values indicate tracking gaps (Safari ITP, ad blockers).">GA %</th>
-          <th data-sort="reach" class="num" title="Projected monthly rate based on selected time period">Reach %</th>`;
-      if (!isSso) headerHtml += `<th data-sort="sel_user_pct" class="num">Sel\u2192U %</th>`;
+          <th data-sort="ga_cred" class="num">Started</th>
+          <th data-sort="ga_rate" class="num ga-col" style="display:none" title="Percentage of server-recorded visits detected by Google Analytics. Lower values indicate tracking gaps (Safari ITP, ad blockers)."></th>
+          <th data-sort="reach" class="num" title="Projected monthly rate based on selected time period">Adoption %</th>`;
+      if (!isSso) headerHtml += `<th data-sort="sel_user_pct" class="num">Engagement %</th>`;
       headerHtml += `
-          <th data-sort="sel_cred_pct" class="num">Sel\u2192C %</th>
-          <th data-sort="sessions" class="num">Sessions</th>
-          <th data-sort="sess_with_success" class="num">Successful</th>
-          <th data-sort="sess_success_pct" class="num">Rate</th>
-          <th data-sort="placements" class="num">Placed</th>
+          <th data-sort="sel_cred_pct" class="num">Engagement %</th>
+          <th data-sort="sessions" class="num">Visits</th>
+          <th data-sort="sess_with_success" class="num">Converted</th>
+          <th data-sort="sess_success_pct" class="num">Conversion %</th>
+          <th data-sort="placements" class="num">Cards updated</th>
         </tr></thead>`;
       table.innerHTML = headerHtml;
 
@@ -5567,7 +5721,7 @@
         <td>${row.periodLabel || ""}</td>
         <td>${row.fi || ""}</td>
         <td>${instancesText}</td>
-        <td>${row.integration_type || ""}</td>
+        <td>${formatChannelLabel(row.integration_type || "")}</td>
         <td class="num">${gaSelectDisplay}</td>
         <td class="num">${row.cs_select || 0}</td>`;
       if (!isSso) {
@@ -5576,7 +5730,7 @@
       }
       cells += `
         <td class="num">${gaCredDisplay}</td>
-        <td class="num ${gaRate.cls}">${gaRate.display}</td>
+        <td class="num ga-col ${gaRate.cls}" style="display:none">${gaRate.display}</td>
         <td class="num${reachCls}">${reachPct}</td>`;
       if (!isSso) cells += `<td class="num">${selUserPct}</td>`;
       cells += `
@@ -5616,9 +5770,9 @@
       partnerSummaryBox.innerHTML = `
         <div class="perf-section-title">${summaryData.partner || "Partner"} Integration Mix <span class="muted">${summaryData.rows.length} integration types</span></div>
         <table><thead><tr>
-          <th>Integration</th><th class="num">FIs</th><th class="num ga-col">GA Select</th>
-          <th class="num">Sessions</th>
-          <th class="num">Successful Cardholders</th><th class="num">Success Rate</th>
+          <th>Channel</th><th class="num">FIs</th><th class="num ga-col">Visits (tracked)</th>
+          <th class="num">Visits</th>
+          <th class="num">Converted</th><th class="num">Conversion rate</th>
         </tr></thead><tbody>${rows}${totalRow}</tbody></table>`;
       partnerSummaryBox.style.display = "";
     }
@@ -5640,7 +5794,7 @@
       const validH = (highlights || []).filter(h => h && !h.empty);
       if (validH.length) {
         lines.push("Performance Highlights");
-        lines.push(["Highlight","FI","Integration","Window Start","Window End","Launches","Sessions","Successful Cardholders","Success Rate","Placements"].map(csvEscape).join(","));
+        lines.push(["Highlight","FI","Channel","Window Start","Window End","Visits (tracked)","Visits","Converted","Conversion rate","Cards updated"].map(csvEscape).join(","));
         validH.forEach(h => {
           const srVal = typeof h.successRatio === "number" ? (h.successRatio * 100).toFixed(1) + "%" : "";
           const srDisplay = h.isEstimated ? "~" + srVal : srVal;
@@ -5651,7 +5805,7 @@
 
       // Summary by FI
       if (visibleRows.length) {
-        const header = ["FI","Partner","Integration","Instance","GA Select","Sess @Select","GA User","GA Cred","Monthly Reach %","Select→User %","Select→Cred %","Sessions","Successful Cardholders","Success Rate","Placements"];
+        const header = ["FI","Partner","Channel","Instance","Visits (tracked)","Browsed","Started (user data)","Started","Monthly adoption %","Engagement % (user)","Engagement %","Visits","Converted","Conversion rate","Cards updated"];
         lines.push("Summary by FI");
         lines.push(header.map(csvEscape).join(","));
         visibleRows.forEach(row => {
@@ -5674,7 +5828,7 @@
       if (partnerSummary && partnerSummary.rows && partnerSummary.rows.length) {
         const pctStr = (v) => typeof v === "number" && Number.isFinite(v) ? v.toFixed(1) + "%" : "";
         lines.push(`${partnerSummary.partner} Integration Mix`);
-        lines.push(["Integration","FIs","GA Select","Sessions","Successful Cardholders","Success Rate"].map(csvEscape).join(","));
+        lines.push(["Channel","FIs","Visits (tracked)","Visits","Converted","Conversion rate"].map(csvEscape).join(","));
         partnerSummary.rows.forEach(r => {
           var srStr = r.isEstimated ? "~" + pctStr(r.successPct) : pctStr(r.successPct);
           lines.push([r.integration, r.fiCount, r.ga_select, r.sessions, r.sess_with_success, srStr].map(csvEscape).join(","));
@@ -6185,15 +6339,15 @@
             const pdfCardholders = ctx.totalCardholders || (pdfGaHidden ? ctx.totalSessions : ctx.gaSelect);
             const pdfFunnelStages = pdfGaHidden ? [
               { label: 'Cardholders', value: pdfCardholders, color: '#ede9fe', borderColor: '#c4b5fd', textColor: '#5b21b6' },
-              { label: 'Credential Entry', value: ctx.credSessions || ctx.gaCred, color: '#fef3c7', borderColor: '#fcd34d', textColor: '#92400e' },
-              { label: 'Successful', value: ctx.sessionsWithSuccess, color: '#dbeafe', borderColor: '#93c5fd', textColor: '#1e40af' },
-              { label: 'Cards Updated', value: ctx.successfulPlacements, color: '#dcfce7', borderColor: '#86efac', textColor: '#166534' },
+              { label: 'Started updating', value: ctx.credSessions || ctx.gaCred, color: '#fef3c7', borderColor: '#fcd34d', textColor: '#92400e' },
+              { label: 'Converted', value: ctx.sessionsWithSuccess, color: '#dbeafe', borderColor: '#93c5fd', textColor: '#1e40af' },
+              { label: 'Cards updated', value: ctx.successfulPlacements, color: '#dcfce7', borderColor: '#86efac', textColor: '#166534' },
             ] : [
               { label: 'Cardholders', value: pdfCardholders, color: '#ede9fe', borderColor: '#c4b5fd', textColor: '#5b21b6' },
-              { label: 'Sessions', value: ctx.totalSessions, color: '#fff7ed', borderColor: '#fdba74', textColor: '#9a3412' },
-              { label: 'Credential Entry', value: ctx.credSessions || ctx.gaCred, color: '#fef3c7', borderColor: '#fcd34d', textColor: '#92400e' },
-              { label: 'Successful', value: ctx.sessionsWithSuccess, color: '#dbeafe', borderColor: '#93c5fd', textColor: '#1e40af' },
-              { label: 'Cards Updated', value: ctx.successfulPlacements, color: '#dcfce7', borderColor: '#86efac', textColor: '#166534' },
+              { label: 'Visits', value: ctx.totalSessions, color: '#fff7ed', borderColor: '#fdba74', textColor: '#9a3412' },
+              { label: 'Started updating', value: ctx.credSessions || ctx.gaCred, color: '#fef3c7', borderColor: '#fcd34d', textColor: '#92400e' },
+              { label: 'Converted', value: ctx.sessionsWithSuccess, color: '#dbeafe', borderColor: '#93c5fd', textColor: '#1e40af' },
+              { label: 'Cards updated', value: ctx.successfulPlacements, color: '#dcfce7', borderColor: '#86efac', textColor: '#166534' },
             ];
             // Build reach math for PDF
             let reachMathPayload = null;
@@ -6282,6 +6436,227 @@
           } catch (e) { console.warn('[pdf] insights build error:', e); }
         }
 
+        // ─── Multi-Granularity Payload ───
+        // Slice the client-side daily series into summary/quarterly/monthly/weekly/daily
+        // buckets so the PDF can render a stacked big-picture → zoom-in narrative.
+        // Thresholds enforced here (client-side) AND again in the template as a safety net.
+        const granularitiesPayload = (function computeGranularities() {
+          try {
+            const rangeDays = (function () {
+              const s = new Date(startDate + "T00:00:00Z");
+              const e = new Date(endDate + "T00:00:00Z");
+              if (isNaN(s) || isNaN(e)) return 0;
+              return Math.round((e - s) / 86400000) + 1;
+            })();
+            if (rangeDays <= 0) return null;
+
+            // Collect per-day aggregated rows across all visible FIs.
+            // For FI-specific PDFs (single FI in scope), buildDailyRowsForFi already
+            // handles filtering. For multi-FI / all-data PDFs, we aggregate dailyData
+            // across all visible FIs using the same inRange() rule.
+            const fs = window.__FILTER_STATE || {};
+            const singleFiName = (fs.fis && fs.fis.size === 1) ? Array.from(fs.fis)[0] : null;
+            const visibleFiSet = new Set((visibleRows || []).map(r => normalizeFiKey(r.fi || "")));
+
+            const perDay = new Map(); // date -> aggregated row
+            const dates = Object.keys(dailyData).sort();
+            for (const date of dates) {
+              if (!inRange(date, startDate, endDate)) continue;
+              const day = dailyData[date];
+              if (!day?.fi) continue;
+              for (const [name, fiEntry] of Object.entries(day.fi)) {
+                const fnorm = normalizeFiKey(name);
+                if (!visibleFiSet.has(fnorm)) continue;
+                const ga = fiEntry.ga || {};
+                const sessions = fiEntry.sessions || {};
+                const placements = fiEntry.placements || {};
+                if (!perDay.has(date)) {
+                  perDay.set(date, { date, ga_select: 0, ga_cred: 0, sessions: 0, sess_with_success: 0, placements: 0 });
+                }
+                const agg = perDay.get(date);
+                agg.ga_select += ga.select_merchants || 0;
+                agg.ga_cred += ga.credential_entry || 0;
+                agg.sessions += sessions.total || 0;
+                agg.sess_with_success += sessions.with_success || 0;
+                agg.placements += (typeof getBillablePlacementCount === "function"
+                  ? getBillablePlacementCount(placements)
+                  : (placements?.total || 0));
+              }
+            }
+
+            const dailyArr = Array.from(perDay.values()).sort((a, b) => a.date.localeCompare(b.date));
+            if (!dailyArr.length && !metrics) return null;
+
+            // Cardholder baseline for Adoption %.
+            let totalCardholders = 0;
+            const seen = new Set();
+            for (const row of (visibleRows || [])) {
+              const ch = Number(row.cardholders);
+              if (Number.isFinite(ch) && ch > 0 && !seen.has(row.fi)) {
+                totalCardholders += ch;
+                seen.add(row.fi);
+              }
+            }
+
+            const bucketMetric = (arr) => {
+              const b = { visits: 0, started: 0, converted: 0, cardsUpdated: 0 };
+              for (const r of arr) {
+                b.visits += r.sessions || 0;
+                b.started += r.ga_cred || r.cs_cred || 0;
+                b.converted += r.sess_with_success || 0;
+                b.cardsUpdated += r.placements || 0;
+              }
+              b.conversionRate = b.visits > 0 ? (b.converted / b.visits) * 100 : null;
+              return b;
+            };
+
+            const withAdoption = (bucket, days) => {
+              // Adoption % = monthly-normalized visits ÷ cardholders.
+              if (totalCardholders > 0 && days > 0) {
+                const monthlyVisits = bucket.visits * (30 / days);
+                bucket.adoptionPct = (monthlyVisits / totalCardholders) * 100;
+              } else {
+                bucket.adoptionPct = null;
+              }
+              return bucket;
+            };
+
+            const dayCount = (from, to) => {
+              const s = new Date(from + "T00:00:00Z");
+              const e = new Date(to + "T00:00:00Z");
+              return Math.round((e - s) / 86400000) + 1;
+            };
+
+            // ── Summary (whole window) ──
+            const summaryMetric = bucketMetric(dailyArr);
+            const summaryDays = rangeDays;
+            const summary = {
+              visits: summaryMetric.visits,
+              started: summaryMetric.started,
+              converted: summaryMetric.converted,
+              cardsUpdated: summaryMetric.cardsUpdated,
+              conversionRate: summaryMetric.conversionRate,
+              adoptionPct: null,
+              reachingMonthly: null,
+              cardsPerMonth: summaryDays > 0 ? summaryMetric.cardsUpdated * (30 / summaryDays) : null,
+            };
+            if (totalCardholders > 0 && summaryDays > 0) {
+              const monthlyVisits = summaryMetric.visits * (30 / summaryDays);
+              summary.adoptionPct = (monthlyVisits / totalCardholders) * 100;
+              summary.reachingMonthly = Math.round(monthlyVisits);
+            }
+
+            // ── Daily ──
+            const daily = dailyArr
+              .filter(d => (d.sessions || 0) > 0 || (d.placements || 0) > 0)
+              .map(d => {
+                const m = bucketMetric([d]);
+                return withAdoption({
+                  label: d.date,
+                  dateFrom: d.date, dateTo: d.date,
+                  visits: m.visits, started: m.started, converted: m.converted,
+                  cardsUpdated: m.cardsUpdated, conversionRate: m.conversionRate,
+                }, 1);
+              });
+
+            // ── Weekly (Sunday → Saturday) ──
+            const weeklyMap = new Map();
+            for (const d of dailyArr) {
+              const dt = new Date(d.date + "T00:00:00Z");
+              const wkStart = new Date(dt);
+              wkStart.setUTCDate(wkStart.getUTCDate() - wkStart.getUTCDay());
+              const wkEnd = new Date(wkStart);
+              wkEnd.setUTCDate(wkEnd.getUTCDate() + 6);
+              const ks = wkStart.toISOString().slice(0, 10);
+              const ke = wkEnd.toISOString().slice(0, 10);
+              if (ks < startDate || ke > endDate) continue;
+              if (!weeklyMap.has(ks)) weeklyMap.set(ks, { from: ks, to: ke, rows: [] });
+              weeklyMap.get(ks).rows.push(d);
+            }
+            const weekly = Array.from(weeklyMap.values())
+              .sort((a, b) => a.from.localeCompare(b.from))
+              .map(w => {
+                const m = bucketMetric(w.rows);
+                if (m.visits === 0 && m.cardsUpdated === 0) return null;
+                return withAdoption({
+                  label: `${w.from} → ${w.to}`,
+                  dateFrom: w.from, dateTo: w.to,
+                  visits: m.visits, started: m.started, converted: m.converted,
+                  cardsUpdated: m.cardsUpdated, conversionRate: m.conversionRate,
+                }, 7);
+              })
+              .filter(Boolean);
+
+            // ── Monthly (calendar months inside the range) ──
+            const monthlyMap = new Map();
+            for (const d of dailyArr) {
+              const mk = d.date.slice(0, 7);
+              const [y, mo] = mk.split("-").map(Number);
+              const mStart = new Date(Date.UTC(y, mo - 1, 1)).toISOString().slice(0, 10);
+              const mEnd = new Date(Date.UTC(y, mo, 0)).toISOString().slice(0, 10);
+              if (mStart < startDate || mEnd > endDate) continue;
+              if (!monthlyMap.has(mk)) monthlyMap.set(mk, { from: mStart, to: mEnd, label: mk, rows: [] });
+              monthlyMap.get(mk).rows.push(d);
+            }
+            const monthly = Array.from(monthlyMap.values())
+              .sort((a, b) => a.from.localeCompare(b.from))
+              .map(mo => {
+                const m = bucketMetric(mo.rows);
+                if (m.visits === 0 && m.cardsUpdated === 0) return null;
+                return withAdoption({
+                  label: mo.label,
+                  dateFrom: mo.from, dateTo: mo.to,
+                  visits: m.visits, started: m.started, converted: m.converted,
+                  cardsUpdated: m.cardsUpdated, conversionRate: m.conversionRate,
+                }, dayCount(mo.from, mo.to));
+              })
+              .filter(Boolean);
+
+            // ── Quarterly (calendar quarters inside the range) ──
+            const quarterlyMap = new Map();
+            for (const d of dailyArr) {
+              const dt = new Date(d.date + "T00:00:00Z");
+              const q = Math.floor(dt.getUTCMonth() / 3) + 1;
+              const y = dt.getUTCFullYear();
+              const qStart = new Date(Date.UTC(y, (q - 1) * 3, 1)).toISOString().slice(0, 10);
+              const qEnd = new Date(Date.UTC(y, q * 3, 0)).toISOString().slice(0, 10);
+              if (qStart < startDate || qEnd > endDate) continue;
+              const qk = `${y}-Q${q}`;
+              if (!quarterlyMap.has(qk)) quarterlyMap.set(qk, { from: qStart, to: qEnd, label: `Q${q} ${y}`, rows: [] });
+              quarterlyMap.get(qk).rows.push(d);
+            }
+            const quarterly = Array.from(quarterlyMap.values())
+              .sort((a, b) => a.from.localeCompare(b.from))
+              .map(q => {
+                const m = bucketMetric(q.rows);
+                if (m.visits === 0 && m.cardsUpdated === 0) return null;
+                return withAdoption({
+                  label: q.label,
+                  dateFrom: q.from, dateTo: q.to,
+                  visits: m.visits, started: m.started, converted: m.converted,
+                  cardsUpdated: m.cardsUpdated, conversionRate: m.conversionRate,
+                }, dayCount(q.from, q.to));
+              })
+              .filter(Boolean);
+
+            return {
+              summary,
+              quarterly: rangeDays >= 180 ? quarterly : null,
+              monthly: rangeDays >= 90 ? monthly : null,
+              weekly: rangeDays >= 28 ? weekly : null,
+              daily: rangeDays <= 90 ? daily : null,
+            };
+          } catch (e) {
+            console.warn("[pdf] granularities build error:", e);
+            return null;
+          }
+        })();
+
+        // Resolve dashboard URL + FI key for deep links back into the live dashboard.
+        const dashboardUrlForPdf = window.location.origin + "/funnel-customer.html";
+        let fiKeyForPdf = null;
+        if (fs.fis && fs.fis.size === 1) fiKeyForPdf = Array.from(fs.fis)[0];
+
         const payload = {
           startDate, endDate, filterContext, shareUrl,
           metrics: {
@@ -6298,6 +6673,9 @@
           })),
           partnerSummary: latestPartnerSummary || null,
           insights: insightsPayload,
+          granularities: granularitiesPayload,
+          dashboardUrl: dashboardUrlForPdf,
+          fiKey: fiKeyForPdf,
         };
         const token = window.sisAuth?.getToken?.() || localStorage.getItem("sis_session_token") || "";
         const resp = await fetch("/api/export-pdf-customer", {
@@ -6338,6 +6716,40 @@
     });
 
     // ─── Init ───
+    // ─── Deep-link handler (PDF → dashboard anchor) ───
+    // Reads URL params like ?date_from=...&date_to=...&fi=... and #anchor on page load,
+    // applies them so the live page matches the PDF's window, then scrolls/flashes the target section.
+    function applyDeepLinkFromUrl() {
+      try {
+        const params = new URLSearchParams(window.location.search || "");
+        const df = params.get("date_from");
+        const dt = params.get("date_to");
+        if (df && /^\d{4}-\d{2}-\d{2}$/.test(df) && dt && /^\d{4}-\d{2}-\d{2}$/.test(dt)) {
+          if (startDateInput) startDateInput.value = df;
+          if (endDateInput) endDateInput.value = dt;
+          const preset = document.getElementById("datePreset");
+          if (preset) preset.value = "";
+          return true; // filters were applied
+        }
+      } catch (e) { console.warn("[deep-link] failed to parse URL params", e); }
+      return false;
+    }
+
+    function scrollToHashWithFlash() {
+      try {
+        const hash = (window.location.hash || "").replace(/^#/, "");
+        if (!hash) return;
+        const el = document.getElementById(hash);
+        if (!el) return;
+        // Wait a frame so layout is stable, then scroll + flash
+        requestAnimationFrame(() => {
+          el.scrollIntoView({ behavior: "smooth", block: "start" });
+          el.classList.add("section-flash");
+          setTimeout(() => el.classList.remove("section-flash"), 2200);
+        });
+      } catch (e) { console.warn("[deep-link] scroll failed", e); }
+    }
+
     async function init() {
       try {
         startLoading("Loading engagement data…");
@@ -6400,7 +6812,9 @@
           }
         } catch (err) { console.error("Failed to load daily data:", err); }
 
+        applyDeepLinkFromUrl();
         await safeApplyFilters();
+        scrollToHashWithFlash();
       } catch (err) {
         console.error("Init failed", err);
         stopLoading();
