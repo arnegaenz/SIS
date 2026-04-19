@@ -78,7 +78,7 @@ var NAV_PREFIX = (window.location.pathname.indexOf("/dashboards/") !== -1 || win
 var ITEMS = {
   "executive":          { id:"executive", label:"Executive Summary", href:NAV_PREFIX+"dashboards/executive.html" },
   "funnel-customer":    { id:"funnel-customer", label:"Cardholder Engagement", href:NAV_PREFIX+"funnel-customer.html" },
-  "portfolio":          { id:"portfolio", label:"CS Portfolio", href:NAV_PREFIX+"dashboards/portfolio.html" },
+  "portfolio":          { id:"portfolio", label:"Portfolio Health", href:NAV_PREFIX+"dashboards/portfolio.html" },
   "supported-sites":    { id:"supported-sites", label:"Supported Sites", href:NAV_PREFIX+"supported-sites.html" },
   "campaign-builder":   { id:"campaign-builder", label:"Campaign URL Builder", href:NAV_PREFIX+"campaign-builder.html" },
   "operations":         { id:"operations", label:"Success Dashboard", href:NAV_PREFIX+"dashboards/success.html" },
@@ -87,13 +87,14 @@ var ITEMS = {
   "realtime":           { id:"realtime", label:"Real-Time", href:NAV_PREFIX+"realtime.html" },
   "troubleshoot":       { id:"troubleshoot", label:"Troubleshoot", href:NAV_PREFIX+"troubleshoot.html" },
   "troubleshoot-customer": { id:"troubleshoot-customer", label:"Support Lookup", href:NAV_PREFIX+"troubleshoot-customer.html" },
-  "funnel":             { id:"funnel", label:"FI Funnel", href:NAV_PREFIX+"funnel.html" },
+  "funnel":             { id:"funnel", label:"Conversion Funnel", href:NAV_PREFIX+"funnel.html" },
   "customer-success":   { id:"customer-success", label:"Customer Success Dashboard", href:NAV_PREFIX+"dashboards/customer-success.html" },
   "sources":            { id:"sources", label:"Sources", href:NAV_PREFIX+"sources.html" },
   "ux-paths":           { id:"ux-paths", label:"UX Paths", href:NAV_PREFIX+"ux-paths.html" },
   "experience":         { id:"experience", label:"Cardholder Experience", href:NAV_PREFIX+"experience.html" },
   "placement-outcomes": { id:"placement-outcomes", label:"Placement Outcomes", href:NAV_PREFIX+"placement-outcomes.html" },
-  "fi-api":             { id:"fi-api", label:"FI API", href:NAV_PREFIX+"fi-api.html" },
+  "conversion-breakdown": { id:"conversion-breakdown", label:"Conversion Breakdown", href:NAV_PREFIX+"dashboards/conversion-breakdown.html" },
+  "fi-api":             { id:"fi-api", label:"Partner API", href:NAV_PREFIX+"fi-api.html" },
   "playbook":           { id:"playbook", label:"Engagement Playbook", href:NAV_PREFIX+"resources/engagement-playbook.html" },
   "maintenance":        { id:"maintenance", label:"Data & Config", href:NAV_PREFIX+"maintenance.html" },
   "users":              { id:"users", label:"Users", href:NAV_PREFIX+"users.html" },
@@ -114,7 +115,7 @@ function grp(label, ids) {
 var GROUPS = [
   grp("Partner Analytics", ["executive","funnel-customer","portfolio","supported-sites","campaign-builder"]),
   grp("Monitoring", ["operations","monitor","heatmap","watchlist","realtime","troubleshoot","troubleshoot-customer"]),
-  grp("Analysis", ["funnel","customer-success","sources","ux-paths","experience","placement-outcomes","fi-api","playbook"]),
+  grp("Analysis", ["funnel","customer-success","sources","ux-paths","experience","placement-outcomes","conversion-breakdown","fi-api","playbook"]),
   grp("Admin", ["maintenance","users","activity-log","shared-views","logs","synthetic-traffic"])
 ];
 
@@ -411,14 +412,14 @@ if (isViewMode) {
     var LANDING = (global.sisAuth && global.sisAuth.LANDING_PAGES) || {};
     var levels = [
       { key: "", label: "Admin (actual)" },
-      { key: "core", label: "Core" },
-      { key: "internal", label: "Internal" },
-      { key: "siteops", label: "SiteOps" },
+      { key: "core", label: "Strivve Core" },
+      { key: "internal", label: "Strivve Internal" },
+      { key: "siteops", label: "Site Operations" },
       { key: "support", label: "Support" },
-      { key: "cs", label: "CS" },
+      { key: "cs", label: "Customer Success" },
       { key: "executive", label: "Executive" },
       { key: "partner", label: "Partner" },
-      { key: "fi", label: "FI" }
+      { key: "fi", label: "FI Contact" }
     ];
     for (var li = 0; li < levels.length; li++) {
       (function(lv) {
