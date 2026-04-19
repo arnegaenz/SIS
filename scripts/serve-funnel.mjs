@@ -7634,7 +7634,7 @@ const server = http.createServer(async (req, res) => {
         return send(res, 400, { error: "metricsContext is required" });
       }
 
-      const accessLevel = session.access_level || "limited";
+      const accessLevel = session.user?.access_level || "partner";
 
       const insights = await generateAIInsights(metricsContext, {
         accessLevel,
