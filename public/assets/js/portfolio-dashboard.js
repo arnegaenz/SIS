@@ -88,11 +88,11 @@ const tierSelect = createMultiSelect(document.getElementById("tierSelect"), {
 
 // Populate tier filter options
 tierSelect.setOptions([
-  { value: "1", label: "Activation (\u226521%)" },
-  { value: "1.5", label: "Campaign \u2192 Activation (12-21%)" },
-  { value: "2", label: "Campaign (8-12%)" },
-  { value: "2.5", label: "Discovery \u2192 Campaign (3-8%)" },
-  { value: "3", label: "Discovery (<3%)" },
+  { value: "1", label: "Activation-embedded (\u226521%)" },
+  { value: "1.5", label: "Campaign-driven \u2192 Activation-embedded (12-21%)" },
+  { value: "2", label: "Campaign-driven (8-12%)" },
+  { value: "2.5", label: "Organic only \u2192 Campaign-driven (3-8%)" },
+  { value: "3", label: "Organic only (<3%)" },
 ]);
 
 /* ── Time Windows ── */
@@ -321,26 +321,26 @@ function scoreTooltip(fi) {
     reachComponent = Math.min(100, (fi.monthlyReachPct / 2.5) * 100);
   }
   const reachNote = fi.monthlyReachPct !== null ? `${fi.monthlyReachPct.toFixed(2)}%` : "no data (using 50)";
-  return `Engagement Score: ${fi.score}/100. Breakdown: Success Rate component = ${successComponent.toFixed(0)}/100 (${formatPercent(fi.successRate)} vs 27% ceiling, 40% weight) | Trend component = ${trendComponent}/100 (${fi.trend}, 20% weight) | Reach component = ${reachComponent.toFixed(0)}/100 (monthly reach ${reachNote} vs 2.5% ceiling, 20% weight) | Volume component = log-scaled sessions (20% weight). Color: Green >=75, Amber >=50, Orange >=25, Red <25.`;
+  return `Engagement Score: ${fi.score}/100. Breakdown: Conversion rate component = ${successComponent.toFixed(0)}/100 (${formatPercent(fi.successRate)} vs 27% ceiling, 40% weight) | Trend component = ${trendComponent}/100 (${fi.trend}, 20% weight) | Adoption component = ${reachComponent.toFixed(0)}/100 (monthly adoption ${reachNote} vs 2.5% ceiling, 20% weight) | Volume component = log-scaled visits (20% weight). Color: Green >=75, Amber >=50, Orange >=25, Red <25.`;
 }
 
 function healthDotTooltip(rate) {
   const pct = (rate * 100).toFixed(1);
-  if (rate >= 0.15) return `Engagement Health: GREEN (${pct}% success rate). This FI is performing well — success rate is at or above 15%. The 15% threshold separates healthy engagement from areas needing attention.`;
-  if (rate >= 0.05) return `Engagement Health: AMBER (${pct}% success rate). This FI's success rate is between 5-15%. There is room for improvement — consider reviewing traffic sources and whether activation flow is enabled.`;
-  return `Engagement Health: RED (${pct}% success rate). This FI's success rate is below 5%. This typically indicates Discovery-level traffic with no activation flow or campaign outreach. Immediate attention recommended.`;
+  if (rate >= 0.15) return `Engagement Health: GREEN (${pct}% conversion rate). This FI is performing well — conversion rate is at or above 15%. The 15% threshold separates healthy engagement from areas needing attention.`;
+  if (rate >= 0.05) return `Engagement Health: AMBER (${pct}% conversion rate). This FI's conversion rate is between 5-15%. There is room for improvement — consider reviewing traffic sources and whether activation flow is enabled.`;
+  return `Engagement Health: RED (${pct}% conversion rate). This FI's conversion rate is below 5%. This typically indicates Organic-only traffic with no activation flow or campaign outreach. Immediate attention recommended.`;
 }
 
 function systemFlagTooltip(fi) {
-  return `SYSTEM ALERT: ${(fi.jobFailRate * 100).toFixed(1)}% of card placement jobs are failing at merchants for this FI. ${fi.jobsFailed} failed out of ${fi.jobsTotal} total jobs. Failures can be caused by merchant site changes, credential issues, or CardSavr system errors. Check the Operations Dashboard for merchant-level breakdown. Threshold: >15% = warning flag shown.`;
+  return `SYSTEM ALERT: ${(fi.jobFailRate * 100).toFixed(1)}% of card update jobs are failing at merchants for this FI. ${fi.jobsFailed} failed out of ${fi.jobsTotal} total jobs. Failures can be caused by merchant site changes, credential issues, or CardSavr system errors. Check the Operations Dashboard for merchant-level breakdown. Threshold: >15% = warning flag shown.`;
 }
 
 function sparklineTooltip(fi) {
-  if (!fi.trendData || !fi.trendData.weeks) return "4-week session volume sparkline. No trend data available.";
+  if (!fi.trendData || !fi.trendData.weeks) return "4-week visit volume sparkline. No trend data available.";
   const filled = fi.trendData.weeks.map((w) => w || { sm: 0, success: 0, rate: 0 });
   const labels = ["This week", "Last week", "2 wks ago", "3 wks ago"];
-  const detail = filled.map((w, i) => `${labels[i]}: ${w.sm} sessions, ${(w.rate * 100).toFixed(1)}% success`).join(" | ");
-  return `4-week session volume sparkline (left=oldest, right=most recent). Green line = volume trending up, Red = down. ${detail}`;
+  const detail = filled.map((w, i) => `${labels[i]}: ${w.sm} visits, ${(w.rate * 100).toFixed(1)}% conversion`).join(" | ");
+  return `4-week visit volume sparkline (left=oldest, right=most recent). Green line = volume trending up, Red = down. ${detail}`;
 }
 
 /* ── Enrich FI Data ── */
@@ -589,11 +589,11 @@ function renderTierDistribution(fis) {
   if (!container) return;
 
   const buckets = [
-    { key: "1", label: "Activation", color: "#22c55e", count: 0, desc: "Activation (>=21% success). Peak cardholder motivation — card activation flows." },
-    { key: "1.5", label: "Cmpn\u2192Act", color: "#84cc16", count: 0, desc: "Campaign-to-Activation transition (12-21%). Mix of prompted and motivated." },
-    { key: "2", label: "Campaign", color: "#f59e0b", count: 0, desc: "Campaign (8-12%). Manufactured motivation via SMS, email, and targeted outreach." },
-    { key: "2.5", label: "Disc\u2192Cmpn", color: "#f97316", count: 0, desc: "Discovery-to-Campaign transition (3-8%). Some outreach, not consistent." },
-    { key: "3", label: "Discovery", color: "#ef4444", count: 0, desc: "Discovery (<3%). Browsing only, no prompt or urgency." },
+    { key: "1", label: "Activation-embedded", color: "#22c55e", count: 0, desc: "Activation-embedded (>=21% conversion). Peak cardholder intent — card activation flows." },
+    { key: "1.5", label: "Cmpn\u2192Act", color: "#84cc16", count: 0, desc: "Campaign-driven to Activation-embedded transition (12-21%). Mix of prompted and high-intent." },
+    { key: "2", label: "Campaign-driven", color: "#f59e0b", count: 0, desc: "Campaign-driven (8-12%). Manufactured intent via SMS, email, and targeted outreach." },
+    { key: "2.5", label: "Org\u2192Cmpn", color: "#f97316", count: 0, desc: "Organic-only to Campaign-driven transition (3-8%). Some outreach, not consistent." },
+    { key: "3", label: "Organic only", color: "#ef4444", count: 0, desc: "Organic only (<3%). Browsing only, no prompt or urgency." },
   ];
 
   fis.forEach((fi) => {
@@ -632,10 +632,10 @@ function renderScoreDistribution(fis) {
   if (!container) return;
 
   const buckets = [
-    { label: "0-24", color: "#ef4444", count: 0, desc: "Critical — these FIs have very low conversion, minimal volume, and/or declining trends. Likely Discovery-level traffic with no activation strategy." },
+    { label: "0-24", color: "#ef4444", count: 0, desc: "Critical — these FIs have very low conversion, minimal volume, and/or declining trends. Likely Organic-only traffic with no activation strategy." },
     { label: "25-49", color: "#f97316", count: 0, desc: "Needs attention — below-average engagement. May have some campaign activity but not consistent, or decent volume but poor conversion." },
-    { label: "50-74", color: "#f59e0b", count: 0, desc: "Moderate engagement — performing reasonably but with clear room to grow. Typically Campaign-level FIs with active outreach or Discovery-level FIs with high volume." },
-    { label: "75-100", color: "#22c55e", count: 0, desc: "Strong engagement — high conversion rate, positive trends, good reach. Typically Activation or strong Campaign-level FIs with effective engagement strategies." },
+    { label: "50-74", color: "#f59e0b", count: 0, desc: "Moderate engagement — performing reasonably but with clear room to grow. Typically Campaign-driven FIs with active outreach or Organic-only FIs with high volume." },
+    { label: "75-100", color: "#22c55e", count: 0, desc: "Strong engagement — high conversion rate, positive trends, good adoption. Typically Activation-embedded or strong Campaign-driven FIs with effective engagement strategies." },
   ];
 
   fis.forEach((fi) => {
@@ -688,7 +688,7 @@ function renderWarnings(fis) {
   const hasMore = allWarnings.length > COLLAPSED_COUNT;
 
   const warningTooltips = {
-    engagement: "ENGAGEMENT warning: Detected from week-over-week session success rate trends. Decline = rate dropped >2 percentage points for 2+ consecutive weeks. Gone dark = zero sessions this week after being active last week. These may indicate a campaign ended, integration issue, or traffic source change.",
+    engagement: "ENGAGEMENT warning: Detected from week-over-week conversion rate trends. Decline = rate dropped >2 percentage points for 2+ consecutive weeks. Gone dark = zero visits this week after being active last week. These may indicate a campaign ended, integration issue, or traffic source change.",
     system: "SYSTEM warning: Detected from job-level failure rates in the Ops pipeline. Warn (>15%) = elevated merchant failures worth monitoring. Danger (>30%) = significant failures likely impacting cardholder experience. Check the Operations Dashboard for merchant-level breakdown.",
   };
 
@@ -696,7 +696,7 @@ function renderWarnings(fis) {
     .map(
       (w) =>
         `<div class="warning-item ${w.type}" title="${warningTooltips[w.category] || ''}">
-          <span class="warning-item__type ${w.category}" title="${w.category === 'engagement' ? 'Engagement-related warning — based on session success rate trends across weekly buckets.' : 'System-related warning — based on job failure rates from the placement pipeline.'}">${w.category.toUpperCase()}</span>
+          <span class="warning-item__type ${w.category}" title="${w.category === 'engagement' ? 'Engagement-related warning — based on conversion rate trends across weekly buckets.' : 'System-related warning — based on job failure rates from the card update pipeline.'}">${w.category.toUpperCase()}</span>
           <span>${w.text}</span>
         </div>`
     )
@@ -751,18 +751,18 @@ function buildSparklineSvg(weeks, size = "card") {
 }
 
 function trendArrow(trend) {
-  if (trend === "up") return `<span style="color:#22c55e;font-size:0.85rem;" title="Trending UP: Session success rate improved by more than 2 percentage points compared to the prior week. This FI's cardholders are converting better week-over-week.">&#9650;</span>`;
-  if (trend === "down") return `<span style="color:#ef4444;font-size:0.85rem;" title="Trending DOWN: Session success rate declined by more than 2 percentage points compared to the prior week. Investigate whether traffic source changed (e.g. campaign ended) or if there are system issues.">&#9660;</span>`;
-  return `<span style="color:#64748b;font-size:0.7rem;" title="FLAT: Session success rate is within +/- 2 percentage points of the prior week. No significant week-over-week change in conversion quality.">&#9644;</span>`;
+  if (trend === "up") return `<span style="color:#22c55e;font-size:0.85rem;" title="Trending UP: Conversion rate improved by more than 2 percentage points compared to the prior week. This FI's cardholders are converting better week-over-week.">&#9650;</span>`;
+  if (trend === "down") return `<span style="color:#ef4444;font-size:0.85rem;" title="Trending DOWN: Conversion rate declined by more than 2 percentage points compared to the prior week. Investigate whether traffic source changed (e.g. campaign ended) or if there are system issues.">&#9660;</span>`;
+  return `<span style="color:#64748b;font-size:0.7rem;" title="FLAT: Conversion rate is within +/- 2 percentage points of the prior week. No significant week-over-week change in conversion quality.">&#9644;</span>`;
 }
 
 const TIER_TOOLTIPS = {
-  tier1: "Activation (>=21% success rate). These cardholders just received a new card and have urgent motivation to update their payment info. 1 in 4 completes. This is the gold standard.",
-  tier2to1: "Campaign \u2192 Activation (12-21% success rate). This FI is between campaign-driven and activation-driven traffic. Likely has a mix of motivated and prompted cardholders. Push toward activation flow integration to reach Activation level.",
-  tier2: "Campaign (8-12% success rate). Cardholders are prompted via SMS, email, or targeted campaigns. Manufactured motivation. ~1 in 10 acts. Good engagement but room to grow by adding activation flow triggers.",
-  tier3to2: "Discovery \u2192 Campaign (3-8% success rate). This FI is between discovery and campaign-driven traffic. Some outreach is happening but not consistently. Recommend structured campaign cadence to reach Campaign level.",
-  tier3: "Discovery (<3% success rate). Cardholders are browsing online banking with no specific prompt or urgency. Curiosity-only traffic. <1 in 33 completes. This is the starting line — not a verdict. Every FI can move up with the right activation strategy.",
-  unknown: "Tier data unavailable. Insufficient session data to classify this FI's motivation level.",
+  tier1: "Activation-embedded (>=21% conversion rate). These cardholders just received a new card and have urgent intent to update their payment info. 1 in 4 completes. This is the gold standard.",
+  tier2to1: "Campaign-driven \u2192 Activation-embedded (12-21% conversion rate). This FI is between campaign-driven and activation-driven traffic. Likely has a mix of high-intent and prompted cardholders. Push toward activation flow integration to reach Activation-embedded level.",
+  tier2: "Campaign-driven (8-12% conversion rate). Cardholders are prompted via SMS, email, or targeted campaigns. Manufactured intent. ~1 in 10 acts. Good engagement but room to grow by adding activation flow triggers.",
+  tier3to2: "Organic only \u2192 Campaign-driven (3-8% conversion rate). This FI is between organic and campaign-driven traffic. Some outreach is happening but not consistently. Recommend structured campaign cadence to reach Campaign-driven level.",
+  tier3: "Organic only (<3% conversion rate). Cardholders are browsing online banking with no specific prompt or urgency. Curiosity-only traffic. <1 in 33 completes. This is the starting line — not a verdict. Every FI can move up with the right activation strategy.",
+  unknown: "Channel mix data unavailable. Insufficient visit data to classify this FI's channel mix.",
 };
 
 function tierBadgeHtml(tierInfo) {
@@ -775,11 +775,11 @@ function tierBadgeHtml(tierInfo) {
 function integrationBadge(fi) {
   if (!fi.integration_type) return "";
   const isSSO = fi.integration_type === "SSO";
-  const label = isSSO ? "SSO" : "Non-SSO";
+  const label = isSSO ? "Online banking" : "Standalone";
   const cls = isSSO ? "badge-sso" : "badge-nonsso";
   const tooltip = isSSO
-    ? "SSO Integration: CardUpdatr is embedded in online banking with Single Sign-On. The cardholder is pre-authenticated — no need to enter card details. This reduces friction dramatically and enables Activation-level conversion rates of 21%+."
-    : "Non-SSO Integration: CardUpdatr runs standalone or without pre-authentication. The cardholder must manually enter their card number and details. Higher friction typically results in Campaign or Discovery-level conversion rates. Consider SSO integration to unlock Activation-level potential.";
+    ? "Online banking integration: CardUpdatr is embedded in online banking with Single Sign-On. The cardholder is pre-authenticated — no need to enter card details. This reduces friction dramatically and enables Activation-embedded conversion rates of 21%+."
+    : "Standalone integration: CardUpdatr runs standalone or without pre-authentication. The cardholder must manually enter their card number and details. Higher friction typically results in Campaign-driven or Organic-only conversion rates. Consider online banking integration to unlock Activation-embedded potential.";
   return `<span class="integration-badge ${cls}" title="${tooltip}">${label}</span>`;
 }
 
@@ -816,17 +816,17 @@ function buildFiCard(fi) {
         <span class="score-circle score-circle--small ${sColor}">${fi.score}</span>
         <span class="partner-card__metric-label">Score</span>
       </div>
-      <div class="partner-card__metric" title="Select Merchant (SM) sessions: ${formatNumber(sm)} cardholders opened CardUpdatr at ${fi.fi_name} in this time window. Each session = one cardholder reaching the merchant selection page.">
+      <div class="partner-card__metric" title="Visits: ${formatNumber(sm)} cardholders opened CardUpdatr at ${fi.fi_name} in this time window and browsed merchants. Each visit = one cardholder reaching Merchant Select.">
         <span class="partner-card__metric-value">${formatNumber(sm)}</span>
-        <span class="partner-card__metric-label">Sessions</span>
+        <span class="partner-card__metric-label">Visits</span>
       </div>
       <div class="partner-card__metric" title="${sparklineTooltip(fi)}">
         ${sparkline}
         <span class="partner-card__metric-label">4-wk vol</span>
       </div>
-      <div class="partner-card__metric" title="Session Success Rate: ${formatRate(success, sm)} — ${formatNumber(success)} out of ${formatNumber(sm)} sessions resulted in at least one successful card placement at a merchant.">
+      <div class="partner-card__metric" title="Conversion rate: ${formatRate(success, sm)} — ${formatNumber(success)} out of ${formatNumber(sm)} visits resulted in at least one card update at a merchant.">
         <span class="partner-card__metric-value">${formatRate(success, sm)}</span>
-        <span class="partner-card__metric-label">Success</span>
+        <span class="partner-card__metric-label">Conversion</span>
       </div>
     </div>
     ${systemFlag ? `<div style="margin-top:2px;" title="${systemFlagTooltip(fi)}">${systemFlag}</div>` : ""}
@@ -891,15 +891,15 @@ function renderFiTable(fis) {
     const jobHealthLabel = fi.jobsTotal > 0 ? `${(fi.jobFailRate * 100).toFixed(1)}% fail` : "-";
 
     const jobHealthTooltip = fi.jobsTotal > 0
-      ? `Job failure rate: ${(fi.jobFailRate * 100).toFixed(1)}%. ${formatNumber(fi.jobsFailed)} failed out of ${formatNumber(fi.jobsTotal)} total placement jobs. Green = <15% failure (healthy). Amber = 15-30% (elevated). Red = >30% (degraded). Check Operations Dashboard for merchant-level detail.`
+      ? `Job failure rate: ${(fi.jobFailRate * 100).toFixed(1)}%. ${formatNumber(fi.jobsFailed)} failed out of ${formatNumber(fi.jobsTotal)} total card update jobs. Green = <15% failure (healthy). Amber = 15-30% (elevated). Red = >30% (degraded). Check Operations Dashboard for merchant-level detail.`
       : "No job data available for this FI in the selected time window.";
 
     tr.innerHTML = `
       <td title="${fi.fi_name} (${fi.fi_lookup_key})${fi.partner ? ' — Partner: ' + fi.partner : ''}">${fi.fi_name}</td>
       <td>${tierBadgeHtml(fi.tierInfo)}</td>
       <td title="${scoreTooltip(fi)}"><span class="score-circle score-circle--small ${scoreColor(fi.score)}">${fi.score}</span></td>
-      <td title="${formatNumber(fi.SM_Sessions || 0)} Select Merchant sessions — cardholders who opened CardUpdatr and reached the merchant selection page.">${formatNumber(fi.SM_Sessions || 0)}</td>
-      <td title="Session Success Rate: ${formatPercent(fi.successRate)}. ${formatNumber(fi.Success_Sessions || 0)} of ${formatNumber(fi.SM_Sessions || 0)} sessions had at least one successful card placement.">${formatPercent(fi.successRate)}</td>
+      <td title="${formatNumber(fi.SM_Sessions || 0)} visits — cardholders who opened CardUpdatr and browsed merchants at Merchant Select.">${formatNumber(fi.SM_Sessions || 0)}</td>
+      <td title="Conversion rate: ${formatPercent(fi.successRate)}. ${formatNumber(fi.Success_Sessions || 0)} of ${formatNumber(fi.SM_Sessions || 0)} visits had at least one card update.">${formatPercent(fi.successRate)}</td>
       <td>${trendArrow(fi.trend)}</td>
       <td title="${jobHealthTooltip}"><span class="health-dot ${jobHealthColor}" style="margin-right:4px;"></span>${jobHealthLabel}</td>
       <td>${integrationBadge(fi)}</td>
@@ -921,7 +921,7 @@ function renderDetailModal(fi) {
   const ce = fi.CE_Sessions || 0;
   const success = fi.Success_Sessions || 0;
   const sColor = scoreColor(fi.score);
-  const subtitle = [fi.integration_type === "SSO" ? "SSO" : fi.integration_type ? "Non-SSO" : "", fi.partner].filter(Boolean).join(" \u00b7 ");
+  const subtitle = [fi.integration_type === "SSO" ? "Online banking" : fi.integration_type ? "Standalone" : "", fi.partner].filter(Boolean).join(" \u00b7 ");
 
   // Stats grid
   const reachLabel = fi.monthlyReachPct !== null ? `${fi.monthlyReachPct.toFixed(2)}%` : "N/A";
@@ -947,14 +947,14 @@ function renderDetailModal(fi) {
 
     weeklyHtml = `
       <div class="detail-modal__weekly">
-        <div class="detail-modal__weekly-title" title="Session volume and success rate for each of the last 4 weeks (7-day windows). The sparkline shows session volume trend (green = growing, red = declining). The table shows SM sessions, successful sessions, and success rate per week. Week-over-week trend direction (up/down/flat) is determined by comparing the most recent week's success rate to the prior week, with a 2 percentage point threshold.">4-Week Trend</div>
-        <div class="detail-modal__weekly-chart" title="Session volume sparkline — each point represents one week's total SM sessions. Left = oldest (4 weeks ago), right = most recent. Line color: green if most recent week >= prior week, red if declining.">${largeSparkline}</div>
+        <div class="detail-modal__weekly-title" title="Visit volume and conversion rate for each of the last 4 weeks (7-day windows). The sparkline shows visit volume trend (green = growing, red = declining). The table shows visits, cardholders who converted, and conversion rate per week. Week-over-week trend direction (up/down/flat) is determined by comparing the most recent week's conversion rate to the prior week, with a 2 percentage point threshold.">4-Week Trend</div>
+        <div class="detail-modal__weekly-chart" title="Visit volume sparkline — each point represents one week's total visits. Left = oldest (4 weeks ago), right = most recent. Line color: green if most recent week >= prior week, red if declining.">${largeSparkline}</div>
         <table class="detail-modal__weekly-table">
           <thead><tr>
             <th title="7-day window, ending on the indicated relative date.">Week</th>
-            <th title="Select Merchant (SM) sessions — cardholders who opened CardUpdatr in this 7-day window.">Sessions</th>
-            <th title="Sessions where at least one card was successfully updated at a merchant.">Successes</th>
-            <th title="Session Success Rate = Successes / Sessions. This is the primary conversion quality metric used for tier classification and trend detection.">Rate</th>
+            <th title="Visits — cardholders who opened CardUpdatr and browsed merchants in this 7-day window.">Visits</th>
+            <th title="Cardholders who converted — visits where at least one card was successfully updated at a merchant.">Converted</th>
+            <th title="Conversion rate = Converted / Visits. This is the primary conversion quality metric used for channel mix classification and trend detection.">Rate</th>
           </tr></thead>
           <tbody>${weekRows}</tbody>
         </table>
@@ -973,8 +973,8 @@ function renderDetailModal(fi) {
       merchantDetail = `<div style="font-size:0.75rem;color:var(--muted);margin-top:4px;">See Operations Dashboard for merchant-level detail.</div>`;
     }
     systemHtml = `
-      <div class="detail-modal__section-title" title="Job-level system health for this FI. Each 'job' is one card placement attempt at one merchant. A single cardholder session can produce multiple jobs (e.g. updating Netflix + Amazon = 2 jobs). Job failures are caused by merchant site changes, credential issues, or CardSavr system errors — they are NOT caused by cardholders abandoning. Green (<15% fail) = healthy. Amber (15-30%) = elevated. Red (>30%) = degraded.">System Health</div>
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;" title="Job failure rate for ${fi.fi_name}: ${(fi.jobFailRate * 100).toFixed(1)}%. This means ${formatNumber(fi.jobsFailed)} out of ${formatNumber(fi.jobsTotal)} individual card placement attempts failed. Compare with network average on the System Health banner above.">
+      <div class="detail-modal__section-title" title="Job-level system health for this FI. Each 'job' is one card update attempt at one merchant. A single cardholder visit can produce multiple jobs (e.g. updating Netflix + Amazon = 2 jobs). Job failures are caused by merchant site changes, credential issues, or CardSavr system errors — they are NOT caused by cardholders abandoning. Green (<15% fail) = healthy. Amber (15-30%) = elevated. Red (>30%) = degraded.">System Health</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;" title="Job failure rate for ${fi.fi_name}: ${(fi.jobFailRate * 100).toFixed(1)}%. This means ${formatNumber(fi.jobsFailed)} out of ${formatNumber(fi.jobsTotal)} individual card update attempts failed. Compare with network average on the System Health banner above.">
         <span class="health-dot ${failColor}"></span>
         <span style="font-weight:600;">${(fi.jobFailRate * 100).toFixed(1)}% failure rate</span>
         <span style="color:var(--muted);font-size:0.78rem;">(${formatNumber(fi.jobsFailed)} of ${formatNumber(fi.jobsTotal)} jobs)</span>
@@ -985,12 +985,12 @@ function renderDetailModal(fi) {
 
   // Tier diagnosis
   const tierHtml = `
-    <div class="detail-modal__section-title" title="The Motivation Spectrum classifies FI traffic by cardholder motivation at the moment of encounter. Level is determined by Session Success Rate — not product quality. The core thesis: conversion rate is determined by cardholder motivation, and there is a validated 7.7x gap between Activation and Discovery traffic. Every FI can move up with the right strategy.">Motivation Diagnosis</div>
+    <div class="detail-modal__section-title" title="The Channel mix classifies FI traffic by cardholder intent at the moment of encounter. Level is determined by Conversion rate — not product quality. The core thesis: conversion rate is determined by cardholder intent, and there is a validated 7.7x gap between Activation-embedded and Organic-only traffic. Every FI can move up with the right strategy.">Channel mix</div>
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
       ${tierBadgeHtml(fi.tierInfo)}
       <span style="font-weight:600;">${fi.tierInfo.label}</span>
     </div>
-    <div style="font-size:0.78rem;color:var(--muted);" title="Session Success Rate determines motivation level. This rate measures what percentage of CardUpdatr sessions result in at least one successful card placement. Levels: >=21% = Activation, >=12% = Campaign→Activation, >=8% = Campaign, >=3% = Discovery→Campaign, <3% = Discovery.">Based on ${formatPercent(fi.successRate)} session success rate</div>
+    <div style="font-size:0.78rem;color:var(--muted);" title="Conversion rate determines channel mix. This rate measures what percentage of CardUpdatr visits result in at least one card update. Levels: >=21% = Activation-embedded, >=12% = Campaign-driven→Activation-embedded, >=8% = Campaign-driven, >=3% = Organic only→Campaign-driven, <3% = Organic only.">Based on ${formatPercent(fi.successRate)} conversion rate</div>
   `;
 
   // Reach math
@@ -1003,10 +1003,10 @@ function renderDetailModal(fi) {
     const rmGap = Math.max(0, rmPool - rmReach);
     const rmPctReached = rmPool > 0 ? Math.min(100, Math.round((rmReach / rmPool) * 100)) : 0;
     const gapLine = rmGap > 0
-      ? `<div style="margin-top:6px;padding:6px 10px;background:rgba(37,99,235,0.06);border:1px solid rgba(37,99,235,0.15);border-radius:6px;font-size:0.75rem;color:#1e40af;font-weight:600;">Gap: ${formatNumber(rmGap)} motivated cardholders/month not yet reached (${rmPctReached}% of pool reached)</div>`
+      ? `<div style="margin-top:6px;padding:6px 10px;background:rgba(37,99,235,0.06);border:1px solid rgba(37,99,235,0.15);border-radius:6px;font-size:0.75rem;color:#1e40af;font-weight:600;">Gap: ${formatNumber(rmGap)} high-intent cardholders/month not yet reached (${rmPctReached}% of pool reached)</div>`
       : "";
     reachMathHtml = `
-      <div class="detail-modal__section-title" title="Card Replacement Reach Math: ~2.5% of cardholders replace their card each month (expirations + lost/stolen). These are Activation-level cardholders at peak motivation. This section shows how many you're currently reaching.">Card Replacement Opportunity</div>
+      <div class="detail-modal__section-title" title="Card Replacement Adoption Math: ~2.5% of cardholders replace their card each month (expirations + lost/stolen). These are Activation-embedded cardholders at peak intent. This section shows how many you're currently reaching.">Card Replacement Opportunity</div>
       <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:6px;">
         <div style="text-align:center;padding:8px;background:var(--panel,#f8fafc);border:1px solid var(--border,#e2e8f0);border-radius:8px;">
           <div style="font-size:1.1rem;font-weight:800;">${formatNumber(rmPool)}</div>
@@ -1022,7 +1022,7 @@ function renderDetailModal(fi) {
         </div>
         <div style="text-align:center;padding:8px;background:var(--panel,#f8fafc);border:1px solid var(--border,#e2e8f0);border-radius:8px;">
           <div style="font-size:1.1rem;font-weight:800;">${formatNumber(rmPotential)}</div>
-          <div style="font-size:0.7rem;color:var(--muted,#64748b);">Potential placements/mo</div>
+          <div style="font-size:0.7rem;color:var(--muted,#64748b);">Potential cards updated/mo</div>
         </div>
       </div>
       ${gapLine}
@@ -1087,33 +1087,33 @@ function renderDetailModal(fi) {
         <button class="detail-modal__close" type="button">&times;</button>
       </div>
       <div class="detail-modal__stats">
-        <div class="partner-detail-panel__stat" title="Select Merchant (SM) Sessions: The number of times cardholders at ${fi.fi_name} opened CardUpdatr and reached the merchant selection page. This is the top of the conversion funnel — every cardholder journey starts here.">
+        <div class="partner-detail-panel__stat" title="Visits: The number of times cardholders at ${fi.fi_name} opened CardUpdatr and browsed merchants at Merchant Select. This is the top of the conversion funnel — every cardholder journey starts here.">
           <span class="partner-detail-panel__stat-value">${formatNumber(sm)}</span>
-          <span class="partner-detail-panel__stat-label">SM Sessions</span>
+          <span class="partner-detail-panel__stat-label">Visits</span>
         </div>
-        <div class="partner-detail-panel__stat" title="Credential Entry (CE) Sessions: Cardholders who selected a merchant and proceeded to enter their login credentials. SM-to-CE drop-off indicates friction at the merchant selection step (${sm > 0 ? ((ce/sm)*100).toFixed(1) : 0}% of SM sessions reached CE).">
+        <div class="partner-detail-panel__stat" title="Started updating: Cardholders who selected a merchant and proceeded to enter their login credentials. Visit-to-Started drop-off indicates friction at the merchant selection step (${sm > 0 ? ((ce/sm)*100).toFixed(1) : 0}% of visits started updating).">
           <span class="partner-detail-panel__stat-value">${formatNumber(ce)}</span>
-          <span class="partner-detail-panel__stat-label">CE Sessions</span>
+          <span class="partner-detail-panel__stat-label">Started</span>
         </div>
-        <div class="partner-detail-panel__stat" title="Successful Sessions: Cardholders who completed at least one card update at a merchant. This is the bottom of the funnel — the core outcome metric. ${success} out of ${sm} sessions succeeded.">
+        <div class="partner-detail-panel__stat" title="Cardholders who converted: Cardholders who completed at least one card update at a merchant. This is the bottom of the funnel — the core outcome metric. ${success} out of ${sm} visits converted.">
           <span class="partner-detail-panel__stat-value">${formatNumber(success)}</span>
-          <span class="partner-detail-panel__stat-label">Successes</span>
+          <span class="partner-detail-panel__stat-label">Converted</span>
         </div>
-        <div class="partner-detail-panel__stat" title="Session Success Rate: ${formatRate(success, sm)} of sessions resulted in at least one successful card placement. This is the primary conversion quality metric. Activation-level FIs achieve >=21%, Campaign-level achieves 8-12%, Discovery-level is <3%.">
+        <div class="partner-detail-panel__stat" title="Conversion rate: ${formatRate(success, sm)} of visits resulted in at least one card update. This is the primary conversion quality metric. Activation-embedded FIs achieve >=21%, Campaign-driven achieves 8-12%, Organic-only is <3%.">
           <span class="partner-detail-panel__stat-value">${formatRate(success, sm)}</span>
-          <span class="partner-detail-panel__stat-label">Success Rate</span>
+          <span class="partner-detail-panel__stat-label">Conversion rate</span>
         </div>
-        <div class="partner-detail-panel__stat" title="Total Jobs: Individual card placement attempts across all merchants. One session can produce multiple jobs if the cardholder updates cards at multiple merchants (e.g. Netflix + Amazon + Spotify in one session). ${formatNumber(fi.jobsTotal)} jobs from ${formatNumber(sm)} sessions = ${sm > 0 ? (fi.jobsTotal / sm).toFixed(1) : 0} jobs per session.">
+        <div class="partner-detail-panel__stat" title="Total Jobs: Individual card update attempts across all merchants. One visit can produce multiple jobs if the cardholder updates cards at multiple merchants (e.g. Netflix + Amazon + Spotify in one visit). ${formatNumber(fi.jobsTotal)} jobs from ${formatNumber(sm)} visits = ${sm > 0 ? (fi.jobsTotal / sm).toFixed(1) : 0} jobs per visit.">
           <span class="partner-detail-panel__stat-value">${formatNumber(fi.jobsTotal)}</span>
           <span class="partner-detail-panel__stat-label">Total Jobs</span>
         </div>
-        <div class="partner-detail-panel__stat" title="Job Success Rate: Percentage of individual card placement jobs that completed successfully. Different from Session Success Rate — this measures per-merchant outcomes, not per-cardholder outcomes. Failures here are typically caused by merchant site changes or credential issues. Green >=85%, Amber >=70%, Red <70%.">
+        <div class="partner-detail-panel__stat" title="Job Success Rate: Percentage of individual card update jobs that completed successfully. Different from Conversion rate — this measures per-merchant outcomes, not per-cardholder outcomes. Failures here are typically caused by merchant site changes or credential issues. Green >=85%, Amber >=70%, Red <70%.">
           <span class="partner-detail-panel__stat-value">${jobSuccessRate}</span>
           <span class="partner-detail-panel__stat-label">Job Success Rate</span>
         </div>
-        <div class="partner-detail-panel__stat" title="Monthly Reach %: What percentage of this FI's total cardholders used CardUpdatr in this time window. Calculated as SM Sessions / Total Cardholders on File (${formatNumber(fi.cardholder_total || 0)}). Target: 2.5% monthly reach means CardUpdatr is being encountered by cardholders at the rate of natural card replacement (~25% annual portfolio turnover). N/A means no cardholder count is on file for this FI.">
+        <div class="partner-detail-panel__stat" title="Monthly adoption: What percentage of this FI's total cardholders used CardUpdatr in this time window. Calculated as Visits / Total Cardholders on File (${formatNumber(fi.cardholder_total || 0)}). Target: 2.5% monthly adoption means CardUpdatr is being encountered by cardholders at the rate of natural card replacement (~25% annual portfolio turnover). N/A means no cardholder count is on file for this FI.">
           <span class="partner-detail-panel__stat-value">${reachLabel}</span>
-          <span class="partner-detail-panel__stat-label">Monthly Reach %</span>
+          <span class="partner-detail-panel__stat-label">Monthly adoption</span>
         </div>
         <div class="partner-detail-panel__stat" title="${scoreTooltip(fi)}">
           <span class="partner-detail-panel__stat-value">${fi.score}</span>
@@ -1368,8 +1368,8 @@ function renderKioskNetworkChart() {
       ${xLabelsHtml}
     </svg>
     <div style="display:flex;align-items:center;gap:16px;font-size:0.75rem;color:var(--muted);padding:6px 8px 0;">
-      <span style="display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:8px;height:8px;background:#60a5fa;border-radius:2px;opacity:0.6;flex-shrink:0;"></span>Sessions</span>
-      <span style="display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:8px;height:8px;background:#22c55e;border-radius:50%;flex-shrink:0;"></span>Success Rate</span>
+      <span style="display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:8px;height:8px;background:#60a5fa;border-radius:2px;opacity:0.6;flex-shrink:0;"></span>Visits</span>
+      <span style="display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:8px;height:8px;background:#22c55e;border-radius:50%;flex-shrink:0;"></span>Conversion rate</span>
       <span style="display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:16px;height:0;border-top:2px dashed var(--muted);opacity:0.7;flex-shrink:0;"></span>7d avg</span>
       <span style="display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:16px;height:0;border-top:2px dotted var(--muted);opacity:0.5;flex-shrink:0;"></span>30d avg</span>
     </div>
@@ -1431,7 +1431,7 @@ function renderKioskDistributions(fis) {
 
   container.innerHTML = `
     <div class="kiosk-dist-section">
-      <div class="kiosk-dist-section__label">Motivation Distribution</div>
+      <div class="kiosk-dist-section__label">Channel mix</div>
       <div class="kiosk-dist-bar">${tierBarHtml}</div>
       <div class="kiosk-dist-legend">${tierLegendHtml}</div>
     </div>
@@ -1459,7 +1459,7 @@ function buildKioskCard(fi) {
   // Verbose tooltip with engagement detail
   const scoreBreakdown = scoreTooltip(fi);
   const tierDesc = TIER_TOOLTIPS[fi.tierInfo.zone] || "";
-  card.title = `${fi.fi_name}${fi.partner ? " — " + fi.partner : ""}${fi.integration_type ? " (" + fi.integration_type + ")" : ""}\n\n${scoreBreakdown}\n\nTier: ${fi.tierInfo.label}\n${tierDesc}\n\nSessions: ${formatNumber(sm)} | Success Rate: ${formatPercent(fi.successRate)} | Trend: ${fi.trend}${fi.monthlyReachPct !== null ? "\nMonthly Reach: " + fi.monthlyReachPct.toFixed(2) + "%" : ""}\n\nClick for detailed breakdown.`;
+  card.title = `${fi.fi_name}${fi.partner ? " — " + fi.partner : ""}${fi.integration_type ? " (" + (fi.integration_type === "SSO" ? "Online banking" : "Standalone") + ")" : ""}\n\n${scoreBreakdown}\n\nChannel mix: ${fi.tierInfo.label}\n${tierDesc}\n\nVisits: ${formatNumber(sm)} | Conversion rate: ${formatPercent(fi.successRate)} | Trend: ${fi.trend}${fi.monthlyReachPct !== null ? "\nMonthly adoption: " + fi.monthlyReachPct.toFixed(2) + "%" : ""}\n\nClick for detailed breakdown.`;
   card.innerHTML = `
     <div class="partner-card__header">
       <span class="partner-card__name" title="${fi.fi_name} (${fi.fi_lookup_key})${fi.partner ? ' — Partner: ' + fi.partner : ''}">${fi.fi_name}</span>
@@ -1474,17 +1474,17 @@ function buildKioskCard(fi) {
         <span class="score-circle score-circle--small ${sColor}">${fi.score}</span>
         <span class="partner-card__metric-label">Score</span>
       </div>
-      <div class="partner-card__metric" title="${formatNumber(sm)} Select Merchant sessions at ${fi.fi_name}.">
+      <div class="partner-card__metric" title="${formatNumber(sm)} visits at ${fi.fi_name}.">
         <span class="partner-card__metric-value">${formatNumber(sm)}</span>
-        <span class="partner-card__metric-label">Sessions</span>
+        <span class="partner-card__metric-label">Visits</span>
       </div>
       <div class="partner-card__metric" title="${sparklineTooltip(fi)}">
         ${sparkline}
         <span class="partner-card__metric-label">4-wk vol</span>
       </div>
-      <div class="partner-card__metric" title="Session Success Rate: ${formatRate(success, sm)} — ${formatNumber(success)} of ${formatNumber(sm)} sessions.">
+      <div class="partner-card__metric" title="Conversion rate: ${formatRate(success, sm)} — ${formatNumber(success)} of ${formatNumber(sm)} visits.">
         <span class="partner-card__metric-value">${formatRate(success, sm)}</span>
-        <span class="partner-card__metric-label">Success</span>
+        <span class="partner-card__metric-label">Conversion</span>
       </div>
     </div>
   `;
@@ -1594,35 +1594,35 @@ function renderKioskKpis(fis) {
   const priorAvgDailySessions = priorSessions.length && priorTotalSm > 0 ? (priorTotalSm / priorSessions.length).toFixed(1) : "N/A";
 
   const tipRate = [
-    "NETWORK SUCCESS RATE",
-    "Weighted average session success rate across all active FIs.",
+    "NETWORK CONVERSION RATE",
+    "Weighted average conversion rate across all active FIs.",
     "",
-    `This week: ${formatPercent(networkRate)} (${formatNumber(totalSuccess)} of ${formatNumber(totalSm)} sessions)`,
-    priorTotalSm > 0 ? `Prior week: ${formatPercent(priorNetworkRate)} (${formatNumber(priorTotalSuccess)} of ${formatNumber(priorTotalSm)} sessions)` : "",
+    `This week: ${formatPercent(networkRate)} (${formatNumber(totalSuccess)} of ${formatNumber(totalSm)} visits)`,
+    priorTotalSm > 0 ? `Prior week: ${formatPercent(priorNetworkRate)} (${formatNumber(priorTotalSuccess)} of ${formatNumber(priorTotalSm)} visits)` : "",
     "",
-    "Sparkline: solid line = daily success rate.",
+    "Sparkline: solid line = daily conversion rate.",
     "Dashed line = prior week daily average rate.",
   ].filter(Boolean).join("\n");
 
   const tipSessions = [
-    "TOTAL SESSIONS",
-    "Select Merchant (SM) sessions across all FIs.",
+    "TOTAL VISITS",
+    "Visits across all FIs.",
     "",
     `This week: ${formatNumber(totalSm)} (${avgDailySessions}/day avg)`,
     `Prior week: ${formatNumber(priorTotalSm)} (${priorAvgDailySessions}/day avg)`,
     "",
-    "Sparkline: solid line = daily session volume.",
+    "Sparkline: solid line = daily visit volume.",
     "Dashed line = prior week daily average.",
   ].filter(Boolean).join("\n");
 
   const tipPlacements = [
-    "TOTAL PLACEMENTS",
-    "Successful card placements (cards updated at merchants).",
+    "TOTAL CARDS UPDATED",
+    "Cards updated at merchants.",
     "",
     `This week: ${formatNumber(totalPlacements)}`,
     priorTotalPlacements > 0 ? `Prior week: ${formatNumber(priorTotalPlacements)}` : "",
     "",
-    "Sparkline: solid line = daily placement count.",
+    "Sparkline: solid line = daily card update count.",
     "Dashed line = prior week daily average.",
   ].filter(Boolean).join("\n");
 
@@ -1646,7 +1646,7 @@ function renderKioskKpis(fis) {
   row.innerHTML = `
     <div class="card kpi-spark-card" title="${tipRate}">
       <div class="kpi-spark-left">
-        <h3>Success Rate ${successTrend}</h3>
+        <h3>Conversion rate ${successTrend}</h3>
         <div class="kpi-value">${formatPercent(networkRate)}</div>
         ${priorTotalSm > 0 ? `<div class="kpi-delta" style="color:#a8b3cf;font-size:0.75rem;margin-top:4px;">Prior wk: ${formatPercent(priorNetworkRate)}</div>` : ""}
       </div>
@@ -1654,17 +1654,17 @@ function renderKioskKpis(fis) {
     </div>
     <div class="card kpi-spark-card" title="${tipSessions}">
       <div class="kpi-spark-left">
-        <h3>Total Sessions (7d)</h3>
+        <h3>Total Visits (7d)</h3>
         <div class="kpi-value">${formatNumber(totalSm)}</div>
-        ${kpiDeltaHtml(totalSm, priorTotalSm, "sessions")}
+        ${kpiDeltaHtml(totalSm, priorTotalSm, "visits")}
       </div>
       <div class="kpi-spark-right">${buildPortfolioKpiSparkline(dailySessions, priorSessions, "#60a5fa", false)}</div>
     </div>
     <div class="card kpi-spark-card" title="${tipPlacements}">
       <div class="kpi-spark-left">
-        <h3>Placements (7d)</h3>
+        <h3>Cards updated (7d)</h3>
         <div class="kpi-value">${formatNumber(totalPlacements)}</div>
-        ${kpiDeltaHtml(totalPlacements, priorTotalPlacements, "placements")}
+        ${kpiDeltaHtml(totalPlacements, priorTotalPlacements, "cards updated")}
       </div>
       <div class="kpi-spark-right">${buildPortfolioKpiSparkline(dailyPlacements, priorPlacements, "#a78bfa", false)}</div>
     </div>
@@ -1687,14 +1687,14 @@ function handleExportCsv() {
     "FI Name",
     "FI Lookup Key",
     "Tier",
-    "Tier Label",
+    "Channel mix",
     "Engagement Score",
-    "SM Sessions",
-    "CE Sessions",
-    "Success Sessions",
-    "Success Rate",
+    "Visits",
+    "Started updating",
+    "Cardholders who converted",
+    "Conversion rate",
     "Trend",
-    "Monthly Reach %",
+    "Monthly adoption %",
     "Jobs Total",
     "Jobs Failed",
     "Job Failure Rate",

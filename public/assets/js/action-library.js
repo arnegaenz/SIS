@@ -13,11 +13,11 @@
 const PLAYBOOK_SECTIONS = {
   activation: {
     title: 'Issuance & Activation Flows',
-    description: 'Embedding CardUpdatr into your card activation process is the single most important step to maximizing card usage. When a cardholder receives a new card — whether from a new account, expiration replacement, or lost/stolen reissuance — they are at peak motivation to take action. This is the moment they are most excited about their new card and most willing to take an extra step. Institutions that connect CardUpdatr to this moment consistently see the highest conversion rates across all channels.',
+    description: 'Embedding CardUpdatr into your card activation process is the single most important step to maximizing card usage. When a cardholder receives a new card — whether from a new account, expiration replacement, or lost/stolen reissuance — they are at peak motivation to take action. This is the moment they are most excited about their new card and most willing to take an extra step. Institutions that connect CardUpdatr to this moment consistently see the highest conversion rates across all high-intent channels.',
   },
   campaigns: {
     title: 'Targeted Campaigns & Promotions',
-    description: 'Campaigns create engagement by reaching cardholders with timely, relevant prompts that give them a reason to act. Seasonal events, behavioral triggers like dormant card reactivation, and incentive programs all manufacture a moment of motivation. While conversion rates are naturally lower than activation flows, campaigns reach a broader audience and can be scaled, repeated, and tested to build a steady pipeline of card-on-file updates throughout the year.',
+    description: 'Campaigns create engagement by reaching cardholders with timely, relevant prompts that give them a reason to act. Seasonal events, behavioral triggers like dormant card reactivation, and incentive programs all manufacture a moment of motivation. While conversion rates are naturally lower than activation-embedded flows, campaigns reach a broader audience and can be scaled, repeated, and tested to build a steady pipeline of card-on-file updates throughout the year.',
   },
   visibility: {
     title: 'Digital Banking Visibility',
@@ -148,10 +148,10 @@ const ACTION_LIBRARY = {
   low_cred_value_prop: {
     actionIndex: 0,
     channels: [
-      { channel: 'Value Proposition Copy — Point of Encounter', icon: '\u{270D}\u{FE0F}', examples: [
-        { headline: 'Problem \u2192 Solution framing', body: 'Tired of updating your card at every site when you get a new one? Update all your merchants in one step.', tags: ['value-prop', 'problem-solution'] },
-        { headline: 'Speed framing', body: 'Update your card at Netflix, Amazon, Spotify, and more in less than 2 minutes.', tags: ['value-prop', 'speed'] },
-        { headline: 'Prevention framing', body: 'Don\'t wait for a failed payment to find out your card is outdated. Update all your merchants now.', tags: ['value-prop', 'prevention'] },
+      { channel: 'Messaging at the moment of encounter', icon: '\u{270D}\u{FE0F}', examples: [
+        { headline: 'Lead with the pain', body: 'Tired of updating your card at every site when you get a new one? Update all your merchants in one step.', tags: ['value-prop', 'problem-solution'] },
+        { headline: 'Lead with speed', body: 'Update your card at Netflix, Amazon, Spotify, and more in less than 2 minutes.', tags: ['value-prop', 'speed'] },
+        { headline: 'Lead with prevention', body: 'Don\'t wait for a failed payment to find out your card is outdated. Update all your merchants now.', tags: ['value-prop', 'prevention'] },
       ]},
     ],
     playbookSection: 'optimization'
@@ -175,9 +175,9 @@ const ACTION_LIBRARY = {
   good_performance_scale: {
     actionIndex: 0,
     channels: [
-      { channel: 'Scaling Strategy', icon: '\u{1F4C8}', examples: [
+      { channel: 'How to scale up', icon: '\u{1F4C8}', examples: [
         { headline: 'Expand to additional card products', body: 'If CardUpdatr is performing well on debit, extend it to credit card activation flows. Same infrastructure, new volume.', tags: ['scaling', 'strategy'] },
-        { headline: 'Increase campaign frequency', body: 'If monthly campaigns deliver 8\u201312% success, try bi-weekly. Same audience, more touchpoints, compounding results.', tags: ['scaling', 'strategy'] },
+        { headline: 'Increase campaign frequency', body: 'If monthly campaigns deliver 8\u201312% conversion, try bi-weekly. Same audience, more touchpoints, compounding results.', tags: ['scaling', 'strategy'] },
       ]},
     ],
     playbookSection: 'scaling'
@@ -186,7 +186,7 @@ const ACTION_LIBRARY = {
   good_performance_layer: {
     actionIndex: 1,
     channels: [
-      { channel: 'Channel Layering Strategy', icon: '\u{1F4CA}', examples: [
+      { channel: 'How to add another channel', icon: '\u{1F4CA}', examples: [
         { headline: 'Add SMS to complement email', body: 'If your email campaigns are working, add an SMS follow-up 24 hours later for non-openers. SMS typically has higher open rates and creates a second chance to convert.', tags: ['channel-layering', 'strategy'] },
         { headline: 'Add in-app messaging', body: 'Trigger a CardUpdatr prompt when cardholders view their card details or make a payment. Catches them in a card-management mindset.', tags: ['channel-layering', 'strategy'] },
       ]},
@@ -199,7 +199,7 @@ const ACTION_LIBRARY = {
   best_week_replicate: {
     actionIndex: 0,
     channels: [
-      { channel: 'Investigation Checklist', icon: '\u{1F50D}', examples: [
+      { channel: 'How to learn from your best week', icon: '\u{1F50D}', examples: [
         { headline: 'What to look for in your best-performing week', body: 'Check: Was there a campaign that week? A card reissuance batch? A new feature launch? A newsletter mention? Identifying the trigger helps you replicate it.', tags: ['investigation', 'best-week'] },
         { headline: 'Replication strategy', body: 'Once you identify the trigger, schedule it as a recurring activity. If a newsletter mention drove your best week, make CardUpdatr a permanent newsletter feature.', tags: ['replication', 'best-week'] },
       ]},

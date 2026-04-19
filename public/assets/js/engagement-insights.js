@@ -18,22 +18,22 @@ const LOW_VOLUME_THRESHOLD = 30;
 // ─── Tier Boundaries ────────────────────────────────────────────────────────
 
 const TIER_BOUNDARIES = {
-  tier1: { min: 21, max: 27, label: 'Activation', color: '#22c55e' },
-  tier2: { min: 8, max: 12, label: 'Campaign', color: '#eab308' },
-  tier3: { min: 0, max: 3, label: 'Discovery', color: '#ef4444' },
+  tier1: { min: 21, max: 27, label: 'Activation-embedded', color: '#22c55e' },
+  tier2: { min: 8, max: 12, label: 'Campaign-driven', color: '#eab308' },
+  tier3: { min: 0, max: 3, label: 'Organic only', color: '#ef4444' },
   // Transition zones
-  tier2to1: { min: 12, max: 21, label: 'Campaign → Activation', color: '#84cc16' },
-  tier3to2: { min: 3, max: 8, label: 'Discovery → Campaign', color: '#f97316' },
+  tier2to1: { min: 12, max: 21, label: 'Campaign → Activation-embedded', color: '#84cc16' },
+  tier3to2: { min: 3, max: 8, label: 'Organic → Campaign-driven', color: '#f97316' },
 };
 
 // Non-SSO tiers: post-commitment traffic has higher baselines
 // Every non-SSO "visit" already represents a cardholder who entered card data manually.
 const NONSSO_TIER_BOUNDARIES = {
-  tier1: { min: 35, max: 67, label: 'Activation', color: '#22c55e' },
-  tier2: { min: 15, max: 25, label: 'Campaign', color: '#eab308' },
-  tier3: { min: 0, max: 8, label: 'Discovery', color: '#ef4444' },
-  tier2to1: { min: 25, max: 35, label: 'Campaign → Activation', color: '#84cc16' },
-  tier3to2: { min: 8, max: 15, label: 'Discovery → Campaign', color: '#f97316' },
+  tier1: { min: 35, max: 67, label: 'Activation-embedded', color: '#22c55e' },
+  tier2: { min: 15, max: 25, label: 'Campaign-driven', color: '#eab308' },
+  tier3: { min: 0, max: 8, label: 'Organic only', color: '#ef4444' },
+  tier2to1: { min: 25, max: 35, label: 'Campaign → Activation-embedded', color: '#84cc16' },
+  tier3to2: { min: 8, max: 15, label: 'Organic → Campaign-driven', color: '#f97316' },
 };
 
 // ─── Benchmark Data ─────────────────────────────────────────────────────────
@@ -52,7 +52,7 @@ const BENCHMARKS = {
     sessionSuccessRange: '8–12%',
     description: 'Best campaign weeks across the network',
     proof: 'Multiple weeks sustained this range across hundreds of visits',
-    scaleProof: 'One partner achieved 409 visits at 9.8% in a single week — high volume doesn\'t dilute conversion when traffic is motivated',
+    scaleProof: 'One partner achieved 409 visits at 9.8% in a single week — high volume doesn\'t dilute conversion when traffic is high-intent',
     _admin: {
       sources: 'MSUFCU best weeks 2025 (6 weeks confirmed)',
       scaleDetail: 'MSUFCU Jan 19–25 week — 409 selects, 9.8% success, 76 placements',
@@ -61,22 +61,22 @@ const BENCHMARKS = {
   credentialEntryMotivated: {
     rate: 18.3,
     rateLabel: '18.3%',
-    description: 'Select→Credential rate for motivated cardholder flows',
-    comparison: 'vs 2.4% for incidental discovery traffic',
+    description: 'Browsed-merchants → Started-updating rate for high-intent channels',
+    comparison: 'vs 2.4% for organic-only traffic',
   },
   motivationMultiplier: {
     value: 7.7,
     valueLabel: '7.7×',
-    description: 'Card placement rate for motivated flows vs incidental',
+    description: 'Card update rate for high-intent channels vs organic',
   },
   medianGapAcrossFIs: {
     value: 5.3,
     valueLabel: '5.3×',
-    description: 'Median cardholder success gap between motivated and incidental across all FIs',
+    description: 'Median conversion rate gap between high-intent and organic channels across all FIs',
     proof: 'Removes any single-partner skew — pattern holds broadly',
   },
   nonSSOOutliers: {
-    headline: 'Even without pre-authenticated integration, issuers targeting motivated cardholders achieve up to 23–36% cardholder success',
+    headline: 'Even without pre-authenticated integration, issuers targeting high-intent cardholders achieve up to 23–36% conversion rate',
     description: 'Proves it\'s motivation, not technology',
     _admin: {
       sources: 'Cape Cod Five 66.7%, Kemba 36.0%, ORNL 12.5% cred entry at 1,367 selects',
@@ -103,10 +103,10 @@ const NARRATIVE_RULES = [
     metric: 'selCredPct',
     section: 'conversion',
     condition: (m) => m.selCredPct !== null && m.selCredPct < 5,
-    narrative: (m) => `Your cardholders are browsing merchants, and <strong>${fmt(m.selCredPct)}%</strong> are taking the next step to enter credentials — a foundation of organic engagement. Partners who add targeted activation flows or campaign touchpoints typically see this rate jump to 18–27%, unlocking significantly more placements from the same cardholder base.`,
+    narrative: (m) => `Your cardholders are browsing merchants, and <strong>${fmt(m.selCredPct)}%</strong> are taking the next step and starting to update — a foundation of organic engagement. Partners who add targeted activation flows or campaign touchpoints typically see this rate jump to 18–27%, unlocking significantly more card updates from the same cardholder base.`,
     benchmarks: ['credentialEntryMotivated'],
     filterHint: (m) => m.hasMultipleIntegrations ? {
-      text: 'Try filtering to SSO integrations to isolate motivated traffic patterns',
+      text: 'Try filtering to online banking integrations to isolate high-intent traffic patterns',
       action: 'filter', filters: { integration: 'SSO' },
       secondaryLink: { text: 'Learn about integration sources', url: 'https://developers.strivve.com/integrations/sources' },
     } : null,
@@ -116,7 +116,7 @@ const NARRATIVE_RULES = [
     metric: 'selCredPct',
     section: 'conversion',
     condition: (m) => m.selCredPct !== null && m.selCredPct >= 5 && m.selCredPct <= 15,
-    narrative: (m) => `<strong>${fmt(m.selCredPct)}%</strong> of cardholders who browse merchants are engaging further — a solid indicator that your traffic includes motivated cardholders. Isolating your campaign-driven or activation visits would likely reveal even stronger engagement within that cohort, pointing the way to scale what's working.`,
+    narrative: (m) => `<strong>${fmt(m.selCredPct)}%</strong> of cardholders who browse merchants are engaging further — a solid indicator that your traffic includes high-intent cardholders. Isolating your campaign-driven or activation-embedded visits would likely reveal even stronger engagement within that cohort, pointing the way to scale what's working.`,
     benchmarks: ['credentialEntryMotivated'],
     filterHint: (m) => m.hasMultipleFIs ? {
       text: 'Filter to individual FIs to see which are driving higher engagement',
@@ -128,7 +128,7 @@ const NARRATIVE_RULES = [
     metric: 'selCredPct',
     section: 'conversion',
     condition: (m) => m.selCredPct !== null && m.selCredPct > 15,
-    narrative: (m) => `Great engagement — <strong>${fmt(m.selCredPct)}%</strong> of cardholders who see merchants are taking action. This is the kind of motivated traffic that drives real results, consistent with activation flows or targeted campaigns reaching the right cardholders at the right time.`,
+    narrative: (m) => `Great engagement — <strong>${fmt(m.selCredPct)}%</strong> of cardholders who see merchants are taking action. This is the kind of high-intent traffic that drives real results, consistent with activation flows or targeted campaigns reaching the right cardholders at the right time.`,
     benchmarks: [],
   },
 
@@ -139,7 +139,7 @@ const NARRATIVE_RULES = [
     metric: 'sessionSuccessPct',
     section: 'headline',
     condition: (m) => m.sessionSuccessPct !== null && m.sessionSuccessPct < 3,
-    narrative: (m) => `Your cardholders are converting at <strong>${fmt(m.sessionSuccessPct)}%</strong> today — typical of early-stage deployment where cardholders discover CardUpdatr organically during routine banking. This is actually a solid starting point: partners who layer in targeted activation or campaign touchpoints consistently see this rate jump to 8–12%, with activation flows reaching 21–27%.${m.hasSSO ? ' Your SSO integration is a strong foundation — the next step is connecting it to card activation moments when cardholder motivation peaks.' : ''}`,
+    narrative: (m) => `Your cardholders are converting at <strong>${fmt(m.sessionSuccessPct)}%</strong> today — typical of early-stage deployment where cardholders discover CardUpdatr organically during routine banking. This is actually a solid starting point: partners who layer in targeted activation or campaign touchpoints consistently see this rate jump to 8–12%, with activation flows reaching 21–27%.${m.hasSSO ? ' Your online banking integration is a strong foundation — the next step is connecting it to card activation moments when cardholder intent peaks.' : ''}`,
     benchmarks: ['campaignWeeksSustained', 'activationFlowPeakDays'],
   },
   {
@@ -147,7 +147,7 @@ const NARRATIVE_RULES = [
     metric: 'sessionSuccessPct',
     section: 'headline',
     condition: (m) => m.sessionSuccessPct !== null && m.sessionSuccessPct >= 3 && m.sessionSuccessPct <= 8,
-    narrative: (m) => `At <strong>${fmt(m.sessionSuccessPct)}%</strong>, you're seeing campaign-tier engagement — your cardholders are responding to how they're encountering CardUpdatr. This is strong momentum. Partners who sustain and expand this approach consistently reach 8–12% success rates, with the highest performers pushing into the activation-flow range.`,
+    narrative: (m) => `At <strong>${fmt(m.sessionSuccessPct)}%</strong>, you're seeing Campaign-driven engagement — your cardholders are responding to how they're encountering CardUpdatr. This is strong momentum. Partners who sustain and expand this approach consistently reach 8–12% conversion rates, with the highest performers pushing into the Activation-embedded range.`,
     benchmarks: ['campaignWeeksSustained'],
     filterHint: () => ({
       text: 'Compare weekly periods to identify which weeks drive campaign-level performance',
@@ -159,7 +159,7 @@ const NARRATIVE_RULES = [
     metric: 'sessionSuccessPct',
     section: 'headline',
     condition: (m) => m.sessionSuccessPct !== null && m.sessionSuccessPct > 8,
-    narrative: (m) => `Excellent performance — a <strong>${fmt(m.sessionSuccessPct)}%</strong> cardholder success rate puts you in the <strong>activation-flow tier</strong>, the highest bracket across the network. Your cardholders are reaching CardUpdatr at the right moment with the right motivation. The focus now is scaling this volume while maintaining conversion quality — partners who do this see compounding returns.`,
+    narrative: (m) => `Excellent performance — a <strong>${fmt(m.sessionSuccessPct)}%</strong> conversion rate puts you in the <strong>activation-embedded tier</strong>, the highest bracket across the network. Your cardholders are reaching CardUpdatr at the right moment with the right intent. The focus now is scaling this volume while maintaining conversion quality — partners who do this see compounding returns.`,
     benchmarks: ['activationFlowPeakDays'],
   },
 
@@ -170,7 +170,7 @@ const NARRATIVE_RULES = [
     metric: 'avgCardsPerSession',
     section: 'outcomes',
     condition: (m) => m.avgCardsPerSession !== null && m.avgCardsPerSession > 0 && m.avgCardsPerSession < 1.5 && m.sessionsWithSuccess >= 10,
-    narrative: (m) => `Your successful cardholders are averaging <strong>${fmt(m.avgCardsPerSession)}</strong> card updates per visit. Partners who surface a curated list of popular, relevant merchants see cardholders update more accounts per visit — deepening each visit's impact and multiplying the value of every successful engagement.`,
+    narrative: (m) => `Cardholders who converted are averaging <strong>${fmt(m.avgCardsPerSession)}</strong> card updates per visit. Partners who surface a curated list of popular, relevant merchants see cardholders update more accounts per visit — deepening each visit's impact and multiplying the value of every successful engagement.`,
     benchmarks: [],
   },
   {
@@ -178,7 +178,7 @@ const NARRATIVE_RULES = [
     metric: 'avgCardsPerSession',
     section: 'outcomes',
     condition: (m) => m.avgCardsPerSession !== null && m.avgCardsPerSession >= 1.5 && m.sessionsWithSuccess >= 10,
-    narrative: (m) => `Your successful cardholders are updating <strong>${fmt(m.avgCardsPerSession)}</strong> merchants on average — strong depth. Once they commit, they're engaging across multiple merchants, which means every successful visit delivers compounding value.`,
+    narrative: (m) => `Cardholders who converted are updating <strong>${fmt(m.avgCardsPerSession)}</strong> merchants on average — strong depth. Once they commit, they're engaging across multiple merchants, which means every successful visit delivers compounding value.`,
     benchmarks: [],
   },
 
@@ -189,7 +189,7 @@ const NARRATIVE_RULES = [
     metric: 'monthlyReachPct',
     section: 'reach',
     condition: (m) => m.monthlyReachPct !== null && m.monthlyReachPct < 0.5,
-    narrative: (m) => `You're reaching <strong>${fmtPct(m.monthlyReachPct)}%</strong> of your member base today — and even small increases in visibility unlock outsized impact. Embedding CardUpdatr in card activation or reissuance flows is the fastest path to expanding reach to motivated cardholders who are ready to act.`,
+    narrative: (m) => `Monthly adoption is at <strong>${fmtPct(m.monthlyReachPct)}%</strong> of your member base today — and even small increases in visibility unlock outsized impact. Embedding CardUpdatr in card activation or reissuance flows is the fastest path to expanding adoption among high-intent cardholders who are ready to act.`,
     benchmarks: ['motivationMultiplier'],
   },
   {
@@ -197,7 +197,7 @@ const NARRATIVE_RULES = [
     metric: 'monthlyReachPct',
     section: 'reach',
     condition: (m) => m.monthlyReachPct !== null && m.monthlyReachPct >= 0.5 && m.monthlyReachPct < 2.5,
-    narrative: (m) => `<strong>${fmtPct(m.monthlyReachPct)}%</strong> monthly reach shows cardholders are finding CardUpdatr — a growing foundation. Expanding visibility through card activation and reissuance touchpoints is the next high-impact move, connecting with cardholders at the moment their motivation is highest.`,
+    narrative: (m) => `<strong>${fmtPct(m.monthlyReachPct)}%</strong> monthly adoption shows cardholders are finding CardUpdatr — a growing foundation. Expanding visibility through card activation and reissuance touchpoints is the next high-impact move, connecting with cardholders at the moment their intent is highest.`,
     benchmarks: [],
   },
   {
@@ -205,7 +205,7 @@ const NARRATIVE_RULES = [
     metric: 'monthlyReachPct',
     section: 'reach',
     condition: (m) => m.monthlyReachPct !== null && m.monthlyReachPct >= 2.5,
-    narrative: (m) => `<strong>${fmtPct(m.monthlyReachPct)}%</strong> monthly reach is strong visibility — your cardholders are consistently encountering CardUpdatr. The opportunity now is optimizing conversion quality within this engaged audience, turning more encounters into completed placements.`,
+    narrative: (m) => `<strong>${fmtPct(m.monthlyReachPct)}%</strong> monthly adoption is strong visibility — your cardholders are consistently encountering CardUpdatr. The opportunity now is optimizing conversion quality within this engaged audience, turning more encounters into completed card updates.`,
     benchmarks: [],
   },
 
@@ -216,7 +216,7 @@ const NARRATIVE_RULES = [
     metric: 'credCompletionPct',
     section: 'completion',
     condition: (m) => m.credCompletionPct !== null && m.credCompletionPct > 0 && m.credCompletionPct < 25 && m.credSessions >= 10,
-    narrative: (m) => `<strong>${fmt(m.credCompletionPct)}%</strong> of cardholders who enter credentials are completing placements — and each improvement in this rate directly multiplies your placement count. Partners who optimize the merchant experience and streamline authentication see meaningful gains here, turning more committed cardholders into completed placements.`,
+    narrative: (m) => `<strong>${fmt(m.credCompletionPct)}%</strong> of cardholders who start updating are completing card updates — and each improvement in this rate directly multiplies your card-update count. Partners who optimize the merchant experience and streamline authentication see meaningful gains here, turning more committed cardholders into completed card updates.`,
     benchmarks: [],
   },
   {
@@ -224,7 +224,7 @@ const NARRATIVE_RULES = [
     metric: 'credCompletionPct',
     section: 'completion',
     condition: (m) => m.credCompletionPct !== null && m.credCompletionPct >= 25 && m.credSessions >= 10,
-    narrative: (m) => `Once cardholders commit to entering credentials, <strong>${fmt(m.credCompletionPct)}%</strong> complete a placement — a healthy completion rate that shows the process is working well. The biggest growth lever now is getting more cardholders to that commitment point through stronger positioning and motivated touchpoints.`,
+    narrative: (m) => `Once cardholders start updating, <strong>${fmt(m.credCompletionPct)}%</strong> complete a card update — a healthy completion rate that shows the process is working well. The biggest growth lever now is getting more cardholders to that commitment point through stronger positioning and high-intent touchpoints.`,
     benchmarks: [],
   },
 
@@ -290,9 +290,9 @@ const NONSSO_NARRATIVE_OVERRIDES = {
     },
     narrative: (m) => {
       if (m.launchSuccessPct != null) {
-        return `Your non-SSO cardholders convert at <strong>${fmt(m.launchSuccessPct)}%</strong> from launch to completion (estimated from ${fmtN(m.estimatedLaunches)} calibrated launches). Among cardholders who entered their card details, <strong>${fmt(m.sessionSuccessPct)}%</strong> completed — showing ${m.sessionSuccessPct >= 15 ? 'strong' : 'solid'} post-commitment engagement. The gap between launch and session rates reflects cardholders who browse but don't enter card data — this is normal for non-SSO flows. Timing outreach to card activation moments is the fastest path to improving launch conversion.${m.totalSessions < 100 ? ' <em>Note: With fewer than 100 sessions, rates may fluctuate — look for directional trends.</em>' : ''}`;
+        return `Your direct-link cardholders convert at <strong>${fmt(m.launchSuccessPct)}%</strong> from visit to completion (estimated from ${fmtN(m.estimatedLaunches)} calibrated visits). Among cardholders who entered their card details, <strong>${fmt(m.sessionSuccessPct)}%</strong> completed — showing ${m.sessionSuccessPct >= 15 ? 'strong' : 'solid'} post-commitment engagement. The gap between visit and post-commitment rates reflects cardholders who browse but don't enter card data — this is normal for direct-link flows. Timing outreach to card activation moments is the fastest path to improving visit conversion.${m.totalSessions < 100 ? ' <em>Note: With fewer than 100 visits, rates may fluctuate — look for directional trends.</em>' : ''}`;
       }
-      return `Your cardholders are converting at <strong>${fmt(m.sessionSuccessPct)}%</strong> — and because non-SSO cardholders have already entered their card details before this point, every session represents a committed cardholder. This is a strong foundation: the next step is reaching these cardholders at peak-motivation moments like card activation or reissuance, where conversion rates climb to 15–25%.${m.totalSessions < 100 ? ' <em>Note: With fewer than 100 sessions in this window, rates may fluctuate — look for directional trends rather than exact percentages.</em>' : ''}`;
+      return `Your cardholders are converting at <strong>${fmt(m.sessionSuccessPct)}%</strong> — and because direct-link cardholders have already entered their card details before this point, every visit represents a committed cardholder. This is a strong foundation: the next step is reaching these cardholders at peak-intent moments like card activation or reissuance, where conversion rates climb to 15–25%.${m.totalSessions < 100 ? ' <em>Note: With fewer than 100 visits in this window, rates may fluctuate — look for directional trends rather than exact percentages.</em>' : ''}`;
     },
   },
   sessSuccess_mid: {
@@ -302,9 +302,9 @@ const NONSSO_NARRATIVE_OVERRIDES = {
     },
     narrative: (m) => {
       if (m.launchSuccessPct != null) {
-        return `Your non-SSO cardholders convert at <strong>${fmt(m.launchSuccessPct)}%</strong> from launch to completion — a solid result measured from an estimated ${fmtN(m.estimatedLaunches)} true launches. Post-commitment conversion (among those who entered card details) is <strong>${fmt(m.sessionSuccessPct)}%</strong>, demonstrating real engagement quality. Sustained campaign cadence targeting card activation moments can push launch conversion toward the 8–12% campaign tier.`;
+        return `Your direct-link cardholders convert at <strong>${fmt(m.launchSuccessPct)}%</strong> from visit to completion — a solid result measured from an estimated ${fmtN(m.estimatedLaunches)} true visits. Post-commitment conversion (among those who entered card details) is <strong>${fmt(m.sessionSuccessPct)}%</strong>, demonstrating real engagement quality. Sustained campaign cadence targeting card activation moments can push visit conversion toward the 8–12% campaign-driven tier.`;
       }
-      return `At <strong>${fmt(m.sessionSuccessPct)}%</strong>, your non-SSO cardholders are showing real engagement — remember, every one of these sessions required manually entering card information first. This conversion rate with committed traffic is promising. Sustained campaign cadence targeting card activation moments can push this toward the 25–35% range.`;
+      return `At <strong>${fmt(m.sessionSuccessPct)}%</strong>, your direct-link cardholders are showing real engagement — remember, every one of these visits required manually entering card information first. This conversion rate with committed traffic is promising. Sustained campaign cadence targeting card activation moments can push this toward the 25–35% range.`;
     },
   },
   sessSuccess_high: {
@@ -314,9 +314,9 @@ const NONSSO_NARRATIVE_OVERRIDES = {
     },
     narrative: (m) => {
       if (m.launchSuccessPct != null) {
-        return `Excellent — <strong>${fmt(m.launchSuccessPct)}%</strong> launch-to-completion conversion from an estimated ${fmtN(m.estimatedLaunches)} true launches. Post-commitment conversion is <strong>${fmt(m.sessionSuccessPct)}%</strong>, showing outstanding cardholder follow-through. The focus now is expanding the volume of cardholders who encounter CardUpdatr at high-motivation moments.`;
+        return `Excellent — <strong>${fmt(m.launchSuccessPct)}%</strong> visit-to-completion conversion from an estimated ${fmtN(m.estimatedLaunches)} true visits. Post-commitment conversion is <strong>${fmt(m.sessionSuccessPct)}%</strong>, showing outstanding cardholder follow-through. The focus now is expanding the volume of cardholders who encounter CardUpdatr at high-intent moments.`;
       }
-      return `Excellent — <strong>${fmt(m.sessionSuccessPct)}%</strong> of your non-SSO cardholders are completing placements. Since every session required manually entering card details, this high conversion rate demonstrates strong cardholder motivation. The focus now is expanding the volume of cardholders who reach this point.`;
+      return `Excellent — <strong>${fmt(m.sessionSuccessPct)}%</strong> of your direct-link cardholders are completing card updates. Since every visit required manually entering card details, this high conversion rate demonstrates strong cardholder intent. The focus now is expanding the volume of cardholders who reach this point.`;
     },
   },
 
@@ -325,18 +325,18 @@ const NONSSO_NARRATIVE_OVERRIDES = {
     narrative: (m) => {
       if (m.gaCalibrationRate !== null && m.gaCalibrationRate !== undefined) {
         const gaRatePct = (m.gaCalibrationRate * 100).toFixed(0);
-        return `You're reaching <strong>${fmtPct(m.monthlyReachPct)}%</strong> of your member base monthly (estimated from calibrated launch data — GA tracking rate of <strong>${gaRatePct}%</strong> at credential entry for this partner). Embedding CardUpdatr in card activation or reissuance flows is the fastest path to expanding reach.`;
+        return `Monthly adoption is at <strong>${fmtPct(m.monthlyReachPct)}%</strong> of your member base (estimated from calibrated visit data — GA tracking rate of <strong>${gaRatePct}%</strong> at start-of-update for this partner). Embedding CardUpdatr in card activation or reissuance flows is the fastest path to expanding adoption.`;
       }
-      return `You're reaching <strong>${fmtPct(m.monthlyReachPct)}%</strong> of your member base today. <em>Note: Non-SSO traffic is measured via Google Analytics, which undercounts by 15–30% due to Safari and ad-blocker tracking prevention — your actual reach is likely higher.</em> Embedding CardUpdatr in card activation or reissuance flows is the fastest path to expanding reach.`;
+      return `Monthly adoption is at <strong>${fmtPct(m.monthlyReachPct)}%</strong> of your member base today. <em>Note: Direct-link traffic is measured via Google Analytics, which undercounts by 15–30% due to Safari and ad-blocker tracking prevention — your actual adoption is likely higher.</em> Embedding CardUpdatr in card activation or reissuance flows is the fastest path to expanding adoption.`;
     },
   },
   reach_ok: {
     narrative: (m) => {
       if (m.gaCalibrationRate !== null && m.gaCalibrationRate !== undefined) {
         const gaRatePct = (m.gaCalibrationRate * 100).toFixed(0);
-        return `<strong>${fmtPct(m.monthlyReachPct)}%</strong> monthly reach shows cardholders are finding CardUpdatr (estimated from calibrated launch data — GA tracking rate of <strong>${gaRatePct}%</strong> at credential entry). Expanding touchpoints through card activation and reissuance moments is the next high-impact move.`;
+        return `<strong>${fmtPct(m.monthlyReachPct)}%</strong> monthly adoption shows cardholders are finding CardUpdatr (estimated from calibrated visit data — GA tracking rate of <strong>${gaRatePct}%</strong> at start-of-update). Expanding touchpoints through card activation and reissuance moments is the next high-impact move.`;
       }
-      return `<strong>${fmtPct(m.monthlyReachPct)}%</strong> monthly reach shows cardholders are finding CardUpdatr. <em>Note: Non-SSO traffic measurement via GA may undercount by 15–30% due to browser tracking prevention.</em> Expanding touchpoints through card activation and reissuance moments is the next high-impact move.`;
+      return `<strong>${fmtPct(m.monthlyReachPct)}%</strong> monthly adoption shows cardholders are finding CardUpdatr. <em>Note: Direct-link traffic measurement via GA may undercount by 15–30% due to browser tracking prevention.</em> Expanding touchpoints through card activation and reissuance moments is the next high-impact move.`;
     },
   },
 
@@ -363,7 +363,7 @@ const NONSSO_ACTION_RULES = [
     actions: [
       {
         headline: 'Time prompts to card activation moments',
-        detail: 'Non-SSO cardholders who encounter CardUpdatr during card activation or reissuance show the strongest commitment. Timing outreach to these moments — when cardholders have a new card number — maximizes conversion from an already-motivated audience.',
+        detail: 'Direct-link cardholders who encounter CardUpdatr during card activation or reissuance show the strongest commitment. Timing outreach to these moments — when cardholders have a new card number — maximizes conversion from an already-high-intent audience.',
         impact: 'high',
       },
     ],
@@ -374,8 +374,8 @@ const NONSSO_ACTION_RULES = [
     priority: 6,
     actions: [
       {
-        headline: 'Consider SSO integration to remove the manual card entry step',
-        detail: 'An SSO integration pre-authenticates cardholders, eliminating the manual card entry barrier. This broadens the top of funnel — reaching cardholders who are interested but wouldn\'t have manually entered card data — while maintaining your strong conversion quality.',
+        headline: 'Consider online banking integration to remove the manual card entry step',
+        detail: 'An online banking integration pre-authenticates cardholders, eliminating the manual card entry barrier. This broadens the top of funnel — reaching cardholders who are interested but wouldn\'t have manually entered card data — while maintaining your strong conversion quality.',
         impact: 'medium',
       },
     ],
@@ -394,13 +394,13 @@ const LOW_VOLUME_ACTIONS = [
   },
   {
     headline: 'Embed CardUpdatr in card activation and reissuance flows',
-    detail: 'Cardholders receiving a new or replacement card have an immediate, natural need to update their merchants — this is peak motivation. Partners who connect CardUpdatr to these moments see 21–27% cardholder success rates, the highest tier across the network.',
+    detail: 'Cardholders receiving a new or replacement card have an immediate, natural need to update their merchants — this is peak intent. Partners who connect CardUpdatr to these moments see 21–27% conversion rates, the highest tier across the network.',
     impact: 'high',
     ruleId: 'activation_reissuance',
   },
   {
     headline: 'Launch a targeted SMS or email campaign',
-    detail: 'A focused campaign drives motivated cardholders to CardUpdatr when they\'re ready to act. Campaign weeks consistently deliver 8–12% success rates across the network — a transformative step up from organic discovery.',
+    detail: 'A focused campaign drives high-intent cardholders to CardUpdatr when they\'re ready to act. Campaign weeks consistently deliver 8–12% conversion rates across the network — a transformative step up from organic-only traffic.',
     impact: 'high',
     ruleId: 'tier3_incidental',
   },
@@ -424,7 +424,7 @@ const ACTION_RULES = [
     actions: [
       {
         headline: 'Embed CardUpdatr in card activation and reissuance flows',
-        detail: 'Cardholders receiving a new or replacement card have an immediate, natural need to update their merchants — this is peak motivation. Partners who connect CardUpdatr to these moments see 21–27% cardholder success rates, the highest tier across the network.',
+        detail: 'Cardholders receiving a new or replacement card have an immediate, natural need to update their merchants — this is peak intent. Partners who connect CardUpdatr to these moments see 21–27% conversion rates, the highest tier across the network.',
         impact: 'high',
       },
     ],
@@ -436,12 +436,12 @@ const ACTION_RULES = [
     actions: [
       {
         headline: 'Launch a targeted SMS or email campaign',
-        detail: 'A focused campaign drives motivated cardholders to CardUpdatr when they\'re ready to act. Campaign weeks consistently deliver 8–12% success rates across the network — a transformative step up from organic discovery.',
+        detail: 'A focused campaign drives high-intent cardholders to CardUpdatr when they\'re ready to act. Campaign weeks consistently deliver 8–12% conversion rates across the network — a transformative step up from organic-only traffic.',
         impact: 'high',
       },
       {
         headline: 'Enable Source Path Tracking to measure what works',
-        detail: 'With Source Path Tracking, you can measure exactly which channels drive placements and prove ROI by channel — giving you the data to invest confidently in what\'s working.',
+        detail: 'With Source Path Tracking, you can measure exactly which channels drive card updates and prove ROI by channel — giving you the data to invest confidently in what\'s working.',
         impact: 'medium',
       },
     ],
@@ -453,7 +453,7 @@ const ACTION_RULES = [
     actions: [
       {
         headline: 'Expand CardUpdatr visibility in your digital banking experience',
-        detail: (d) => `You're reaching ${fmtPct(d.metrics.monthlyReachPct)}% of members today — even a modest increase in visibility to motivated cardholders could meaningfully multiply your placement volume. This is your highest-leverage growth opportunity.`,
+        detail: (d) => `Monthly adoption is at ${fmtPct(d.metrics.monthlyReachPct)}% of members today — even a modest increase in visibility to high-intent cardholders could meaningfully multiply your card-update volume. This is your highest-leverage growth opportunity.`,
         impact: 'high',
       },
     ],
@@ -470,7 +470,7 @@ const ACTION_RULES = [
       },
       {
         headline: 'Surface a curated top-merchant list',
-        detail: 'Partners who lead with familiar, popular merchants see higher credential entry rates. Showing the most relevant options first helps cardholders immediately see the value and take action.',
+        detail: 'Partners who lead with familiar, popular merchants see higher start-of-update rates. Showing the most relevant options first helps cardholders immediately see the value and take action.',
         impact: 'medium',
       },
     ],
@@ -481,13 +481,13 @@ const ACTION_RULES = [
     priority: 4,
     actions: [
       {
-        headline: 'Optimize merchant-level success rates together',
-        detail: 'Working together to identify specific merchants with completion challenges can unlock quick wins — resolving integration issues at even a few high-traffic merchants can meaningfully improve overall placement rates.',
+        headline: 'Optimize merchant-level conversion rates together',
+        detail: 'Working together to identify specific merchants with completion challenges can unlock quick wins — resolving integration issues at even a few high-traffic merchants can meaningfully improve overall card-update rates.',
         impact: 'medium',
       },
       {
         headline: 'Streamline the authentication experience',
-        detail: 'Reducing friction in the credential flow — whether from password complexity, MFA challenges, or timeouts — helps more cardholders complete the process they\'ve already chosen to start.',
+        detail: 'Reducing friction in the update flow — whether from password complexity, MFA challenges, or timeouts — helps more cardholders complete the process they\'ve already chosen to start.',
         impact: 'medium',
       },
     ],
@@ -499,7 +499,7 @@ const ACTION_RULES = [
     actions: [
       {
         headline: 'Scale what\'s working — your conversion supports it',
-        detail: 'Your strong conversion rate means more motivated traffic translates directly to proportionally more placements. Increasing volume while maintaining quality is the path to compounding returns.',
+        detail: 'Your strong conversion rate means more high-intent traffic translates directly to proportionally more card updates. Increasing volume while maintaining quality is the path to compounding returns.',
         impact: 'high',
       },
       {
@@ -807,11 +807,11 @@ function findBestWeekEntry(best) {
  */
 function classifyTier(rate) {
   if (rate === null || rate === undefined) return { tier: 0, label: 'Insufficient Data', color: '#94a3b8', zone: 'unknown' };
-  if (rate >= 21) return { tier: 1, label: 'Activation', color: TIER_BOUNDARIES.tier1.color, zone: 'tier1' };
-  if (rate >= 12) return { tier: 1.5, label: 'Campaign → Activation', color: TIER_BOUNDARIES.tier2to1.color, zone: 'tier2to1' };
-  if (rate >= 8) return { tier: 2, label: 'Campaign', color: TIER_BOUNDARIES.tier2.color, zone: 'tier2' };
-  if (rate >= 3) return { tier: 2.5, label: 'Discovery → Campaign', color: TIER_BOUNDARIES.tier3to2.color, zone: 'tier3to2' };
-  return { tier: 3, label: 'Discovery', color: TIER_BOUNDARIES.tier3.color, zone: 'tier3' };
+  if (rate >= 21) return { tier: 1, label: 'Activation-embedded', color: TIER_BOUNDARIES.tier1.color, zone: 'tier1' };
+  if (rate >= 12) return { tier: 1.5, label: 'Campaign → Activation-embedded', color: TIER_BOUNDARIES.tier2to1.color, zone: 'tier2to1' };
+  if (rate >= 8) return { tier: 2, label: 'Campaign-driven', color: TIER_BOUNDARIES.tier2.color, zone: 'tier2' };
+  if (rate >= 3) return { tier: 2.5, label: 'Organic → Campaign-driven', color: TIER_BOUNDARIES.tier3to2.color, zone: 'tier3to2' };
+  return { tier: 3, label: 'Organic only', color: TIER_BOUNDARIES.tier3.color, zone: 'tier3' };
 }
 
 /**
@@ -823,11 +823,11 @@ function classifyTier(rate) {
  */
 function classifyNonSSOTier(rate) {
   if (rate === null || rate === undefined) return { tier: 0, label: 'Insufficient Data', color: '#94a3b8', zone: 'unknown' };
-  if (rate >= 35) return { tier: 1, label: 'Activation', color: NONSSO_TIER_BOUNDARIES.tier1.color, zone: 'tier1' };
-  if (rate >= 25) return { tier: 1.5, label: 'Campaign → Activation', color: NONSSO_TIER_BOUNDARIES.tier2to1.color, zone: 'tier2to1' };
-  if (rate >= 15) return { tier: 2, label: 'Campaign', color: NONSSO_TIER_BOUNDARIES.tier2.color, zone: 'tier2' };
-  if (rate >= 8) return { tier: 2.5, label: 'Discovery → Campaign', color: NONSSO_TIER_BOUNDARIES.tier3to2.color, zone: 'tier3to2' };
-  return { tier: 3, label: 'Discovery', color: NONSSO_TIER_BOUNDARIES.tier3.color, zone: 'tier3' };
+  if (rate >= 35) return { tier: 1, label: 'Activation-embedded', color: NONSSO_TIER_BOUNDARIES.tier1.color, zone: 'tier1' };
+  if (rate >= 25) return { tier: 1.5, label: 'Campaign → Activation-embedded', color: NONSSO_TIER_BOUNDARIES.tier2to1.color, zone: 'tier2to1' };
+  if (rate >= 15) return { tier: 2, label: 'Campaign-driven', color: NONSSO_TIER_BOUNDARIES.tier2.color, zone: 'tier2' };
+  if (rate >= 8) return { tier: 2.5, label: 'Organic → Campaign-driven', color: NONSSO_TIER_BOUNDARIES.tier3to2.color, zone: 'tier3to2' };
+  return { tier: 3, label: 'Organic only', color: NONSSO_TIER_BOUNDARIES.tier3.color, zone: 'tier3' };
 }
 
 /**
@@ -998,11 +998,11 @@ function computeProjections(metricsCtx, opts = {}) {
   const campaignRate = (isNonSSO && !hasCalibration) ? 15 : 8;
   const activationRate = (isNonSSO && !hasCalibration) ? 35 : 21;
   const campaignLabel = hasCalibration
-    ? 'At campaign-tier launch conversion (8%)'
-    : (isNonSSO ? 'At campaign-tier performance (15%)' : 'At campaign-tier performance (8%)');
+    ? 'At Campaign-driven visit conversion (8%)'
+    : (isNonSSO ? 'At Campaign-driven performance (15%)' : 'At Campaign-driven performance (8%)');
   const activationLabel = hasCalibration
-    ? 'At activation-flow launch conversion (21%)'
-    : (isNonSSO ? 'At activation-flow performance (35%)' : 'At activation-flow performance (21%)');
+    ? 'At Activation-embedded visit conversion (21%)'
+    : (isNonSSO ? 'At Activation-embedded performance (35%)' : 'At Activation-embedded performance (21%)');
 
   const current = {
     sessions: totalSessions,
@@ -1121,7 +1121,7 @@ function buildSpectrumDiagnosis(metricsCtx) {
       currentTier: null,
       bestTier: null,
       isLowVolume: true,
-      html: `<p>With <strong>${fmtN(sessions)}</strong> visits, there isn't enough data to reliably classify your traffic tier — each individual outcome shifts the measured rate by ~${swingPp} percentage points. As traffic volume builds past ${LOW_VOLUME_THRESHOLD} visits, the motivation spectrum will provide a meaningful diagnosis of your cardholder engagement pattern.</p>`,
+      html: `<p>With <strong>${fmtN(sessions)}</strong> visits, there isn't enough data to reliably classify your traffic tier — each individual outcome shifts the measured rate by ~${swingPp} percentage points. As traffic volume builds past ${LOW_VOLUME_THRESHOLD} visits, the intent spectrum will provide a meaningful diagnosis of your cardholder engagement pattern.</p>`,
     };
   }
 
@@ -1134,15 +1134,15 @@ function buildSpectrumDiagnosis(metricsCtx) {
   if (rate === null) {
     html = 'Insufficient data to classify your current traffic pattern.';
   } else if (rate < 3) {
-    html = `You're currently in the <strong>Discovery</strong> tier — which means your cardholders are finding and trying CardUpdatr on their own, without any targeted push. That's a solid foundation of organic demand. Partners who add activation flows or campaign touchpoints to this existing base typically see a 3–7× improvement, moving from the 1–3% range into 8–12% and beyond.`;
+    html = `You're currently in the <strong>Organic only</strong> tier — which means your cardholders are finding and trying CardUpdatr on their own, without any targeted push. That's a solid foundation of organic demand. Partners who add activation-embedded flows or campaign-driven touchpoints to this existing base typically see a 3–7× improvement, moving from the 1–3% range into 8–12% and beyond.`;
   } else if (rate <= 8) {
-    html = `Your traffic is performing between the <strong>Campaign</strong> and <strong>Discovery</strong> tiers — a promising mix that includes motivated cardholders responding to how they're encountering CardUpdatr. Building on this momentum with sustained campaign cadence or activation touchpoints is the path to consistently reaching 8–12% and above.`;
+    html = `Your traffic is performing between the <strong>Campaign-driven</strong> and <strong>Organic only</strong> tiers — a promising mix that includes high-intent cardholders responding to how they're encountering CardUpdatr. Building on this momentum with sustained campaign cadence or activation-embedded touchpoints is the path to consistently reaching 8–12% and above.`;
   } else if (rate <= 12) {
-    html = `Strong performance — your traffic is at <strong>Campaign</strong> level, showing meaningful cardholder motivation. Your cardholders are responding well to how they're encountering CardUpdatr. The next level up — Activation performance at 21–27% — is achieved by embedding CardUpdatr directly in card activation and reissuance moments.`;
+    html = `Strong performance — your traffic is at <strong>Campaign-driven</strong> level, showing meaningful cardholder intent. Your cardholders are responding well to how they're encountering CardUpdatr. The next level up — Activation-embedded performance at 21–27% — is achieved by embedding CardUpdatr directly in card activation and reissuance moments.`;
   } else if (rate <= 21) {
-    html = `You're approaching <strong>Activation</strong> territory — your traffic is performing above Campaign levels, which means a meaningful share of your cardholders are encountering CardUpdatr with strong motivation. You're in the transition zone between Campaign and Activation. Embedding CardUpdatr directly in card activation and reissuance moments is the step that bridges this gap to the 21–27% range.`;
+    html = `You're approaching <strong>Activation-embedded</strong> territory — your traffic is performing above Campaign-driven levels, which means a meaningful share of your cardholders are encountering CardUpdatr with strong intent. You're in the transition zone between Campaign-driven and Activation-embedded. Embedding CardUpdatr directly in card activation and reissuance moments is the step that bridges this gap to the 21–27% range.`;
   } else {
-    html = `Outstanding — your traffic is at the <strong>Activation</strong> level, the highest performance bracket across the network. Your cardholders are reaching CardUpdatr at the optimal moment with strong motivation. This is what best-in-class looks like.`;
+    html = `Outstanding — your traffic is at the <strong>Activation-embedded</strong> level, the highest performance bracket across the network. Your cardholders are reaching CardUpdatr at the optimal moment with strong intent. This is what best-in-class looks like.`;
   }
 
   if (bestTier && metricsCtx.bestWeekRate && metricsCtx.bestWeekRate > (rate || 0) * 1.3) {
@@ -1165,7 +1165,7 @@ function buildNonSSOSpectrumDiagnosis(metricsCtx) {
       currentTier: null,
       bestTier: null,
       isLowVolume: true,
-      html: `<p>With <strong>${fmtN(sessions)}</strong> visits, there isn't enough data to reliably classify your traffic tier — each individual outcome shifts the measured rate by ~${swingPp} percentage points. As traffic volume builds past ${LOW_VOLUME_THRESHOLD} visits, the motivation spectrum will provide a meaningful diagnosis of your cardholder engagement pattern.</p>`,
+      html: `<p>With <strong>${fmtN(sessions)}</strong> visits, there isn't enough data to reliably classify your traffic tier — each individual outcome shifts the measured rate by ~${swingPp} percentage points. As traffic volume builds past ${LOW_VOLUME_THRESHOLD} visits, the intent spectrum will provide a meaningful diagnosis of your cardholder engagement pattern.</p>`,
     };
   }
 
@@ -1178,21 +1178,21 @@ function buildNonSSOSpectrumDiagnosis(metricsCtx) {
     const currentTier = classifyTier(rate);
     const bestTier = metricsCtx.bestWeekRate ? classifyTier(metricsCtx.bestWeekRate) : null;
     const gaRatePct = metricsCtx.gaCalibrationRate ? (metricsCtx.gaCalibrationRate * 100).toFixed(0) : null;
-    const launchNote = ` <em>(Based on ${fmtN(metricsCtx.estimatedLaunches)} estimated launches, calibrated from a ${gaRatePct}% GA tracking rate at credential entry.)</em>`;
+    const launchNote = ` <em>(Based on ${fmtN(metricsCtx.estimatedLaunches)} estimated visits, calibrated from a ${gaRatePct}% GA tracking rate at start-of-update.)</em>`;
 
     let html = '';
     if (rate === null) {
-      html = 'Insufficient data to classify your current non-SSO traffic pattern.';
+      html = 'Insufficient data to classify your current direct-link traffic pattern.';
     } else if (rate < 3) {
-      html = `Your non-SSO launch-to-completion conversion is <strong>${fmt(rate)}%</strong> — at the <strong>Discovery</strong> level. Among cardholders who entered their card details, <strong>${fmt(sessRate)}%</strong> completed, showing solid post-commitment engagement. The gap reflects cardholders who browse but don't enter card data — timing outreach to card activation moments is the fastest path to improving launch conversion.${launchNote}`;
+      html = `Your direct-link visit-to-completion conversion is <strong>${fmt(rate)}%</strong> — at the <strong>Organic only</strong> level. Among cardholders who entered their card details, <strong>${fmt(sessRate)}%</strong> completed, showing solid post-commitment engagement. The gap reflects cardholders who browse but don't enter card data — timing outreach to card activation moments is the fastest path to improving visit conversion.${launchNote}`;
     } else if (rate <= 8) {
-      html = `Your non-SSO launch-to-completion rate is <strong>${fmt(rate)}%</strong>, in the transition zone between <strong>Discovery</strong> and <strong>Campaign</strong> tiers. Post-commitment conversion is <strong>${fmt(sessRate)}%</strong>. Sustaining campaign cadence and targeting card activation windows is the path to pushing above 8%.${launchNote}`;
+      html = `Your direct-link visit-to-completion rate is <strong>${fmt(rate)}%</strong>, in the transition zone between <strong>Organic only</strong> and <strong>Campaign-driven</strong> tiers. Post-commitment conversion is <strong>${fmt(sessRate)}%</strong>. Sustaining campaign cadence and targeting card activation windows is the path to pushing above 8%.${launchNote}`;
     } else if (rate <= 12) {
-      html = `Strong performance — <strong>${fmt(rate)}%</strong> launch-to-completion puts your non-SSO traffic at <strong>Campaign</strong> level. Post-commitment conversion of <strong>${fmt(sessRate)}%</strong> confirms engaged cardholders. The next level up — Activation performance at 21–27% — is achieved by embedding CardUpdatr directly in card activation and reissuance moments.${launchNote}`;
+      html = `Strong performance — <strong>${fmt(rate)}%</strong> visit-to-completion puts your direct-link traffic at <strong>Campaign-driven</strong> level. Post-commitment conversion of <strong>${fmt(sessRate)}%</strong> confirms engaged cardholders. The next level up — Activation-embedded performance at 21–27% — is achieved by embedding CardUpdatr directly in card activation and reissuance moments.${launchNote}`;
     } else if (rate <= 21) {
-      html = `You're approaching <strong>Activation</strong> territory — <strong>${fmt(rate)}%</strong> launch-to-completion conversion, with <strong>${fmt(sessRate)}%</strong> post-commitment success. You're in the transition zone between Campaign and Activation. Embedding CardUpdatr in card activation moments bridges this gap.${launchNote}`;
+      html = `You're approaching <strong>Activation-embedded</strong> territory — <strong>${fmt(rate)}%</strong> visit-to-completion conversion, with <strong>${fmt(sessRate)}%</strong> post-commitment success. You're in the transition zone between Campaign-driven and Activation-embedded. Embedding CardUpdatr in card activation moments bridges this gap.${launchNote}`;
     } else {
-      html = `Outstanding — <strong>${fmt(rate)}%</strong> launch-to-completion conversion puts your non-SSO traffic at the <strong>Activation</strong> level. Post-commitment success of <strong>${fmt(sessRate)}%</strong> confirms exceptional follow-through. This is best-in-class performance.${launchNote}`;
+      html = `Outstanding — <strong>${fmt(rate)}%</strong> visit-to-completion conversion puts your direct-link traffic at the <strong>Activation-embedded</strong> level. Post-commitment success of <strong>${fmt(sessRate)}%</strong> confirms exceptional follow-through. This is best-in-class performance.${launchNote}`;
     }
 
     if (bestTier && metricsCtx.bestWeekRate && metricsCtx.bestWeekRate > (rate || 0) * 1.3) {
@@ -1210,17 +1210,17 @@ function buildNonSSOSpectrumDiagnosis(metricsCtx) {
   let html = '';
 
   if (rate === null) {
-    html = 'Insufficient data to classify your current non-SSO traffic pattern.';
+    html = 'Insufficient data to classify your current direct-link traffic pattern.';
   } else if (rate < 8) {
-    html = `Your non-SSO cardholders are converting at <strong>${fmt(rate)}%</strong> — at the <strong>Discovery</strong> level. Because every non-SSO visitor has already committed by entering their card details, even this baseline represents genuine engagement. Partners who time outreach to card activation moments see conversion climb to 15–25% with this same committed audience. <em>Note: GA metrics may undercount by 15–30% — server-side calibration data not yet available for this partner.</em>`;
+    html = `Your direct-link cardholders are converting at <strong>${fmt(rate)}%</strong> — at the <strong>Organic only</strong> level. Because every direct-link visitor has already committed by entering their card details, even this baseline represents genuine engagement. Partners who time outreach to card activation moments see conversion climb to 15–25% with this same committed audience. <em>Note: GA metrics may undercount by 15–30% — server-side calibration data not yet available for this partner.</em>`;
   } else if (rate <= 15) {
-    html = `At <strong>${fmt(rate)}%</strong>, your non-SSO traffic is in the transition zone between <strong>Discovery</strong> and <strong>Campaign</strong> tiers. These cardholders have already entered their card details — they're committed. Sustaining campaign cadence and targeting card activation windows is the path to pushing above 15%.`;
+    html = `At <strong>${fmt(rate)}%</strong>, your direct-link traffic is in the transition zone between <strong>Organic only</strong> and <strong>Campaign-driven</strong> tiers. These cardholders have already entered their card details — they're committed. Sustaining campaign cadence and targeting card activation windows is the path to pushing above 15%.`;
   } else if (rate <= 25) {
-    html = `Strong performance — <strong>${fmt(rate)}%</strong> puts your non-SSO traffic at <strong>campaign-tier levels</strong>. Remember, every one of these visitors manually entered their card data first — this conversion rate with committed traffic shows real engagement quality. The next step is embedding CardUpdatr in card activation flows to reach the 25–35% tier.`;
+    html = `Strong performance — <strong>${fmt(rate)}%</strong> puts your direct-link traffic at <strong>Campaign-driven tier levels</strong>. Remember, every one of these visitors manually entered their card data first — this conversion rate with committed traffic shows real engagement quality. The next step is embedding CardUpdatr in card activation flows to reach the 25–35% tier.`;
   } else if (rate <= 35) {
-    html = `At <strong>${fmt(rate)}%</strong>, your non-SSO traffic is approaching <strong>activation-flow territory</strong>. Your cardholders are encountering CardUpdatr at high-motivation moments. This is excellent performance for non-SSO traffic — you're in the transition zone between Campaign and Activation tiers.`;
+    html = `At <strong>${fmt(rate)}%</strong>, your direct-link traffic is approaching <strong>activation-embedded territory</strong>. Your cardholders are encountering CardUpdatr at high-intent moments. This is excellent performance for direct-link traffic — you're in the transition zone between Campaign-driven and Activation-embedded tiers.`;
   } else {
-    html = `Outstanding — <strong>${fmt(rate)}%</strong> puts your non-SSO traffic in the <strong>activation-flow tier</strong>, the highest performance bracket. This is exceptional for non-SSO traffic, matching what the best SSO-integrated partners achieve. Your cardholders are reaching CardUpdatr at exactly the right moment.`;
+    html = `Outstanding — <strong>${fmt(rate)}%</strong> puts your direct-link traffic in the <strong>activation-embedded tier</strong>, the highest performance bracket. This is exceptional for direct-link traffic, matching what the best online-banking-integrated partners achieve. Your cardholders are reaching CardUpdatr at exactly the right moment.`;
   }
 
   if (bestTier && metricsCtx.bestWeekRate && metricsCtx.bestWeekRate > (rate || 0) * 1.3) {
@@ -1351,7 +1351,7 @@ const QBR_NARRATIVE_RULES = [
       const n = consecutiveDirection(rates);
       const earliestRate = qd.earliest.effectiveRate != null ? qd.earliest.effectiveRate : qd.earliest.metrics.sessionSuccessPct;
       const latestRate = qd.latest.effectiveRate != null ? qd.latest.effectiveRate : qd.latest.metrics.sessionSuccessPct;
-      return `Great momentum — cardholder success has improved for ${n} consecutive quarters, from ${fmt(earliestRate)}% in ${qd.earliest.quarter} to <strong>${fmt(latestRate)}%</strong> in ${qd.latest.quarter}. Your cardholder engagement strategy is working. The focus now should be on scaling volume while maintaining this conversion quality — partners who do this successfully see compounding returns.`;
+      return `Great momentum — your conversion rate has improved for ${n} consecutive quarters, from ${fmt(earliestRate)}% in ${qd.earliest.quarter} to <strong>${fmt(latestRate)}%</strong> in ${qd.latest.quarter}. Your cardholder engagement strategy is working. The focus now should be on scaling volume while maintaining this conversion quality — partners who do this successfully see compounding returns.`;
     },
   },
   {
@@ -1383,7 +1383,7 @@ const QBR_NARRATIVE_RULES = [
       const best = qd.best;
       const bestRate = best.effectiveRate != null ? best.effectiveRate : best.metrics.sessionSuccessPct;
       const rates = qd.quarters.map(q => q.effectiveRate != null ? q.effectiveRate : q.metrics.sessionSuccessPct).filter(r => r !== null);
-      return `Cardholder success has ranged from ${fmt(Math.min(...rates))}% to ${fmt(Math.max(...rates))}% over the past year, with your strongest performance at <strong>${fmt(bestRate)}%</strong> in ${best.quarter}. Establishing a more consistent campaign cadence would help sustain performance closer to that ceiling, turning your best quarters into the norm.`;
+      return `Conversion rate has ranged from ${fmt(Math.min(...rates))}% to ${fmt(Math.max(...rates))}% over the past year, with your strongest performance at <strong>${fmt(bestRate)}%</strong> in ${best.quarter}. Establishing a more consistent campaign cadence would help sustain performance closer to that ceiling, turning your best quarters into the norm.`;
     },
   },
   {
@@ -1394,7 +1394,7 @@ const QBR_NARRATIVE_RULES = [
     },
     narrative: (qd) => {
       const latestRate = qd.latest.effectiveRate != null ? qd.latest.effectiveRate : qd.latest.metrics.sessionSuccessPct;
-      return `This was your strongest quarter of the trailing year at <strong>${fmt(latestRate)}%</strong> cardholder success — great progress. Identifying what drove this performance and making it repeatable is the key to sustained growth.`;
+      return `This was your strongest quarter of the trailing year at <strong>${fmt(latestRate)}%</strong> conversion rate — great progress. Identifying what drove this performance and making it repeatable is the key to sustained growth.`;
     },
   },
   {
@@ -1425,7 +1425,7 @@ const QBR_NARRATIVE_RULES = [
       const earliestRate = qd.earliest.effectiveRate != null ? qd.earliest.effectiveRate : qd.earliest.metrics.sessionSuccessPct;
       const volChange = computeQoQChange(qd.latest.metrics.totalSessions, qd.earliest.metrics.totalSessions);
       const convChange = computeQoQChangePP(latestRate, earliestRate);
-      return `An interesting pattern: visit volume has grown <strong>${fmt(volChange)}%</strong> over the trailing year — more cardholders are discovering CardUpdatr, which is positive. The conversion shift (${fmt(convChange)}pp) suggests the newer traffic is largely organic discovery. The opportunity: pair this growing visibility with targeted activation moments to convert more of these engaged cardholders.`;
+      return `An interesting pattern: visit volume has grown <strong>${fmt(volChange)}%</strong> over the trailing year — more cardholders are discovering CardUpdatr, which is positive. The conversion shift (${fmt(convChange)}pp) suggests the newer traffic is largely organic. The opportunity: pair this growing visibility with targeted activation moments to convert more of these engaged cardholders.`;
     },
   },
   {
@@ -1441,7 +1441,7 @@ const QBR_NARRATIVE_RULES = [
     },
     narrative: (qd) => {
       const latestRate = qd.latest.effectiveRate != null ? qd.latest.effectiveRate : qd.latest.metrics.sessionSuccessPct;
-      return `Conversion has strengthened to <strong>${fmt(latestRate)}%</strong> — your engaged cardholders are converting better than ever. The growth opportunity is expanding reach back to previous volume levels while maintaining this quality. Targeted campaigns can drive both volume and motivation simultaneously.`;
+      return `Conversion has strengthened to <strong>${fmt(latestRate)}%</strong> — your engaged cardholders are converting better than ever. The growth opportunity is expanding reach back to previous volume levels while maintaining this quality. Targeted campaigns can drive both volume and intent simultaneously.`;
     },
   },
   {
@@ -1478,9 +1478,9 @@ const QBR_NARRATIVE_RULES = [
     narrative: (qd) => {
       const change = computeQoQChange(qd.latest.metrics.successfulPlacements, qd.earliest.metrics.successfulPlacements);
       if (change > 0) {
-        return `Successful placements grew <strong>${fmt(change)}%</strong> from ${qd.earliest.quarter} to ${qd.latest.quarter} — ${fmtN(qd.earliest.metrics.successfulPlacements)} to ${fmtN(qd.latest.metrics.successfulPlacements)}. Your cardholders are completing more updates, which means more value delivered to more members.`;
+        return `Card updates grew <strong>${fmt(change)}%</strong> from ${qd.earliest.quarter} to ${qd.latest.quarter} — ${fmtN(qd.earliest.metrics.successfulPlacements)} to ${fmtN(qd.latest.metrics.successfulPlacements)}. Your cardholders are completing more updates, which means more value delivered to more members.`;
       }
-      return `Placements shifted from ${fmtN(qd.earliest.metrics.successfulPlacements)} in ${qd.earliest.quarter} to ${fmtN(qd.latest.metrics.successfulPlacements)} in ${qd.latest.quarter}. The volume is there to recover — partners who re-engage with focused campaigns typically see a quick rebound in placement activity.`;
+      return `Card updates shifted from ${fmtN(qd.earliest.metrics.successfulPlacements)} in ${qd.earliest.quarter} to ${fmtN(qd.latest.metrics.successfulPlacements)} in ${qd.latest.quarter}. The volume is there to recover — partners who re-engage with focused campaigns typically see a quick rebound in card-update activity.`;
     },
   },
   {
@@ -1495,7 +1495,7 @@ const QBR_NARRATIVE_RULES = [
     },
     narrative: (qd) => {
       const volChange = computeQoQChange(qd.latest.metrics.totalSessions, qd.earliest.metrics.totalSessions);
-      return `You scaled visit volume by <strong>${fmt(volChange)}%</strong> over the trailing year without diluting conversion quality — a textbook growth pattern. This proves that increasing reach with the right traffic profile produces proportional placement gains.`;
+      return `You scaled visit volume by <strong>${fmt(volChange)}%</strong> over the trailing year without diluting conversion quality — a textbook growth pattern. This proves that increasing adoption with the right traffic profile produces proportional card-update gains.`;
     },
   },
   {
@@ -1526,7 +1526,7 @@ const QBR_NARRATIVE_RULES = [
       return qd.latest.tierInfo && qd.earliest.tierInfo && qd.latest.tierInfo.tier > qd.earliest.tierInfo.tier;
     },
     narrative: (qd) => {
-      return `Your traffic has shifted from <strong>${qd.earliest.tierInfo.label}</strong> territory to <strong>${qd.latest.tierInfo.label}</strong> over the trailing year — typically reflecting a change in the mix of motivated vs. organic cardholders reaching CardUpdatr. The path back is clear: partners who re-engage with targeted campaigns or activation flows consistently recover their previous tier performance. Your earlier results at ${qd.earliest.tierInfo.label} levels prove your cardholder base supports it.`;
+      return `Your traffic has shifted from <strong>${qd.earliest.tierInfo.label}</strong> territory to <strong>${qd.latest.tierInfo.label}</strong> over the trailing year — typically reflecting a change in the mix of high-intent vs. organic cardholders reaching CardUpdatr. The path back is clear: partners who re-engage with targeted campaigns or activation flows consistently recover their previous tier performance. Your earlier results at ${qd.earliest.tierInfo.label} levels prove your cardholder base supports it.`;
     },
   },
 ];
@@ -1606,12 +1606,12 @@ function buildQBRSummary(quartersData, qbrNarratives, projections) {
 
   // Opening — lead with achievement (use blended top-of-funnel to match effectiveRate denominator)
   const qbrLaunches = latest.rawMetrics?.totalCardholders || m.totalSessions;
-  html += `<p>In <strong>${latest.quarter}</strong>, <strong>${fmtN(qbrLaunches)}</strong> cardholders launched CardUpdatr, generating <strong>${fmtN(m.successfulPlacements)}</strong> successful card-on-file placements at a <strong>${fmt(latestRate)}%</strong> cardholder success rate.</p>`;
+  html += `<p>In <strong>${latest.quarter}</strong>, <strong>${fmtN(qbrLaunches)}</strong> cardholders visited CardUpdatr, generating <strong>${fmtN(m.successfulPlacements)}</strong> successful card updates at a <strong>${fmt(latestRate)}%</strong> conversion rate.</p>`;
 
   // Trailing year highlights
   html += `<p><strong>Trailing Year Highlights:</strong> `;
   if (trend === 'improving') {
-    html += `Cardholder success has improved over the trailing year — a clear positive trajectory.`;
+    html += `Conversion rate has improved over the trailing year — a clear positive trajectory.`;
   } else if (trend === 'declining') {
     html += `Your conversion has shifted over the trailing year as traffic patterns evolved — but the foundation is strong.`;
   } else if (trend === 'stable') {
@@ -1627,7 +1627,7 @@ function buildQBRSummary(quartersData, qbrNarratives, projections) {
   // Current position
   html += `<p><strong>Where You Are Today:</strong> `;
   if (tierInfo.tier >= 2.5) {
-    html += `You're in the ${tierInfo.label} tier — your cardholders are finding CardUpdatr organically, which proves demand. The next step is meeting them at higher-motivation moments.`;
+    html += `You're in the ${tierInfo.label} tier — your cardholders are finding CardUpdatr organically, which proves demand. The next step is meeting them at higher-intent moments.`;
   } else if (tierInfo.tier >= 1.5) {
     html += `You're performing at ${tierInfo.label} levels — strong engagement that shows your cardholder strategy is working.`;
   } else {
@@ -1641,12 +1641,12 @@ function buildQBRSummary(quartersData, qbrNarratives, projections) {
     const activationScenario = projections.scenarios.find(s => s.rate === 21);
     html += `<p><strong>Growth Potential:</strong> `;
     if (campaignScenario) {
-      html += `At campaign-tier performance (8%), you'd project approximately <strong>${fmtN(campaignScenario.projectedPlacements)}</strong> placements from your existing visit volume`;
+      html += `At Campaign-driven performance (8%), you'd project approximately <strong>${fmtN(campaignScenario.projectedPlacements)}</strong> card updates from your existing visit volume`;
       if (campaignScenario.multiplier) html += ` — a <strong>${fmt(campaignScenario.multiplier)}×</strong> increase from today`;
       html += `. `;
     }
     if (activationScenario) {
-      html += `At activation-flow performance (21%), the projection reaches <strong>${fmtN(activationScenario.projectedPlacements)}</strong> placements`;
+      html += `At Activation-embedded performance (21%), the projection reaches <strong>${fmtN(activationScenario.projectedPlacements)}</strong> card updates`;
       if (activationScenario.multiplier) html += ` — <strong>${fmt(activationScenario.multiplier)}×</strong> your current output`;
       html += `. Your cardholders are ready; it's about meeting them at the right moment.`;
     }
@@ -1673,7 +1673,7 @@ function buildYoYNarrative(latestQ, latestRate, priorRate) {
   if (change > 1) {
     return `Strong year-over-year improvement: <strong>${latestQ}</strong> (${fmt(latestRate)}%) outperformed the same quarter last year (${fmt(priorRate)}%). Your program is building momentum in the right direction.`;
   } else if (change < -1) {
-    return `Year-over-year: your infrastructure and cardholder awareness are well-established. The conversion pattern (${fmt(priorRate)}% → ${fmt(latestRate)}%) reflects evolving traffic composition — a highly controllable factor through activation and campaign strategies that target motivated cardholders.`;
+    return `Year-over-year: your infrastructure and cardholder awareness are well-established. The conversion pattern (${fmt(priorRate)}% → ${fmt(latestRate)}%) reflects evolving traffic composition — a highly controllable factor through activation and campaign strategies that target high-intent cardholders.`;
   } else {
     return `Year-over-year performance held steady (${fmt(priorRate)}% → ${fmt(latestRate)}%) — a consistent foundation that's ready for the next level of engagement strategy.`;
   }
