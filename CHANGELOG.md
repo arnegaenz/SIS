@@ -6,6 +6,58 @@
 
 # Build History
 
+## Apr 19, 2026 (Session 21)
+
+### Naming Audit Rollout — Partner-Facing Vocabulary Lockdown
+Ships the full vocabulary pass from `docs/naming-audit.md` (reviewed with Chris + Praveen) across every partner-facing surface. Pure string revision on top of running code — thresholds, scoring, action IDs, colors unchanged.
+
+- **Tier renames everywhere**: Activation → **Activation-embedded**, Campaign → **Campaign-driven**, Discovery → **Organic only** (applied in `action-library.js`, `engagement-insights.js`, `portfolio-dashboard.js`, both PDF templates, `funnel-customer.html`)
+- **Metric vocab**: session → visit, success rate → conversion rate, placement → card update, credential entry → started updating, select merchants → browsed merchants, monthly reach → monthly adoption, motivated → high-intent, incidental → organic, SSO → online banking (in narrative strings; internal flags like `hasSSO` unchanged)
+- **Nav + view-as labels**: "CS Portfolio" → **Portfolio Health**, "FI Funnel" → **Conversion Funnel**, "FI API" → **Partner API**; view-as switcher expanded (e.g. "CS" → "Customer Success", "FI" → "FI Contact")
+- **Campaign Builder**: Panel 2 header "Source Tracking" → **Campaign tracking tags**
+- **Naming audit doc** (`docs/naming-audit.md`) committed as the canonical source of vocab decisions
+
+### AI Insights — Role-Aware Prompt
+Splits `ai-insights.mjs` system prompt into two variants gated by caller's access level.
+- **Internal roles** (admin, core, internal, siteops, support, cs): unvarnished vocab allowed (SSO, session, placement, UDF, tier numbers). May reference named FIs (MSUFCU, Cape Cod Five, Kemba, ORNL) in benchmarks.
+- **Partner-facing** (executive, partner, fi, default): strict vocabulary rules matching the naming audit. Benchmarks anonymized to "top-performing institutions" / "top-quartile peers".
+- Legacy compat: `limited` → `fi`, `full` → `admin` normalized on entry.
+- Default `accessLevel` changed from `limited` → `partner` (safer default; warning logged when caller forgets to supply it).
+- Cache key uses normalized access level to prevent collisions. In-memory cache auto-flushes on pm2 restart.
+
+### Cardholder Engagement — Copy-to-Excel + PDF Deep-Links
+Three features bundled into `funnel-customer.html` + PDF templates.
+- **📋 Copy buttons** on 6 sections (projection, QBR quarterly/monthly/daily, Performance Highlights, FI Performance Detail). Extracts table HTML to TSV, writes to clipboard, green toast confirms "Copied — paste into Excel". Works in Excel and Google Sheets.
+- **PDF deep-link round-trip**: Customer PDF section titles now render as clickable links that land on the live dashboard at named anchors (`#pdf-summary`, `#pdf-daily`, `#pdf-monthly`, `#pdf-quarterly`, `#pdf-weekly`) with FI key + date range preserved in URL. Dashboard shows a 2-second yellow `section-flash` animation on the target section.
+- **Vocabulary pass** applied to both templates + the customer dashboard page.
+
+### Conversion Breakdown — Admin Diagnostic Page
+Ships the new page at `/dashboards/conversion-breakdown.html` (admin-only, gated in `PAGE_ACCESS_MAP`). Six-step conversion funnel grouped by `source_category`, split by team ownership: **Motivation (CS)** / **Experience (UX)** / **Execution (Eng)**. Includes time-window comparison (30d/60d/90d/6mo/9mo/12mo) and Source Adoption Scoreboard (CS Retrofit / Integration Escalation / Regressions).
+- Backend endpoint `/api/conversion-breakdown` was already deployed from a prior session; this commit ships the frontend.
+- Motivation zone three-bucket rework still pending — current view shipped as starting point for iteration.
+
+### Kiosk Token URL Pickup
+New auth path in `passcode-gate.js`: visiting any dashboard with `?kiosk_token=sess_...` appended stores the token in `localStorage`, scrubs the URL, fetches user via `/auth/me`, and proceeds as logged-in. Enables unattended kiosk displays with bookmarked URLs. No server changes needed — existing session validation already accepts `sess_*` tokens via Bearer header; this just lets them enter via query param.
+
+### Kiosk Monitor CSS — Layout Alignment
+`dashboards.css`: kiosk instance grid stretches to fill the left column so its bottom row aligns with the System Totals strip on the right. Map padding reduced from 24px → 8px for more map real estate. Totals strip anchored with 52px min-height.
+
+### Testing Checklists — New Admin Page
+New admin-only page at `/testing-checklists.html` that renders markdown-backed checklists from `data/checklists/*.md` with clickable checkboxes.
+- **Each toggle rewrites the underlying `.md` on the server** — the file is the source of truth, so state persists across reloads and is readable by any tool (git, scp, Claude Code across sessions).
+- Three endpoints (all admin): `GET /api/checklists`, `GET /api/checklists/:filename`, `POST /api/checklists/toggle` (with stale-state guard — 409 on mismatch).
+- Minimal markdown renderer (headings, bold, code, checkboxes) — no library dependency.
+- Sidebar shows all checklists with progress bars, N/M count, status badge (active / archived / done). Active entry highlighted.
+- Filename validation: `^[a-zA-Z0-9._-]+\.md$` to prevent path traversal.
+- Seed checklist `2026-04-19-post-deploy.md` covers all ~50 verification items from this session.
+- **Claude Code workflow**: future sessions can `ssh ... cat data/checklists/*.md` to see current state, or write a new checklist directly by dropping a new `.md` file on the server.
+
+### Commits This Session
+10 commits, all pushed to origin/main:
+`18877eb` Kiosk token auth · `eeeb4c5` Kiosk monitor CSS · `a7b7554` Conversion Breakdown · `a954687` Nav + view-as renames · `728a8ab` Insights vocab pass · `9df0cb1` AI role-aware prompt · `3b076ba` Cardholder Engagement (copy + anchors + vocab) · `a2b0dfc` PDF templates (vocab + deep-links) · `4302ad5` Campaign builder + naming audit doc · `fac547e` Testing Checklists page
+
+---
+
 ## Apr 15, 2026 (Session 20)
 
 ### Merchant Site Availability — Snapshot Pipeline + "Prod Sites" KPI

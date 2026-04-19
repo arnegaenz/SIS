@@ -70,8 +70,14 @@ At the end of each working session, briefly discuss:
 - `public/funnel.html` - Internal FI Funnel page (HTML + CSS + JS, very large ~6900 lines)
 - `public/funnel-customer.html` - Customer-facing Cardholder Engagement Dashboard (~5100 lines)
 - `public/resources/engagement-playbook.html` - Full engagement playbook page (auto-generated from ACTION_LIBRARY)
-- `public/dashboards/portfolio.html` - CS Portfolio Dashboard (Phase 3 — engagement scores, tiers, warnings)
+- `public/dashboards/portfolio.html` - Portfolio Health (formerly CS Portfolio) — engagement scores, tiers, warnings
 - `public/assets/js/portfolio-dashboard.js` - Portfolio dashboard module (ES6, ~750 lines)
+- `public/dashboards/conversion-breakdown.html` - Admin-only 6-step conversion funnel split by source category + team ownership (Motivation/Experience/Execution). Backed by /api/conversion-breakdown.
+- `public/assets/js/conversion-breakdown.js` - Conversion Breakdown module (ES6 module, ~440 lines)
+- `public/testing-checklists.html` - Admin Testing Checklists page (markdown-backed, renders data/checklists/*.md)
+- `public/assets/js/testing-checklists.js` - Testing Checklists renderer + checkbox toggle client (ES6 module)
+- `docs/naming-audit.md` - Canonical vocabulary source (tier labels, metric names, partner-facing terminology). Reviewed with Chris + Praveen. Shipped 2026-04-19.
+- `docs/cardupdatr-vocabulary-guide.md` - External-share vocabulary guide (partner-facing glossary for Chris/Luke/etc.)
 - `templates/funnel-report-template.mjs` - Internal PDF template
 - `templates/funnel-customer-report-template.mjs` - Customer PDF template
 - `src/config/terminationMap.mjs` - Termination type definitions with labels + CUSTOMER_TERMINATION_MAP
@@ -222,6 +228,10 @@ All partner-facing content follows engagement-positive tone:
 - WIP pages (Sources, UX Paths, Customer Success Dashboard) should not appear in nav for non-admin users
 - Add flag or config to hide unready pages from partner-facing nav
 - Admin/internal users can still see and access them
+
+### Conversion Breakdown — Motivation Zone Rework
+- **Shipped 2026-04-19**: admin page at `/dashboards/conversion-breakdown.html` with 6-step funnel split by source_category, grouped Motivation/Experience/Execution, time-window comparison, Source Adoption Scoreboard.
+- **Pending**: Motivation zone (Step 1) needs three-bucket rework — current view is a starting point. Decision on bucketing boundaries + display format still open.
 
 ### Job Outcome Breakdown Modal Polish
 - Phase 1 COMPLETE: click-to-modal on all 5 breakdown cards (funnel.html), 90-day trend charts
