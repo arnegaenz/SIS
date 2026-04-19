@@ -1,5 +1,5 @@
 /**
- * Strivve-branded PDF report template for the FI Funnel page.
+ * Strivve-branded PDF report template for the Conversion Funnel page.
  * Returns a self-contained HTML string ready for Puppeteer rendering.
  */
 
@@ -37,51 +37,51 @@ export function buildReportHtml(data) {
     },
     {
       cls: "ga",
-      label: "Credential Entry Views",
+      label: "Started Updating Views",
       value: fmt(m.totalGaCred),
       sub: pct(m.totalGaCred, m.totalGaSelect) + " of views",
     },
     {
-      label: "Total Sessions",
+      label: "Total Visits",
       value: fmt(m.totalSessions),
       sub: pct(m.totalSessions, m.totalGaSelect) + " of views",
     },
     {
-      label: "Sessions w/ Jobs",
+      label: "Visits w/ Jobs",
       value: fmt(m.sessionsWithJobs),
-      sub: pct(m.sessionsWithJobs, m.totalSessions) + " of sessions",
+      sub: pct(m.sessionsWithJobs, m.totalSessions) + " of visits",
     },
     {
-      label: "Sessions w/ Successful Jobs",
+      label: "Visits w/ Successful Jobs",
       value: fmt(m.sessionsWithSuccessfulJobs),
-      sub: pct(m.sessionsWithSuccessfulJobs, m.totalSessions) + " of sessions",
+      sub: pct(m.sessionsWithSuccessfulJobs, m.totalSessions) + " of visits",
     },
     {
-      label: "Total Placements",
+      label: "Total Cards Updated",
       value: fmt(m.totalPlacements),
     },
     {
-      label: "Successful Placements",
+      label: "Successful Card Updates",
       value: fmt(m.successful),
-      sub: pct(m.successful, m.totalPlacements) + " of placements",
+      sub: pct(m.successful, m.totalPlacements) + " of card updates",
     },
     {
       cls: "session",
-      label: "Select Merchants (Sessions)",
+      label: "Browsed Merchants (Visits)",
       value: fmt(m.totalCsSelect),
-      sub: fmt(m.totalCsSelect) + " of " + fmt(m.totalSessions) + " sessions",
+      sub: fmt(m.totalCsSelect) + " of " + fmt(m.totalSessions) + " visits",
     },
     {
       cls: "session",
-      label: "User Data (Sessions)",
+      label: "User Data (Visits)",
       value: fmt(m.totalCsUser),
-      sub: pct(m.totalCsUser, m.totalCsSelect) + " of sessions @select",
+      sub: pct(m.totalCsUser, m.totalCsSelect) + " of visits @browse",
     },
     {
       cls: "session",
-      label: "Credential Entry (Sessions)",
+      label: "Started Updating (Visits)",
       value: fmt(m.totalCsCred),
-      sub: pct(m.totalCsCred, m.totalCsSelect) + " of sessions @select",
+      sub: pct(m.totalCsCred, m.totalCsSelect) + " of visits @browse",
     },
   ];
 
@@ -107,13 +107,13 @@ export function buildReportHtml(data) {
   const outcomeCards = [
     {
       cls: "rate",
-      label: "Overall Success Rate",
+      label: "Overall Conversion Rate",
       value: overallDenom > 0 ? ((successful / overallDenom) * 100).toFixed(1) + "%" : "—",
       sub: `${fmt(successful)} of ${fmt(overallDenom)} outcomes`,
     },
     {
       cls: "rate",
-      label: "System Success Rate",
+      label: "System Conversion Rate",
       value: sysDenom > 0 ? ((successful / sysDenom) * 100).toFixed(1) + "%" : "—",
       sub: `${fmt(successful)} of ${fmt(sysDenom)} (excl. UX)`,
     },
@@ -121,19 +121,19 @@ export function buildReportHtml(data) {
       cls: "success",
       label: "Successful",
       value: fmt(successful),
-      sub: pct(successful, totalPlacements) + " of placements",
+      sub: pct(successful, totalPlacements) + " of card updates",
     },
     {
       cls: "system",
       label: "System Failures",
       value: fmt(systemFail),
-      sub: pct(systemFail, totalPlacements) + " of placements",
+      sub: pct(systemFail, totalPlacements) + " of card updates",
     },
     {
       cls: "ux",
       label: "UX Failures",
       value: fmt(uxFail),
-      sub: pct(uxFail, totalPlacements) + " of placements",
+      sub: pct(uxFail, totalPlacements) + " of card updates",
     },
   ];
 
@@ -191,12 +191,12 @@ export function buildReportHtml(data) {
           <th>FI</th>
           <th>Integration</th>
           <th>Window</th>
-          <th class="num">GA Select</th>
-          <th class="num">Sessions</th>
-          <th class="num">Sess w/ Success</th>
-          <th class="num">Sel&rarr;Succ %</th>
-          <th class="num">Sess&rarr;Succ %</th>
-          <th class="num">Placements</th>
+          <th class="num">GA Views</th>
+          <th class="num">Visits</th>
+          <th class="num">Visits with conversion</th>
+          <th class="num">Browse &rarr; Conversion %</th>
+          <th class="num">Visit &rarr; Conversion %</th>
+          <th class="num">Cards updated</th>
         </tr>
       </thead>
       <tbody>${rows}</tbody>
@@ -242,11 +242,11 @@ export function buildReportHtml(data) {
         <tr>
           <th>Integration</th>
           <th class="num">FIs</th>
-          <th class="num">GA Select</th>
-          <th class="num">Sel&rarr;Succ %</th>
-          <th class="num">Sessions</th>
-          <th class="num">Sess w/ Success</th>
-          <th class="num">Sess&rarr;Succ %</th>
+          <th class="num">GA Views</th>
+          <th class="num">Browse &rarr; Conversion %</th>
+          <th class="num">Visits</th>
+          <th class="num">Visits with conversion</th>
+          <th class="num">Visit &rarr; Conversion %</th>
         </tr>
       </thead>
       <tbody>${pRows}${totalRow}</tbody>
@@ -446,7 +446,7 @@ export function buildReportHtml(data) {
 
   <div class="report-header">
     <div class="brand">Strivve Insights Service</div>
-    <h1>FI Funnel Report</h1>
+    <h1>Conversion Funnel Report</h1>
     <div class="subtitle">CardUpdatr Performance Summary</div>
     <div class="date-range">${startDate} &rarr; ${endDate}</div>
     ${filterContext ? `<div class="filter-ctx">${filterContext}</div>` : ""}
@@ -456,7 +456,7 @@ export function buildReportHtml(data) {
     <div class="section-title">Key Metrics</div>
     <div class="stats-grid">${metricsHtml}</div>
 
-    <div class="section-title">Job Outcome Breakdown</div>
+    <div class="section-title">Card Update Outcome Breakdown</div>
     <div class="outcome-grid">${outcomeHtml}</div>
 
     ${highlightsHtml}

@@ -17,6 +17,87 @@ const fmtDec = (n) => {
 const pct = (num, den) =>
   den > 0 ? ((num / den) * 100).toFixed(1) + "%" : "—";
 
+// Compute number of calendar days between two YYYY-MM-DD strings, inclusive.
+function dayDiffInclusive(start, end) {
+  if (!start || !end) return 0;
+  const s = new Date(start + "T00:00:00Z");
+  const e = new Date(end + "T00:00:00Z");
+  if (isNaN(s) || isNaN(e)) return 0;
+  return Math.round((e - s) / 86400000) + 1;
+}
+
+// HTML-escape a query-param value (for href attributes).
+function qp(v) {
+  return encodeURIComponent(String(v || ""));
+}
+
+// Build a deep-link URL to the live dashboard at a specific anchor with the
+// matching date range + FI key preserved. The dashboard's applyDeepLinkFromUrl()
+// consumes ?date_from= / ?date_to= / ?fi= and scrolls to the hash.
+function buildSectionLink(dashboardUrl, fiKey, anchor, from, to) {
+  if (!dashboardUrl) return null;
+  const parts = [];
+  if (from) parts.push(`date_from=${qp(from)}`);
+  if (to) parts.push(`date_to=${qp(to)}`);
+  if (fiKey) parts.push(`fi=${qp(fiKey)}`);
+  const qs = parts.length ? "?" + parts.join("&") : "";
+  return `${dashboardUrl}${qs}#${anchor}`;
+}
+
+// Render a section heading that is a clickable deep-link but visually
+// indistinguishable from the standard .section-title styling.
+function renderLinkedSectionTitle(label, href, sub) {
+  const subHtml = sub ? ` <span class="section-sub">${sub}</span>` : "";
+  if (!href) return `<div class="section-title">${label}${subHtml}</div>`;
+  return `<div class="section-title"><a class="section-title-link" href="${href}">${label}${subHtml}</a></div>`;
+}
+
+// Aggregate metric rendering for multi-granularity bucket tables.
+function renderGranularityRows(buckets) {
+  return buckets.map(b => {
+    const visits = b.visits || 0;
+    const cr = visits > 0 ? ((b.converted || 0) / visits * 100) : null;
+    const crDisplay = cr !== null ? fmtDec(cr) + "%" : "—";
+    const adoptDisplay = b.adoptionPct != null && Number.isFinite(b.adoptionPct)
+      ? fmtDec(b.adoptionPct) + "%"
+      : "—";
+    return `
+      <tr>
+        <td style="padding:5px 7px;border-bottom:1px solid #e2e8f0;font-weight:600;">${b.label || ""}</td>
+        <td class="num" style="padding:5px 7px;border-bottom:1px solid #e2e8f0;">${fmt(visits)}</td>
+        <td class="num" style="padding:5px 7px;border-bottom:1px solid #e2e8f0;">${fmt(b.started || 0)}</td>
+        <td class="num" style="padding:5px 7px;border-bottom:1px solid #e2e8f0;">${fmt(b.converted || 0)}</td>
+        <td class="num" style="padding:5px 7px;border-bottom:1px solid #e2e8f0;">${fmt(b.cardsUpdated || 0)}</td>
+        <td class="num" style="padding:5px 7px;border-bottom:1px solid #e2e8f0;">${crDisplay}</td>
+        <td class="num" style="padding:5px 7px;border-bottom:1px solid #e2e8f0;">${adoptDisplay}</td>
+      </tr>`;
+  }).join("");
+}
+
+function renderGranularitySection({ title, granularityKey, buckets, narrative, dashboardUrl, fiKey, from, to, breakBefore }) {
+  if (!buckets || !buckets.length) return "";
+  const href = buildSectionLink(dashboardUrl, fiKey, `pdf-${granularityKey}`, from, to);
+  const tableBody = renderGranularityRows(buckets);
+  const breakStyle = breakBefore ? "page-break-before:always;break-before:page;" : "";
+  return `
+    <div class="page-section granularity-section" style="${breakStyle}">
+      ${renderLinkedSectionTitle(title, href)}
+      ${narrative ? `<div class="granularity-narrative">${narrative}</div>` : ""}
+      <table class="report-table">
+        <thead><tr>
+          <th>Period</th>
+          <th class="num">Visits</th>
+          <th class="num">Started updating</th>
+          <th class="num">Cardholders who converted</th>
+          <th class="num">Cards updated</th>
+          <th class="num">Conversion rate</th>
+          <th class="num">Adoption %</th>
+        </tr></thead>
+        <tbody>${tableBody}</tbody>
+      </table>
+    </div>`;
+}
+
 export function buildCustomerReportHtml(data) {
   const {
     startDate,
@@ -28,7 +109,13 @@ export function buildCustomerReportHtml(data) {
     partnerSummary,
     shareUrl,
     insights,
+    granularities,
+    dashboardUrl,
+    fiKey,
   } = data;
+
+  const DEFAULT_DASHBOARD_URL = "https://34-220-57-7.sslip.io/funnel-customer.html";
+  const resolvedDashboardUrl = dashboardUrl || DEFAULT_DASHBOARD_URL;
 
   const m = metrics || {};
   const ins = insights || {};
@@ -41,7 +128,7 @@ export function buildCustomerReportHtml(data) {
   const metricCards = [
     {
       cls: "ga",
-      label: "CardUpdatr Launches",
+      label: "CardUpdatr Visits",
       value: fmt(m.totalGaSelect),
       sub: "Google Analytics",
     },
@@ -49,22 +136,22 @@ export function buildCustomerReportHtml(data) {
       cls: "ga",
       label: "User Data Page Views",
       value: fmt(m.totalGaUser),
-      sub: pct(m.totalGaUser, m.totalGaSelect) + " of launches",
+      sub: pct(m.totalGaUser, m.totalGaSelect) + " of visits",
     },
     {
       cls: "ga",
-      label: "Credential Entry Views",
+      label: "Started Updating (Views)",
       value: fmt(m.totalGaCred),
-      sub: pct(m.totalGaCred, m.totalGaSelect) + " of launches",
+      sub: pct(m.totalGaCred, m.totalGaSelect) + " of visits",
     },
     {
       label: "CardUpdatr Visits",
       value: fmt(m.totalSessions),
-      sub: pct(m.totalSessions, m.totalGaSelect) + " of launches",
+      sub: pct(m.totalSessions, m.totalGaSelect) + " of visits",
     },
     {
       cls: "session",
-      label: "Merchant Browsing (Visits)",
+      label: "Browsed Merchants",
       value: fmt(m.totalCsSelect),
       sub: fmt(m.totalCsSelect) + " of " + fmt(m.totalSessions) + " visits",
     },
@@ -72,29 +159,29 @@ export function buildCustomerReportHtml(data) {
       cls: "session",
       label: "User Data (Visits)",
       value: fmt(m.totalCsUser),
-      sub: pct(m.totalCsUser, m.totalCsSelect) + " of visits @select",
+      sub: pct(m.totalCsUser, m.totalCsSelect) + " of visits at Merchant Select",
     },
     {
       cls: "session",
-      label: "Credential Entry (Visits)",
+      label: "Started Updating (Visits)",
       value: fmt(m.totalCsCred),
-      sub: pct(m.totalCsCred, m.totalCsSelect) + " of visits @select",
+      sub: pct(m.totalCsCred, m.totalCsSelect) + " of visits at Merchant Select",
     },
     {
       cls: "highlight",
-      label: "Successful Cardholders",
+      label: "Cardholders Who Converted",
       value: fmt(m.sessionsWithSuccessfulJobs),
       sub: pct(m.sessionsWithSuccessfulJobs, m.totalSessions) + " of visits",
     },
     {
       cls: "highlight",
-      label: "Success Rate",
+      label: "Conversion Rate",
       value: successRate,
-      sub: "Successful cardholders ÷ Total visits",
+      sub: "Cardholders who converted ÷ Total visits",
     },
     {
       cls: "success",
-      label: "Successful Placements",
+      label: "Cards Updated",
       value: fmt(m.successful),
       sub: "Cards updated at merchants",
     },
@@ -148,7 +235,7 @@ export function buildCustomerReportHtml(data) {
 
     funnelHtml = `
     <div class="page-section">
-    <div class="section-title">Cardholder Journey Funnel</div>
+    <div class="section-title">Cardholder Journey</div>
     <div style="display:flex;gap:6px;align-items:flex-start;margin-bottom:8px;">
       ${stageCards.join('<div style="display:flex;align-items:center;padding:0 2px;color:#cbd5e1;font-size:14px;">→</div>')}
     </div>
@@ -186,11 +273,11 @@ export function buildCustomerReportHtml(data) {
     const sp = ins.spectrum;
     const maxScale = 30;
     const zones = [
-      { label: "Discovery", min: 0, max: 3, color: "#ef4444" },
+      { label: "Organic only", min: 0, max: 3, color: "#ef4444" },
       { label: "", min: 3, max: 8, color: "#f97316" },
-      { label: "Campaign", min: 8, max: 12, color: "#eab308" },
+      { label: "Campaign-driven", min: 8, max: 12, color: "#eab308" },
       { label: "", min: 12, max: 21, color: "#84cc16" },
-      { label: "Activation", min: 21, max: 30, color: "#22c55e" },
+      { label: "Activation-embedded", min: 21, max: 30, color: "#22c55e" },
     ];
     const zoneHtml = zones.map(z => {
       const w = ((z.max - z.min) / maxScale) * 100;
@@ -209,13 +296,13 @@ export function buildCustomerReportHtml(data) {
 
     spectrumHtml = `
     <div class="page-section">
-    <div class="section-title">Cardholder Motivation Spectrum</div>
+    <div class="section-title">Channel Mix Spectrum</div>
     <div style="position:relative;display:flex;border-radius:6px;overflow:visible;margin-bottom:28px;">
       ${zoneHtml}
       ${markers}
     </div>
     <div style="display:flex;justify-content:space-between;font-size:8px;color:#94a3b8;margin-bottom:6px;">
-      <span>0%</span><span>Discovery</span><span>Campaign</span><span>Activation</span><span>27%+</span>
+      <span>0%</span><span>Organic only</span><span>Campaign-driven</span><span>Activation-embedded</span><span>27%+</span>
     </div>
     ${sp.diagnosisHtml ? `<div style="font-size:11px;line-height:1.6;color:#334155;margin-bottom:4px;">${sp.diagnosisHtml}</div>` : ""}
     </div>`;
@@ -272,8 +359,8 @@ export function buildCustomerReportHtml(data) {
     <table class="report-table">
       <thead><tr>
         <th>Scenario</th>
-        <th class="num">Success Rate</th>
-        <th class="num">Projected Placements</th>
+        <th class="num">Conversion rate</th>
+        <th class="num">Projected Card Updates</th>
         <th class="num">vs Current</th>
       </tr></thead>
       <tbody>
@@ -287,6 +374,7 @@ export function buildCustomerReportHtml(data) {
       </tbody>
     </table>
     <div style="font-size:8px;color:#94a3b8;font-style:italic;">Projections based on current volume of ${fmt(proj.current.sessions)} CardUpdatr visits over ${proj.current.days} days.</div>
+
     </div>`;
   }
 
@@ -295,11 +383,12 @@ export function buildCustomerReportHtml(data) {
   if (ins.reachMath && ins.reachMath.totalCardholders > 0) {
     const rm = ins.reachMath;
     const gapLine = rm.gap > 0
-      ? `<div style="margin-top:8px;padding:6px 10px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;font-size:9px;color:#1e40af;font-weight:600;">Opportunity: ${fmt(rm.gap)} additional motivated cardholders/month could be reached through activation flow integration.</div>`
+      ? `<div style="margin-top:8px;padding:6px 10px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;font-size:9px;color:#1e40af;font-weight:600;">Opportunity: ${fmt(rm.gap)} additional high-intent cardholders/month could be reached through activation-embedded integration.</div>`
       : "";
     reachMathHtml = `
     <div class="page-section">
     <div class="section-title">Card Replacement Opportunity</div>
+
     <div style="display:flex;gap:12px;margin-bottom:10px;">
       <div style="flex:1;text-align:center;padding:10px 8px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;">
         <div style="font-size:16px;font-weight:800;color:#0f172a;">${fmt(rm.monthlyPool)}</div>
@@ -308,12 +397,12 @@ export function buildCustomerReportHtml(data) {
       </div>
       <div style="flex:1;text-align:center;padding:10px 8px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;">
         <div style="font-size:16px;font-weight:800;color:#0f172a;">${fmt(rm.monthlyReach)}</div>
-        <div style="font-size:8px;color:#64748b;">Currently reaching CU</div>
+        <div style="font-size:8px;color:#64748b;">Currently visiting CU</div>
       </div>
       <div style="flex:1;text-align:center;padding:10px 8px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;">
         <div style="font-size:16px;font-weight:800;color:#0f172a;">${fmt(rm.potentialPlacements)}</div>
-        <div style="font-size:8px;color:#64748b;">Potential placements/mo</div>
-        <div style="font-size:7px;color:#94a3b8;">At Activation (21%)</div>
+        <div style="font-size:8px;color:#64748b;">Potential card updates/mo</div>
+        <div style="font-size:7px;color:#94a3b8;">At Activation-embedded (21%)</div>
       </div>
     </div>
     <div style="font-size:9px;line-height:1.5;color:#334155;">Every month, ~${fmt(rm.monthlyPool)} cardholders receive a replacement card at peak motivation. ${rm.gap > 0 ? `Currently reaching about ${rm.pctReached}% of this natural pool.` : "Your current reach is strong."}</div>
@@ -359,13 +448,13 @@ export function buildCustomerReportHtml(data) {
         <tr>
           <th>Highlight</th>
           <th>FI</th>
-          <th>Integration</th>
+          <th>Channel</th>
           <th>Window</th>
-          <th class="num">Launches</th>
-          <th class="num">Sessions</th>
-          <th class="num">Successful Cardholders</th>
-          <th class="num">Success Rate</th>
-          <th class="num">Placements</th>
+          <th class="num">Visits (GA)</th>
+          <th class="num">Visits</th>
+          <th class="num">Cardholders Who Converted</th>
+          <th class="num">Conversion rate</th>
+          <th class="num">Cards updated</th>
         </tr>
       </thead>
       <tbody>${rows}</tbody>
@@ -412,23 +501,124 @@ export function buildCustomerReportHtml(data) {
 
     partnerHtml = `
     <div class="page-section">
-    <div class="section-title">${partnerSummary.partner || "Partner"} Integration Mix
-      <span class="section-sub">${partnerSummary.rows.length} integration types</span>
+    <div class="section-title">${partnerSummary.partner || "Partner"} Channel Mix
+      <span class="section-sub">${partnerSummary.rows.length} channels</span>
     </div>
     <table class="report-table">
       <thead>
         <tr>
-          <th>Integration</th>
+          <th>Channel</th>
           <th class="num">FIs</th>
-          <th class="num">Launches</th>
-          <th class="num">Sessions</th>
-          <th class="num">Successful Cardholders</th>
-          <th class="num">Success Rate</th>
+          <th class="num">Visits (GA)</th>
+          <th class="num">Visits</th>
+          <th class="num">Cardholders Who Converted</th>
+          <th class="num">Conversion rate</th>
         </tr>
       </thead>
       <tbody>${pRows}${totalRow}</tbody>
     </table>
     </div>`;
+  }
+
+  // ── Multi-Granularity Sections (Summary / Quarterly / Monthly / Weekly / Daily) ──
+  // Thresholds are enforced both on the client (which decides what to send) AND
+  // here in the template as a safety net — so a manually-crafted payload
+  // can't accidentally push a 10-year daily table into a PDF.
+  let granularityHtml = "";
+  if (granularities && typeof granularities === "object") {
+    const rangeDays = dayDiffInclusive(startDate, endDate);
+    const blocks = [];
+
+    // Summary — always render when provided.
+    if (granularities.summary) {
+      const s = granularities.summary;
+      const href = buildSectionLink(resolvedDashboardUrl, fiKey, "pdf-summary", startDate, endDate);
+      const visits = s.visits || 0;
+      const cr = visits > 0 ? (s.converted || 0) / visits * 100 : null;
+      const crDisplay = cr !== null ? fmtDec(cr) + "%" : "—";
+      const adoptDisplay = s.adoptionPct != null && Number.isFinite(s.adoptionPct)
+        ? fmtDec(s.adoptionPct) + "%"
+        : "—";
+      const cardsPerMonthDisplay = s.cardsPerMonth != null && Number.isFinite(s.cardsPerMonth)
+        ? fmtDec(s.cardsPerMonth)
+        : "—";
+      const reachingMonthlyDisplay = s.reachingMonthly != null && Number.isFinite(s.reachingMonthly)
+        ? fmt(s.reachingMonthly)
+        : "—";
+      blocks.push(`
+      <div class="page-section granularity-section" style="page-break-before:always;break-before:page;">
+        ${renderLinkedSectionTitle("Summary", href, `${startDate} &rarr; ${endDate}`)}
+        <div class="granularity-narrative">
+          Across this window, <strong>${fmt(visits)}</strong> cardholder visits produced
+          <strong>${fmt(s.converted || 0)}</strong> conversions and
+          <strong>${fmt(s.cardsUpdated || 0)}</strong> card updates — a
+          <strong>${crDisplay}</strong> conversion rate at
+          <strong>${adoptDisplay}</strong> monthly adoption.
+        </div>
+        <table class="report-table">
+          <tbody>
+            <tr><td style="padding:5px 7px;border-bottom:1px solid #e2e8f0;font-weight:600;">Visits</td><td class="num" style="padding:5px 7px;border-bottom:1px solid #e2e8f0;">${fmt(visits)}</td></tr>
+            <tr><td style="padding:5px 7px;border-bottom:1px solid #e2e8f0;font-weight:600;">Started updating</td><td class="num" style="padding:5px 7px;border-bottom:1px solid #e2e8f0;">${fmt(s.started || 0)}</td></tr>
+            <tr><td style="padding:5px 7px;border-bottom:1px solid #e2e8f0;font-weight:600;">Cardholders who converted</td><td class="num" style="padding:5px 7px;border-bottom:1px solid #e2e8f0;">${fmt(s.converted || 0)}</td></tr>
+            <tr><td style="padding:5px 7px;border-bottom:1px solid #e2e8f0;font-weight:600;">Cards updated</td><td class="num" style="padding:5px 7px;border-bottom:1px solid #e2e8f0;">${fmt(s.cardsUpdated || 0)}</td></tr>
+            <tr><td style="padding:5px 7px;border-bottom:1px solid #e2e8f0;font-weight:600;">Conversion rate</td><td class="num" style="padding:5px 7px;border-bottom:1px solid #e2e8f0;">${crDisplay}</td></tr>
+            <tr><td style="padding:5px 7px;border-bottom:1px solid #e2e8f0;font-weight:600;">Adoption %</td><td class="num" style="padding:5px 7px;border-bottom:1px solid #e2e8f0;">${adoptDisplay}</td></tr>
+            <tr><td style="padding:5px 7px;border-bottom:1px solid #e2e8f0;font-weight:600;">Cardholders reached (monthly)</td><td class="num" style="padding:5px 7px;border-bottom:1px solid #e2e8f0;">${reachingMonthlyDisplay}</td></tr>
+            <tr><td style="padding:5px 7px;border-bottom:1px solid #e2e8f0;font-weight:600;">Avg card updates / month</td><td class="num" style="padding:5px 7px;border-bottom:1px solid #e2e8f0;">${cardsPerMonthDisplay}</td></tr>
+          </tbody>
+        </table>
+      </div>`);
+    }
+
+    // Quarterly: only when range is ≥180 days.
+    if (rangeDays >= 180 && Array.isArray(granularities.quarterly) && granularities.quarterly.length) {
+      blocks.push(renderGranularitySection({
+        title: "Quarterly View",
+        granularityKey: "quarterly",
+        buckets: granularities.quarterly,
+        narrative: "Calendar quarters with at least one day of activity. Use this to frame multi-quarter trend stories.",
+        dashboardUrl: resolvedDashboardUrl,
+        fiKey, from: startDate, to: endDate, breakBefore: true,
+      }));
+    }
+
+    // Monthly: ≥90 days.
+    if (rangeDays >= 90 && Array.isArray(granularities.monthly) && granularities.monthly.length) {
+      blocks.push(renderGranularitySection({
+        title: "Monthly View",
+        granularityKey: "monthly",
+        buckets: granularities.monthly,
+        narrative: "Calendar months within the window. Best lens for campaign-level comparison and month-over-month pacing.",
+        dashboardUrl: resolvedDashboardUrl,
+        fiKey, from: startDate, to: endDate, breakBefore: true,
+      }));
+    }
+
+    // Weekly: ≥28 days.
+    if (rangeDays >= 28 && Array.isArray(granularities.weekly) && granularities.weekly.length) {
+      blocks.push(renderGranularitySection({
+        title: "Weekly View",
+        granularityKey: "weekly",
+        buckets: granularities.weekly,
+        narrative: "Seven-day windows (Sunday &rarr; Saturday). Useful for spotting rhythm changes and campaign bursts.",
+        dashboardUrl: resolvedDashboardUrl,
+        fiKey, from: startDate, to: endDate, breakBefore: true,
+      }));
+    }
+
+    // Daily: only when range is ≤90 days (too noisy beyond that).
+    if (rangeDays <= 90 && Array.isArray(granularities.daily) && granularities.daily.length) {
+      blocks.push(renderGranularitySection({
+        title: "Daily View",
+        granularityKey: "daily",
+        buckets: granularities.daily,
+        narrative: "Day-by-day activity. Use this for incident timelines, outage correlation, and day-of-week effects.",
+        dashboardUrl: resolvedDashboardUrl,
+        fiKey, from: startDate, to: endDate, breakBefore: true,
+      }));
+    }
+
+    granularityHtml = blocks.join("");
   }
 
   // ── QBR Content (when quarters data exists) ──
@@ -482,37 +672,38 @@ export function buildCustomerReportHtml(data) {
       <div style="display:flex;gap:12px;margin-bottom:12px;">
         <div style="flex:1;background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:12px;text-align:center;">
           <div style="font-size:9px;font-weight:600;color:#475569;text-transform:uppercase;">Latest Quarter Visits</div>
+
           <div style="font-size:20px;font-weight:800;color:#0f172a;">${fmt(latestQ.metrics.totalSessions)}</div>
           ${sessChange !== null ? `<div style="font-size:10px;color:${parseFloat(sessChange) >= 0 ? '#16a34a' : '#dc2626'};font-weight:600;">${parseFloat(sessChange) >= 0 ? '&#9650;' : '&#9660;'} ${Math.abs(parseFloat(sessChange))}% QoQ</div>` : ""}
           <div style="margin-top:6px;">${sparkSessions}</div>
         </div>
         <div style="flex:1;background:#eff6ff;border:1px solid #93c5fd;border-radius:8px;padding:12px;text-align:center;">
-          <div style="font-size:9px;font-weight:600;color:#475569;text-transform:uppercase;">Success Rate</div>
+          <div style="font-size:9px;font-weight:600;color:#475569;text-transform:uppercase;">Conversion rate</div>
           <div style="font-size:20px;font-weight:800;color:#2563eb;">${fmtDec(latestQ.metrics.sessionSuccessPct)}%</div>
           ${srChange !== null ? `<div style="font-size:10px;color:${parseFloat(srChange) >= 0 ? '#16a34a' : '#dc2626'};font-weight:600;">${parseFloat(srChange) >= 0 ? '&#9650;' : '&#9660;'} ${Math.abs(parseFloat(srChange))}pp QoQ</div>` : ""}
           <div style="margin-top:6px;">${sparkSuccessRate}</div>
         </div>
         <div style="flex:1;background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:12px;text-align:center;">
-          <div style="font-size:9px;font-weight:600;color:#475569;text-transform:uppercase;">Successful Placements</div>
+          <div style="font-size:9px;font-weight:600;color:#475569;text-transform:uppercase;">Cards Updated</div>
           <div style="font-size:20px;font-weight:800;color:#16a34a;">${fmt(latestQ.metrics.successfulPlacements)}</div>
           ${placeChange !== null ? `<div style="font-size:10px;color:${parseFloat(placeChange) >= 0 ? '#16a34a' : '#dc2626'};font-weight:600;">${parseFloat(placeChange) >= 0 ? '&#9650;' : '&#9660;'} ${Math.abs(parseFloat(placeChange))}% QoQ</div>` : ""}
           <div style="margin-top:6px;">${sparkPlacements}</div>
         </div>
       </div>
-      ${latestQ.tierLabel ? `<div style="font-size:11px;color:#475569;margin-bottom:8px;">Current Performance Tier: <strong style="color:#0f172a;">${latestQ.tierLabel}</strong></div>` : ""}
+      ${latestQ.tierLabel ? `<div style="font-size:11px;color:#475569;margin-bottom:8px;">Current Channel Mix: <strong style="color:#0f172a;">${latestQ.tierLabel}</strong></div>` : ""}
       ${qbrNarrativeBlocks}
       ${qbr.summary ? `<div style="margin-top:10px;padding:12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;font-size:11px;line-height:1.6;color:#334155;">${qbr.summary}</div>` : ""}
     </div>`;
 
     // Trend table
     const metricRows = [
-      { label: "Total Visits", key: "totalSessions", format: "num" },
-      { label: "Successful Cardholders", key: "sessionsWithSuccess", format: "num" },
-      { label: "Success Rate", key: "sessionSuccessPct", format: "pct" },
-      { label: "Successful Placements", key: "successfulPlacements", format: "num" },
-      { label: "GA Launches", key: "gaSelect", format: "num" },
-      { label: "Monthly Reach %", key: "monthlyReachPct", format: "pct" },
-      { label: "Avg Cards/Cardholder", key: "avgCardsPerSession", format: "dec" },
+      { label: "Total visits", key: "totalSessions", format: "num" },
+      { label: "Cardholders who converted", key: "sessionsWithSuccess", format: "num" },
+      { label: "Conversion rate", key: "sessionSuccessPct", format: "pct" },
+      { label: "Cards updated", key: "successfulPlacements", format: "num" },
+      { label: "GA Visits", key: "gaSelect", format: "num" },
+      { label: "Monthly adoption %", key: "monthlyReachPct", format: "pct" },
+      { label: "Avg updates per cardholder", key: "avgCardsPerSession", format: "dec" },
     ];
 
     const qHeaders = quarters.map(q => `<th class="num" style="min-width:80px;">${q.quarter}</th>`).join("");
@@ -553,11 +744,11 @@ export function buildCustomerReportHtml(data) {
           ${sparkSessions}
         </div>
         <div style="flex:1;text-align:center;">
-          <div style="font-size:9px;font-weight:600;color:#475569;text-transform:uppercase;margin-bottom:4px;">Success Rate Trend</div>
+          <div style="font-size:9px;font-weight:600;color:#475569;text-transform:uppercase;margin-bottom:4px;">Conversion Rate Trend</div>
           ${sparkSuccessRate}
         </div>
         <div style="flex:1;text-align:center;">
-          <div style="font-size:9px;font-weight:600;color:#475569;text-transform:uppercase;margin-bottom:4px;">Placements Trend</div>
+          <div style="font-size:9px;font-weight:600;color:#475569;text-transform:uppercase;margin-bottom:4px;">Cards Updated Trend</div>
           ${sparkPlacements}
         </div>
       </div>
@@ -800,6 +991,28 @@ export function buildCustomerReportHtml(data) {
     break-inside: avoid;
   }
 
+  /* ── Section-title deep-link (looks like a heading, is clickable in PDF) ── */
+  .section-title-link {
+    color: inherit;
+    text-decoration: none;
+    display: inline-block;
+    width: 100%;
+  }
+  .section-title-link:hover { text-decoration: none; }
+
+  /* ── Granularity narrative paragraph ── */
+  .granularity-narrative {
+    font-size: 11px;
+    line-height: 1.55;
+    color: #334155;
+    margin: 0 0 8px;
+    padding: 8px 12px;
+    background: #f8fafc;
+    border-left: 3px solid #0ea5e9;
+    border-radius: 4px;
+  }
+  .granularity-narrative strong { color: #0f172a; }
+
   /* ── Dashboard link ── */
   .dashboard-link {
     display: inline-block;
@@ -909,6 +1122,8 @@ export function buildCustomerReportHtml(data) {
     <div class="section-title">Key Metrics</div>
     <div class="stats-grid">${metricsHtml}</div>
     </div>
+
+    ${granularityHtml}
 
     ${funnelHtml}
 
