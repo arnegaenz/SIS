@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Testing Checklists</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="sis-shared.css?v=navfix" />
+  <link rel="stylesheet" href="assets/css/sis.css" />
+  <link rel="stylesheet" href="assets/css/mobile.css" />
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/passcode-gate.js"></script>
+  <script defer src="assets/js/sis.js"></script>
+  <script defer src="assets/js/nav.js"></script>
+  <script type="module" defer src="assets/js/testing-checklists.js?v=1"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function(){
+      if (window.renderHeaderNav && !window.__sisHeaderNav_tc) {
+        window.__sisHeaderNav_tc = true;
+        window.renderHeaderNav({
+          currentId: "testing-checklists",
+          title: "Testing Checklists",
+          subtitle: "Post-deploy verification lists. Checkboxes persist across sessions — Claude Code reads/writes the underlying markdown files."
+        });
+      }
+    });
+  </script>
+  <style>
+    .tc-shell { display: grid; grid-template-columns: 320px 1fr; gap: 16px; padding: 16px 20px 40px; min-height: calc(100vh - 120px); }
+    @media (max-width: 900px) { .tc-shell { grid-template-columns: 1fr; } }
+    .tc-sidebar { background: var(--card, #fff); border: 1px solid var(--border, #e2e8f0); border-radius: 10px; padding: 14px; overflow-y: auto; }
+    .tc-sidebar h2 { font-size: 0.78rem; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted, #64748b); font-weight: 600; margin: 0 0 10px; }
+    .tc-item { display: block; width: 100%; text-align: left; background: transparent; border: 1px solid transparent; border-radius: 8px; padding: 10px 12px; margin-bottom: 6px; cursor: pointer; font-family: inherit; transition: background .15s, border .15s; }
+    .tc-item:hover { background: var(--panel-light, #f8fafc); }
+    .tc-item.active { background: var(--panel-light, #eff6ff); border-color: var(--accent, #63b3ed); }
+    .tc-item-title { font-size: 0.88rem; font-weight: 600; color: var(--text, #0f172a); margin-bottom: 4px; line-height: 1.3; }
+    .tc-item-meta { display: flex; align-items: center; gap: 8px; font-size: 0.72rem; color: var(--muted, #64748b); margin-bottom: 6px; }
+    .tc-badge { padding: 1px 7px; border-radius: 10px; font-size: 0.66rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+    .tc-badge.status-active { background: #dbeafe; color: #1e40af; }
+    .tc-badge.status-archived { background: #e2e8f0; color: #475569; }
+    .tc-badge.status-done { background: #dcfce7; color: #15803d; }
+    .tc-count { margin-left: auto; font-variant-numeric: tabular-nums; font-weight: 600; }
+    .tc-progress { height: 4px; background: #f1f5f9; border-radius: 2px; overflow: hidden; }
+    .tc-progress-fill { height: 100%; background: var(--accent, #63b3ed); transition: width .25s; }
+    .tc-progress-fill.done { background: #22c55e; }
+    .tc-main { background: var(--card, #fff); border: 1px solid var(--border, #e2e8f0); border-radius: 10px; padding: 20px 26px; overflow-y: auto; }
+    .tc-main h1 { font-size: 1.4rem; margin: 0 0 14px; color: var(--text, #0f172a); }
+    .tc-main h2 { font-size: 1.05rem; margin: 22px 0 10px; padding-bottom: 6px; border-bottom: 1px solid var(--border-soft, #f1f5f9); color: var(--text, #0f172a); }
+    .tc-main h3 { font-size: 0.92rem; margin: 16px 0 8px; color: var(--text, #0f172a); }
+    .tc-main p { margin: 4px 0; font-size: 0.9rem; color: var(--text, #334155); line-height: 1.5; }
+    .tc-main code { background: #f1f5f9; padding: 1px 5px; border-radius: 3px; font-size: 0.85em; font-family: ui-monospace, SFMono-Regular, monospace; }
+    .tc-checkbox-row { display: flex; align-items: flex-start; gap: 10px; padding: 7px 10px; margin: 2px 0; border-radius: 6px; cursor: pointer; font-size: 0.92rem; line-height: 1.45; color: var(--text, #0f172a); transition: background .1s; }
+    .tc-checkbox-row:hover { background: var(--panel-light, #f8fafc); }
+    .tc-checkbox-row input[type="checkbox"] { margin-top: 3px; flex: 0 0 auto; width: 15px; height: 15px; accent-color: #22c55e; cursor: pointer; }
+    .tc-checkbox-row.checked span { color: var(--muted, #94a3b8); text-decoration: line-through; }
+    .tc-empty { color: var(--muted, #64748b); font-size: 0.9rem; padding: 20px 0; text-align: center; }
+    .tc-loading { color: var(--muted, #64748b); font-size: 0.85rem; font-style: italic; padding: 8px 0; }
+    .tc-help { font-size: 0.78rem; color: var(--muted, #64748b); margin-top: 16px; padding: 10px 12px; background: var(--panel-light, #f8fafc); border-radius: 6px; border-left: 3px solid var(--accent, #63b3ed); }
+    [data-theme="dark"] .tc-badge.status-active { background: #1e3a8a; color: #bfdbfe; }
+    [data-theme="dark"] .tc-badge.status-done { background: #14532d; color: #bbf7d0; }
+    [data-theme="dark"] .tc-main code { background: #1e293b; }
+  </style>
+</head>
+<body>
+  <div id="sis-header"></div>
+  <div class="tc-shell">
+    <aside class="tc-sidebar">
+      <h2>Checklists</h2>
+      <div id="tc-list"><div class="tc-loading">Loading…</div></div>
+      <div class="tc-help">
+        New checklists are created by Claude Code or by adding <code>.md</code> files to <code>data/checklists/</code> on the server. Check state persists in the markdown itself.
+      </div>
+    </aside>
+    <main class="tc-main">
+      <div id="tc-content"><p class="tc-empty">Select a checklist to begin.</p></div>
+    </main>
+  </div>
+</body>
+</html>

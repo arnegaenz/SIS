@@ -79,7 +79,8 @@
     "activity-log.html":       ["admin"],
     "shared-views.html":       ["admin"],
     "logs.html":               ["admin"],
-    "synthetic-traffic.html":  ["admin"]
+    "synthetic-traffic.html":  ["admin"],
+    "testing-checklists.html": ["admin"]
   };
 
   // ── Landing Pages ────────────────────────────────────────────────

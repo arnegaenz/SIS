@@ -102,6 +102,7 @@ var ITEMS = {
   "shared-views":       { id:"shared-views", label:"Shared Links", href:NAV_PREFIX+"shared-views.html" },
   "logs":               { id:"logs", label:"Server Logs", href:NAV_PREFIX+"logs.html" },
   "synthetic-traffic":  { id:"synthetic-traffic", label:"Synthetic Traffic", href:NAV_PREFIX+"synthetic-traffic.html" },
+  "testing-checklists": { id:"testing-checklists", label:"Testing Checklists", href:NAV_PREFIX+"testing-checklists.html" },
   "monitor":            { id:"monitor", label:"System Monitor", href:NAV_PREFIX+"dashboards/monitor.html" }
 };
 
@@ -116,7 +117,7 @@ var GROUPS = [
   grp("Partner Analytics", ["executive","funnel-customer","portfolio","supported-sites","campaign-builder"]),
   grp("Monitoring", ["operations","monitor","heatmap","watchlist","realtime","troubleshoot","troubleshoot-customer"]),
   grp("Analysis", ["funnel","customer-success","sources","ux-paths","experience","placement-outcomes","conversion-breakdown","fi-api","playbook"]),
-  grp("Admin", ["maintenance","users","activity-log","shared-views","logs","synthetic-traffic"])
+  grp("Admin", ["maintenance","users","activity-log","shared-views","logs","synthetic-traffic","testing-checklists"])
 ];
 
 // ── Per-role nav configs ────────────────────────────────────────────

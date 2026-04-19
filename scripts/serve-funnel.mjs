@@ -7322,6 +7322,108 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
+  // ── Testing Checklists (admin) ──────────────────────────────────────────
+  // Markdown-backed checklists stored at data/checklists/*.md. Files are the
+  // source of truth — toggles rewrite the markdown in place, which means
+  // Claude Code (or any other tool) can read current state by tailing the file.
+  if (pathname === "/api/checklists" && req.method === "GET") {
+    const session = await validateSession(req, queryParams);
+    if (!session) return send(res, 401, { error: "Authentication required" });
+    const role = (session.user.access_level || "").toString().toLowerCase();
+    if (role !== "admin") return send(res, 403, { error: "Admin only" });
+    try {
+      const CHECKLISTS_DIR = path.join(ROOT, "data", "checklists");
+      await fs.mkdir(CHECKLISTS_DIR, { recursive: true });
+      const files = (await fs.readdir(CHECKLISTS_DIR)).filter((f) => f.endsWith(".md")).sort().reverse();
+      const checklists = [];
+      for (const filename of files) {
+        const content = await fs.readFile(path.join(CHECKLISTS_DIR, filename), "utf8");
+        const titleMatch = content.match(/^#\s+(.+)$/m);
+        const statusMatch = content.match(/\*\*Status:\*\*\s*(\w+)/i);
+        const allItems = content.match(/^\s*-\s+\[[ xX]\]/gm) || [];
+        const checkedItems = content.match(/^\s*-\s+\[[xX]\]/gm) || [];
+        checklists.push({
+          filename,
+          title: titleMatch ? titleMatch[1] : filename,
+          status: statusMatch ? statusMatch[1].toLowerCase() : "active",
+          total: allItems.length,
+          checked: checkedItems.length,
+        });
+      }
+      return send(res, 200, { checklists });
+    } catch (err) {
+      console.error("[checklists] list error:", err);
+      return send(res, 500, { error: err.message || "Unable to load checklists" });
+    }
+  }
+
+  if (pathname === "/api/checklists/toggle" && req.method === "POST") {
+    const session = await validateSession(req, queryParams);
+    if (!session) return send(res, 401, { error: "Authentication required" });
+    const role = (session.user.access_level || "").toString().toLowerCase();
+    if (role !== "admin") return send(res, 403, { error: "Admin only" });
+    try {
+      const rawBody = await readRequestBody(req);
+      const body = rawBody ? JSON.parse(rawBody) : {};
+      const { filename, itemIndex, currentChecked } = body;
+      if (!filename || typeof itemIndex !== "number") {
+        return send(res, 400, { error: "filename and itemIndex required" });
+      }
+      if (!/^[a-zA-Z0-9._-]+\.md$/.test(filename)) {
+        return send(res, 400, { error: "Invalid filename" });
+      }
+      const filePath = path.join(ROOT, "data", "checklists", filename);
+      const content = await fs.readFile(filePath, "utf8");
+      const lines = content.split("\n");
+      let counter = 0;
+      let toggled = false;
+      for (let i = 0; i < lines.length; i++) {
+        const m = lines[i].match(/^(\s*-\s+\[)([ xX])(\]\s*)(.*)$/);
+        if (!m) continue;
+        if (counter === itemIndex) {
+          const isChecked = m[2].toLowerCase() === "x";
+          if (isChecked !== !!currentChecked) {
+            return send(res, 409, { error: "State mismatch — page is stale", actualChecked: isChecked });
+          }
+          lines[i] = m[1] + (isChecked ? " " : "x") + m[3] + m[4];
+          toggled = true;
+          break;
+        }
+        counter++;
+      }
+      if (!toggled) return send(res, 404, { error: "Item not found" });
+      const newContent = lines.join("\n");
+      await fs.writeFile(filePath, newContent);
+      const total = (newContent.match(/^\s*-\s+\[[ xX]\]/gm) || []).length;
+      const checkedCount = (newContent.match(/^\s*-\s+\[[xX]\]/gm) || []).length;
+      return send(res, 200, { ok: true, total, checked: checkedCount });
+    } catch (err) {
+      if (err.code === "ENOENT") return send(res, 404, { error: "Checklist not found" });
+      console.error("[checklists] toggle error:", err);
+      return send(res, 500, { error: err.message || "Unable to toggle" });
+    }
+  }
+
+  if (pathname.startsWith("/api/checklists/") && req.method === "GET") {
+    const session = await validateSession(req, queryParams);
+    if (!session) return send(res, 401, { error: "Authentication required" });
+    const role = (session.user.access_level || "").toString().toLowerCase();
+    if (role !== "admin") return send(res, 403, { error: "Admin only" });
+    try {
+      const filename = decodeURIComponent(pathname.slice("/api/checklists/".length));
+      if (!/^[a-zA-Z0-9._-]+\.md$/.test(filename)) {
+        return send(res, 400, { error: "Invalid filename" });
+      }
+      const filePath = path.join(ROOT, "data", "checklists", filename);
+      const content = await fs.readFile(filePath, "utf8");
+      return send(res, 200, { filename, content });
+    } catch (err) {
+      if (err.code === "ENOENT") return send(res, 404, { error: "Checklist not found" });
+      console.error("[checklists] get error:", err);
+      return send(res, 500, { error: err.message || "Unable to load checklist" });
+    }
+  }
+
   if (pathname === "/api/metrics/ops") {
     // Validate session
     const session = await validateSession(req, queryParams);
