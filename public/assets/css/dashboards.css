@@ -4020,7 +4020,21 @@ body.kiosk-mode .traffic-tile.status-dark {
 }
 
 .kiosk-mode .monitor-map-container {
-  padding: 24px;
+  padding: 8px;
+}
+
+/* Stretch instance grid to fill left column so the bottom row aligns with
+   the System Totals strip in the right column. Map flexes to fill the
+   remaining space in the right column; totals anchor at the bottom. */
+.kiosk-mode .monitor-instance-grid {
+  flex: 1;
+  grid-auto-rows: 1fr;
+  min-height: 0;
+}
+
+.kiosk-mode .monitor-top-right .monitor-totals-strip {
+  min-height: 52px;
+  padding-bottom: 4px;
 }
 
 .kiosk-mode .monitor-map-international {
