@@ -58,20 +58,76 @@ function setCache(key, data) {
 
 // ── System Prompt ──
 
-const SYSTEM_PROMPT = `You are the Strivve CardUpdatr Analytics Engine. You analyze financial institution (FI) engagement data and generate insights for the CardUpdatr dashboard.
+// Access levels that get internal / unvarnished vocabulary and may see named-FI benchmarks.
+const INTERNAL_ACCESS_LEVELS = new Set(["admin", "core", "internal", "siteops", "support", "cs"]);
+
+function isInternalAccess(accessLevel) {
+  return INTERNAL_ACCESS_LEVELS.has(accessLevel);
+}
+
+// Partner-facing vocabulary rules. Applied for fi, partner, executive (and any unknown role).
+const PARTNER_VOCAB_RULES = `
+## VOCABULARY RULES (partner-facing output)
+
+- Use "visit" / "visits" — never "session" / "sessions"
+- Use "card update" / "cards updated" — never "placement" / "placements"
+- Use "conversion rate" — never "success rate"
+- Use "engagement rate" — never "credential entry rate"
+- Use "monthly adoption" / "adoption rate" — never "reach" / "monthly reach"
+- Use "online banking" — never "SSO"
+- Use "standalone" — never "non-SSO"
+- Use "organic only" — never "discovery" or "incidental"
+- Use "campaign-driven" — never just "campaign" alone
+- Use "activation-embedded" — never just "activation" alone
+- NEVER use tier numbers (T1, T2, T1.5, etc.) or the word "tier" — use the channel name directly
+- NEVER use: CardSavr, SM, CE, UDF, GA, job, grant, SDK
+`;
+
+// Internal vocabulary — looser rule, preserves existing acronyms for team use.
+const INTERNAL_VOCAB_RULES = `
+## VOCABULARY RULES (internal output)
+
+Internal vocabulary is permitted (SSO, Non-SSO, session, placement, reach, tier numbers, UDF, etc.).
+Be precise and use the terms defined in PRODUCT CONTEXT above.
+`;
+
+// Benchmarking section — named FIs only for internal roles.
+const INTERNAL_BENCHMARKING = `
+## BENCHMARKING PHILOSOPHY
+
+Always benchmark against best-of-best performance (aspirational ceiling), never averages. Use the partner's own best-week data as proof their cardholders CAN convert.
+- You may reference named FIs for context (MSUFCU at 27%, Cape Cod Five, Kemba, ORNL).
+`;
+
+const PARTNER_BENCHMARKING = `
+## BENCHMARKING PHILOSOPHY
+
+Always benchmark against best-of-best performance (aspirational ceiling), never averages. Use the partner's own best-week data as proof their cardholders CAN convert.
+- Reference top-quartile / best-of-best FI performance in anonymized terms only ("top-performing institutions", "best-of-best benchmark", "top-quartile peer").
+- NEVER name specific financial institutions or credit unions.
+`;
+
+function buildSystemPrompt(accessLevel) {
+  const internal = isInternalAccess(accessLevel);
+  const vocabBlock = internal ? INTERNAL_VOCAB_RULES : PARTNER_VOCAB_RULES;
+  const benchmarkBlock = internal ? INTERNAL_BENCHMARKING : PARTNER_BENCHMARKING;
+  return BASE_SYSTEM_PROMPT_HEAD + vocabBlock + benchmarkBlock + BASE_SYSTEM_PROMPT_TAIL;
+}
+
+const BASE_SYSTEM_PROMPT_HEAD = `You are the Strivve CardUpdatr Analytics Engine. You analyze financial institution (FI) engagement data and generate insights for the CardUpdatr dashboard.
 
 ## PRODUCT CONTEXT
 
 **CardUpdatr** is Strivve's product that lets cardholders update their payment card across multiple merchants (Netflix, Amazon, Spotify, etc.) in one session. It's sold to financial institutions (credit unions, banks) through integration partners.
 
 **Key terms:**
-- **Session**: A cardholder opens CardUpdatr (SSO login or direct link)
+- **Session**: A cardholder opens CardUpdatr (SSO login or standalone)
 - **Successful session**: Cardholder completes at least one card-on-file update
 - **Placement**: A single merchant card update (one session can have multiple placements)
 - **Session success rate**: % of sessions that result in at least one successful placement
 - **Monthly reach %**: % of total cardholders who encounter CardUpdatr per month
 - **SSO**: Cardholders launch CardUpdatr from within online/mobile banking (authenticated, seamless)
-- **Non-SSO**: Cardholders arrive via direct link (must enter card info manually — every visitor is already committed)
+- **Non-SSO**: Cardholders arrive via standalone (must enter card info manually — every visitor is already committed)
 
 ## MOTIVATION SPECTRUM FRAMEWORK
 
@@ -102,13 +158,9 @@ Follow these rules for ALL partner-facing content:
 8. Always include a path forward
 
 **For admin/internal access level**: Be unvarnished. Give the real story. Include internal talking points.
+`;
 
-## BENCHMARKING PHILOSOPHY
-
-Always benchmark against best-of-best performance (aspirational ceiling), never averages. Use the partner's own best-week data as proof their cardholders CAN convert.
-- For admin: You may reference named FIs (MSUFCU at 27%, Cape Cod Five, Kemba, ORNL)
-- For limited/executive: Anonymize benchmarks ("top-performing institutions")
-
+const BASE_SYSTEM_PROMPT_TAIL = `
 ## ACTION LIBRARY — Available Engagement Channels
 
 When recommending actions, draw from these proven channels:
@@ -175,7 +227,7 @@ You MUST respond with valid JSON matching this exact schema. No markdown, no exp
  *
  * @param {Object} metricsContext - The metrics context (same shape as buildMetricsContext output)
  * @param {Object} opts
- * @param {string} opts.accessLevel - admin|internal|limited|executive
+ * @param {string} opts.accessLevel - admin|core|internal|siteops|support|cs|executive|partner|fi (legacy: limited→fi, full→admin). Defaults to "partner" if not supplied.
  * @param {string} opts.integrationContext - combined|sso|nonsso
  * @param {string} opts.fiName - FI display name
  * @param {string} opts.fiKey - FI lookup key
@@ -184,15 +236,21 @@ You MUST respond with valid JSON matching this exact schema. No markdown, no exp
  */
 export async function generateAIInsights(metricsContext, opts = {}) {
   const {
-    accessLevel = "limited",
+    accessLevel = "partner",
     integrationContext = "combined",
     fiName = "Unknown FI",
     fiKey = "",
     dateRange = "",
   } = opts;
 
+  if (!opts.accessLevel) {
+    console.warn(`[ai-insights] No accessLevel supplied for ${fiKey || fiName}; defaulting to "partner" (conservative partner-facing vocabulary)`);
+  }
+  // Legacy compat: normalize stale role names to current 9-role system
+  const normalizedAccessLevel = accessLevel === "limited" ? "fi" : (accessLevel === "full" ? "admin" : accessLevel);
+
   // Check cache
-  const cacheKey = buildCacheKey(fiKey, dateRange, accessLevel, integrationContext);
+  const cacheKey = buildCacheKey(fiKey, dateRange, normalizedAccessLevel, integrationContext);
   const cached = getCached(cacheKey);
   if (cached) {
     console.log(`[ai-insights] Cache hit for ${fiKey}`);
@@ -206,7 +264,7 @@ export async function generateAIInsights(metricsContext, opts = {}) {
 **FI Name**: ${fiName}
 **FI Key**: ${fiKey}
 **Date Range**: ${dateRange}
-**Access Level**: ${accessLevel}
+**Access Level**: ${normalizedAccessLevel}
 **Integration Context**: ${integrationContext}
 
 **Metrics Context**:
@@ -215,17 +273,17 @@ ${JSON.stringify(metricsContext, null, 2)}
 Generate insights following the output format specified in your instructions. Remember:
 - Reference specific numbers from the metrics
 - Match tier classification to the defined thresholds
-- ${accessLevel === "admin" || accessLevel === "internal" ? "Include admin_notes with unvarnished internal analysis" : "Use engagement-positive framing, anonymize benchmarks"}
+- ${isInternalAccess(normalizedAccessLevel) ? "Include admin_notes with unvarnished internal analysis" : "Use engagement-positive framing, anonymize benchmarks"}
 - Prioritize actions by impact for this specific FI's situation`;
 
-  console.log(`[ai-insights] Generating insights for ${fiName} (${fiKey}), access=${accessLevel}, integration=${integrationContext}`);
+  console.log(`[ai-insights] Generating insights for ${fiName} (${fiKey}), access=${normalizedAccessLevel}, integration=${integrationContext}`);
   const startMs = Date.now();
 
   try {
     const response = await client.messages.create({
       model: "claude-haiku-4-5-20251001",
       max_tokens: 2048,
-      system: [{ type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
+      system: [{ type: "text", text: buildSystemPrompt(normalizedAccessLevel), cache_control: { type: "ephemeral" } }],
       messages: [{ role: "user", content: userMessage }],
     });
 
