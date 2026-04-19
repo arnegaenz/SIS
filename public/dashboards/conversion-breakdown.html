@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Conversion Breakdown</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <link rel="stylesheet" href="../sis-shared.css?v=navfix" />
+  <link rel="stylesheet" href="../assets/css/sis.css" />
+  <link rel="stylesheet" href="../assets/css/mobile.css" />
+  <link rel="stylesheet" href="../assets/css/filters.css?v=shared" />
+  <script src="../assets/js/config.js"></script>
+  <script src="../assets/js/passcode-gate.js"></script>
+  <script defer src="../assets/js/sis.js"></script>
+  <script defer src="../assets/js/nav.js"></script>
+  <script defer src="../assets/js/filters.js?v=shared"></script>
+  <script type="module" defer src="../assets/js/conversion-breakdown.js?v=1"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function(){
+      if (window.renderHeaderNav && !window.__sisHeaderNav_cb) {
+        window.__sisHeaderNav_cb = true;
+        window.renderHeaderNav({
+          currentId: "conversion-breakdown",
+          title: "Conversion Breakdown",
+          subtitle: "Six conversion points by source category, split by team ownership: Motivation (CS), Experience (UX), Execution (Eng)."
+        });
+      }
+    });
+  </script>
+  <style>
+    .cb-shell { padding: 16px 20px 40px; }
+    .cb-filter-wrap { margin-bottom: 12px; }
+    .cb-date-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; margin-top: 10px; padding: 10px 12px; background: var(--card, #fff); border: 1px solid var(--border, #e2e8f0); border-radius: 10px; }
+    .cb-date-field { display: flex; flex-direction: column; gap: 4px; min-width: 140px; }
+    .cb-date-field label { font-size: 0.72rem; color: var(--muted, #64748b); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+    .cb-date-field .form-select, .cb-date-field .form-input { padding: 0 10px; border: 1px solid var(--border, #cbd5e1); border-radius: 6px; font-size: 0.9rem; background: #fff; height: 36px; box-sizing: border-box; line-height: 1; font-family: inherit; -webkit-appearance: none; appearance: none; }
+    .cb-date-field .form-select { padding-right: 26px; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path fill='%2364748b' d='M0 0l5 6 5-6z'/></svg>"); background-repeat: no-repeat; background-position: right 8px center; }
+    .cb-tests-toggle { display: flex; align-items: center; gap: 6px; font-size: 0.85rem; color: var(--muted, #475569); user-select: none; margin-left: auto; }
+    .cb-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; margin-bottom: 18px; }
+    .cb-kpi { background: var(--card, #fff); border: 1px solid var(--border, #e2e8f0); border-radius: 10px; padding: 12px 14px; }
+    .cb-kpi h3 { font-size: 0.72rem; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted, #64748b); margin: 0 0 6px; font-weight: 600; }
+    .cb-kpi .v { font-size: 1.45rem; font-weight: 700; color: var(--text, #0f172a); }
+    .cb-kpi .sub { font-size: 0.78rem; color: var(--muted, #64748b); margin-top: 2px; }
+    .cb-section-title { font-size: 1.05rem; font-weight: 700; margin: 20px 0 10px; color: var(--text, #0f172a); display: flex; align-items: center; gap: 10px; }
+    .cb-section-title .pill { font-size: 0.7rem; padding: 2px 8px; border-radius: 999px; background: var(--accent, #2563eb); color: #fff; font-weight: 600; letter-spacing: 0.04em; }
+    .cb-section-title.motivation .pill { background: #0ea5e9; }
+    .cb-section-title.experience .pill { background: #8b5cf6; }
+    .cb-section-title.execution .pill { background: #10b981; }
+    .cb-card { background: var(--card, #fff); border: 1px solid var(--border, #e2e8f0); border-radius: 12px; padding: 14px 16px; margin-bottom: 14px; }
+    .cb-card h4 { margin: 0 0 10px; font-size: 0.92rem; color: var(--text, #0f172a); font-weight: 600; }
+    .cb-table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+    .cb-table th, .cb-table td { text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--border-soft, #f1f5f9); }
+    .cb-table th { color: var(--muted, #64748b); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; font-size: 0.72rem; }
+    .cb-table td.num, .cb-table th.num { text-align: right; font-variant-numeric: tabular-nums; }
+    .cb-stacked-bar { display: flex; width: 100%; height: 22px; border-radius: 6px; overflow: hidden; background: #f1f5f9; margin: 6px 0; }
+    .cb-stacked-seg { display: flex; align-items: center; justify-content: center; color: #fff; font-size: 0.72rem; font-weight: 600; min-width: 0; }
+    .cb-legend { display: flex; flex-wrap: wrap; gap: 10px; font-size: 0.78rem; color: var(--muted, #64748b); margin-top: 4px; }
+    .cb-legend-dot { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: middle; }
+    .cb-windows-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    .cb-windows-table th, .cb-windows-table td { padding: 6px 10px; border-bottom: 1px solid var(--border-soft, #f1f5f9); }
+    .cb-windows-table th { color: var(--muted, #64748b); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; font-size: 0.7rem; text-align: center; }
+    .cb-windows-table td.step { text-align: left; font-weight: 600; color: var(--text, #0f172a); }
+    .cb-windows-table td.num { text-align: center; font-variant-numeric: tabular-nums; }
+    .cb-accordion-toggle { background: none; border: none; color: var(--accent, #2563eb); cursor: pointer; font-size: 0.78rem; padding: 2px 4px; }
+    .cb-accordion-toggle:hover { text-decoration: underline; }
+    .cb-accordion-body { margin: 4px 0 8px 18px; padding-left: 10px; border-left: 2px solid var(--border-soft, #f1f5f9); }
+    .cb-lists-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 12px; }
+    .cb-band-bands { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+    @media (max-width: 900px) { .cb-band-bands { grid-template-columns: 1fr; } }
+    .cb-empty { color: var(--muted, #64748b); font-size: 0.85rem; padding: 8px 0; }
+    .cb-muted { color: var(--muted, #64748b); font-size: 0.78rem; }
+    .cb-cat-row { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+    .cb-cat-swatch { width: 10px; height: 10px; border-radius: 2px; flex: 0 0 auto; }
+    .cb-cat-label { width: 120px; font-weight: 600; font-size: 0.85rem; }
+    .cb-cat-bar { flex: 1; height: 14px; border-radius: 4px; background: #f1f5f9; overflow: hidden; position: relative; }
+    .cb-cat-bar-fill { height: 100%; }
+    .cb-cat-val { width: 120px; text-align: right; font-variant-numeric: tabular-nums; font-size: 0.82rem; color: var(--muted, #64748b); }
+  </style>
+</head>
+<body>
+  <div id="sis-header"></div>
+  <div class="cb-shell">
+    <div class="cb-filter-wrap">
+      <div id="filter-bar"></div>
+      <div class="cb-date-row">
+        <div class="cb-date-field">
+          <label for="cbDatePreset">Range</label>
+          <select id="cbDatePreset" class="form-select">
+            <option value="last30" selected>Last 30 days</option>
+            <option value="last60">Last 60 days</option>
+            <option value="last90">Last 90 days</option>
+            <option value="last180">Last 6 months</option>
+            <option value="last270">Last 9 months</option>
+            <option value="last365">Last 12 months</option>
+            <option value="ytd">Year to date</option>
+            <option value="">Custom</option>
+          </select>
+        </div>
+        <div class="cb-date-field">
+          <label for="cbStartDate">Start</label>
+          <input id="cbStartDate" type="date" class="form-input" />
+        </div>
+        <div class="cb-date-field">
+          <label for="cbEndDate">End</label>
+          <input id="cbEndDate" type="date" class="form-input" />
+        </div>
+        <label class="cb-tests-toggle">
+          <input type="checkbox" id="cbIncludeTests" />
+          Include test instances
+        </label>
+      </div>
+    </div>
+
+    <section class="cb-kpis" id="cbKpis">
+      <div class="cb-kpi"><h3>Source Coverage</h3><div class="v" id="kpiCoverage">-</div><div class="sub" id="kpiCoverageSub">&nbsp;</div></div>
+      <div class="cb-kpi"><h3>Sessions</h3><div class="v" id="kpiSessions">-</div><div class="sub" id="kpiSessionsSub">&nbsp;</div></div>
+      <div class="cb-kpi"><h3>Overall Conv</h3><div class="v" id="kpiOverall">-</div><div class="sub" id="kpiOverallSub">placement / sessions</div></div>
+      <div class="cb-kpi"><h3>Jobs / Session</h3><div class="v" id="kpiJobsPerSess">-</div><div class="sub" id="kpiJobsPerSessSub">avg at Step 4+</div></div>
+    </section>
+
+    <div class="cb-section-title">
+      <span>Time-window comparison</span>
+      <span class="pill">TRENDS</span>
+      <span class="cb-muted">6 conversion steps x 6 windows (pure trend, no source split)</span>
+    </div>
+    <div class="cb-card">
+      <table class="cb-windows-table" id="cbWindowsTable">
+        <thead>
+          <tr>
+            <th style="text-align:left;">Step</th>
+            <th>30d</th>
+            <th>60d</th>
+            <th>90d</th>
+            <th>6mo</th>
+            <th>9mo</th>
+            <th>12mo</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div class="cb-section-title motivation">
+      <span>Motivation</span>
+      <span class="pill">CS</span>
+      <span class="cb-muted">Step 1: Cardholders - Sees CardUpdatr. Lever: shift traffic toward activation / campaign.</span>
+    </div>
+    <div class="cb-card" id="cbMotivation"></div>
+
+    <div class="cb-section-title experience">
+      <span>Experience</span>
+      <span class="pill">UX</span>
+      <span class="cb-muted">Steps 2-4. Lever: improve same-source conversion.</span>
+    </div>
+    <div class="cb-card" id="cbExperience"></div>
+
+    <div class="cb-section-title execution">
+      <span>Execution</span>
+      <span class="pill">ENG</span>
+      <span class="cb-muted">Steps 5-6. Bar is 100%; anything less is a bug/outage.</span>
+    </div>
+    <div class="cb-card" id="cbExecution"></div>
+
+    <div class="cb-section-title">
+      <span>Source Adoption Scoreboard</span>
+    </div>
+    <div class="cb-card">
+      <div class="cb-lists-grid">
+        <div>
+          <h4>CS Retrofit (first-seen before 2026-03-01)</h4>
+          <div id="cbListRetrofit"></div>
+        </div>
+        <div>
+          <h4>Integration Escalation (first-seen on/after 2026-03-01)</h4>
+          <div id="cbListEscalation"></div>
+        </div>
+        <div>
+          <h4>Regressions (was tagged, stopped)</h4>
+          <div id="cbListRegressions"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

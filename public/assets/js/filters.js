@@ -1340,6 +1340,10 @@
         window.applyFilters();
         return;
       }
+      if (pageId === "conversion-breakdown" && typeof window.applyFilters === "function") {
+        window.applyFilters();
+        return;
+      }
       if (pageId === "troubleshoot") {
         filterDom(state, ".session-card[data-fi]");
       } else {
